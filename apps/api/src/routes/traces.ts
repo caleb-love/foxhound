@@ -50,6 +50,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
    * POST /v1/traces
    * Accept a trace payload from the SDK and persist it asynchronously.
    * Returns 202 immediately to avoid blocking the caller's hot path.
+   * Scoped to the authenticated org (from API key middleware).
    */
   fastify.post("/v1/traces", async (request, reply) => {
     const result = IngestTraceSchema.safeParse(request.body);
@@ -58,12 +59,12 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const trace = result.data;
+    const orgId = request.orgId;
 
-    // Respond 202 immediately; persist in the next event loop tick
     reply.code(202).send({ accepted: true, id: trace.id });
 
     setImmediate(() => {
-      insertTrace(trace).catch((err: unknown) => {
+      insertTrace(trace, orgId).catch((err: unknown) => {
         fastify.log.error({ err, traceId: trace.id }, "Failed to persist trace");
       });
     });
@@ -71,11 +72,11 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
 
   /**
    * GET /v1/traces/:id
-   * Fetch a single trace by ID including all spans.
+   * Fetch a single trace by ID — scoped to the authenticated org.
    */
   fastify.get("/v1/traces/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const trace = await getTrace(id);
+    const trace = await getTrace(id, request.orgId);
     if (!trace) {
       return reply.code(404).send({ error: "Not Found" });
     }
@@ -85,11 +86,11 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
   /**
    * GET /v1/traces/:traceId/spans/:spanId/replay
    * Reconstruct the full agent context at the moment a specific span began.
-   * Returns all spans up to that decision point, categorised by kind.
+   * Scoped to the authenticated org.
    */
   fastify.get("/v1/traces/:traceId/spans/:spanId/replay", async (request, reply) => {
     const { traceId, spanId } = request.params as { traceId: string; spanId: string };
-    const context = await getReplayContext(traceId, spanId);
+    const context = await getReplayContext(traceId, spanId, request.orgId);
     if (!context) {
       return reply.code(404).send({ error: "Not Found" });
     }
@@ -98,8 +99,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
 
   /**
    * GET /v1/runs/diff
-   * Side-by-side diff of two agent runs (traces), aligned by span sequence.
-   * Returns divergence markers and a human-readable summary.
+   * Side-by-side diff of two agent runs — scoped to the authenticated org.
    */
   fastify.get("/v1/runs/diff", async (request, reply) => {
     const result = DiffQuerySchema.safeParse(request.query);
@@ -108,7 +108,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const { runA, runB } = result.data;
-    const diff = await diffTraces(runA, runB);
+    const diff = await diffTraces(runA, runB, request.orgId);
     if (!diff) {
       return reply.code(404).send({ error: "One or both runs not found" });
     }
@@ -118,7 +118,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
 
   /**
    * GET /v1/traces
-   * Query persisted traces with optional filters and pagination.
+   * Query persisted traces with optional filters — scoped to the authenticated org.
    */
   fastify.get("/v1/traces", async (request, reply) => {
     const result = QueryTracesSchema.safeParse(request.query);
@@ -128,7 +128,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
 
     const { agentId, sessionId, from, to, page, limit } = result.data;
 
-    const rows = await queryTraces({ agentId, sessionId, from, to, page, limit });
+    const rows = await queryTraces({ orgId: request.orgId, agentId, sessionId, from, to, page, limit });
 
     return reply.code(200).send({
       data: rows,

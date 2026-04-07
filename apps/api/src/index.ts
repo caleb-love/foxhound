@@ -3,6 +3,8 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { registerAuth } from "./plugins/auth.js";
 import { tracesRoutes } from "./routes/traces.js";
+import { authRoutes } from "./routes/auth.js";
+import { apiKeysRoutes } from "./routes/apiKeys.js";
 
 const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -11,13 +13,15 @@ const app = Fastify({
 await app.register(cors);
 await app.register(helmet);
 
-// Global API key auth (all routes except /health)
+// Register auth plugin (JWT + API key middleware)
 registerAuth(app);
 
 app.get("/health", async () => {
   return { status: "ok", version: "0.0.1" };
 });
 
+await app.register(authRoutes);
+await app.register(apiKeysRoutes);
 await app.register(tracesRoutes);
 
 const port = Number(process.env["PORT"] ?? 3001);
