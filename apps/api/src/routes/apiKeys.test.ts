@@ -28,7 +28,9 @@ async function getJwt(app: ReturnType<typeof buildApp>, payload: JwtPayload): Pr
 }
 
 describe("POST /v1/api-keys", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without JWT", async () => {
     const app = buildApp();
@@ -67,7 +69,9 @@ describe("POST /v1/api-keys", () => {
 });
 
 describe("GET /v1/api-keys", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without JWT", async () => {
     const app = buildApp();
@@ -124,7 +128,9 @@ describe("GET /v1/api-keys", () => {
 });
 
 describe("DELETE /v1/api-keys/:id", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 404 for key not in org", async () => {
     vi.mocked(db.revokeApiKey).mockResolvedValue(false);

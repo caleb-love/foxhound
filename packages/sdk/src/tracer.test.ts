@@ -175,7 +175,8 @@ describe("ActiveSpan.setAttribute()", () => {
 
   it("allows chaining multiple setAttribute calls", async () => {
     const { tracer, onFlush } = makeTracer();
-    tracer.startSpan({ name: "s", kind: "agent_step" })
+    tracer
+      .startSpan({ name: "s", kind: "agent_step" })
       .setAttribute("a", 1)
       .setAttribute("b", "two")
       .setAttribute("c", false);
@@ -233,9 +234,7 @@ describe("ActiveSpan.addEvent()", () => {
 
   it("accumulates multiple events in order", async () => {
     const { tracer, onFlush } = makeTracer();
-    tracer.startSpan({ name: "s", kind: "agent_step" })
-      .addEvent("first")
-      .addEvent("second");
+    tracer.startSpan({ name: "s", kind: "agent_step" }).addEvent("first").addEvent("second");
     await tracer.flush();
     const events = onFlush.mock.calls[0]![0]!.spans[0].events;
     expect(events).toHaveLength(2);
@@ -299,7 +298,11 @@ describe("Nested spans", () => {
   it("deeply nested span chain is preserved", async () => {
     const { tracer, onFlush } = makeTracer();
     const grandparent = tracer.startSpan({ name: "gp", kind: "workflow" });
-    const parent = tracer.startSpan({ name: "p", kind: "agent_step", parentSpanId: grandparent.spanId });
+    const parent = tracer.startSpan({
+      name: "p",
+      kind: "agent_step",
+      parentSpanId: grandparent.spanId,
+    });
     tracer.startSpan({ name: "child", kind: "tool_call", parentSpanId: parent.spanId });
     await tracer.flush();
 

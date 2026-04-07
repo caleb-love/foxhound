@@ -8,9 +8,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: "32px 24px", color: "var(--text-muted)", fontSize: 13 }}>
-        Loading…
-      </div>
+      <div style={{ padding: "32px 24px", color: "var(--text-muted)", fontSize: 13 }}>Loading…</div>
     );
   }
 
@@ -31,17 +29,13 @@ export default function SettingsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Organization</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", gap: 16 }}>
-            <span
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}
-            >
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}>
               Name
             </span>
             <span style={{ fontSize: 13, color: "var(--text)" }}>{user?.orgName ?? "—"}</span>
           </div>
           <div style={{ display: "flex", gap: 16 }}>
-            <span
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}
-            >
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}>
               Slug
             </span>
             <span
@@ -55,9 +49,7 @@ export default function SettingsPage() {
             </span>
           </div>
           <div style={{ display: "flex", gap: 16 }}>
-            <span
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}
-            >
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", width: 80 }}>
               User
             </span>
             <span style={{ fontSize: 13, color: "var(--text)" }}>{user?.email ?? "—"}</span>

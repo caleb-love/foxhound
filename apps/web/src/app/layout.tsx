@@ -5,7 +5,8 @@ import { NavClient } from "@/components/NavClient";
 
 export const metadata: Metadata = {
   title: "Foxhound — AI Agent Observability",
-  description: "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
+  description:
+    "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -16,7 +17,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Foxhound — AI Agent Observability",
-    description: "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
+    description:
+      "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
     type: "website",
   },

@@ -58,9 +58,7 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByText("user:alice@example.com")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("user:alice@example.com")).toBeInTheDocument());
   });
 
   it("shows no user when getMe rejects", async () => {
@@ -72,13 +70,13 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByText("no user")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("no user")).toBeInTheDocument());
   });
 
   it("calls logout lib and redirects on logout()", async () => {
-    vi.mocked(authLib.getMe).mockResolvedValue(null as unknown as Awaited<ReturnType<typeof authLib.getMe>>);
+    vi.mocked(authLib.getMe).mockResolvedValue(
+      null as unknown as Awaited<ReturnType<typeof authLib.getMe>>,
+    );
     vi.mocked(authLib.logout).mockResolvedValue(undefined);
 
     render(

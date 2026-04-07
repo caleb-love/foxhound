@@ -73,7 +73,9 @@ export function ApiKeyManager() {
 
       {/* Create form */}
       <form
-        onSubmit={(e) => { void handleCreate(e); }}
+        onSubmit={(e) => {
+          void handleCreate(e);
+        }}
         style={{
           display: "flex",
           gap: 8,
@@ -292,7 +294,9 @@ export function ApiKeyManager() {
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right" }}>
                     <button
-                      onClick={() => { void handleRevoke(key.id); }}
+                      onClick={() => {
+                        void handleRevoke(key.id);
+                      }}
                       style={{
                         fontSize: 12,
                         color: "var(--red)",

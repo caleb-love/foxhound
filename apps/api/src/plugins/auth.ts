@@ -31,11 +31,7 @@ const PUBLIC_PATHS = new Set([
 
 /** Routes that require JWT auth instead of API key auth. */
 function isJwtRoute(url: string): boolean {
-  return (
-    url === "/v1/auth/me" ||
-    url.startsWith("/v1/api-keys") ||
-    url.startsWith("/v1/billing")
-  );
+  return url === "/v1/auth/me" || url.startsWith("/v1/api-keys") || url.startsWith("/v1/billing");
 }
 
 export function registerAuth(fastify: FastifyInstance): void {
@@ -57,9 +53,7 @@ export function registerAuth(fastify: FastifyInstance): void {
         request.orgId = payload.orgId;
         request.userId = payload.userId;
       } catch {
-        return reply
-          .code(401)
-          .send({ error: "Unauthorized", message: "Invalid or expired token" });
+        return reply.code(401).send({ error: "Unauthorized", message: "Invalid or expired token" });
       }
     },
   );

@@ -58,13 +58,9 @@ export function billingWebhookRoutes(fastify: FastifyInstance): void {
   // Stripe signature verification. Fastify plugin encapsulation keeps this
   // isolated to webhook routes only.
   fastify.removeContentTypeParser("application/json");
-  fastify.addContentTypeParser(
-    "application/json",
-    { parseAs: "buffer" },
-    (_req, body, done) => {
-      done(null, body as Buffer);
-    },
-  );
+  fastify.addContentTypeParser("application/json", { parseAs: "buffer" }, (_req, body, done) => {
+    done(null, body as Buffer);
+  });
 
   /**
    * POST /v1/billing/webhooks

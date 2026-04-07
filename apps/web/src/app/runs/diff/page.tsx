@@ -130,7 +130,12 @@ function RunSelectionForm({ runA, runB }: { runA: string; runB: string }) {
       <div style={{ marginBottom: 28 }}>
         <a
           href="/traces"
-          style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-block", marginBottom: 16 }}
+          style={{
+            fontSize: 12,
+            color: "var(--text-muted)",
+            display: "inline-block",
+            marginBottom: 16,
+          }}
         >
           ← Traces
         </a>
