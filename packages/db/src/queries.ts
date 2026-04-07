@@ -1,6 +1,6 @@
 import { db } from "./client.js";
-import { traces, users, organizations, memberships, apiKeys } from "./schema.js";
-import { eq, and, gte, lte, desc, isNull } from "drizzle-orm";
+import { traces, users, organizations, memberships, apiKeys, usageRecords } from "./schema.js";
+import { eq, and, gte, lte, desc, isNull, sql } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -41,6 +41,57 @@ export function hashApiKey(key: string): string {
 export async function getOrganizationById(id: string) {
   const rows = await db.select().from(organizations).where(eq(organizations.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+export async function getOrganizationByStripeCustomerId(stripeCustomerId: string) {
+  const rows = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.stripeCustomerId, stripeCustomerId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateOrgStripeCustomerId(orgId: string, stripeCustomerId: string) {
+  const rows = await db
+    .update(organizations)
+    .set({ stripeCustomerId, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function updateOrgPlan(orgId: string, plan: "free" | "pro" | "enterprise") {
+  const rows = await db
+    .update(organizations)
+    .set({ plan, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function getUsageForPeriod(orgId: string, period: string) {
+  const rows = await db
+    .select()
+    .from(usageRecords)
+    .where(and(eq(usageRecords.orgId, orgId), eq(usageRecords.period, period)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function upsertUsageRecord(orgId: string, period: string, additionalSpans: number) {
+  const rows = await db
+    .insert(usageRecords)
+    .values({ orgId, period, spanCount: additionalSpans })
+    .onConflictDoUpdate({
+      target: [usageRecords.orgId, usageRecords.period],
+      set: {
+        spanCount: sql`${usageRecords.spanCount} + ${additionalSpans}`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  return rows[0]!;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
