@@ -2,13 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { usePlan } from "@/hooks/usePlan";
 
-function makeFetchResponse(body: unknown, ok = true) {
-  return Promise.resolve({
-    ok,
-    json: () => Promise.resolve(body),
-  } as Response);
-}
-
 describe("usePlan", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
