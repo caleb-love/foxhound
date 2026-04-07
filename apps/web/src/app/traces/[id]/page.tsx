@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { getTrace, buildSpanTree, traceDurationMs } from "@/lib/api";
 import { TraceExplorer } from "./TraceExplorer";
 
-export default async function TraceDetailPage({ params }: { params: { id: string } }) {
-  const trace = await getTrace(params.id);
+export default async function TraceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const trace = await getTrace(id);
   if (!trace) notFound();
 
   const tree = buildSpanTree(trace.spans);
