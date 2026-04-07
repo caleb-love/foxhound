@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { insertTrace, queryTraces } from "@fox/db";
+import { insertTrace, queryTraces, getTrace } from "@fox/db";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -62,6 +62,19 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
         fastify.log.error({ err, traceId: trace.id }, "Failed to persist trace");
       });
     });
+  });
+
+  /**
+   * GET /v1/traces/:id
+   * Fetch a single trace by ID including all spans.
+   */
+  fastify.get("/v1/traces/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const trace = await getTrace(id);
+    if (!trace) {
+      return reply.code(404).send({ error: "Not Found" });
+    }
+    return reply.code(200).send(trace);
   });
 
   /**

@@ -29,6 +29,11 @@ export async function insertTrace(trace: Trace): Promise<void> {
     .onConflictDoNothing();
 }
 
+export async function getTrace(id: string) {
+  const rows = await db.select().from(traces).where(eq(traces.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function queryTraces(filters: TraceFilters = {}) {
   const { agentId, sessionId, from, to, page = 1, limit = 50 } = filters;
   const offset = (page - 1) * limit;
