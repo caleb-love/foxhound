@@ -71,7 +71,7 @@ const QueryTracesSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
 
-export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
+export function tracesRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/traces
    * Accept a trace payload from the SDK and persist it asynchronously.
@@ -99,7 +99,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
 
-    reply.code(202).send({ accepted: true, id: trace.id });
+    void reply.code(202).send({ accepted: true, id: trace.id });
 
     setImmediate(() => {
       persistTraceWithRetry(fastify, trace as unknown as Trace, orgId, spanCount).catch(() => {

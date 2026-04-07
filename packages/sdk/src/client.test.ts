@@ -55,7 +55,7 @@ describe("FoxhoundClient.startTrace()", () => {
     const tracer = client.startTrace({ agentId: "agent_42" });
     await tracer.flush();
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
     expect(body.agentId).toBe("agent_42");
   });
 
@@ -66,7 +66,7 @@ describe("FoxhoundClient.startTrace()", () => {
     const tracer = client.startTrace({ agentId: "agent_1", sessionId: "sess_99" });
     await tracer.flush();
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
     expect(body.sessionId).toBe("sess_99");
   });
 
@@ -77,7 +77,7 @@ describe("FoxhoundClient.startTrace()", () => {
     const tracer = client.startTrace({ agentId: "agent_1", metadata: { env: "test", version: 2 } });
     await tracer.flush();
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
     expect(body.metadata).toEqual({ env: "test", version: 2 });
   });
 });
@@ -107,7 +107,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
-    const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>;
+    const headers = mockFetch.mock.calls[0]![1]!.headers as Record<string, string>;
     expect(headers["Authorization"]).toBe("Bearer sk-abc123");
   });
 
@@ -118,7 +118,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
-    const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>;
+    const headers = mockFetch.mock.calls[0]![1]!.headers as Record<string, string>;
     expect(headers["Content-Type"]).toBe("application/json");
   });
 
@@ -131,7 +131,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
     span.end("ok");
     await tracer.flush();
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
     expect(body.id).toBe(tracer.traceId);
     expect(body.agentId).toBe("agent_1");
     expect(body.spans).toHaveLength(1);

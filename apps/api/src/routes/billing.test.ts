@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Fastify from "fastify";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -61,8 +61,8 @@ function buildBillingApp() {
   const app = Fastify({ logger: false });
   process.env["JWT_SECRET"] = "test-secret-for-unit-tests";
   registerAuth(app);
-  app.register(billingRoutes);
-  app.register(billingWebhookRoutes);
+  void app.register(billingRoutes);
+  void app.register(billingWebhookRoutes);
   return app;
 }
 
