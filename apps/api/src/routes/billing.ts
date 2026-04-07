@@ -1,11 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import Stripe from "stripe";
 import { z } from "zod";
-import {
-  getOrganizationById,
-  updateOrgStripeCustomerId,
-  getUsageForPeriod,
-} from "@foxhound/db";
+import { getOrganizationById, updateOrgStripeCustomerId, getUsageForPeriod } from "@foxhound/db";
 import { getEntitlements, currentBillingPeriod, periodBounds } from "@foxhound/billing";
 
 // ── Billing status cache ──────────────────────────────────────────────────────
@@ -46,7 +42,7 @@ const CheckoutSchema = z.object({
   cancelUrl: z.string().url(),
 });
 
-export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
+export function billingRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/billing/checkout
    * Create a Stripe Checkout session. Requires JWT.
@@ -202,7 +198,10 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         spanCount: usage?.spanCount ?? 0,
         nextBillingDate,
       };
-      billingStatusCache.set(request.orgId, { data, expiresAt: Date.now() + BILLING_STATUS_TTL_MS });
+      billingStatusCache.set(request.orgId, {
+        data,
+        expiresAt: Date.now() + BILLING_STATUS_TTL_MS,
+      });
 
       return reply.code(200).send(data);
     },
@@ -243,7 +242,9 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post("/v1/billing/report-usage", async (request, reply) => {
     const internalSecret = process.env["INTERNAL_CRON_SECRET"];
     if (!internalSecret) {
-      return reply.code(503).send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
+      return reply
+        .code(503)
+        .send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
     }
     const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
     if (provided !== internalSecret) {
@@ -279,14 +280,18 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
 
     const overage = Math.max(0, spansUsed - includedLimit);
     if (overage === 0) {
-      return reply.code(200).send({ reported: false, reason: "no_overage", spansUsed, includedLimit });
+      return reply
+        .code(200)
+        .send({ reported: false, reason: "no_overage", spansUsed, includedLimit });
     }
 
     let stripe: Stripe;
     try {
       stripe = getStripe();
     } catch {
-      return reply.code(503).send({ error: "Service Unavailable", message: "Billing not configured" });
+      return reply
+        .code(503)
+        .send({ error: "Service Unavailable", message: "Billing not configured" });
     }
 
     // Find the active subscription and its first metered item
@@ -311,7 +316,10 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
       action: "set",
     });
 
-    fastify.log.info({ orgId, period, overage, subItemId: subItem.id }, "Reported span overage to Stripe");
+    fastify.log.info(
+      { orgId, period, overage, subItemId: subItem.id },
+      "Reported span overage to Stripe",
+    );
 
     return reply.code(200).send({ reported: true, overage, period });
   });

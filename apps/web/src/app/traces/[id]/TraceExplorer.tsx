@@ -446,9 +446,7 @@ function SpanDetail({ span, traceStartMs }: { span: Span; traceStartMs: number }
 // ---- Main component --------------------------------------------------------
 
 export function TraceExplorer({ trace, tree, totalMs }: Props) {
-  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(
-    tree[0]?.span.spanId ?? null,
-  );
+  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(tree[0]?.span.spanId ?? null);
   const [showReplayBanner, setShowReplayBanner] = useState(false);
   const { canReplay, loading: planLoading } = usePlan();
 
@@ -527,71 +525,73 @@ export function TraceExplorer({ trace, tree, totalMs }: Props) {
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-      {/* Left: Timeline */}
-      <div
-        style={{
-          width: "55%",
-          borderRight: "1px solid var(--border)",
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}
-      >
-        {/* Column headers */}
+        {/* Left: Timeline */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            background: "var(--surface-2)",
-            borderBottom: "1px solid var(--border)",
-            fontSize: 10,
-            fontWeight: 700,
-            color: "var(--text-muted)",
-            letterSpacing: "0.5px",
-            textTransform: "uppercase",
-            position: "sticky",
-            top: 0,
-            zIndex: 1,
+            width: "55%",
+            borderRight: "1px solid var(--border)",
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
-          <span style={{ flex: "0 0 220px" }}>Span</span>
-          <span style={{ flex: 1 }}>Timeline ({totalMs < 1000 ? `${totalMs}ms` : `${(totalMs / 1000).toFixed(2)}s`})</span>
-          <span style={{ width: 80, textAlign: "right" }}>Duration</span>
-        </div>
-
-        {tree.map((node) => (
-          <TimelineRow
-            key={node.span.spanId}
-            node={node}
-            isSelected={node.span.spanId === selectedSpanId}
-            traceStartMs={traceStartMs}
-            totalMs={totalMs}
-            onClick={() => setSelectedSpanId(node.span.spanId)}
-          />
-        ))}
-      </div>
-
-      {/* Right: Span detail */}
-      <div style={{ flex: 1, overflowY: "auto", background: "var(--surface)" }}>
-        {selectedNode ? (
-          <SpanDetail span={selectedNode.span} traceStartMs={traceStartMs} />
-        ) : (
+          {/* Column headers */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
+              gap: 8,
+              padding: "8px 16px",
+              background: "var(--surface-2)",
+              borderBottom: "1px solid var(--border)",
+              fontSize: 10,
+              fontWeight: 700,
               color: "var(--text-muted)",
-              fontSize: 13,
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
             }}
           >
-            Select a span to inspect it
+            <span style={{ flex: "0 0 220px" }}>Span</span>
+            <span style={{ flex: 1 }}>
+              Timeline ({totalMs < 1000 ? `${totalMs}ms` : `${(totalMs / 1000).toFixed(2)}s`})
+            </span>
+            <span style={{ width: 80, textAlign: "right" }}>Duration</span>
           </div>
-        )}
+
+          {tree.map((node) => (
+            <TimelineRow
+              key={node.span.spanId}
+              node={node}
+              isSelected={node.span.spanId === selectedSpanId}
+              traceStartMs={traceStartMs}
+              totalMs={totalMs}
+              onClick={() => setSelectedSpanId(node.span.spanId)}
+            />
+          ))}
+        </div>
+
+        {/* Right: Span detail */}
+        <div style={{ flex: 1, overflowY: "auto", background: "var(--surface)" }}>
+          {selectedNode ? (
+            <SpanDetail span={selectedNode.span} traceStartMs={traceStartMs} />
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+                fontSize: 13,
+              }}
+            >
+              Select a span to inspect it
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }

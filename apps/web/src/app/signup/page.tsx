@@ -40,7 +40,15 @@ export default function SignupPage() {
       }}
     >
       {/* Brand mark */}
-      <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
         <div
           style={{
             background: "var(--accent)",
@@ -74,7 +82,12 @@ export default function SignupPage() {
           Get started with Foxhound observability
         </p>
 
-        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
               Your name

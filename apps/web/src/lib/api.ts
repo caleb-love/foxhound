@@ -26,11 +26,13 @@ export interface TraceListResponse {
   pagination: { page: number; limit: number; count: number };
 }
 
-export async function listTraces(params: {
-  agentId?: string;
-  page?: number;
-  limit?: number;
-} = {}): Promise<TraceListResponse> {
+export async function listTraces(
+  params: {
+    agentId?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<TraceListResponse> {
   const qs = new URLSearchParams();
   if (params.agentId) qs.set("agentId", params.agentId);
   if (params.page) qs.set("page", String(params.page));
@@ -121,9 +123,7 @@ export function buildSpanTree(spans: Span[]): Array<{ span: Span; depth: number 
 
   function visit(span: Span, depth: number) {
     result.push({ span, depth });
-    const kids = (childrenOf.get(span.spanId) ?? []).sort(
-      (a, b) => a.startTimeMs - b.startTimeMs,
-    );
+    const kids = (childrenOf.get(span.spanId) ?? []).sort((a, b) => a.startTimeMs - b.startTimeMs);
     for (const kid of kids) visit(kid, depth + 1);
   }
 

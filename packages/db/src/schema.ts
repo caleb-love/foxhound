@@ -1,4 +1,13 @@
-import { pgTable, text, timestamp, jsonb, index, unique, primaryKey, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  jsonb,
+  index,
+  unique,
+  primaryKey,
+  integer,
+} from "drizzle-orm/pg-core";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Auth / multi-tenancy tables
@@ -8,7 +17,9 @@ export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  plan: text("plan", { enum: ["free", "pro", "enterprise"] }).notNull().default("free"),
+  plan: text("plan", { enum: ["free", "pro", "enterprise"] })
+    .notNull()
+    .default("free"),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -60,7 +71,9 @@ export const apiKeys = pgTable(
     /** First 10 chars of the key, for display purposes only */
     prefix: text("prefix").notNull(),
     name: text("name").notNull(),
-    createdByUserId: text("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdByUserId: text("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     revokedAt: timestamp("revoked_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
