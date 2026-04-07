@@ -52,7 +52,7 @@ describe("Tracer.startSpan()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "my-span", kind: "llm_call" });
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans).toHaveLength(1);
     expect(trace.spans[0].name).toBe("my-span");
   });
@@ -63,7 +63,7 @@ describe("Tracer.startSpan()", () => {
     tracer.startSpan({ name: "child", kind: "tool_call", parentSpanId: parent.spanId });
     await tracer.flush();
 
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     const child = trace.spans.find((s: { name: string }) => s.name === "child");
     expect(child?.parentSpanId).toBe(parent.spanId);
   });
@@ -72,7 +72,7 @@ describe("Tracer.startSpan()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "custom", attributes: { key: "value", num: 42 } });
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans[0].attributes).toEqual({ key: "value", num: 42 });
   });
 
@@ -80,7 +80,7 @@ describe("Tracer.startSpan()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "workflow" });
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans[0].attributes).toEqual({});
   });
 });
@@ -94,7 +94,7 @@ describe("Tracer.flush()", () => {
     const { tracer, onFlush } = makeTracer({ agentId: "agent_99", metadata: { env: "prod" } });
     await tracer.flush();
 
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.id).toBe(tracer.traceId);
     expect(trace.agentId).toBe("agent_99");
     expect(trace.metadata).toEqual({ env: "prod" });
@@ -110,7 +110,7 @@ describe("Tracer.flush()", () => {
     tracer.startSpan({ name: "s3", kind: "llm_call" });
     await tracer.flush();
 
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans).toHaveLength(3);
   });
 
@@ -123,14 +123,14 @@ describe("Tracer.flush()", () => {
   it("passes sessionId when provided", async () => {
     const { tracer, onFlush } = makeTracer({ sessionId: "sess_abc" });
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.sessionId).toBe("sess_abc");
   });
 
   it("omits sessionId when not provided", async () => {
     const { tracer, onFlush } = makeTracer();
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.sessionId).toBeUndefined();
   });
 });
@@ -153,7 +153,7 @@ describe("ActiveSpan.setAttribute()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).setAttribute("model", "gpt-4");
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans[0].attributes["model"]).toBe("gpt-4");
   });
 
@@ -161,7 +161,7 @@ describe("ActiveSpan.setAttribute()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "llm_call" }).setAttribute("tokens", 512);
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans[0].attributes["tokens"]).toBe(512);
   });
 
@@ -169,7 +169,7 @@ describe("ActiveSpan.setAttribute()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "tool_call" }).setAttribute("cached", true);
     await tracer.flush();
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     expect(trace.spans[0].attributes["cached"]).toBe(true);
   });
 
@@ -180,7 +180,7 @@ describe("ActiveSpan.setAttribute()", () => {
       .setAttribute("b", "two")
       .setAttribute("c", false);
     await tracer.flush();
-    const attrs = onFlush.mock.calls[0][0].spans[0].attributes;
+    const attrs = onFlush.mock.calls[0]![0]!.spans[0].attributes;
     expect(attrs).toEqual({ a: 1, b: "two", c: false });
   });
 });
@@ -201,7 +201,7 @@ describe("ActiveSpan.addEvent()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).addEvent("tool_called");
     await tracer.flush();
-    const events = onFlush.mock.calls[0][0].spans[0].events;
+    const events = onFlush.mock.calls[0]![0]!.spans[0].events;
     expect(events).toHaveLength(1);
     expect(events[0].name).toBe("tool_called");
   });
@@ -210,7 +210,7 @@ describe("ActiveSpan.addEvent()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).addEvent("ping");
     await tracer.flush();
-    const event = onFlush.mock.calls[0][0].spans[0].events[0];
+    const event = onFlush.mock.calls[0]![0]!.spans[0].events[0];
     expect(typeof event.timeMs).toBe("number");
     expect(event.timeMs).toBeGreaterThan(0);
   });
@@ -219,7 +219,7 @@ describe("ActiveSpan.addEvent()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).addEvent("retry", { attempt: 2 });
     await tracer.flush();
-    const event = onFlush.mock.calls[0][0].spans[0].events[0];
+    const event = onFlush.mock.calls[0]![0]!.spans[0].events[0];
     expect(event.attributes).toEqual({ attempt: 2 });
   });
 
@@ -227,7 +227,7 @@ describe("ActiveSpan.addEvent()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).addEvent("ping");
     await tracer.flush();
-    const event = onFlush.mock.calls[0][0].spans[0].events[0];
+    const event = onFlush.mock.calls[0]![0]!.spans[0].events[0];
     expect(event.attributes).toEqual({});
   });
 
@@ -237,7 +237,7 @@ describe("ActiveSpan.addEvent()", () => {
       .addEvent("first")
       .addEvent("second");
     await tracer.flush();
-    const events = onFlush.mock.calls[0][0].spans[0].events;
+    const events = onFlush.mock.calls[0]![0]!.spans[0].events;
     expect(events).toHaveLength(2);
     expect(events[0].name).toBe("first");
     expect(events[1].name).toBe("second");
@@ -253,21 +253,21 @@ describe("ActiveSpan.end()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).end();
     await tracer.flush();
-    expect(onFlush.mock.calls[0][0].spans[0].status).toBe("ok");
+    expect(onFlush.mock.calls[0]![0]!.spans[0].status).toBe("ok");
   });
 
   it("sets status to error when passed error", async () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).end("error");
     await tracer.flush();
-    expect(onFlush.mock.calls[0][0].spans[0].status).toBe("error");
+    expect(onFlush.mock.calls[0]![0]!.spans[0].status).toBe("error");
   });
 
   it("sets a numeric endTimeMs on the span", async () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" }).end();
     await tracer.flush();
-    const span = onFlush.mock.calls[0][0].spans[0];
+    const span = onFlush.mock.calls[0]![0]!.spans[0];
     expect(typeof span.endTimeMs).toBe("number");
     expect(span.endTimeMs).toBeGreaterThanOrEqual(span.startTimeMs);
   });
@@ -276,7 +276,7 @@ describe("ActiveSpan.end()", () => {
     const { tracer, onFlush } = makeTracer();
     tracer.startSpan({ name: "s", kind: "agent_step" });
     await tracer.flush();
-    expect(onFlush.mock.calls[0][0].spans[0].status).toBe("unset");
+    expect(onFlush.mock.calls[0]![0]!.spans[0].status).toBe("unset");
   });
 });
 
@@ -291,7 +291,7 @@ describe("Nested spans", () => {
     tracer.startSpan({ name: "child", kind: "agent_step", parentSpanId: parent.spanId });
     await tracer.flush();
 
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     const child = trace.spans.find((s: { name: string }) => s.name === "child");
     expect(child?.parentSpanId).toBe(parent.spanId);
   });
@@ -303,7 +303,7 @@ describe("Nested spans", () => {
     tracer.startSpan({ name: "child", kind: "tool_call", parentSpanId: parent.spanId });
     await tracer.flush();
 
-    const trace = onFlush.mock.calls[0][0];
+    const trace = onFlush.mock.calls[0]![0]!;
     const child = trace.spans.find((s: { name: string }) => s.name === "child");
     const p = trace.spans.find((s: { name: string }) => s.name === "p");
     expect(child?.parentSpanId).toBe(parent.spanId);

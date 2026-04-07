@@ -46,7 +46,7 @@ const CheckoutSchema = z.object({
   cancelUrl: z.string().url(),
 });
 
-export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
+export function billingRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/billing/checkout
    * Create a Stripe Checkout session. Requires JWT.

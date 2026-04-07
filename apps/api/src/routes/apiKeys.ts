@@ -7,7 +7,7 @@ const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
 });
 
-export async function apiKeysRoutes(fastify: FastifyInstance): Promise<void> {
+export function apiKeysRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/api-keys
    * Create a new API key for the authenticated org.
