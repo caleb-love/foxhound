@@ -1,7 +1,7 @@
-import type { Span, Trace } from "@fox/types";
+import type { Span, Trace } from "@foxhound/types";
 
-const API_URL = process.env.FOX_API_URL ?? "http://localhost:4000";
-const API_KEY = process.env.FOX_API_KEY ?? "";
+const API_URL = process.env.FOXHOUND_API_URL ?? "http://localhost:4000";
+const API_KEY = process.env.FOXHOUND_API_KEY ?? "";
 
 function headers(): HeadersInit {
   return {

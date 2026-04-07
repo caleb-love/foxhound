@@ -1,8 +1,8 @@
 {
-  "name": "fox-platform",
+  "name": "foxhound",
   "version": "0.0.1",
   "private": true,
-  "description": "Compliance-grade observability platform for AI agent fleets",
+  "description": "Foxhound — compliance-grade observability platform for AI agent fleets",
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.0.0",

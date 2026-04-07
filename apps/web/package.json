@@ -1,5 +1,5 @@
 {
-  "name": "@fox/web",
+  "name": "@foxhound/web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
     "clean": "rm -rf .next out"
   },
   "dependencies": {
-    "@fox/types": "workspace:*",
+    "@foxhound/types": "workspace:*",
     "next": "^14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

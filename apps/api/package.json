@@ -1,5 +1,5 @@
 {
-  "name": "@fox/api",
+  "name": "@foxhound/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fox/db": "workspace:*",
-    "@fox/types": "workspace:*",
+    "@foxhound/db": "workspace:*",
+    "@foxhound/types": "workspace:*",
     "fastify": "^4.26.0",
     "@fastify/cors": "^9.0.0",
     "@fastify/helmet": "^11.0.0",

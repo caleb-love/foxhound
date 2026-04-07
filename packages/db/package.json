@@ -1,5 +1,5 @@
 {
-  "name": "@fox/db",
+  "name": "@foxhound/db",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fox/types": "workspace:*",
+    "@foxhound/types": "workspace:*",
     "drizzle-orm": "^0.30.0",
     "postgres": "^3.4.0"
   },

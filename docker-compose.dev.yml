@@ -6,13 +6,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: fox
-      POSTGRES_PASSWORD: fox
-      POSTGRES_DB: fox_dev
+      POSTGRES_USER: foxhound
+      POSTGRES_PASSWORD: foxhound
+      POSTGRES_DB: foxhound_dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fox -d fox_dev"]
+      test: ["CMD-SHELL", "pg_isready -U foxhound -d foxhound_dev"]
       interval: 5s
       timeout: 5s
       retries: 5

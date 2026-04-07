@@ -44,10 +44,10 @@ importers:
       '@fastify/helmet':
         specifier: ^11.0.0
         version: 11.1.1
-      '@fox/db':
+      '@foxhound/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@fox/types':
+      '@foxhound/types':
         specifier: workspace:*
         version: link:../../packages/types
       fastify:
@@ -72,7 +72,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@fox/types':
+      '@foxhound/types':
         specifier: workspace:*
         version: link:../../packages/types
       next:
@@ -103,7 +103,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@fox/types':
+      '@foxhound/types':
         specifier: workspace:*
         version: link:../types
       drizzle-orm:
@@ -128,7 +128,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@fox/types':
+      '@foxhound/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:

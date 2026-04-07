@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { insertTrace, queryTraces, getTrace } from "@fox/db";
+import { insertTrace, queryTraces, getTrace } from "@foxhound/db";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),

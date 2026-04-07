@@ -71,7 +71,7 @@ export default async function TracesPage({
         >
           {error}
           <div style={{ marginTop: 8, color: "var(--text-muted)" }}>
-            Make sure the Fox API is running and FOX_API_URL is set correctly.
+            Make sure the Foxhound API is running and FOXHOUND_API_URL is set correctly.
           </div>
         </div>
       )}
@@ -254,10 +254,10 @@ function EmptyState() {
           lineHeight: 1.8,
         }}
       >
-        {`from fox_sdk import FoxClient
-from fox_sdk.integrations.langgraph import FoxCallbackHandler
+        {`from foxhound_sdk import FoxhoundClient
+from foxhound_sdk.integrations.langgraph import FoxCallbackHandler
 
-fox = FoxClient(api_key="fox_...", endpoint="http://localhost:4000")
+fox = FoxhoundClient(api_key="foxhound_...", endpoint="http://localhost:4000")
 handler = FoxCallbackHandler.from_client(fox, agent_id="my-agent")
 result = await graph.ainvoke(state, config={"callbacks": [handler]})
 await handler.flush()`}

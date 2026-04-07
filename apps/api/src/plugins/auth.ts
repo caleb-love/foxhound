@@ -4,11 +4,11 @@ import type { FastifyInstance } from "fastify";
  * Registers a global API key auth hook on the Fastify instance.
  * All routes except /health require a valid Bearer token.
  *
- * Configure valid keys via FOX_API_KEYS (comma-separated) or FOX_API_KEY.
+ * Configure valid keys via FOXHOUND_API_KEYS (comma-separated) or FOXHOUND_API_KEY.
  * If no keys are configured the server accepts any Bearer token (dev mode).
  */
 export function registerAuth(fastify: FastifyInstance): void {
-  const rawKeys = process.env["FOX_API_KEYS"] ?? process.env["FOX_API_KEY"] ?? "";
+  const rawKeys = process.env["FOXHOUND_API_KEYS"] ?? process.env["FOXHOUND_API_KEY"] ?? "";
   const validKeys = rawKeys
     .split(",")
     .map((k) => k.trim())

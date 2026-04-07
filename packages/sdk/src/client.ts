@@ -1,18 +1,18 @@
-import type { Trace } from "@fox/types";
+import type { Trace } from "@foxhound/types";
 import { Tracer } from "./tracer.js";
 
-export interface FoxClientOptions {
+export interface FoxhoundClientOptions {
   apiKey: string;
   endpoint: string;
   flushIntervalMs?: number;
   maxBatchSize?: number;
 }
 
-export class FoxClient {
-  private readonly options: Required<FoxClientOptions>;
+export class FoxhoundClient {
+  private readonly options: Required<FoxhoundClientOptions>;
   private readonly tracers: Map<string, Tracer> = new Map();
 
-  constructor(options: FoxClientOptions) {
+  constructor(options: FoxhoundClientOptions) {
     this.options = {
       flushIntervalMs: 5000,
       maxBatchSize: 100,

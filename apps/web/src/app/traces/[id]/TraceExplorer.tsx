@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Span } from "@fox/types";
+import type { Span } from "@foxhound/types";
 import type { TraceRow } from "@/lib/api";
 
 interface TreeNode {
@@ -323,7 +323,7 @@ function SpanDetail({ span, traceStartMs }: { span: Span; traceStartMs: number }
             Events ({span.events.length})
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {span.events.map((evt: import("@fox/types").SpanEvent, i: number) => (
+            {span.events.map((evt: import("@foxhound/types").SpanEvent, i: number) => (
               <div
                 key={i}
                 style={{

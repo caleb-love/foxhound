@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Span, SpanKind, Trace } from "@fox/types";
+import type { Span, SpanKind, Trace } from "@foxhound/types";
 
 interface TracerOptions {
   agentId: string;

@@ -1,7 +1,7 @@
 import { db } from "./client.js";
 import { traces } from "./schema.js";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
-import type { Trace } from "@fox/types";
+import type { Trace } from "@foxhound/types";
 
 export interface TraceFilters {
   agentId?: string;

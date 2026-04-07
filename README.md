@@ -1,11 +1,11 @@
-# Fox Platform
+# Foxhound
 
 Compliance-grade observability platform for AI agent fleets — trace, replay, and audit every agent decision from tool call to business outcome.
 
 ## Architecture
 
 ```
-fox-platform/
+foxhound/
 ├── apps/
 │   ├── api/        # Fastify REST API (port 3001)
 │   └── web/        # Next.js dashboard (port 3000)
@@ -39,7 +39,7 @@ docker compose -f docker-compose.dev.yml up -d
 cp apps/api/.env.example apps/api/.env
 
 # 4. Run database migrations
-pnpm --filter @fox/db db:migrate
+pnpm --filter @foxhound/db db:migrate
 
 # 5. Start all apps in dev mode
 pnpm dev
@@ -63,11 +63,11 @@ pnpm format       # Format with Prettier
 ## SDK Usage
 
 ```typescript
-import { FoxClient } from "@fox/sdk";
+import { FoxhoundClient } from "@foxhound/sdk";
 
-const fox = new FoxClient({
-  apiKey: process.env.FOX_API_KEY,
-  endpoint: "https://api.fox.ai",
+const fox = new FoxhoundClient({
+  apiKey: process.env.FOXHOUND_API_KEY,
+  endpoint: "https://api.foxhound.ai",
 });
 
 const tracer = fox.startTrace({ agentId: "my-agent-id" });
