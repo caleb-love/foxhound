@@ -29,7 +29,10 @@ export interface SpanLimitCheck {
  * Free tier is hard-blocked when over limit. Pro is allowed but flagged as overage.
  * Enterprise (-1 limit) is always allowed.
  */
-export async function checkSpanLimit(orgId: string, incomingSpans: number): Promise<SpanLimitCheck> {
+export async function checkSpanLimit(
+  orgId: string,
+  incomingSpans: number,
+): Promise<SpanLimitCheck> {
   const period = currentBillingPeriod();
   const [entitlements, usage] = await Promise.all([
     getEntitlements(orgId),

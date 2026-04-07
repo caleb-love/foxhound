@@ -44,7 +44,7 @@ function buildApp() {
   const app = Fastify({ logger: false });
   process.env["JWT_SECRET"] = "test-secret-for-unit-tests";
   registerAuth(app);
-  app.register(tracesRoutes);
+  void app.register(tracesRoutes);
   return app;
 }
 
@@ -74,7 +74,9 @@ function mockApiKey(orgId = "org_1") {
 }
 
 describe("GET /v1/traces/:traceId/spans/:spanId/replay — entitlement gating", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 403 upgrade_required for free-tier orgs", async () => {
     mockApiKey();
@@ -100,7 +102,16 @@ describe("GET /v1/traces/:traceId/spans/:spanId/replay — entitlement gating", 
     vi.mocked(db.getReplayContext).mockResolvedValue({
       traceId: "trace_1",
       spanId: "span_1",
-      targetSpan: { traceId: "trace_1", spanId: "span_1", name: "test", kind: "agent_step", startTimeMs: 0, status: "ok", attributes: {}, events: [] },
+      targetSpan: {
+        traceId: "trace_1",
+        spanId: "span_1",
+        name: "test",
+        kind: "agent_step",
+        startTimeMs: 0,
+        status: "ok",
+        attributes: {},
+        events: [],
+      },
       spansUpToPoint: [],
       llmCallHistory: [],
       toolCallHistory: [],
@@ -119,7 +130,9 @@ describe("GET /v1/traces/:traceId/spans/:spanId/replay — entitlement gating", 
 });
 
 describe("GET /v1/runs/diff — entitlement gating", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 403 upgrade_required for free-tier orgs", async () => {
     mockApiKey();

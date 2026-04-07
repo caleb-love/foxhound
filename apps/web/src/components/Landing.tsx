@@ -30,10 +30,42 @@ interface TraceSpan {
 }
 
 const TRACE_SPANS: TraceSpan[] = [
-  { name: "support-agent", kind: "agent", duration: "1.24s", status: "ok", depth: 0, bar: 100, barOffset: 0 },
-  { name: "tool:retrieve_docs", kind: "tool_call", duration: "320ms", status: "ok", depth: 1, bar: 25, barOffset: 0 },
-  { name: "llm:gpt-4o", kind: "llm_call", duration: "680ms", status: "ok", depth: 1, bar: 55, barOffset: 27 },
-  { name: "tool:send_reply", kind: "tool_call", duration: "240ms", status: "ok", depth: 1, bar: 19, barOffset: 83 },
+  {
+    name: "support-agent",
+    kind: "agent",
+    duration: "1.24s",
+    status: "ok",
+    depth: 0,
+    bar: 100,
+    barOffset: 0,
+  },
+  {
+    name: "tool:retrieve_docs",
+    kind: "tool_call",
+    duration: "320ms",
+    status: "ok",
+    depth: 1,
+    bar: 25,
+    barOffset: 0,
+  },
+  {
+    name: "llm:gpt-4o",
+    kind: "llm_call",
+    duration: "680ms",
+    status: "ok",
+    depth: 1,
+    bar: 55,
+    barOffset: 27,
+  },
+  {
+    name: "tool:send_reply",
+    kind: "tool_call",
+    duration: "240ms",
+    status: "ok",
+    depth: 1,
+    bar: 19,
+    barOffset: 83,
+  },
 ];
 
 const STATUS_COLORS = { ok: "#3dd68c", error: "#f25f5c", running: "#6b7aff" };
@@ -67,11 +99,37 @@ function HeroTraceTree() {
         }}
       >
         <div style={{ display: "flex", gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#f25f5c", display: "inline-block" }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#3dd68c", display: "inline-block" }} />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#f25f5c",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#f59e0b",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#3dd68c",
+              display: "inline-block",
+            }}
+          />
         </div>
-        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>Trace Explorer — run_7f3a2c1b</span>
+        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
+          Trace Explorer — run_7f3a2c1b
+        </span>
       </div>
       {/* Column headers */}
       <div
@@ -116,7 +174,15 @@ function HeroTraceTree() {
               <span style={{ color: "var(--border)", fontSize: 10, marginLeft: -4 }}>└</span>
             )}
             <StatusDot color={STATUS_COLORS[span.status]} />
-            <span style={{ color: "var(--text)", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span
+              style={{
+                color: "var(--text)",
+                fontSize: 12,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {span.name}
             </span>
             <span
@@ -179,13 +245,15 @@ const FEATURES: Feature[] = [
   {
     icon: "⬡",
     title: "Trace Explorer",
-    description: "Browse, search, and filter traces with full span trees — timestamps, attributes, and events in one view.",
+    description:
+      "Browse, search, and filter traces with full span trees — timestamps, attributes, and events in one view.",
     color: "#6b7aff",
   },
   {
     icon: "◎",
     title: "Span Replay",
-    description: "Reconstruct agent state at any point in time. See exactly what data was available when a decision was made.",
+    description:
+      "Reconstruct agent state at any point in time. See exactly what data was available when a decision was made.",
     color: "#c084fc",
   },
   {
@@ -197,7 +265,8 @@ const FEATURES: Feature[] = [
   {
     icon: "◈",
     title: "Audit Log",
-    description: "Enterprise-grade audit trail. Every action produces a structured, queryable event for compliance.",
+    description:
+      "Enterprise-grade audit trail. Every action produces a structured, queryable event for compliance.",
     color: "#3dd68c",
   },
 ];
@@ -283,9 +352,10 @@ async with fox.trace(agent_id="support-agent") as tracer:
 
 function highlight(code: string, lang: "ts" | "py"): React.ReactNode[] {
   const lines = code.split("\n");
-  const keywords = lang === "ts"
-    ? ["import", "from", "const", "new", "await", "async"]
-    : ["from", "import", "async", "with", "as"];
+  const keywords =
+    lang === "ts"
+      ? ["import", "from", "const", "new", "await", "async"]
+      : ["from", "import", "async", "with", "as"];
 
   return lines.map((line, i) => {
     // Simple token colorization: keywords, strings, comments
@@ -299,29 +369,54 @@ function highlight(code: string, lang: "ts" | "py"): React.ReactNode[] {
       const before = rest.slice(0, commentIdx);
       const comment = rest.slice(commentIdx);
       if (before) parts.push(<span key={key++}>{before}</span>);
-      parts.push(<span key={key++} style={{ color: "#64748b" }}>{comment}</span>);
+      parts.push(
+        <span key={key++} style={{ color: "#64748b" }}>
+          {comment}
+        </span>,
+      );
       return <div key={i}>{parts}</div>;
     }
 
     // Tokenize roughly
-    const tokenRe = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[A-Za-z_$][A-Za-z0-9_$]*|[^A-Za-z_$"']+)/g;
+    const tokenRe =
+      /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[A-Za-z_$][A-Za-z0-9_$]*|[^A-Za-z_$"']+)/g;
     let match: RegExpExecArray | null;
     while ((match = tokenRe.exec(rest)) !== null) {
       const tok = match[0];
       if ((tok.startsWith('"') || tok.startsWith("'")) && !tok.startsWith("//")) {
-        parts.push(<span key={key++} style={{ color: "#3dd68c" }}>{tok}</span>);
+        parts.push(
+          <span key={key++} style={{ color: "#3dd68c" }}>
+            {tok}
+          </span>,
+        );
       } else if (keywords.includes(tok)) {
-        parts.push(<span key={key++} style={{ color: "#c084fc" }}>{tok}</span>);
+        parts.push(
+          <span key={key++} style={{ color: "#c084fc" }}>
+            {tok}
+          </span>,
+        );
       } else if (/^\d/.test(tok)) {
-        parts.push(<span key={key++} style={{ color: "#f59e0b" }}>{tok}</span>);
+        parts.push(
+          <span key={key++} style={{ color: "#f59e0b" }}>
+            {tok}
+          </span>,
+        );
       } else if (/^[A-Z]/.test(tok)) {
-        parts.push(<span key={key++} style={{ color: "#60a5fa" }}>{tok}</span>);
+        parts.push(
+          <span key={key++} style={{ color: "#60a5fa" }}>
+            {tok}
+          </span>,
+        );
       } else {
         parts.push(<span key={key++}>{tok}</span>);
       }
     }
 
-    return <div key={i} style={{ minHeight: "1.5em" }}>{parts.length ? parts : "\u00a0"}</div>;
+    return (
+      <div key={i} style={{ minHeight: "1.5em" }}>
+        {parts.length ? parts : "\u00a0"}
+      </div>
+    );
   });
 }
 
@@ -423,7 +518,9 @@ function ArchFlow() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>
               {node.label}
             </div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            <div
+              style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}
+            >
               {node.sub}
             </div>
           </div>
@@ -541,8 +638,12 @@ function PricingSummary() {
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
             {tier.billing}
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{tier.spans}</div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 20 }}>{tier.retention}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
+            {tier.spans}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 20 }}>
+            {tier.retention}
+          </div>
           <a
             href={tier.href}
             style={{
@@ -624,7 +725,14 @@ export function Landing() {
                   display: "inline-block",
                 }}
               />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--accent)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
                 MIT License · Open Source
               </span>
             </div>
@@ -765,9 +873,7 @@ export function Landing() {
             OpenTelemetry compatible
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            Self-host in minutes
-          </span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Self-host in minutes</span>
         </div>
       </section>
 
@@ -858,8 +964,8 @@ export function Landing() {
             Simple architecture, serious scale
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-muted)", maxWidth: 480, margin: "0 auto" }}>
-            Data flows from your agents through our SDK into the Foxhound API, stored in
-            PostgreSQL, and surfaced in the dashboard.
+            Data flows from your agents through our SDK into the Foxhound API, stored in PostgreSQL,
+            and surfaced in the dashboard.
           </p>
         </div>
         <ArchFlow />
@@ -975,8 +1081,8 @@ export function Landing() {
               lineHeight: 1.7,
             }}
           >
-            Foxhound is MIT-licensed and ships as a single Docker Compose stack. Your data
-            never leaves your infrastructure. Audit the code. Fork it. Contribute.
+            Foxhound is MIT-licensed and ships as a single Docker Compose stack. Your data never
+            leaves your infrastructure. Audit the code. Fork it. Contribute.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <a
@@ -1050,12 +1156,7 @@ export function Landing() {
               { label: "Login", href: "/login" },
               { label: "Sign up", href: "/signup" },
             ].map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="nav-link"
-                style={{ fontSize: 13 }}
-              >
+              <a key={link.label} href={link.href} className="nav-link" style={{ fontSize: 13 }}>
                 {link.label}
               </a>
             ))}
