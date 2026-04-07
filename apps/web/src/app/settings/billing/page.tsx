@@ -93,14 +93,11 @@ export default function BillingPage() {
 
   if (authLoading || planLoading) {
     return (
-      <div style={{ padding: "32px 24px", color: "var(--text-muted)", fontSize: 13 }}>
-        Loading…
-      </div>
+      <div style={{ padding: "32px 24px", color: "var(--text-muted)", fontSize: 13 }}>Loading…</div>
     );
   }
 
-  const usagePct =
-    spansLimit > 0 ? Math.min(100, Math.round((spansUsed / spansLimit) * 100)) : 0;
+  const usagePct = spansLimit > 0 ? Math.min(100, Math.round((spansUsed / spansLimit) * 100)) : 0;
   const usageColor =
     usagePct >= 90 ? "var(--red)" : usagePct >= 70 ? "var(--orange)" : "var(--accent)";
 
@@ -172,7 +169,9 @@ export default function BillingPage() {
           <div style={{ display: "flex", gap: 8 }}>
             {plan !== "free" && (
               <button
-                onClick={() => { void handleManageSubscription(); }}
+                onClick={() => {
+                  void handleManageSubscription();
+                }}
                 disabled={portalLoading}
                 style={{
                   padding: "8px 14px",
@@ -191,7 +190,9 @@ export default function BillingPage() {
             )}
             {plan === "free" && (
               <button
-                onClick={() => { void handleUpgrade(); }}
+                onClick={() => {
+                  void handleUpgrade();
+                }}
                 disabled={checkoutLoading}
                 style={{
                   padding: "8px 14px",
@@ -250,7 +251,8 @@ export default function BillingPage() {
               {fmtNumber(spansUsed)}
               {spansLimit > 0 && (
                 <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
-                  {" "}/ {fmtNumber(spansLimit)}
+                  {" "}
+                  / {fmtNumber(spansLimit)}
                 </span>
               )}
             </span>

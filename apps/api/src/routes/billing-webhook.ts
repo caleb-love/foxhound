@@ -53,18 +53,14 @@ async function handleSubscriptionEvent(
   invalidateBillingStatusCache(org.id);
 }
 
-export async function billingWebhookRoutes(fastify: FastifyInstance): Promise<void> {
+export function billingWebhookRoutes(fastify: FastifyInstance): void {
   // Override JSON parser in this scope to receive the raw Buffer needed for
   // Stripe signature verification. Fastify plugin encapsulation keeps this
   // isolated to webhook routes only.
   fastify.removeContentTypeParser("application/json");
-  fastify.addContentTypeParser(
-    "application/json",
-    { parseAs: "buffer" },
-    (_req, body, done) => {
-      done(null, body as Buffer);
-    },
-  );
+  fastify.addContentTypeParser("application/json", { parseAs: "buffer" }, (_req, body, done) => {
+    done(null, body as Buffer);
+  });
 
   /**
    * POST /v1/billing/webhooks
@@ -104,12 +100,12 @@ export async function billingWebhookRoutes(fastify: FastifyInstance): Promise<vo
         case "customer.subscription.created":
         case "customer.subscription.updated":
         case "customer.subscription.deleted": {
-          const subscription = event.data.object as Stripe.Subscription;
+          const subscription = event.data.object;
           await handleSubscriptionEvent(subscription, event.type);
           break;
         }
         case "invoice.payment_failed": {
-          const invoice = event.data.object as Stripe.Invoice;
+          const invoice = event.data.object;
           const stripeCustomerId = invoice.customer as string;
           const org = await getOrganizationByStripeCustomerId(stripeCustomerId);
           if (org) {
