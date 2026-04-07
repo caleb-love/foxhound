@@ -10,7 +10,8 @@ foxhound/
 │   ├── api/        # Fastify REST API (port 3001)
 │   └── web/        # Next.js dashboard (port 3000)
 ├── packages/
-│   ├── sdk/        # Client SDK for agents to emit traces
+│   ├── sdk/        # TypeScript client SDK for agents to emit traces
+│   ├── sdk-py/     # Python SDK + LangGraph integration + `foxhound ui` CLI
 │   ├── types/      # Shared TypeScript types
 │   └── db/         # Drizzle ORM schema + migrations (PostgreSQL)
 ├── .github/
@@ -74,6 +75,39 @@ const tracer = fox.startTrace({ agentId: "my-agent-id" });
 const span = tracer.startSpan({ name: "tool_call:web_search", kind: "tool_call" });
 span.setAttribute("query", "latest AI research").end();
 await tracer.flush();
+```
+
+## Python SDK
+
+```bash
+pip install fox-sdk
+# with LangGraph support:
+pip install "fox-sdk[langgraph]"
+```
+
+```python
+from fox_sdk import FoxClient
+
+fox = FoxClient(api_key="your-key", endpoint="http://localhost:3001")
+
+# Manual tracing
+async with fox.trace(agent_id="my-agent") as tracer:
+    span = tracer.start_span(name="tool:search", kind="tool_call")
+    span.set_attribute("query", "latest AI research")
+    span.end()
+
+# LangGraph integration
+from fox_sdk.integrations.langgraph import FoxCallbackHandler
+
+handler = FoxCallbackHandler.from_client(fox, agent_id="my-langgraph-agent")
+result = await graph.ainvoke(state, config={"callbacks": [handler]})
+await handler.flush()
+```
+
+Launch the local trace viewer (points to your running API):
+
+```bash
+foxhound ui --api http://localhost:3001
 ```
 
 ## CI

@@ -1,6 +1,6 @@
-import type { Span, Trace } from "@foxhound/types";
+import type { Span } from "@foxhound/types";
 
-const API_URL = process.env.FOXHOUND_API_URL ?? "http://localhost:4000";
+const API_URL = process.env.FOXHOUND_API_URL ?? "http://localhost:3001";
 const API_KEY = process.env.FOXHOUND_API_KEY ?? "";
 
 function headers(): HeadersInit {
@@ -36,12 +36,12 @@ export async function listTraces(params: {
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
 
-  const res = await fetch(`${API_URL}/v1/traces?${qs}`, {
+  const res = await fetch(`${API_URL}/v1/traces?${qs.toString()}`, {
     headers: headers(),
     next: { revalidate: 5 },
   });
   if (!res.ok) throw new Error(`Failed to list traces: ${res.status}`);
-  return res.json();
+  return res.json() as Promise<TraceListResponse>;
 }
 
 export async function getTrace(id: string): Promise<TraceRow | null> {
@@ -51,7 +51,7 @@ export async function getTrace(id: string): Promise<TraceRow | null> {
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to get trace ${id}: ${res.status}`);
-  return res.json();
+  return res.json() as Promise<TraceRow>;
 }
 
 // ---- Span utilities --------------------------------------------------------

@@ -59,7 +59,7 @@ def _build_handler(api_url: str, api_key: str):
 
 
 def cmd_ui(args: argparse.Namespace) -> None:
-    api_url = args.api or os.environ.get("FOX_API_URL", "http://localhost:4000")
+    api_url = args.api or os.environ.get("FOX_API_URL", "http://localhost:3001")
     api_key = args.api_key or os.environ.get("FOX_API_KEY", "")
     port = args.port
     no_open = args.no_open
@@ -92,7 +92,7 @@ def main() -> None:
     ui_parser.add_argument(
         "--api",
         metavar="URL",
-        help="Fox API base URL (default: $FOX_API_URL or http://localhost:4000)",
+        help="Fox API base URL (default: $FOX_API_URL or http://localhost:3001)",
     )
     ui_parser.add_argument(
         "--api-key",
