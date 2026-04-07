@@ -117,7 +117,7 @@ describe("ApiKeyManager", () => {
     await waitFor(() => screen.getByText("production"));
 
     const revokeButtons = screen.getAllByRole("button", { name: "Revoke" });
-    await userEvent.click(revokeButtons[0]);
+    await userEvent.click(revokeButtons[0]!);
 
     expect(apikeys.revokeApiKey).toHaveBeenCalledWith("k1");
     await waitFor(() =>
@@ -132,7 +132,7 @@ describe("ApiKeyManager", () => {
     render(<ApiKeyManager />);
     await waitFor(() => screen.getByText("production"));
 
-    await userEvent.click(screen.getAllByRole("button", { name: "Revoke" })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: "Revoke" })[0]!);
     expect(apikeys.revokeApiKey).not.toHaveBeenCalled();
   });
 

@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic";
 export default async function RunDiffPage({
   searchParams,
 }: {
-  searchParams: { runA?: string; runB?: string };
+  searchParams: Promise<{ runA?: string; runB?: string }>;
 }) {
-  const runA = searchParams?.runA?.trim() ?? "";
-  const runB = searchParams?.runB?.trim() ?? "";
+  const resolvedParams = await searchParams;
+  const runA = resolvedParams?.runA?.trim() ?? "";
+  const runB = resolvedParams?.runB?.trim() ?? "";
 
   if (!runA || !runB) {
     return <RunSelectionForm runA={runA} runB={runB} />;
