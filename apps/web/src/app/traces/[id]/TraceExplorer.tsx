@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Span, SpanEvent } from "@foxhound/types";
 import type { TraceRow } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 
 interface TreeNode {
   span: Span;
@@ -447,12 +449,84 @@ export function TraceExplorer({ trace, tree, totalMs }: Props) {
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(
     tree[0]?.span.spanId ?? null,
   );
+  const [showReplayBanner, setShowReplayBanner] = useState(false);
+  const { canReplay, loading: planLoading } = usePlan();
 
   const traceStartMs = Number(trace.startTimeMs);
   const selectedNode = tree.find((n) => n.span.spanId === selectedSpanId);
 
+  function handleReplayClick() {
+    if (canReplay) {
+      // Replay not yet implemented — placeholder for future
+      alert("Replay coming soon.");
+    } else {
+      setShowReplayBanner(true);
+    }
+  }
+
   return (
-    <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+      {/* Replay banner (shown on demand for free users) */}
+      {showReplayBanner && !planLoading && !canReplay && (
+        <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--border)" }}>
+          <UpgradeBanner
+            feature="Replay"
+            description="Replay is a Pro feature — step through agent execution frame-by-frame."
+          />
+        </div>
+      )}
+
+      {/* Replay toolbar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          padding: "6px 16px",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface)",
+          gap: 8,
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={handleReplayClick}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "5px 12px",
+            background: canReplay ? "rgba(107,122,255,0.1)" : "var(--surface-2)",
+            border: `1px solid ${canReplay ? "rgba(107,122,255,0.35)" : "var(--border)"}`,
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: canReplay ? "var(--accent)" : "var(--text-muted)",
+            cursor: "pointer",
+          }}
+        >
+          <span>▶</span>
+          Replay
+          {!canReplay && !planLoading && (
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                background: "rgba(107,122,255,0.15)",
+                color: "var(--accent)",
+                border: "1px solid rgba(107,122,255,0.3)",
+                borderRadius: 3,
+                padding: "1px 5px",
+              }}
+            >
+              PRO
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       {/* Left: Timeline */}
       <div
         style={{
@@ -517,6 +591,7 @@ export function TraceExplorer({ trace, tree, totalMs }: Props) {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

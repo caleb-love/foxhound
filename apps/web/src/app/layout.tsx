@@ -57,6 +57,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/traces" style={{ color: "var(--text-muted)", fontSize: 13 }}>
               Traces
             </a>
+            <a href="/pricing" style={{ color: "var(--text-muted)", fontSize: 13 }}>
+              Pricing
+            </a>
             <NavClient />
           </nav>
           <main style={{ minHeight: "calc(100vh - 48px)" }}>{children}</main>
