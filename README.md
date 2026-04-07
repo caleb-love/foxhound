@@ -122,10 +122,10 @@ pnpm --filter @foxhound/db db:migrate
 pnpm dev
 ```
 
-| Service | URL |
-|---------|-----|
-| Dashboard | http://localhost:3000 |
-| API | http://localhost:3001 |
+| Service      | URL                          |
+| ------------ | ---------------------------- |
+| Dashboard    | http://localhost:3000        |
+| API          | http://localhost:3001        |
 | Health check | http://localhost:3001/health |
 
 ## SDKs
@@ -221,38 +221,38 @@ All endpoints are prefixed with `/v1`. Authentication is via Bearer token (JWT o
 
 ### Traces
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/traces` | Ingest trace from SDK (202 Accepted) |
-| `GET` | `/v1/traces` | List traces with filters and pagination |
-| `GET` | `/v1/traces/:id` | Get single trace with all spans |
-| `GET` | `/v1/traces/:traceId/spans/:spanId/replay` | Reconstruct agent state at span |
-| `GET` | `/v1/runs/diff?runA=:id&runB=:id` | Side-by-side diff of two agent runs |
+| Method | Path                                       | Description                             |
+| ------ | ------------------------------------------ | --------------------------------------- |
+| `POST` | `/v1/traces`                               | Ingest trace from SDK (202 Accepted)    |
+| `GET`  | `/v1/traces`                               | List traces with filters and pagination |
+| `GET`  | `/v1/traces/:id`                           | Get single trace with all spans         |
+| `GET`  | `/v1/traces/:traceId/spans/:spanId/replay` | Reconstruct agent state at span         |
+| `GET`  | `/v1/runs/diff?runA=:id&runB=:id`          | Side-by-side diff of two agent runs     |
 
 ### Auth
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/auth/signup` | Create user + organization |
-| `POST` | `/v1/auth/login` | Authenticate and receive JWT |
-| `GET` | `/v1/auth/me` | Current user profile |
+| Method | Path              | Description                  |
+| ------ | ----------------- | ---------------------------- |
+| `POST` | `/v1/auth/signup` | Create user + organization   |
+| `POST` | `/v1/auth/login`  | Authenticate and receive JWT |
+| `GET`  | `/v1/auth/me`     | Current user profile         |
 
 ### API Keys
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/api-keys` | Create API key (shown once) |
-| `GET` | `/v1/api-keys` | List active keys (prefix only) |
-| `DELETE` | `/v1/api-keys/:id` | Revoke a key |
+| Method   | Path               | Description                    |
+| -------- | ------------------ | ------------------------------ |
+| `POST`   | `/v1/api-keys`     | Create API key (shown once)    |
+| `GET`    | `/v1/api-keys`     | List active keys (prefix only) |
+| `DELETE` | `/v1/api-keys/:id` | Revoke a key                   |
 
 ### Billing
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/billing/status` | Current plan, usage, billing date |
-| `GET` | `/v1/billing/usage` | Span usage and limits for current period |
-| `POST` | `/v1/billing/checkout` | Create Stripe checkout session |
-| `POST` | `/v1/billing/portal` | Open Stripe customer portal |
+| Method | Path                   | Description                              |
+| ------ | ---------------------- | ---------------------------------------- |
+| `GET`  | `/v1/billing/status`   | Current plan, usage, billing date        |
+| `GET`  | `/v1/billing/usage`    | Span usage and limits for current period |
+| `POST` | `/v1/billing/checkout` | Create Stripe checkout session           |
+| `POST` | `/v1/billing/portal`   | Open Stripe customer portal              |
 
 ## Self-Hosting
 
@@ -263,16 +263,16 @@ Foxhound is designed to be self-hosted. You need:
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | Secret for signing auth tokens |
-| `STRIPE_SECRET_KEY` | No | Stripe API key (for billing) |
-| `STRIPE_WEBHOOK_SECRET` | No | Stripe webhook signing secret |
-| `STRIPE_PRICE_ID_PRO_MONTHLY` | No | Stripe price ID for Pro monthly |
-| `STRIPE_PRICE_ID_PRO_ANNUAL` | No | Stripe price ID for Pro annual |
-| `INTERNAL_CRON_SECRET` | No | Secret for internal cron endpoints |
-| `LOG_LEVEL` | No | Logging level (default: `info`) |
+| Variable                      | Required | Description                        |
+| ----------------------------- | -------- | ---------------------------------- |
+| `DATABASE_URL`                | Yes      | PostgreSQL connection string       |
+| `JWT_SECRET`                  | Yes      | Secret for signing auth tokens     |
+| `STRIPE_SECRET_KEY`           | No       | Stripe API key (for billing)       |
+| `STRIPE_WEBHOOK_SECRET`       | No       | Stripe webhook signing secret      |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | No       | Stripe price ID for Pro monthly    |
+| `STRIPE_PRICE_ID_PRO_ANNUAL`  | No       | Stripe price ID for Pro annual     |
+| `INTERNAL_CRON_SECRET`        | No       | Secret for internal cron endpoints |
+| `LOG_LEVEL`                   | No       | Logging level (default: `info`)    |
 
 Stripe configuration is only needed if you want billing/plan gating. Without it, Foxhound runs as a fully functional open-source tracing platform on the free tier.
 
@@ -292,19 +292,19 @@ Foxhound follows security best practices:
 
 Foxhound is **open source and free to self-host**. Managed cloud plans are available:
 
-| | Community | Pro | Enterprise |
-|---|---|---|---|
-| **Price** | Free | $49/mo | Custom |
-| **Spans / month** | 10,000 | 500,000 | Unlimited |
-| **Data retention** | 7 days | 90 days | 365 days |
-| **Projects** | 1 | 10 | Unlimited |
-| **Team seats** | 1 | 5 | Unlimited |
-| **Trace explorer** | ✓ | ✓ | ✓ |
-| **Span replay** | — | ✓ | ✓ |
-| **Run diff** | — | ✓ | ✓ |
-| **Audit log** | — | — | ✓ |
-| **SSO / SAML** | — | — | ✓ |
-| **SLA & dedicated CSM** | — | — | ✓ |
+|                         | Community | Pro     | Enterprise |
+| ----------------------- | --------- | ------- | ---------- |
+| **Price**               | Free      | $49/mo  | Custom     |
+| **Spans / month**       | 10,000    | 500,000 | Unlimited  |
+| **Data retention**      | 7 days    | 90 days | 365 days   |
+| **Projects**            | 1         | 10      | Unlimited  |
+| **Team seats**          | 1         | 5       | Unlimited  |
+| **Trace explorer**      | ✓         | ✓       | ✓          |
+| **Span replay**         | —         | ✓       | ✓          |
+| **Run diff**            | —         | ✓       | ✓          |
+| **Audit log**           | —         | —       | ✓          |
+| **SSO / SAML**          | —         | —       | ✓          |
+| **SLA & dedicated CSM** | —         | —       | ✓          |
 
 Pro annual billing: **$39/mo** (save 20%).
 
@@ -321,15 +321,15 @@ pnpm format:check   # Check formatting
 
 ### Project Structure
 
-| Package | Description |
-|---------|-------------|
-| `apps/api` | Fastify REST API — auth, traces, billing, webhooks |
-| `apps/web` | Next.js 14 dashboard — trace explorer, settings, pricing |
-| `packages/sdk` | TypeScript SDK — `@foxhound/sdk` |
-| `packages/sdk-py` | Python SDK — `fox-sdk` with LangGraph integration |
-| `packages/db` | Drizzle ORM schema, queries, and migrations |
-| `packages/billing` | Stripe integration, entitlements engine, usage metering |
-| `packages/types` | Shared TypeScript types (Span, Trace, AuditEvent) |
+| Package            | Description                                              |
+| ------------------ | -------------------------------------------------------- |
+| `apps/api`         | Fastify REST API — auth, traces, billing, webhooks       |
+| `apps/web`         | Next.js 14 dashboard — trace explorer, settings, pricing |
+| `packages/sdk`     | TypeScript SDK — `@foxhound/sdk`                         |
+| `packages/sdk-py`  | Python SDK — `fox-sdk` with LangGraph integration        |
+| `packages/db`      | Drizzle ORM schema, queries, and migrations              |
+| `packages/billing` | Stripe integration, entitlements engine, usage metering  |
+| `packages/types`   | Shared TypeScript types (Span, Trace, AuditEvent)        |
 
 ### CI
 
@@ -356,6 +356,7 @@ Trace
 ```
 
 **Span kinds:**
+
 - `tool_call` — External tool invocations (search, API calls, file I/O)
 - `llm_call` — LLM / chat model completions
 - `agent_step` — High-level agent reasoning steps
@@ -363,6 +364,7 @@ Trace
 - `custom` — User-defined spans
 
 Each span carries:
+
 - `attributes` — Key-value metadata (model name, token counts, tool inputs)
 - `events` — Timestamped occurrences within the span
 - `status` — `ok`, `error`, or `unset`

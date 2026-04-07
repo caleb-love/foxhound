@@ -11,7 +11,12 @@ vi.mock("./entitlements.js", () => ({
 
 import * as db from "@foxhound/db";
 import * as entitlementsMod from "./entitlements.js";
-import { checkSpanLimit, incrementSpanCount, currentBillingPeriod, periodBounds } from "./metering.js";
+import {
+  checkSpanLimit,
+  incrementSpanCount,
+  currentBillingPeriod,
+  periodBounds,
+} from "./metering.js";
 
 function mockEntitlements(maxSpans: number) {
   vi.mocked(entitlementsMod.getEntitlements).mockResolvedValue({

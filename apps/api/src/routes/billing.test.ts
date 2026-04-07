@@ -19,7 +19,10 @@ vi.mock("@foxhound/billing", () => ({
   invalidateEntitlements: vi.fn(),
   getEntitlements: vi.fn(),
   currentBillingPeriod: vi.fn(() => "2026-04"),
-  periodBounds: vi.fn(() => ({ periodStart: "2026-04-01T00:00:00.000Z", periodEnd: "2026-04-30T23:59:59.999Z" })),
+  periodBounds: vi.fn(() => ({
+    periodStart: "2026-04-01T00:00:00.000Z",
+    periodEnd: "2026-04-30T23:59:59.999Z",
+  })),
 }));
 
 vi.mock("stripe", () => {
@@ -66,7 +69,10 @@ function buildBillingApp() {
   return app;
 }
 
-async function getJwt(app: ReturnType<typeof buildBillingApp>, payload: JwtPayload): Promise<string> {
+async function getJwt(
+  app: ReturnType<typeof buildBillingApp>,
+  payload: JwtPayload,
+): Promise<string> {
   await app.ready();
   return app.jwt.sign(payload);
 }
@@ -141,7 +147,9 @@ async function invokeSubscriptionHandler(event: Stripe.Event): Promise<void> {
   const subscription = data.object as Stripe.Subscription;
   const stripeCustomerId = subscription.customer as string;
 
-  const org = await (getOrganizationByStripeCustomerId as unknown as (id: string) => Promise<MockOrg | null>)(stripeCustomerId);
+  const org = await (
+    getOrganizationByStripeCustomerId as unknown as (id: string) => Promise<MockOrg | null>
+  )(stripeCustomerId);
   if (!org) return;
 
   let plan: "free" | "pro" | "enterprise" = "free";
@@ -202,7 +210,9 @@ describe("billing webhook — subscription events", () => {
 
   it("preserves enterprise plan on subscription.updated", async () => {
     const enterpriseOrg = { ...mockOrg, plan: "enterprise" };
-    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(enterpriseOrg);
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(
+      enterpriseOrg,
+    );
     (updateOrgPlan as ReturnType<typeof vi.fn>).mockResolvedValue(enterpriseOrg);
 
     const event = makeSubscriptionEvent("customer.subscription.updated", "active");
@@ -281,7 +291,9 @@ describe("billing webhook — invoice.payment_failed", () => {
 describe("POST /v1/billing/report-usage — auth enforcement", () => {
   const savedSecret = process.env["INTERNAL_CRON_SECRET"];
 
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   afterEach(() => {
     if (savedSecret === undefined) {
@@ -389,7 +401,9 @@ describe("POST /v1/billing/report-usage — auth enforcement", () => {
 // ---------------------------------------------------------------------------
 
 describe("GET /v1/billing/status", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without JWT", async () => {
     const app = buildBillingApp();
@@ -421,7 +435,9 @@ describe("GET /v1/billing/status", () => {
 });
 
 describe("GET /v1/billing/usage", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without JWT", async () => {
     const app = buildBillingApp();
