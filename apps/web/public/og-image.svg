@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0D1117"/>
+
+  <!-- Subtle grid pattern overlay -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#161B22" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Subtle radial glow behind logo -->
+  <radialGradient id="glow" cx="27%" cy="50%" r="35%">
+    <stop offset="0%" stop-color="#E07838" stop-opacity="0.12"/>
+    <stop offset="100%" stop-color="#E07838" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- ===== DOG LOGO (left side, scaled down) ===== -->
+  <g transform="translate(60, 80) scale(0.92)">
+    <!-- Ears -->
+    <rect x="112" y="168" width="80" height="222" rx="40" fill="#B85C1A"/>
+    <rect x="126" y="182" width="52" height="194" rx="26" fill="#CC6C28"/>
+    <rect x="320" y="168" width="80" height="222" rx="40" fill="#B85C1A"/>
+    <rect x="334" y="182" width="52" height="194" rx="26" fill="#CC6C28"/>
+
+    <!-- Head -->
+    <ellipse cx="256" cy="210" rx="100" ry="95" fill="#E07838"/>
+    <ellipse cx="256" cy="158" rx="64" ry="42" fill="#EE9050"/>
+
+    <!-- Muzzle -->
+    <ellipse cx="256" cy="265" rx="62" ry="46" fill="#ECA060"/>
+
+    <!-- Left eye -->
+    <ellipse cx="212" cy="202" rx="24" ry="23" fill="#1C0E06"/>
+    <ellipse cx="212" cy="203" rx="17" ry="17" fill="#A86828"/>
+    <ellipse cx="213" cy="204" rx="11" ry="11" fill="#0D0604"/>
+    <ellipse cx="206" cy="197" rx="5" ry="4" fill="white" opacity="0.9"/>
+
+    <!-- Right eye -->
+    <ellipse cx="300" cy="202" rx="24" ry="23" fill="#1C0E06"/>
+    <ellipse cx="300" cy="203" rx="17" ry="17" fill="#A86828"/>
+    <ellipse cx="301" cy="204" rx="11" ry="11" fill="#0D0604"/>
+    <ellipse cx="294" cy="197" rx="5" ry="4" fill="white" opacity="0.9"/>
+
+    <!-- Brow marks -->
+    <ellipse cx="212" cy="181" rx="9" ry="5" fill="#F0C070" opacity="0.6"/>
+    <ellipse cx="300" cy="181" rx="9" ry="5" fill="#F0C070" opacity="0.6"/>
+
+    <!-- Nose -->
+    <ellipse cx="256" cy="257" rx="20" ry="15" fill="#1A0A04"/>
+    <ellipse cx="249" cy="252" rx="5.5" ry="3.5" fill="#4A2510" opacity="0.5"/>
+
+    <!-- Mouth -->
+    <line x1="256" y1="272" x2="256" y2="282" stroke="#B05820" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 238 284 C 245 290 267 290 274 284" stroke="#B05820" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.65"/>
+  </g>
+
+  <!-- ===== TEXT (right side) ===== -->
+  <!-- Foxhound wordmark -->
+  <text x="560" y="265" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="96" font-weight="700" fill="white" letter-spacing="-2">Foxhound</text>
+
+  <!-- Tagline -->
+  <text x="562" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="28" font-weight="400" fill="#8B949E" letter-spacing="0.5">Compliance-grade observability for AI agent fleets</text>
+
+  <!-- Divider line accent -->
+  <line x1="560" y1="365" x2="1100" y2="365" stroke="#21262D" stroke-width="1.5"/>
+
+  <!-- Feature pills -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="500">
+    <!-- Trace -->
+    <rect x="562" y="385" width="110" height="36" rx="18" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+    <text x="617" y="408" text-anchor="middle" fill="#58A6FF">Trace</text>
+
+    <!-- Replay -->
+    <rect x="686" y="385" width="110" height="36" rx="18" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+    <text x="741" y="408" text-anchor="middle" fill="#58A6FF">Replay</text>
+
+    <!-- Audit -->
+    <rect x="810" y="385" width="110" height="36" rx="18" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+    <text x="865" y="408" text-anchor="middle" fill="#58A6FF">Audit</text>
+
+    <!-- Alert -->
+    <rect x="934" y="385" width="110" height="36" rx="18" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+    <text x="989" y="408" text-anchor="middle" fill="#58A6FF">Alert</text>
+  </g>
+
+  <!-- Corner accents -->
+  <g stroke="#3D8EF0" stroke-width="2" fill="none" opacity="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 1168 600 L 1188 600 L 1188 580"/>
+    <path d="M 12 600 L 32 600 L 32 580"/>
+    <path d="M 12 30 L 32 30 L 32 50"/>
+    <path d="M 1188 30 L 1168 30 L 1168 50"/>
+  </g>
+</svg>

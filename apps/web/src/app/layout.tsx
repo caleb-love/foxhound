@@ -4,8 +4,28 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { NavClient } from "@/components/NavClient";
 
 export const metadata: Metadata = {
-  title: "Fox — AI Agent Observability",
-  description: "Compliance-grade observability for AI agent fleets",
+  title: "Foxhound — AI Agent Observability",
+  description: "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+  },
+  openGraph: {
+    title: "Foxhound — AI Agent Observability",
+    description: "Compliance-grade observability for AI agent fleets. Trace, replay, and audit every agent decision.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Foxhound — AI Agent Observability",
+    description: "Compliance-grade observability for AI agent fleets.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -39,20 +59,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 gap: 8,
               }}
             >
-              <span
-                style={{
-                  background: "var(--accent)",
-                  color: "#fff",
-                  borderRadius: 4,
-                  padding: "1px 6px",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.5px",
-                }}
-              >
-                FOX
-              </span>
-              Observability
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Foxhound"
+                width={28}
+                height={28}
+                style={{ borderRadius: 6 }}
+              />
+              Foxhound
             </a>
             <a href="/traces" className="nav-link">
               Traces
