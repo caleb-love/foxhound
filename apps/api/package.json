@@ -13,6 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@foxhound/billing": "workspace:*",
     "@foxhound/db": "workspace:*",
     "@foxhound/types": "workspace:*",
     "fastify": "^4.26.0",

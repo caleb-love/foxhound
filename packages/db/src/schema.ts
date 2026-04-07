@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, unique, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, index, unique, primaryKey, integer } from "drizzle-orm/pg-core";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Auth / multi-tenancy tables
@@ -8,6 +8,8 @@ export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  plan: text("plan", { enum: ["free", "pro", "enterprise"] }).notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -111,5 +113,22 @@ export const auditEvents = pgTable(
     agentIdIdx: index("audit_events_agent_id_idx").on(table.agentId),
     timestampIdx: index("audit_events_timestamp_idx").on(table.timestamp),
     eventTypeIdx: index("audit_events_event_type_idx").on(table.eventType),
+  }),
+);
+
+export const usageRecords = pgTable(
+  "usage_records",
+  {
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Billing period in YYYY-MM format */
+    period: text("period").notNull(),
+    spanCount: integer("span_count").notNull().default(0),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.orgId, table.period] }),
+    orgIdIdx: index("usage_records_org_id_idx").on(table.orgId),
   }),
 );

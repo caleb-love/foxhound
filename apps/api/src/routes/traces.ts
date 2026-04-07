@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { insertTrace, queryTraces, getTrace, getReplayContext, diffTraces } from "@foxhound/db";
+import { requireEntitlement } from "../middleware/entitlements.js";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -86,22 +87,27 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
   /**
    * GET /v1/traces/:traceId/spans/:spanId/replay
    * Reconstruct the full agent context at the moment a specific span began.
-   * Scoped to the authenticated org.
+   * Scoped to the authenticated org. Requires canReplay entitlement.
    */
-  fastify.get("/v1/traces/:traceId/spans/:spanId/replay", async (request, reply) => {
-    const { traceId, spanId } = request.params as { traceId: string; spanId: string };
-    const context = await getReplayContext(traceId, spanId, request.orgId);
-    if (!context) {
-      return reply.code(404).send({ error: "Not Found" });
-    }
-    return reply.code(200).send(context);
-  });
+  fastify.get(
+    "/v1/traces/:traceId/spans/:spanId/replay",
+    { preHandler: [requireEntitlement("canReplay")] },
+    async (request, reply) => {
+      const { traceId, spanId } = request.params as { traceId: string; spanId: string };
+      const context = await getReplayContext(traceId, spanId, request.orgId);
+      if (!context) {
+        return reply.code(404).send({ error: "Not Found" });
+      }
+      return reply.code(200).send(context);
+    },
+  );
 
   /**
    * GET /v1/runs/diff
    * Side-by-side diff of two agent runs — scoped to the authenticated org.
+   * Requires canRunDiff entitlement.
    */
-  fastify.get("/v1/runs/diff", async (request, reply) => {
+  fastify.get("/v1/runs/diff", { preHandler: [requireEntitlement("canRunDiff")] }, async (request, reply) => {
     const result = DiffQuerySchema.safeParse(request.query);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });

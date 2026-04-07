@@ -47,6 +47,9 @@ importers:
       '@fastify/jwt':
         specifier: ^8.0.0
         version: 8.0.1
+      '@foxhound/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@foxhound/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -97,6 +100,22 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.0
         version: 18.3.7(@types/react@18.3.28)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.4.0
+        version: 1.6.1(@types/node@20.19.39)
+
+  packages/billing:
+    dependencies:
+      '@foxhound/db':
+        specifier: workspace:*
+        version: link:../db
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.39
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
