@@ -58,7 +58,7 @@ describe("POST /v1/auth/signup", () => {
   it("creates user + org and returns token on success", async () => {
     vi.mocked(db.getUserByEmail).mockResolvedValue(null);
     vi.mocked(db.signup).mockResolvedValue({
-      org: { id: "org_1", name: "ACME", slug: "acme", createdAt: new Date(), updatedAt: new Date() },
+      org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
       user: { id: "usr_1", email: "a@b.com", name: "Alice", passwordHash: "hashed:password123", createdAt: new Date(), updatedAt: new Date() },
     });
 
@@ -122,7 +122,7 @@ describe("POST /v1/auth/login", () => {
     vi.mocked(db.verifyPassword).mockReturnValue(true);
     vi.mocked(db.getMembershipsByUser).mockResolvedValue([
       {
-        org: { id: "org_1", name: "ACME", slug: "acme", createdAt: new Date(), updatedAt: new Date() },
+        org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
         role: "owner",
       },
     ]);

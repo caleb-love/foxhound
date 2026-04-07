@@ -8,6 +8,7 @@
   "include": ["src"],
   "references": [
     { "path": "../../packages/types" },
-    { "path": "../../packages/db" }
+    { "path": "../../packages/db" },
+    { "path": "../../packages/billing" }
   ]
 }
