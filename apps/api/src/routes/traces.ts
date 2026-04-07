@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { insertTrace, queryTraces, getTrace, getReplayContext } from "@foxhound/db";
+import { insertTrace, queryTraces, getTrace, getReplayContext, diffTraces } from "@foxhound/db";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -29,6 +29,11 @@ const IngestTraceSchema = z.object({
   startTimeMs: z.number(),
   endTimeMs: z.number().optional(),
   metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
+});
+
+const DiffQuerySchema = z.object({
+  runA: z.string().min(1),
+  runB: z.string().min(1),
 });
 
 const QueryTracesSchema = z.object({
@@ -89,6 +94,26 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: "Not Found" });
     }
     return reply.code(200).send(context);
+  });
+
+  /**
+   * GET /v1/runs/diff
+   * Side-by-side diff of two agent runs (traces), aligned by span sequence.
+   * Returns divergence markers and a human-readable summary.
+   */
+  fastify.get("/v1/runs/diff", async (request, reply) => {
+    const result = DiffQuerySchema.safeParse(request.query);
+    if (!result.success) {
+      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+    }
+
+    const { runA, runB } = result.data;
+    const diff = await diffTraces(runA, runB);
+    if (!diff) {
+      return reply.code(404).send({ error: "One or both runs not found" });
+    }
+
+    return reply.code(200).send(diff);
   });
 
   /**
