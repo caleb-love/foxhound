@@ -37,7 +37,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
    * POST /v1/auth/signup
    * Create a new user + org. Returns a JWT.
    */
-  fastify.post("/v1/auth/signup", async (request, reply) => {
+  fastify.post("/v1/auth/signup", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const result = SignupSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -71,7 +71,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
    * POST /v1/auth/login
    * Authenticate with email + password. Returns a JWT.
    */
-  fastify.post("/v1/auth/login", async (request, reply) => {
+  fastify.post("/v1/auth/login", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const result = LoginSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });

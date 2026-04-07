@@ -3,6 +3,30 @@ import { z } from "zod";
 import { insertTrace, queryTraces, getTrace, getReplayContext, diffTraces } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { checkSpanLimit, incrementSpanCount } from "@foxhound/billing";
+import type { Trace } from "@foxhound/types";
+
+async function persistTraceWithRetry(
+  fastify: FastifyInstance,
+  trace: Trace,
+  orgId: string,
+  spanCount: number,
+  maxAttempts = 3,
+): Promise<void> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await Promise.all([insertTrace(trace, orgId), incrementSpanCount(orgId, spanCount)]);
+      return;
+    } catch (err: unknown) {
+      if (attempt === maxAttempts) {
+        fastify.log.error({ err, traceId: trace.id, attempt }, "Failed to persist trace after all retries");
+        return;
+      }
+      const delayMs = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms
+      fastify.log.warn({ err, traceId: trace.id, attempt, nextRetryMs: delayMs }, "Trace persist failed, retrying");
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -54,7 +78,7 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
    * Returns 202 immediately to avoid blocking the caller's hot path.
    * Scoped to the authenticated org (from API key middleware).
    */
-  fastify.post("/v1/traces", async (request, reply) => {
+  fastify.post("/v1/traces", { config: { rateLimit: { max: 1000, timeWindow: "1 minute" } } }, async (request, reply) => {
     const result = IngestTraceSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -78,11 +102,8 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
     reply.code(202).send({ accepted: true, id: trace.id });
 
     setImmediate(() => {
-      Promise.all([
-        insertTrace(trace, orgId),
-        incrementSpanCount(orgId, spanCount),
-      ]).catch((err: unknown) => {
-        fastify.log.error({ err, traceId: trace.id }, "Failed to persist trace or update usage");
+      persistTraceWithRetry(fastify, trace as unknown as Trace, orgId, spanCount).catch(() => {
+        // Errors are already logged inside persistTraceWithRetry
       });
     });
   });
