@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { insertTrace, queryTraces, getTrace } from "@foxhound/db";
+import { insertTrace, queryTraces, getTrace, getReplayContext } from "@foxhound/db";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -75,6 +75,20 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: "Not Found" });
     }
     return reply.code(200).send(trace);
+  });
+
+  /**
+   * GET /v1/traces/:traceId/spans/:spanId/replay
+   * Reconstruct the full agent context at the moment a specific span began.
+   * Returns all spans up to that decision point, categorised by kind.
+   */
+  fastify.get("/v1/traces/:traceId/spans/:spanId/replay", async (request, reply) => {
+    const { traceId, spanId } = request.params as { traceId: string; spanId: string };
+    const context = await getReplayContext(traceId, spanId);
+    if (!context) {
+      return reply.code(404).send({ error: "Not Found" });
+    }
+    return reply.code(200).send(context);
   });
 
   /**

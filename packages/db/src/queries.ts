@@ -1,7 +1,7 @@
 import { db } from "./client.js";
 import { traces } from "./schema.js";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
-import type { Trace } from "@foxhound/types";
+import type { Trace, Span } from "@foxhound/types";
 
 export interface TraceFilters {
   agentId?: string;
@@ -32,6 +32,50 @@ export async function insertTrace(trace: Trace): Promise<void> {
 export async function getTrace(id: string) {
   const rows = await db.select().from(traces).where(eq(traces.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+export interface ReplayContext {
+  traceId: string;
+  spanId: string;
+  targetSpan: Span;
+  spansUpToPoint: Span[];
+  llmCallHistory: Span[];
+  toolCallHistory: Span[];
+  agentStepHistory: Span[];
+}
+
+/**
+ * Reconstruct the full agent context at the moment a given span began.
+ * Returns all spans that started at or before the target span's startTimeMs,
+ * categorised by kind so the UI can render a rich replay panel.
+ */
+export async function getReplayContext(
+  traceId: string,
+  spanId: string,
+): Promise<ReplayContext | null> {
+  const row = await getTrace(traceId);
+  if (!row) return null;
+
+  const allSpans = (row.spans as unknown as Span[]).slice().sort(
+    (a, b) => a.startTimeMs - b.startTimeMs,
+  );
+
+  const target = allSpans.find((s) => s.spanId === spanId);
+  if (!target) return null;
+
+  const spansUpToPoint = allSpans.filter(
+    (s) => s.startTimeMs <= target.startTimeMs,
+  );
+
+  return {
+    traceId,
+    spanId,
+    targetSpan: target,
+    spansUpToPoint,
+    llmCallHistory: spansUpToPoint.filter((s) => s.kind === "llm_call"),
+    toolCallHistory: spansUpToPoint.filter((s) => s.kind === "tool_call"),
+    agentStepHistory: spansUpToPoint.filter((s) => s.kind === "agent_step"),
+  };
 }
 
 export async function queryTraces(filters: TraceFilters = {}) {
