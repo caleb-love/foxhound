@@ -210,3 +210,107 @@ describe("POST /v1/traces — span limit enforcement", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe("GET /v1/traces — list traces", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it("returns 401 without API key", async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: "GET", url: "/v1/traces" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 for invalid API key", async () => {
+    vi.mocked(db.resolveApiKey).mockResolvedValue(null);
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces",
+      headers: { authorization: "Bearer invalid-key" },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns paginated traces for authenticated org", async () => {
+    mockApiKey("org_1");
+    vi.mocked(db.queryTraces).mockResolvedValue([]);
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces?page=1&limit=10",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toHaveProperty("data");
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10 });
+    expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org_1", page: 1, limit: 10 }),
+    );
+  });
+
+  it("rejects limit above 100", async () => {
+    mockApiKey();
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces?limit=999",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("passes agentId and sessionId filters to queryTraces", async () => {
+    mockApiKey("org_1");
+    vi.mocked(db.queryTraces).mockResolvedValue([]);
+    const app = buildApp();
+    await app.inject({
+      method: "GET",
+      url: "/v1/traces?agentId=agent_42&sessionId=sess_99",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agent_42", sessionId: "sess_99" }),
+    );
+  });
+});
+
+describe("GET /v1/traces/:id — single trace", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it("returns 404 when trace not found", async () => {
+    mockApiKey();
+    vi.mocked(db.getTrace).mockResolvedValue(null);
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces/trace_missing",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns trace scoped to authenticated org", async () => {
+    mockApiKey("org_1");
+    const mockTrace = {
+      id: "trace_1",
+      agentId: "agent_1",
+      orgId: "org_1",
+      sessionId: null,
+      startTimeMs: Date.now(),
+      endTimeMs: null,
+      metadata: {},
+      spans: [],
+      createdAt: new Date(),
+    };
+    vi.mocked(db.getTrace).mockResolvedValue(mockTrace as never);
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces/trace_1",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.getTrace)).toHaveBeenCalledWith("trace_1", "org_1");
+  });
+});

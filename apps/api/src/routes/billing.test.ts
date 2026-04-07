@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import Fastify from "fastify";
 import Stripe from "stripe";
 
 // ---------------------------------------------------------------------------
@@ -11,17 +12,64 @@ vi.mock("@foxhound/db", () => ({
   getOrganizationById: vi.fn(),
   updateOrgStripeCustomerId: vi.fn(),
   getUsageForPeriod: vi.fn(),
+  resolveApiKey: vi.fn(),
 }));
 
 vi.mock("@foxhound/billing", () => ({
   invalidateEntitlements: vi.fn(),
+  getEntitlements: vi.fn(),
+  currentBillingPeriod: vi.fn(() => "2026-04"),
+  periodBounds: vi.fn(() => ({ periodStart: "2026-04-01T00:00:00.000Z", periodEnd: "2026-04-30T23:59:59.999Z" })),
 }));
+
+vi.mock("stripe", () => {
+  const mockSubscriptions = {
+    list: vi.fn().mockResolvedValue({ data: [] }),
+  };
+  const mockCheckoutSessions = {
+    create: vi.fn().mockResolvedValue({ url: "https://checkout.stripe.com/test" }),
+  };
+  const mockPortalSessions = {
+    create: vi.fn().mockResolvedValue({ url: "https://billing.stripe.com/test" }),
+  };
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      subscriptions: mockSubscriptions,
+      checkout: { sessions: mockCheckoutSessions },
+      billingPortal: { sessions: mockPortalSessions },
+      customers: { create: vi.fn().mockResolvedValue({ id: "cus_new" }) },
+      subscriptionItems: {
+        createUsageRecord: vi.fn().mockResolvedValue({}),
+      },
+    })),
+  };
+});
 
 import {
   getOrganizationByStripeCustomerId,
   updateOrgPlan,
+  getOrganizationById,
+  getUsageForPeriod,
 } from "@foxhound/db";
-import { invalidateEntitlements } from "@foxhound/billing";
+import { invalidateEntitlements, getEntitlements } from "@foxhound/billing";
+import { registerAuth } from "../plugins/auth.js";
+import { billingRoutes } from "./billing.js";
+import { billingWebhookRoutes } from "./billing-webhook.js";
+import type { JwtPayload } from "../plugins/auth.js";
+
+function buildBillingApp() {
+  const app = Fastify({ logger: false });
+  process.env["JWT_SECRET"] = "test-secret-for-unit-tests";
+  registerAuth(app);
+  app.register(billingRoutes);
+  app.register(billingWebhookRoutes);
+  return app;
+}
+
+async function getJwt(app: ReturnType<typeof buildBillingApp>, payload: JwtPayload): Promise<string> {
+  await app.ready();
+  return app.jwt.sign(payload);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers — build minimal Stripe event fixtures
@@ -223,5 +271,195 @@ describe("billing webhook — invoice.payment_failed", () => {
     );
     expect(org).toEqual(proOrg);
     expect(updateOrgPlan).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP route tests: POST /v1/billing/report-usage
+// ---------------------------------------------------------------------------
+
+describe("POST /v1/billing/report-usage — auth enforcement", () => {
+  const savedSecret = process.env["INTERNAL_CRON_SECRET"];
+
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  afterEach(() => {
+    if (savedSecret === undefined) {
+      delete process.env["INTERNAL_CRON_SECRET"];
+    } else {
+      process.env["INTERNAL_CRON_SECRET"] = savedSecret;
+    }
+  });
+
+  it("returns 503 when INTERNAL_CRON_SECRET is not configured", async () => {
+    delete process.env["INTERNAL_CRON_SECRET"];
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      body: { orgId: "org_1" },
+    });
+    expect(res.statusCode).toBe(503);
+  });
+
+  it("returns 401 with wrong secret", async () => {
+    process.env["INTERNAL_CRON_SECRET"] = "correct-secret";
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      headers: { "x-internal-secret": "wrong-secret" },
+      body: { orgId: "org_1" },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 with missing secret header", async () => {
+    process.env["INTERNAL_CRON_SECRET"] = "correct-secret";
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      body: { orgId: "org_1" },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 404 when org not found", async () => {
+    process.env["INTERNAL_CRON_SECRET"] = "correct-secret";
+    (getOrganizationById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (getEntitlements as ReturnType<typeof vi.fn>).mockResolvedValue({ maxSpans: 10_000 });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      headers: { "x-internal-secret": "correct-secret" },
+      body: { orgId: "org_missing" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns not_applicable for free-tier orgs", async () => {
+    process.env["INTERNAL_CRON_SECRET"] = "correct-secret";
+    (getOrganizationById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "org_1",
+      plan: "free",
+      stripeCustomerId: null,
+    });
+    (getEntitlements as ReturnType<typeof vi.fn>).mockResolvedValue({ maxSpans: 10_000 });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue({ spanCount: 5_000 });
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      headers: { "x-internal-secret": "correct-secret" },
+      body: { orgId: "org_1" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ reported: false, reason: "not_applicable" });
+  });
+
+  it("returns no_overage when usage is within limit", async () => {
+    process.env["INTERNAL_CRON_SECRET"] = "correct-secret";
+    (getOrganizationById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "org_1",
+      plan: "pro",
+      stripeCustomerId: "cus_test",
+    });
+    (getEntitlements as ReturnType<typeof vi.fn>).mockResolvedValue({ maxSpans: 500_000 });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue({ spanCount: 100_000 });
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/report-usage",
+      headers: { "x-internal-secret": "correct-secret" },
+      body: { orgId: "org_1" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ reported: false, reason: "no_overage" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP route tests: GET /v1/billing/status and GET /v1/billing/usage
+// ---------------------------------------------------------------------------
+
+describe("GET /v1/billing/status", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it("returns 401 without JWT", async () => {
+    const app = buildBillingApp();
+    const res = await app.inject({ method: "GET", url: "/v1/billing/status" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns current plan and usage for authenticated org", async () => {
+    (getOrganizationById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "org_1",
+      plan: "free",
+      stripeCustomerId: null,
+    });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue({ spanCount: 1_234 });
+
+    const app = buildBillingApp();
+    const token = await getJwt(app, { userId: "u1", orgId: "org_1" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/billing/status",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.plan).toBe("free");
+    expect(body.spanCount).toBe(1_234);
+    expect(body.nextBillingDate).toBeNull();
+  });
+});
+
+describe("GET /v1/billing/usage", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it("returns 401 without JWT", async () => {
+    const app = buildBillingApp();
+    const res = await app.inject({ method: "GET", url: "/v1/billing/usage" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns spans used, limit, and period bounds", async () => {
+    (getEntitlements as ReturnType<typeof vi.fn>).mockResolvedValue({ maxSpans: 10_000 });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue({ spanCount: 3_000 });
+
+    const app = buildBillingApp();
+    const token = await getJwt(app, { userId: "u1", orgId: "org_1" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/billing/usage",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.spansUsed).toBe(3_000);
+    expect(body.spansLimit).toBe(10_000);
+    expect(body).toHaveProperty("periodStart");
+    expect(body).toHaveProperty("periodEnd");
+  });
+
+  it("returns 0 spans when no usage record exists", async () => {
+    (getEntitlements as ReturnType<typeof vi.fn>).mockResolvedValue({ maxSpans: 10_000 });
+    (getUsageForPeriod as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const app = buildBillingApp();
+    const token = await getJwt(app, { userId: "u1", orgId: "org_1" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/billing/usage",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().spansUsed).toBe(0);
   });
 });

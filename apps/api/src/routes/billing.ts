@@ -210,11 +210,12 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.post("/v1/billing/report-usage", async (request, reply) => {
     const internalSecret = process.env["INTERNAL_CRON_SECRET"];
-    if (internalSecret) {
-      const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
-      if (provided !== internalSecret) {
-        return reply.code(401).send({ error: "Unauthorized" });
-      }
+    if (!internalSecret) {
+      return reply.code(503).send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
+    }
+    const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
+    if (provided !== internalSecret) {
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
     const BodySchema = z.object({ orgId: z.string().min(1) });
