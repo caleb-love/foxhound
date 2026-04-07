@@ -1,9 +1,192 @@
 import { db } from "./client.js";
-import { traces } from "./schema.js";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { traces, users, organizations, memberships, apiKeys } from "./schema.js";
+import { eq, and, gte, lte, desc, isNull } from "drizzle-orm";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Crypto helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const hashBuf = Buffer.from(hash, "hex");
+  const derived = scryptSync(password, salt, 64);
+  return timingSafeEqual(hashBuf, derived);
+}
+
+export function generateApiKey(): { key: string; prefix: string; keyHash: string } {
+  const raw = randomBytes(32).toString("hex");
+  const key = `sk-${raw}`;
+  const prefix = key.slice(0, 10);
+  const keyHash = createHash("sha256").update(key).digest("hex");
+  return { key, prefix, keyHash };
+}
+
+export function hashApiKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Organization queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function getOrganizationById(id: string) {
+  const rows = await db.select().from(organizations).where(eq(organizations.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// User queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function getUserByEmail(email: string) {
+  const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getUserById(id: string) {
+  const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export interface CreateUserInput {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+}
+
+export async function createUser(input: CreateUserInput) {
+  const rows = await db.insert(users).values(input).returning();
+  return rows[0]!;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Membership queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function getMembershipsByUser(userId: string) {
+  return db
+    .select({
+      org: organizations,
+      role: memberships.role,
+    })
+    .from(memberships)
+    .innerJoin(organizations, eq(memberships.orgId, organizations.id))
+    .where(eq(memberships.userId, userId));
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Sign-up: create org + user + owner membership atomically
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface SignupInput {
+  userId: string;
+  orgId: string;
+  orgName: string;
+  orgSlug: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+}
+
+export async function signup(input: SignupInput) {
+  return db.transaction(async (tx) => {
+    const [org] = await tx
+      .insert(organizations)
+      .values({ id: input.orgId, name: input.orgName, slug: input.orgSlug })
+      .returning();
+
+    const [user] = await tx
+      .insert(users)
+      .values({
+        id: input.userId,
+        email: input.email,
+        passwordHash: input.passwordHash,
+        name: input.name,
+      })
+      .returning();
+
+    await tx.insert(memberships).values({
+      userId: input.userId,
+      orgId: input.orgId,
+      role: "owner",
+    });
+
+    return { org: org!, user: user! };
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// API key queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function resolveApiKey(key: string) {
+  const keyHash = hashApiKey(key);
+  const rows = await db
+    .select({
+      apiKey: apiKeys,
+      org: organizations,
+    })
+    .from(apiKeys)
+    .innerJoin(organizations, eq(apiKeys.orgId, organizations.id))
+    .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export interface CreateApiKeyInput {
+  id: string;
+  orgId: string;
+  keyHash: string;
+  prefix: string;
+  name: string;
+  createdByUserId: string;
+}
+
+export async function createApiKey(input: CreateApiKeyInput) {
+  const rows = await db.insert(apiKeys).values(input).returning();
+  return rows[0]!;
+}
+
+export async function listApiKeys(orgId: string) {
+  return db
+    .select({
+      id: apiKeys.id,
+      orgId: apiKeys.orgId,
+      prefix: apiKeys.prefix,
+      name: apiKeys.name,
+      createdByUserId: apiKeys.createdByUserId,
+      revokedAt: apiKeys.revokedAt,
+      createdAt: apiKeys.createdAt,
+    })
+    .from(apiKeys)
+    .where(and(eq(apiKeys.orgId, orgId), isNull(apiKeys.revokedAt)))
+    .orderBy(desc(apiKeys.createdAt));
+}
+
+export async function revokeApiKey(id: string, orgId: string): Promise<boolean> {
+  const result = await db
+    .update(apiKeys)
+    .set({ revokedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(apiKeys.id, id), eq(apiKeys.orgId, orgId), isNull(apiKeys.revokedAt)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Trace queries (orgId-scoped)
+// ──────────────────────────────────────────────────────────────────────────────
+
 export interface TraceFilters {
+  orgId: string;
   agentId?: string;
   sessionId?: string;
   /** Unix milliseconds lower bound (inclusive) */
@@ -14,11 +197,12 @@ export interface TraceFilters {
   limit?: number;
 }
 
-export async function insertTrace(trace: Trace): Promise<void> {
+export async function insertTrace(trace: Trace, orgId: string): Promise<void> {
   await db
     .insert(traces)
     .values({
       id: trace.id,
+      orgId,
       agentId: trace.agentId,
       sessionId: trace.sessionId ?? null,
       startTimeMs: String(trace.startTimeMs),
@@ -29,8 +213,12 @@ export async function insertTrace(trace: Trace): Promise<void> {
     .onConflictDoNothing();
 }
 
-export async function getTrace(id: string) {
-  const rows = await db.select().from(traces).where(eq(traces.id, id)).limit(1);
+export async function getTrace(id: string, orgId: string) {
+  const rows = await db
+    .select()
+    .from(traces)
+    .where(and(eq(traces.id, id), eq(traces.orgId, orgId)))
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -44,16 +232,12 @@ export interface ReplayContext {
   agentStepHistory: Span[];
 }
 
-/**
- * Reconstruct the full agent context at the moment a given span began.
- * Returns all spans that started at or before the target span's startTimeMs,
- * categorised by kind so the UI can render a rich replay panel.
- */
 export async function getReplayContext(
   traceId: string,
   spanId: string,
+  orgId: string,
 ): Promise<ReplayContext | null> {
-  const row = await getTrace(traceId);
+  const row = await getTrace(traceId, orgId);
   if (!row) return null;
 
   const allSpans = (row.spans as unknown as Span[]).slice().sort(
@@ -63,9 +247,7 @@ export async function getReplayContext(
   const target = allSpans.find((s) => s.spanId === spanId);
   if (!target) return null;
 
-  const spansUpToPoint = allSpans.filter(
-    (s) => s.startTimeMs <= target.startTimeMs,
-  );
+  const spansUpToPoint = allSpans.filter((s) => s.startTimeMs <= target.startTimeMs);
 
   return {
     traceId,
@@ -86,14 +268,12 @@ export type DivergenceReason =
   | "name_changed";
 
 export interface SpanDiff {
-  /** Sequential position in the aligned span list */
   position: number;
   kind: "matched" | "added" | "removed";
   spanA?: Span;
   spanB?: Span;
   diverged: boolean;
   divergenceReasons: DivergenceReason[];
-  /** Human-readable explanation of what changed */
   explanation: string;
 }
 
@@ -104,18 +284,10 @@ export interface RunDiffResult {
   totalSpansB: number;
   alignedSpans: SpanDiff[];
   divergenceCount: number;
-  /** High-level summary of why the runs diverged */
   summary: string;
 }
 
-/**
- * Align two sorted span sequences using LCS on (name, kind) pairs.
- * Returns indices into each array that are "matched".
- */
-function lcsAlign(
-  spansA: Span[],
-  spansB: Span[],
-): Array<[number, number]> {
+function lcsAlign(spansA: Span[], spansB: Span[]): Array<[number, number]> {
   const m = spansA.length;
   const n = spansB.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
@@ -132,7 +304,6 @@ function lcsAlign(
     }
   }
 
-  // Backtrack to find matched pairs
   const pairs: Array<[number, number]> = [];
   let i = m;
   let j = n;
@@ -152,10 +323,7 @@ function lcsAlign(
   return pairs;
 }
 
-function diffAttributes(
-  a: Span["attributes"],
-  b: Span["attributes"],
-): boolean {
+function diffAttributes(a: Span["attributes"], b: Span["attributes"]): boolean {
   const keysA = Object.keys(a);
   const keysB = Object.keys(b);
   if (keysA.length !== keysB.length) return true;
@@ -184,12 +352,15 @@ function buildExplanation(reasons: DivergenceReason[], spanA?: Span, spanB?: Spa
   return parts.join("; ");
 }
 
-/**
- * Compute a side-by-side diff of two traces, aligning their spans and
- * identifying where decisions diverged between runs.
- */
-export async function diffTraces(traceIdA: string, traceIdB: string): Promise<RunDiffResult | null> {
-  const [rowA, rowB] = await Promise.all([getTrace(traceIdA), getTrace(traceIdB)]);
+export async function diffTraces(
+  traceIdA: string,
+  traceIdB: string,
+  orgId: string,
+): Promise<RunDiffResult | null> {
+  const [rowA, rowB] = await Promise.all([
+    getTrace(traceIdA, orgId),
+    getTrace(traceIdB, orgId),
+  ]);
   if (!rowA || !rowB) return null;
 
   const spansA = (rowA.spans as unknown as Span[]).slice().sort(
@@ -205,8 +376,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
 
   const aligned: SpanDiff[] = [];
   let position = 0;
-
-  // Merge matched + unmatched spans in order using the LCS pairs as anchors
   let pairIdx = 0;
   let ai = 0;
   let bi = 0;
@@ -215,7 +384,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
     const nextPair = matchedPairs[pairIdx];
 
     if (nextPair && ai === nextPair[0] && bi === nextPair[1]) {
-      // Matched pair
       const spanA = spansA[ai]!;
       const spanB = spansB[bi]!;
       const reasons: DivergenceReason[] = [];
@@ -234,7 +402,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
       bi++;
       pairIdx++;
     } else if (ai < spansA.length && !matchedA.has(ai)) {
-      // Span only in A
       const spanA = spansA[ai]!;
       aligned.push({
         position: position++,
@@ -246,7 +413,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
       });
       ai++;
     } else if (bi < spansB.length && !matchedB.has(bi)) {
-      // Span only in B
       const spanB = spansB[bi]!;
       aligned.push({
         position: position++,
@@ -258,7 +424,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
       });
       bi++;
     } else {
-      // Safety: advance whichever pointer is stuck
       if (ai < spansA.length) ai++;
       else bi++;
     }
@@ -266,7 +431,6 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
 
   const divergenceCount = aligned.filter((d) => d.diverged).length;
 
-  // Build high-level summary
   const summaryParts: string[] = [];
   const addedCount = aligned.filter((d) => d.kind === "added").length;
   const removedCount = aligned.filter((d) => d.kind === "removed").length;
@@ -299,21 +463,20 @@ export async function diffTraces(traceIdA: string, traceIdB: string): Promise<Ru
   };
 }
 
-export async function queryTraces(filters: TraceFilters = {}) {
-  const { agentId, sessionId, from, to, page = 1, limit = 50 } = filters;
+export async function queryTraces(filters: TraceFilters) {
+  const { orgId, agentId, sessionId, from, to, page = 1, limit = 50 } = filters;
   const offset = (page - 1) * limit;
 
-  const conditions = [];
+  const conditions = [eq(traces.orgId, orgId)];
   if (agentId) conditions.push(eq(traces.agentId, agentId));
   if (sessionId) conditions.push(eq(traces.sessionId, sessionId));
-  // startTimeMs stored as text; 13-digit ms timestamps sort lexicographically
   if (from != null) conditions.push(gte(traces.startTimeMs, String(from)));
   if (to != null) conditions.push(lte(traces.startTimeMs, String(to)));
 
   return db
     .select()
     .from(traces)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(traces.createdAt))
     .limit(limit)
     .offset(offset);
