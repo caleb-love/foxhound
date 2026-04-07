@@ -32,10 +32,11 @@ function statusBadge(row: TraceRow) {
 export default async function TracesPage({
   searchParams,
 }: {
-  searchParams: { page?: string; agentId?: string };
+  searchParams: Promise<{ page?: string; agentId?: string }>;
 }) {
-  const page = Number(searchParams?.page ?? "1");
-  const agentId = searchParams?.agentId;
+  const resolvedParams = await searchParams;
+  const page = Number(resolvedParams?.page ?? "1");
+  const agentId = resolvedParams?.agentId;
 
   let data: TraceRow[] = [];
   let error: string | null = null;

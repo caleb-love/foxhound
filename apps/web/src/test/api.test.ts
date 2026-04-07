@@ -43,8 +43,8 @@ describe("buildSpanTree", () => {
     const span = makeSpan({ spanId: "root", startTimeMs: 0 });
     const tree = buildSpanTree([span]);
     expect(tree).toHaveLength(1);
-    expect(tree[0].depth).toBe(0);
-    expect(tree[0].span.spanId).toBe("root");
+    expect(tree[0]!.depth).toBe(0);
+    expect(tree[0]!.span.spanId).toBe("root");
   });
 
   it("nests child spans under their parent", () => {
@@ -79,7 +79,7 @@ describe("buildSpanTree", () => {
   it("treats spans with unknown parentSpanId as roots", () => {
     const orphan = makeSpan({ spanId: "orphan", parentSpanId: "missing-parent", startTimeMs: 0 });
     const tree = buildSpanTree([orphan]);
-    expect(tree[0].depth).toBe(0);
+    expect(tree[0]!.depth).toBe(0);
   });
 
   it("handles multiple root spans sorted by startTimeMs", () => {
