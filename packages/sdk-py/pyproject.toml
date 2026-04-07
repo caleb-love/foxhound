@@ -22,8 +22,12 @@ dev = [
     "respx>=0.20",
 ]
 
+[project.scripts]
+foxhound = "fox_sdk.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["fox_sdk"]
+include = ["fox_sdk/static/*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
