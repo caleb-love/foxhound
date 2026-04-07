@@ -49,11 +49,29 @@ export default async function TracesPage({
 
   return (
     <div style={{ padding: "32px 24px", maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Traces</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-          Execution traces from your instrumented LangGraph agents
-        </p>
+      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Traces</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            Execution traces from your instrumented LangGraph agents
+          </p>
+        </div>
+        <a
+          href="/runs/diff"
+          style={{
+            flexShrink: 0,
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--accent)",
+            padding: "7px 14px",
+            border: "1px solid rgba(107,122,255,0.35)",
+            borderRadius: 6,
+            background: "rgba(107,122,255,0.06)",
+            marginTop: 2,
+          }}
+        >
+          Compare runs →
+        </a>
       </div>
 
       {error && (
