@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { getToken } from "@/lib/auth";
 
-const API_URL = process.env.FOXHOUND_API_URL ?? "http://localhost:3001";
+function isStripeUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "checkout.stripe.com" || hostname === "billing.stripe.com";
+  } catch {
+    return false;
+  }
+}
 
 interface TierFeature {
   label: string;
@@ -53,26 +59,26 @@ export default function PricingPage() {
   const [loadingCheckout, setLoadingCheckout] = useState(false);
 
   async function handleUpgrade() {
-    const token = getToken();
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
     setLoadingCheckout(true);
     try {
       const plan = billing === "annual" ? "pro_annual" : "pro_monthly";
       const origin = window.location.origin;
-      const res = await fetch(`${API_URL}/v1/billing/checkout`, {
+      const res = await fetch("/api/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
           successUrl: `${origin}/settings/billing?checkout=success`,
           cancelUrl: `${origin}/pricing`,
         }),
       });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       if (!res.ok) throw new Error("Checkout failed");
       const { url } = (await res.json()) as { url: string };
+      if (!isStripeUrl(url)) throw new Error("Invalid redirect URL");
       window.location.href = url;
     } catch {
       alert("Could not start checkout. Please try again.");
