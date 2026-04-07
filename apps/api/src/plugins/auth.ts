@@ -22,11 +22,20 @@ declare module "fastify" {
 }
 
 /** Routes that are fully public (no auth required). */
-const PUBLIC_PATHS = new Set(["/health", "/v1/auth/signup", "/v1/auth/login"]);
+const PUBLIC_PATHS = new Set([
+  "/health",
+  "/v1/auth/signup",
+  "/v1/auth/login",
+  "/v1/billing/webhooks",
+]);
 
 /** Routes that require JWT auth instead of API key auth. */
 function isJwtRoute(url: string): boolean {
-  return url === "/v1/auth/me" || url.startsWith("/v1/api-keys");
+  return (
+    url === "/v1/auth/me" ||
+    url.startsWith("/v1/api-keys") ||
+    url.startsWith("/v1/billing")
+  );
 }
 
 export function registerAuth(fastify: FastifyInstance): void {
