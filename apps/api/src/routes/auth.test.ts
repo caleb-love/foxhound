@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
 import { authRoutes } from "./auth.js";
 import { registerAuth } from "../plugins/auth.js";
+import type { JwtPayload } from "../plugins/auth.js";
 
 // Mock @foxhound/db
 vi.mock("@foxhound/db", () => ({
@@ -110,6 +111,16 @@ describe("POST /v1/auth/login", () => {
     expect(res.statusCode).toBe(401);
   });
 
+  it("returns 400 for invalid login body", async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      body: { email: "not-an-email" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it("returns token on valid credentials", async () => {
     vi.mocked(db.getUserByEmail).mockResolvedValue({
       id: "u1",
@@ -138,5 +149,66 @@ describe("POST /v1/auth/login", () => {
     const body = res.json();
     expect(body.token).toBeTruthy();
     expect(body.user.id).toBe("u1");
+  });
+});
+
+describe("GET /v1/auth/me", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  async function getJwt(app: ReturnType<typeof buildApp>, payload: JwtPayload): Promise<string> {
+    await app.ready();
+    return app.jwt.sign(payload);
+  }
+
+  it("returns 401 without JWT", async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: "GET", url: "/v1/auth/me" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns user and org for valid JWT", async () => {
+    vi.mocked(db.getUserById).mockResolvedValue({
+      id: "u1",
+      email: "a@b.com",
+      name: "Alice",
+      passwordHash: "hash",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getMembershipsByUser).mockResolvedValue([
+      {
+        org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
+        role: "owner",
+      },
+    ]);
+
+    const app = buildApp();
+    const token = await getJwt(app, { userId: "u1", orgId: "org_1" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/auth/me",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.user.id).toBe("u1");
+    expect(body.user.email).toBe("a@b.com");
+    expect(body.org.id).toBe("org_1");
+    expect(body.role).toBe("owner");
+  });
+
+  it("returns 404 when user not found", async () => {
+    vi.mocked(db.getUserById).mockResolvedValue(null);
+
+    const app = buildApp();
+    const token = await getJwt(app, { userId: "u_ghost", orgId: "org_1" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/auth/me",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(res.statusCode).toBe(404);
   });
 });
