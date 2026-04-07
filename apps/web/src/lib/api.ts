@@ -54,6 +54,41 @@ export async function getTrace(id: string): Promise<TraceRow | null> {
   return res.json() as Promise<TraceRow>;
 }
 
+// ---- Run diff --------------------------------------------------------------
+
+export interface SpanDiff {
+  position: number;
+  kind: "matched" | "added" | "removed";
+  spanA?: Span;
+  spanB?: Span;
+  diverged: boolean;
+  divergenceReasons: string[];
+  explanation: string;
+}
+
+export interface RunDiffResult {
+  traceIdA: string;
+  traceIdB: string;
+  totalSpansA: number;
+  totalSpansB: number;
+  alignedSpans: SpanDiff[];
+  divergenceCount: number;
+  summary: string;
+}
+
+export async function fetchRunDiff(runA: string, runB: string): Promise<RunDiffResult> {
+  const qs = new URLSearchParams({ runA, runB });
+  const res = await fetch(`${API_URL}/v1/runs/diff?${qs.toString()}`, {
+    headers: headers(),
+    next: { revalidate: 0 },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch run diff: ${res.status}${body ? ` — ${body}` : ""}`);
+  }
+  return res.json() as Promise<RunDiffResult>;
+}
+
 // ---- Span utilities --------------------------------------------------------
 
 export function spanDurationMs(span: Span): number {
