@@ -212,7 +212,9 @@ describe("POST /v1/traces — span limit enforcement", () => {
 });
 
 describe("GET /v1/traces — list traces", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without API key", async () => {
     const app = buildApp();
@@ -276,7 +278,9 @@ describe("GET /v1/traces — list traces", () => {
 });
 
 describe("GET /v1/traces/:id — single trace", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 404 when trace not found", async () => {
     mockApiKey();

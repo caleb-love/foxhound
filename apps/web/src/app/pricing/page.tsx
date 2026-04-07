@@ -19,33 +19,29 @@ interface TierFeature {
 }
 
 const FEATURES: TierFeature[] = [
-  { label: "Spans / month",        free: "10K",       pro: "500K",      enterprise: "Unlimited" },
-  { label: "Data retention",       free: "7 days",    pro: "90 days",   enterprise: "365 days" },
-  { label: "Projects",             free: "1",         pro: "10",        enterprise: "Unlimited" },
-  { label: "Seats",                free: "1",         pro: "5",         enterprise: "Unlimited" },
-  { label: "Trace explorer",       free: true,        pro: true,        enterprise: true },
-  { label: "Replay",               free: false,       pro: true,        enterprise: true },
-  { label: "Run diff",             free: false,       pro: true,        enterprise: true },
-  { label: "Audit log",            free: false,       pro: false,       enterprise: true },
-  { label: "SSO / SAML",           free: false,       pro: false,       enterprise: true },
-  { label: "SLA & dedicated CSM",  free: false,       pro: false,       enterprise: true },
+  { label: "Spans / month", free: "10K", pro: "500K", enterprise: "Unlimited" },
+  { label: "Data retention", free: "7 days", pro: "90 days", enterprise: "365 days" },
+  { label: "Projects", free: "1", pro: "10", enterprise: "Unlimited" },
+  { label: "Seats", free: "1", pro: "5", enterprise: "Unlimited" },
+  { label: "Trace explorer", free: true, pro: true, enterprise: true },
+  { label: "Replay", free: false, pro: true, enterprise: true },
+  { label: "Run diff", free: false, pro: true, enterprise: true },
+  { label: "Audit log", free: false, pro: false, enterprise: true },
+  { label: "SSO / SAML", free: false, pro: false, enterprise: true },
+  { label: "SLA & dedicated CSM", free: false, pro: false, enterprise: true },
 ];
 
 const PRICES = {
   monthly: { pro: 49 },
-  annual:  { pro: 39 },
+  annual: { pro: 39 },
 };
 
 function Check() {
-  return (
-    <span style={{ color: "var(--green)", fontWeight: 700, fontSize: 14 }}>✓</span>
-  );
+  return <span style={{ color: "var(--green)", fontWeight: 700, fontSize: 14 }}>✓</span>;
 }
 
 function Cross() {
-  return (
-    <span style={{ color: "var(--border)", fontWeight: 700, fontSize: 14 }}>—</span>
-  );
+  return <span style={{ color: "var(--border)", fontWeight: 700, fontSize: 14 }}>—</span>;
 }
 
 function FeatureCell({ value }: { value: string | boolean }) {
@@ -282,7 +278,9 @@ export default function PricingPage() {
             {billing === "annual" ? "Billed annually" : "Billed monthly"}
           </div>
           <button
-            onClick={() => { void handleUpgrade(); }}
+            onClick={() => {
+              void handleUpgrade();
+            }}
             disabled={loadingCheckout}
             style={{
               display: "block",

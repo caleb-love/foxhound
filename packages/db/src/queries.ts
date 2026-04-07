@@ -291,9 +291,9 @@ export async function getReplayContext(
   const row = await getTrace(traceId, orgId);
   if (!row) return null;
 
-  const allSpans = (row.spans as unknown as Span[]).slice().sort(
-    (a, b) => a.startTimeMs - b.startTimeMs,
-  );
+  const allSpans = (row.spans as unknown as Span[])
+    .slice()
+    .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
   const target = allSpans.find((s) => s.spanId === spanId);
   if (!target) return null;
@@ -408,18 +408,15 @@ export async function diffTraces(
   traceIdB: string,
   orgId: string,
 ): Promise<RunDiffResult | null> {
-  const [rowA, rowB] = await Promise.all([
-    getTrace(traceIdA, orgId),
-    getTrace(traceIdB, orgId),
-  ]);
+  const [rowA, rowB] = await Promise.all([getTrace(traceIdA, orgId), getTrace(traceIdB, orgId)]);
   if (!rowA || !rowB) return null;
 
-  const spansA = (rowA.spans as unknown as Span[]).slice().sort(
-    (a, b) => a.startTimeMs - b.startTimeMs,
-  );
-  const spansB = (rowB.spans as unknown as Span[]).slice().sort(
-    (a, b) => a.startTimeMs - b.startTimeMs,
-  );
+  const spansA = (rowA.spans as unknown as Span[])
+    .slice()
+    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+  const spansB = (rowB.spans as unknown as Span[])
+    .slice()
+    .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
   const matchedPairs = lcsAlign(spansA, spansB);
   const matchedA = new Set(matchedPairs.map(([i]) => i));

@@ -18,11 +18,17 @@ async function persistTraceWithRetry(
       return;
     } catch (err: unknown) {
       if (attempt === maxAttempts) {
-        fastify.log.error({ err, traceId: trace.id, attempt }, "Failed to persist trace after all retries");
+        fastify.log.error(
+          { err, traceId: trace.id, attempt },
+          "Failed to persist trace after all retries",
+        );
         return;
       }
       const delayMs = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms
-      fastify.log.warn({ err, traceId: trace.id, attempt, nextRetryMs: delayMs }, "Trace persist failed, retrying");
+      fastify.log.warn(
+        { err, traceId: trace.id, attempt, nextRetryMs: delayMs },
+        "Trace persist failed, retrying",
+      );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
@@ -78,35 +84,39 @@ export function tracesRoutes(fastify: FastifyInstance): void {
    * Returns 202 immediately to avoid blocking the caller's hot path.
    * Scoped to the authenticated org (from API key middleware).
    */
-  fastify.post("/v1/traces", { config: { rateLimit: { max: 1000, timeWindow: "1 minute" } } }, async (request, reply) => {
-    const result = IngestTraceSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+  fastify.post(
+    "/v1/traces",
+    { config: { rateLimit: { max: 1000, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const result = IngestTraceSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const trace = result.data;
-    const orgId = request.orgId;
+      const trace = result.data;
+      const orgId = request.orgId;
 
-    const spanCount = trace.spans.length;
-    const limitCheck = await checkSpanLimit(orgId, spanCount);
+      const spanCount = trace.spans.length;
+      const limitCheck = await checkSpanLimit(orgId, spanCount);
 
-    if (!limitCheck.allowed) {
-      return reply.code(429).send({
-        error: "span_limit_exceeded",
-        message: `Monthly span limit of ${limitCheck.spansLimit.toLocaleString()} reached. Upgrade to Pro for higher limits.`,
-        spansUsed: limitCheck.spansUsed,
-        spansLimit: limitCheck.spansLimit,
+      if (!limitCheck.allowed) {
+        return reply.code(429).send({
+          error: "span_limit_exceeded",
+          message: `Monthly span limit of ${limitCheck.spansLimit.toLocaleString()} reached. Upgrade to Pro for higher limits.`,
+          spansUsed: limitCheck.spansUsed,
+          spansLimit: limitCheck.spansLimit,
+        });
+      }
+
+      void reply.code(202).send({ accepted: true, id: trace.id });
+
+      setImmediate(() => {
+        persistTraceWithRetry(fastify, trace as unknown as Trace, orgId, spanCount).catch(() => {
+          // Errors are already logged inside persistTraceWithRetry
+        });
       });
-    }
-
-    void reply.code(202).send({ accepted: true, id: trace.id });
-
-    setImmediate(() => {
-      persistTraceWithRetry(fastify, trace as unknown as Trace, orgId, spanCount).catch(() => {
-        // Errors are already logged inside persistTraceWithRetry
-      });
-    });
-  });
+    },
+  );
 
   /**
    * GET /v1/traces/:id
@@ -144,20 +154,24 @@ export function tracesRoutes(fastify: FastifyInstance): void {
    * Side-by-side diff of two agent runs — scoped to the authenticated org.
    * Requires canRunDiff entitlement.
    */
-  fastify.get("/v1/runs/diff", { preHandler: [requireEntitlement("canRunDiff")] }, async (request, reply) => {
-    const result = DiffQuerySchema.safeParse(request.query);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+  fastify.get(
+    "/v1/runs/diff",
+    { preHandler: [requireEntitlement("canRunDiff")] },
+    async (request, reply) => {
+      const result = DiffQuerySchema.safeParse(request.query);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { runA, runB } = result.data;
-    const diff = await diffTraces(runA, runB, request.orgId);
-    if (!diff) {
-      return reply.code(404).send({ error: "One or both runs not found" });
-    }
+      const { runA, runB } = result.data;
+      const diff = await diffTraces(runA, runB, request.orgId);
+      if (!diff) {
+        return reply.code(404).send({ error: "One or both runs not found" });
+      }
 
-    return reply.code(200).send(diff);
-  });
+      return reply.code(200).send(diff);
+    },
+  );
 
   /**
    * GET /v1/traces
@@ -171,7 +185,15 @@ export function tracesRoutes(fastify: FastifyInstance): void {
 
     const { agentId, sessionId, from, to, page, limit } = result.data;
 
-    const rows = await queryTraces({ orgId: request.orgId, agentId, sessionId, from, to, page, limit });
+    const rows = await queryTraces({
+      orgId: request.orgId,
+      agentId,
+      sessionId,
+      from,
+      to,
+      page,
+      limit,
+    });
 
     return reply.code(200).send({
       data: rows,

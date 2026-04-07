@@ -20,7 +20,11 @@ export class FoxhoundClient {
     };
   }
 
-  startTrace(params: { agentId: string; sessionId?: string; metadata?: Record<string, string | number | boolean | null> }): Tracer {
+  startTrace(params: {
+    agentId: string;
+    sessionId?: string;
+    metadata?: Record<string, string | number | boolean | null>;
+  }): Tracer {
     const tracer = new Tracer({
       agentId: params.agentId,
       sessionId: params.sessionId,
@@ -42,7 +46,9 @@ export class FoxhoundClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to send trace ${trace.id}: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to send trace ${trace.id}: ${response.status} ${response.statusText}`,
+      );
     }
   }
 }

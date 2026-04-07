@@ -26,7 +26,9 @@ function buildApp() {
 }
 
 describe("POST /v1/auth/signup", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 400 for invalid body", async () => {
     const app = buildApp();
@@ -59,8 +61,23 @@ describe("POST /v1/auth/signup", () => {
   it("creates user + org and returns token on success", async () => {
     vi.mocked(db.getUserByEmail).mockResolvedValue(null);
     vi.mocked(db.signup).mockResolvedValue({
-      org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
-      user: { id: "usr_1", email: "a@b.com", name: "Alice", passwordHash: "hashed:password123", createdAt: new Date(), updatedAt: new Date() },
+      org: {
+        id: "org_1",
+        name: "ACME",
+        slug: "acme",
+        plan: "free" as const,
+        stripeCustomerId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      user: {
+        id: "usr_1",
+        email: "a@b.com",
+        name: "Alice",
+        passwordHash: "hashed:password123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     const app = buildApp();
@@ -79,7 +96,9 @@ describe("POST /v1/auth/signup", () => {
 });
 
 describe("POST /v1/auth/login", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 for unknown email", async () => {
     vi.mocked(db.getUserByEmail).mockResolvedValue(null);
@@ -133,7 +152,15 @@ describe("POST /v1/auth/login", () => {
     vi.mocked(db.verifyPassword).mockReturnValue(true);
     vi.mocked(db.getMembershipsByUser).mockResolvedValue([
       {
-        org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
+        org: {
+          id: "org_1",
+          name: "ACME",
+          slug: "acme",
+          plan: "free" as const,
+          stripeCustomerId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         role: "owner",
       },
     ]);
@@ -153,7 +180,9 @@ describe("POST /v1/auth/login", () => {
 });
 
 describe("GET /v1/auth/me", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   async function getJwt(app: ReturnType<typeof buildApp>, payload: JwtPayload): Promise<string> {
     await app.ready();
@@ -177,7 +206,15 @@ describe("GET /v1/auth/me", () => {
     });
     vi.mocked(db.getMembershipsByUser).mockResolvedValue([
       {
-        org: { id: "org_1", name: "ACME", slug: "acme", plan: "free" as const, stripeCustomerId: null, createdAt: new Date(), updatedAt: new Date() },
+        org: {
+          id: "org_1",
+          name: "ACME",
+          slug: "acme",
+          plan: "free" as const,
+          stripeCustomerId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         role: "owner",
       },
     ]);

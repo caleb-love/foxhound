@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ["/login", "/signup", "/", "/pricing"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) =>
-    p === "/" ? pathname === "/" : pathname.startsWith(p)
+    p === "/" ? pathname === "/" : pathname.startsWith(p),
   );
 
   if (!isPublic) {
