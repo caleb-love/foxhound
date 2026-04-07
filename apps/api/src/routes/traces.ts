@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { insertTrace, queryTraces, getTrace, getReplayContext, diffTraces } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
+import { checkSpanLimit, incrementSpanCount } from "@foxhound/billing";
 
 const SpanEventSchema = z.object({
   timeMs: z.number(),
@@ -62,11 +63,26 @@ export async function tracesRoutes(fastify: FastifyInstance): Promise<void> {
     const trace = result.data;
     const orgId = request.orgId;
 
+    const spanCount = trace.spans.length;
+    const limitCheck = await checkSpanLimit(orgId, spanCount);
+
+    if (!limitCheck.allowed) {
+      return reply.code(429).send({
+        error: "span_limit_exceeded",
+        message: `Monthly span limit of ${limitCheck.spansLimit.toLocaleString()} reached. Upgrade to Pro for higher limits.`,
+        spansUsed: limitCheck.spansUsed,
+        spansLimit: limitCheck.spansLimit,
+      });
+    }
+
     reply.code(202).send({ accepted: true, id: trace.id });
 
     setImmediate(() => {
-      insertTrace(trace, orgId).catch((err: unknown) => {
-        fastify.log.error({ err, traceId: trace.id }, "Failed to persist trace");
+      Promise.all([
+        insertTrace(trace, orgId),
+        incrementSpanCount(orgId, spanCount),
+      ]).catch((err: unknown) => {
+        fastify.log.error({ err, traceId: trace.id }, "Failed to persist trace or update usage");
       });
     });
   });
