@@ -11,19 +11,24 @@ export function NavClient() {
 
   return (
     <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
-      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{user.orgName}</span>
-      <a href="/settings" style={{ fontSize: 13, color: "var(--text-muted)" }}>
+      <span style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+        {user.orgName}
+      </span>
+      <a href="/settings" className="nav-link">
         Settings
+      </a>
+      <a href="/settings/billing" className="nav-link">
+        Billing
       </a>
       <button
         onClick={logout}
+        className="nav-link"
         style={{
-          fontSize: 12,
-          color: "var(--text-muted)",
           background: "none",
           border: "none",
           cursor: "pointer",
           padding: 0,
+          fontFamily: "inherit",
         }}
       >
         Logout

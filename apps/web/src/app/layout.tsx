@@ -54,10 +54,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               Observability
             </a>
-            <a href="/traces" style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            <a href="/traces" className="nav-link">
               Traces
             </a>
-            <a href="/pricing" style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            <a href="/pricing" className="nav-link">
               Pricing
             </a>
             <NavClient />
