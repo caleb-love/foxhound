@@ -1,0 +1,39 @@
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import { registerAuth } from "./plugins/auth.js";
+import { tracesRoutes } from "./routes/traces.js";
+import { authRoutes } from "./routes/auth.js";
+import { apiKeysRoutes } from "./routes/apiKeys.js";
+import { billingRoutes } from "./routes/billing.js";
+import { billingWebhookRoutes } from "./routes/billing-webhook.js";
+
+const app = Fastify({
+  logger: { level: process.env["LOG_LEVEL"] ?? "info" },
+});
+
+await app.register(cors);
+await app.register(helmet);
+
+// Register auth plugin (JWT + API key middleware)
+registerAuth(app);
+
+app.get("/health", async () => {
+  return { status: "ok", version: "0.0.1" };
+});
+
+await app.register(authRoutes);
+await app.register(apiKeysRoutes);
+await app.register(tracesRoutes);
+await app.register(billingRoutes);
+await app.register(billingWebhookRoutes);
+
+const port = Number(process.env["PORT"] ?? 3001);
+const host = process.env["HOST"] ?? "0.0.0.0";
+
+app.listen({ port, host }, (err) => {
+  if (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+});
