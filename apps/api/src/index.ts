@@ -32,7 +32,7 @@ await app.register(rateLimit, {
 // Register auth plugin (JWT + API key middleware)
 registerAuth(app);
 
-app.get("/health", async () => {
+app.get("/health", () => {
   return { status: "ok", version: "0.0.1" };
 });
 

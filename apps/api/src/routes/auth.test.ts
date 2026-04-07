@@ -21,7 +21,7 @@ function buildApp() {
   const app = Fastify({ logger: false });
   process.env["JWT_SECRET"] = "test-secret-for-unit-tests";
   registerAuth(app);
-  app.register(authRoutes);
+  void app.register(authRoutes);
   return app;
 }
 

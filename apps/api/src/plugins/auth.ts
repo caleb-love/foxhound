@@ -45,7 +45,7 @@ export function registerAuth(fastify: FastifyInstance): void {
   }
 
   // Register the JWT plugin
-  fastify.register(fastifyJwt, { secret: jwtSecret });
+  void fastify.register(fastifyJwt, { secret: jwtSecret });
 
   // Decorate with a reusable authenticate handler for JWT-protected routes
   fastify.decorate(

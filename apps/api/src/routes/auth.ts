@@ -32,7 +32,7 @@ function slugify(name: string): string {
     .slice(0, 60);
 }
 
-export async function authRoutes(fastify: FastifyInstance): Promise<void> {
+export function authRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/auth/signup
    * Create a new user + org. Returns a JWT.
