@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { getMe, logout as doLogout, getToken, type User } from "@/lib/auth";
+import { getMe, logout as doLogout, type User } from "@/lib/auth";
 
 interface AuthContextValue {
   user: User | null;
@@ -30,21 +30,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    void getMe(token)
+    void getMe()
       .then((u) => setUser(u))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const logout = useCallback(() => {
-    doLogout();
-    setUser(null);
-    window.location.href = "/login";
+    void doLogout().finally(() => {
+      setUser(null);
+      window.location.href = "/login";
+    });
   }, []);
 
   return (

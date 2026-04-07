@@ -4,10 +4,17 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/lib/auth";
 
+function safeRedirectPath(raw: string | null): string {
+  if (!raw) return "/traces";
+  // Only allow relative paths starting with / to prevent open redirect
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/traces";
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") ?? "/traces";
+  const from = safeRedirectPath(searchParams.get("from"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
