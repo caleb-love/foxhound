@@ -135,6 +135,7 @@ export default async function TracesPage({
               {data.map((row, i) => (
                 <tr
                   key={row.id}
+                  className="row-hover"
                   style={{
                     borderBottom:
                       i < data.length - 1 ? "1px solid var(--border)" : "none",

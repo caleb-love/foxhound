@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import Stripe from "stripe";
 import { updateOrgPlan, getOrganizationByStripeCustomerId } from "@foxhound/db";
 import { invalidateEntitlements } from "@foxhound/billing";
+import { invalidateBillingStatusCache } from "./billing.js";
 
 function getStripe(): Stripe {
   const key = process.env["STRIPE_SECRET_KEY"];
@@ -49,6 +50,7 @@ async function handleSubscriptionEvent(
 
   await updateOrgPlan(org.id, plan);
   invalidateEntitlements(org.id);
+  invalidateBillingStatusCache(org.id);
 }
 
 export async function billingWebhookRoutes(fastify: FastifyInstance): Promise<void> {

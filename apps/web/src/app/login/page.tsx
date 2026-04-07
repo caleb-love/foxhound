@@ -4,10 +4,17 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/lib/auth";
 
+function safeRedirectPath(raw: string | null): string {
+  if (!raw) return "/traces";
+  // Only allow relative paths starting with / to prevent open redirect
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/traces";
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") ?? "/traces";
+  const from = safeRedirectPath(searchParams.get("from"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,11 +40,32 @@ function LoginForm() {
       style={{
         minHeight: "calc(100vh - 48px)",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
       }}
     >
+      {/* Brand mark */}
+      <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            background: "var(--accent)",
+            color: "#fff",
+            borderRadius: 8,
+            padding: "6px 14px",
+            fontSize: 14,
+            fontWeight: 800,
+            letterSpacing: "1px",
+          }}
+        >
+          FOX
+        </div>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.5px" }}>
+          AI Agent Observability
+        </span>
+      </div>
+
       <div
         style={{
           width: "100%",

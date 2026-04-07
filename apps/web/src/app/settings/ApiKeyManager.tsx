@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { listApiKeys, createApiKey, revokeApiKey, type ApiKey } from "@/lib/apikeys";
-import { getToken } from "@/lib/auth";
 
 export function ApiKeyManager() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -19,10 +18,8 @@ export function ApiKeyManager() {
   const [copied, setCopied] = useState(false);
 
   const fetchKeys = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
     try {
-      const data = await listApiKeys(token);
+      const data = await listApiKeys();
       setKeys(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load API keys");
@@ -40,10 +37,8 @@ export function ApiKeyManager() {
     if (!newKeyName.trim()) return;
     setCreating(true);
     setCreateError(null);
-    const token = getToken();
-    if (!token) return;
     try {
-      const result = await createApiKey(token, newKeyName.trim());
+      const result = await createApiKey(newKeyName.trim());
       setRevealedKey(result.key);
       setNewKeyName("");
       void fetchKeys();
@@ -56,10 +51,8 @@ export function ApiKeyManager() {
 
   async function handleRevoke(id: string) {
     if (!confirm("Revoke this API key? This action cannot be undone.")) return;
-    const token = getToken();
-    if (!token) return;
     try {
-      await revokeApiKey(token, id);
+      await revokeApiKey(id);
       setKeys((prev) => prev.filter((k) => k.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to revoke key");

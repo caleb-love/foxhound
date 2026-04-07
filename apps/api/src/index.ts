@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import { registerAuth } from "./plugins/auth.js";
 import { tracesRoutes } from "./routes/traces.js";
 import { authRoutes } from "./routes/auth.js";
@@ -14,6 +15,19 @@ const app = Fastify({
 
 await app.register(cors);
 await app.register(helmet);
+
+// Global rate limiting — per-route overrides applied below via config.rateLimit
+await app.register(rateLimit, {
+  global: true,
+  max: 60,
+  timeWindow: "1 minute",
+  addHeaders: {
+    "x-ratelimit-limit": true,
+    "x-ratelimit-remaining": true,
+    "x-ratelimit-reset": true,
+    "retry-after": true,
+  },
+});
 
 // Register auth plugin (JWT + API key middleware)
 registerAuth(app);

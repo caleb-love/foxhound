@@ -8,6 +8,30 @@ import {
 } from "@foxhound/db";
 import { getEntitlements, currentBillingPeriod, periodBounds } from "@foxhound/billing";
 
+// ── Billing status cache ──────────────────────────────────────────────────────
+// Simple in-memory TTL cache for GET /v1/billing/status responses.
+// Keyed by orgId; invalidated on Stripe subscription webhook events.
+
+const BILLING_STATUS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface BillingStatusEntry {
+  data: BillingStatusPayload;
+  expiresAt: number;
+}
+
+interface BillingStatusPayload {
+  plan: string;
+  period: string;
+  spanCount: number;
+  nextBillingDate: string | null;
+}
+
+const billingStatusCache = new Map<string, BillingStatusEntry>();
+
+export function invalidateBillingStatusCache(orgId: string): void {
+  billingStatusCache.delete(orgId);
+}
+
 function getStripe(): Stripe {
   const key = process.env["STRIPE_SECRET_KEY"];
   if (!key) {
@@ -141,6 +165,11 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
     "/v1/billing/status",
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
+      const cached = billingStatusCache.get(request.orgId);
+      if (cached && cached.expiresAt > Date.now()) {
+        return reply.code(200).send(cached.data);
+      }
+
       const org = await getOrganizationById(request.orgId);
       if (!org) {
         return reply.code(404).send({ error: "Not Found", message: "Organization not found" });
@@ -167,12 +196,15 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
         }
       }
 
-      return reply.code(200).send({
+      const data: BillingStatusPayload = {
         plan: org.plan,
         period,
         spanCount: usage?.spanCount ?? 0,
         nextBillingDate,
-      });
+      };
+      billingStatusCache.set(request.orgId, { data, expiresAt: Date.now() + BILLING_STATUS_TTL_MS });
+
+      return reply.code(200).send(data);
     },
   );
 
@@ -210,11 +242,12 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
    */
   fastify.post("/v1/billing/report-usage", async (request, reply) => {
     const internalSecret = process.env["INTERNAL_CRON_SECRET"];
-    if (internalSecret) {
-      const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
-      if (provided !== internalSecret) {
-        return reply.code(401).send({ error: "Unauthorized" });
-      }
+    if (!internalSecret) {
+      return reply.code(503).send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
+    }
+    const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
+    if (provided !== internalSecret) {
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
     const BodySchema = z.object({ orgId: z.string().min(1) });

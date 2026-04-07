@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { usePlan } from "@/hooks/usePlan";
-import { getToken } from "@/lib/auth";
-
-const API_URL = process.env.FOXHOUND_API_URL ?? "http://localhost:3001";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
@@ -26,6 +23,15 @@ function fmtNumber(n: number): string {
   return String(n);
 }
 
+function isStripeUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "checkout.stripe.com" || hostname === "billing.stripe.com";
+  } catch {
+    return false;
+  }
+}
+
 export default function BillingPage() {
   const { loading: authLoading } = useAuth();
   const { plan, spansUsed, spansLimit, loading: planLoading } = usePlan();
@@ -43,17 +49,16 @@ export default function BillingPage() {
   }, []);
 
   async function handleManageSubscription() {
-    const token = getToken();
-    if (!token) return;
     setPortalLoading(true);
     try {
-      const res = await fetch(`${API_URL}/v1/billing/portal`, {
+      const res = await fetch("/api/billing/portal", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ returnUrl: window.location.href }),
       });
       if (!res.ok) throw new Error("Portal session failed");
       const { url } = (await res.json()) as { url: string };
+      if (!isStripeUrl(url)) throw new Error("Invalid redirect URL");
       window.location.href = url;
     } catch {
       alert("Could not open billing portal. Please try again.");
@@ -63,17 +68,12 @@ export default function BillingPage() {
   }
 
   async function handleUpgrade() {
-    const token = getToken();
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
     setCheckoutLoading(true);
     try {
       const origin = window.location.origin;
-      const res = await fetch(`${API_URL}/v1/billing/checkout`, {
+      const res = await fetch("/api/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: "pro_monthly",
           successUrl: `${origin}/settings/billing?checkout=success`,
@@ -82,6 +82,7 @@ export default function BillingPage() {
       });
       if (!res.ok) throw new Error("Checkout failed");
       const { url } = (await res.json()) as { url: string };
+      if (!isStripeUrl(url)) throw new Error("Invalid redirect URL");
       window.location.href = url;
     } catch {
       alert("Could not start checkout. Please try again.");
