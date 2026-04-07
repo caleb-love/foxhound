@@ -100,6 +100,7 @@ export const auditEvents = pgTable(
   "audit_events",
   {
     id: text("id").primaryKey(),
+    orgId: text("org_id").references(() => organizations.id, { onDelete: "set null" }),
     timestamp: timestamp("timestamp").notNull(),
     agentId: text("agent_id").notNull(),
     sessionId: text("session_id"),
@@ -110,6 +111,7 @@ export const auditEvents = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
+    orgIdIdx: index("audit_events_org_id_idx").on(table.orgId),
     agentIdIdx: index("audit_events_agent_id_idx").on(table.agentId),
     timestampIdx: index("audit_events_timestamp_idx").on(table.timestamp),
     eventTypeIdx: index("audit_events_event_type_idx").on(table.eventType),

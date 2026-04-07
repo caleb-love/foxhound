@@ -13,13 +13,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@fastify/cors": "^9.0.0",
+    "@fastify/helmet": "^11.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@foxhound/billing": "workspace:*",
     "@foxhound/db": "workspace:*",
     "@foxhound/types": "workspace:*",
     "fastify": "^4.26.0",
-    "@fastify/cors": "^9.0.0",
-    "@fastify/helmet": "^11.0.0",
-    "@fastify/jwt": "^8.0.0",
     "stripe": "^14.0.0",
     "zod": "^3.22.0"
   },
