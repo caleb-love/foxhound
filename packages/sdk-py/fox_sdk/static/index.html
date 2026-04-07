@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound — Trace Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f12;
+      --surface: #161a20;
+      --surface2: #1e2530;
+      --border: #2a3040;
+      --text: #e2e8f0;
+      --muted: #7a8799;
+      --accent: #4f8ef7;
+      --ok: #34c78a;
+      --err: #f05252;
+      --warn: #f5a623;
+      --tool: #a78bfa;
+      --llm: #38bdf8;
+      --agent: #fb923c;
+      --workflow: #4ade80;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- Header ---- */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .logo { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+    .logo span { color: var(--accent); }
+    .header-endpoint { font-size: 12px; color: var(--muted); margin-left: auto; }
+    #refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    #refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ---- Layout ---- */
+    .app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ---- Trace list ---- */
+    .trace-list {
+      width: 340px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .trace-list-header {
+      padding: 12px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #trace-count { color: var(--text); }
+    .trace-items {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .trace-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .trace-item:hover { background: var(--surface2); }
+    .trace-item.active { background: var(--surface2); border-left: 2px solid var(--accent); }
+    .trace-item-agent { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trace-item-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 10px; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .status-ok { background: rgba(52,199,138,0.15); color: var(--ok); }
+    .status-error { background: rgba(240,82,82,0.15); color: var(--err); }
+    .status-unset { background: rgba(122,135,153,0.15); color: var(--muted); }
+
+    /* ---- Main area ---- */
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ---- Span list ---- */
+    .span-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+    }
+    .span-list-header {
+      padding: 12px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .span-items {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .span-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .span-item:hover { background: var(--surface2); }
+    .span-item.active { background: var(--surface2); border-left: 2px solid var(--accent); }
+    .span-indent { flex-shrink: 0; width: 12px; height: 1px; background: var(--border); }
+    .span-kind-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .kind-tool_call { background: var(--tool); }
+    .kind-llm_call { background: var(--llm); }
+    .kind-agent_step { background: var(--agent); }
+    .kind-workflow { background: var(--workflow); }
+    .kind-custom { background: var(--muted); }
+    .span-name { font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .span-meta { font-size: 11px; color: var(--muted); flex-shrink: 0; text-align: right; }
+
+    /* ---- Detail panel ---- */
+    .detail {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .detail-header {
+      padding: 12px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .detail-section { margin-bottom: 18px; }
+    .detail-section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .detail-kv { display: flex; flex-direction: column; gap: 6px; }
+    .detail-row { display: flex; gap: 8px; font-size: 12px; }
+    .detail-key { color: var(--muted); flex-shrink: 0; width: 110px; word-break: break-all; }
+    .detail-val { color: var(--text); flex: 1; word-break: break-all; font-family: "SF Mono", "Fira Mono", monospace; font-size: 11px; }
+    .detail-pre {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: "SF Mono", "Fira Mono", monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+      line-height: 1.6;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    /* ---- Empty / loading states ---- */
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    /* ---- Filter bar ---- */
+    .filter-bar {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    #agent-filter {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 5px 10px;
+      font-size: 12px;
+      outline: none;
+    }
+    #agent-filter:focus { border-color: var(--accent); }
+
+    /* ---- Pagination ---- */
+    .pagination {
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .page-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .page-btn:disabled { opacity: 0.35; cursor: default; }
+    .page-btn:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">fox<span>hound</span></div>
+    <div class="header-endpoint" id="header-endpoint"></div>
+    <button id="refresh-btn">Refresh</button>
+  </header>
+
+  <div class="app">
+    <!-- Trace list -->
+    <div class="trace-list">
+      <div class="trace-list-header">
+        Traces &nbsp;<span id="trace-count"></span>
+      </div>
+      <div class="filter-bar">
+        <input id="agent-filter" type="text" placeholder="Filter by agent ID…" />
+      </div>
+      <div class="trace-items" id="trace-items"></div>
+      <div class="pagination">
+        <button class="page-btn" id="prev-btn" disabled>&#8592;</button>
+        <span id="page-info">page 1</span>
+        <button class="page-btn" id="next-btn" disabled>&#8594;</button>
+      </div>
+    </div>
+
+    <!-- Main: span list + detail -->
+    <div class="main">
+      <div class="span-list">
+        <div class="span-list-header" id="span-list-header">Steps</div>
+        <div class="span-items" id="span-items">
+          <div class="empty">Select a trace to view its steps.</div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-header">Step detail</div>
+        <div class="detail-body" id="detail-body">
+          <div class="empty">Select a step to view its details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Config injected by Python server ----
+    const API_URL = (window.__FOX_API_URL__ || '').replace(/\/$/, '');
+    const API_KEY  = window.__FOX_API_KEY__ || '';
+
+    document.getElementById('header-endpoint').textContent = API_URL || '(no API configured)';
+
+    // ---- State ----
+    let page = 1;
+    const LIMIT = 30;
+    let totalCount = 0;
+    let activeTraceId = null;
+    let activeSpanId = null;
+    let agentFilter = '';
+    let filterTimer = null;
+
+    // ---- Utils ----
+    function apiFetch(path) {
+      const opts = { headers: {} };
+      if (API_KEY) opts.headers['Authorization'] = `Bearer ${API_KEY}`;
+      return fetch(API_URL + path, opts).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      });
+    }
+
+    function fmtMs(ms) {
+      if (!ms) return '—';
+      const n = Number(ms);
+      if (n < 1000) return `${n}ms`;
+      return `${(n / 1000).toFixed(2)}s`;
+    }
+
+    function fmtTime(ms) {
+      if (!ms) return '—';
+      return new Date(Number(ms)).toLocaleString();
+    }
+
+    function traceStatus(spans) {
+      if (!spans || !spans.length) return 'unset';
+      return spans.some(s => s.status === 'error') ? 'error' : 'ok';
+    }
+
+    function traceDuration(row) {
+      if (!row.endTimeMs) return null;
+      return Number(row.endTimeMs) - Number(row.startTimeMs);
+    }
+
+    function kindColor(kind) {
+      const map = { tool_call: 'tool', llm_call: 'llm', agent_step: 'agent', workflow: 'workflow', custom: 'custom' };
+      return map[kind] || 'custom';
+    }
+
+    // ---- Trace list ----
+    async function loadTraces() {
+      const qs = new URLSearchParams({ page, limit: LIMIT });
+      if (agentFilter) qs.set('agentId', agentFilter.trim());
+      const el = document.getElementById('trace-items');
+      el.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const data = await apiFetch(`/v1/traces?${qs}`);
+        totalCount = data.pagination?.count ?? data.data.length;
+        renderTraceList(data.data);
+        updatePagination(data.data.length);
+      } catch (e) {
+        el.innerHTML = `<div class="empty">Failed to load traces.<br/><small>${e.message}</small></div>`;
+      }
+    }
+
+    function renderTraceList(traces) {
+      const el = document.getElementById('trace-items');
+      document.getElementById('trace-count').textContent = traces.length ? `(${traces.length})` : '';
+      if (!traces.length) {
+        el.innerHTML = '<div class="empty">No traces found.</div>';
+        return;
+      }
+      el.innerHTML = traces.map(t => {
+        const status = traceStatus(t.spans);
+        const dur = traceDuration(t);
+        const active = t.id === activeTraceId ? ' active' : '';
+        return `<div class="trace-item${active}" data-id="${t.id}">
+          <div class="trace-item-agent">${esc(t.agentId)}</div>
+          <div class="trace-item-meta">
+            <span class="status-badge status-${status}">${status}</span>
+            <span>${fmtTime(t.startTimeMs)}</span>
+            ${dur != null ? `<span>${fmtMs(dur)}</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      el.querySelectorAll('.trace-item').forEach(el => {
+        el.addEventListener('click', () => selectTrace(el.dataset.id));
+      });
+    }
+
+    function updatePagination(count) {
+      document.getElementById('page-info').textContent = `page ${page}`;
+      document.getElementById('prev-btn').disabled = page <= 1;
+      document.getElementById('next-btn').disabled = count < LIMIT;
+    }
+
+    // ---- Trace detail / span list ----
+    async function selectTrace(id) {
+      activeTraceId = id;
+      activeSpanId = null;
+      // Update active state in list
+      document.querySelectorAll('.trace-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+      });
+      document.getElementById('span-items').innerHTML = '<div class="empty">Loading…</div>';
+      document.getElementById('detail-body').innerHTML = '<div class="empty">Select a step to view its details.</div>';
+      try {
+        const trace = await apiFetch(`/v1/traces/${encodeURIComponent(id)}`);
+        renderSpanList(trace);
+      } catch (e) {
+        document.getElementById('span-items').innerHTML = `<div class="empty">Failed to load trace.<br/><small>${e.message}</small></div>`;
+      }
+    }
+
+    function renderSpanList(trace) {
+      const spans = trace.spans || [];
+      const header = document.getElementById('span-list-header');
+      header.textContent = `Steps (${spans.length}) — ${esc(trace.agentId)}`;
+
+      const el = document.getElementById('span-items');
+      if (!spans.length) {
+        el.innerHTML = '<div class="empty">No spans in this trace.</div>';
+        return;
+      }
+
+      // Build depth-ordered flat list
+      const ordered = buildSpanTree(spans);
+      el.innerHTML = ordered.map(({ span, depth }) => {
+        const dur = span.endTimeMs ? span.endTimeMs - span.startTimeMs : null;
+        const active = span.spanId === activeSpanId ? ' active' : '';
+        const indent = depth > 0 ? `<div class="span-indent" style="width:${depth * 16}px"></div>` : '';
+        return `<div class="span-item${active}" data-span-id="${span.spanId}" data-trace='${encodeURIComponent(JSON.stringify(span))}'>
+          ${indent}
+          <div class="span-kind-dot kind-${kindColor(span.kind)}"></div>
+          <div class="span-name">${esc(span.name)}</div>
+          <div class="span-meta">
+            <span class="status-badge status-${span.status}">${span.status}</span>
+            ${dur != null ? `<br/>${fmtMs(dur)}` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+      el.querySelectorAll('.span-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const span = JSON.parse(decodeURIComponent(el.dataset.trace));
+          selectSpan(span, el);
+        });
+      });
+    }
+
+    function buildSpanTree(spans) {
+      const byId = new Map(spans.map(s => [s.spanId, s]));
+      const childrenOf = new Map();
+      const roots = [];
+      for (const s of spans) {
+        if (s.parentSpanId && byId.has(s.parentSpanId)) {
+          const kids = childrenOf.get(s.parentSpanId) || [];
+          kids.push(s);
+          childrenOf.set(s.parentSpanId, kids);
+        } else {
+          roots.push(s);
+        }
+      }
+      const result = [];
+      function visit(s, depth) {
+        result.push({ span: s, depth });
+        const kids = (childrenOf.get(s.spanId) || []).sort((a, b) => a.startTimeMs - b.startTimeMs);
+        for (const k of kids) visit(k, depth + 1);
+      }
+      roots.sort((a, b) => a.startTimeMs - b.startTimeMs);
+      for (const r of roots) visit(r, 0);
+      return result;
+    }
+
+    // ---- Span detail ----
+    function selectSpan(span, itemEl) {
+      activeSpanId = span.spanId;
+      document.querySelectorAll('.span-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.spanId === span.spanId);
+      });
+      renderSpanDetail(span);
+    }
+
+    function renderSpanDetail(span) {
+      const el = document.getElementById('detail-body');
+      const dur = span.endTimeMs ? span.endTimeMs - span.startTimeMs : null;
+      const attrs = span.attributes || {};
+
+      // Promote well-known attributes to readable sections
+      const prompt = attrs['llm.prompt'] || attrs['input'] || attrs['prompt'] || null;
+      const response = attrs['llm.response'] || attrs['output'] || attrs['response'] || null;
+      const toolArgs = attrs['tool.args'] || attrs['args'] || null;
+      const toolResult = attrs['tool.result'] || attrs['result'] || null;
+
+      // Remaining attributes after extracting well-known ones
+      const knownKeys = new Set(['llm.prompt','input','prompt','llm.response','output','response','tool.args','args','tool.result','result']);
+      const remaining = Object.entries(attrs).filter(([k]) => !knownKeys.has(k));
+
+      let html = '';
+
+      // Info section
+      html += `<div class="detail-section">
+        <div class="detail-section-title">Span info</div>
+        <div class="detail-kv">
+          ${kv('Name', span.name)}
+          ${kv('Kind', span.kind)}
+          ${kv('Status', span.status)}
+          ${kv('Duration', dur != null ? fmtMs(dur) : '—')}
+          ${kv('Start', fmtTime(span.startTimeMs))}
+          ${kv('Span ID', span.spanId)}
+          ${span.parentSpanId ? kv('Parent ID', span.parentSpanId) : ''}
+        </div>
+      </div>`;
+
+      // Prompt
+      if (prompt != null) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Prompt / Input</div>
+          <div class="detail-pre">${esc(String(prompt))}</div>
+        </div>`;
+      }
+
+      // Response
+      if (response != null) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Response / Output</div>
+          <div class="detail-pre">${esc(String(response))}</div>
+        </div>`;
+      }
+
+      // Tool args
+      if (toolArgs != null) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Tool args</div>
+          <div class="detail-pre">${esc(typeof toolArgs === 'object' ? JSON.stringify(toolArgs, null, 2) : String(toolArgs))}</div>
+        </div>`;
+      }
+
+      // Tool result
+      if (toolResult != null) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Tool result</div>
+          <div class="detail-pre">${esc(typeof toolResult === 'object' ? JSON.stringify(toolResult, null, 2) : String(toolResult))}</div>
+        </div>`;
+      }
+
+      // Remaining attributes
+      if (remaining.length) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Attributes</div>
+          <div class="detail-kv">
+            ${remaining.map(([k, v]) => kv(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''))).join('')}
+          </div>
+        </div>`;
+      }
+
+      // Events
+      if (span.events && span.events.length) {
+        html += `<div class="detail-section">
+          <div class="detail-section-title">Events (${span.events.length})</div>
+          ${span.events.map(e => `<div class="detail-pre" style="margin-bottom:6px">${esc(e.name)} @ ${fmtTime(e.timeMs)}\n${Object.keys(e.attributes||{}).length ? JSON.stringify(e.attributes, null, 2) : ''}</div>`).join('')}
+        </div>`;
+      }
+
+      el.innerHTML = html;
+    }
+
+    function kv(label, value) {
+      return `<div class="detail-row"><span class="detail-key">${esc(label)}</span><span class="detail-val">${esc(String(value))}</span></div>`;
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---- Event wiring ----
+    document.getElementById('refresh-btn').addEventListener('click', () => loadTraces());
+
+    document.getElementById('agent-filter').addEventListener('input', e => {
+      agentFilter = e.target.value;
+      page = 1;
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => loadTraces(), 350);
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (page > 1) { page--; loadTraces(); }
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+      page++;
+      loadTraces();
+    });
+
+    // ---- Init ----
+    loadTraces();
+  </script>
+</body>
+</html>
