@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fox-sdk"
+version = "0.1.0"
+description = "Fox observability SDK — instrument your AI agents for compliance-grade tracing"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+langgraph = [
+    "langchain-core>=0.1.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "respx>=0.20",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["fox_sdk"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
