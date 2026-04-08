@@ -47,6 +47,10 @@ def _mock_crew_with_task(fox_tracer: FoxCrewTracer, task_payload: object) -> Mag
     return crew
 
 
+def _spans_by_name(flushed: list[dict]) -> dict[str, dict]:
+    return {s["name"]: s for s in flushed[0]["spans"]}
+
+
 # ---------------------------------------------------------------------------
 # kickoff / workflow span
 # ---------------------------------------------------------------------------
@@ -64,7 +68,7 @@ async def test_kickoff_creates_workflow_span():
     assert result == "final answer"
 
     await fox_tracer.flush()
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "crew" in spans
     assert spans["crew"]["kind"] == "workflow"
     assert spans["crew"]["status"] == "ok"
@@ -82,7 +86,7 @@ async def test_kickoff_no_inputs():
     fox_tracer.kickoff(mock_crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert spans["crew"]["kind"] == "workflow"
     assert "crew.input_keys" not in spans["crew"]["attributes"]
 
@@ -99,7 +103,7 @@ async def test_kickoff_error_recorded():
         fox_tracer.kickoff(mock_crew, inputs={})
 
     await fox_tracer.flush()
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert spans["crew"]["status"] == "error"
     error_events = [e for e in spans["crew"]["events"] if e["name"] == "error"]
     assert error_events
@@ -118,7 +122,7 @@ async def test_async_kickoff():
     assert result == "async result"
 
     await fox_tracer.flush()
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert spans["crew"]["kind"] == "workflow"
     assert spans["crew"]["status"] == "ok"
     assert spans["crew"]["attributes"]["crew.input_keys"] == "x"
@@ -136,7 +140,7 @@ async def test_async_kickoff_error_recorded():
         await fox_tracer.kickoff_async(mock_crew)
 
     await fox_tracer.flush()
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert spans["crew"]["status"] == "error"
 
 
@@ -156,7 +160,7 @@ async def test_on_step_tool_call_from_action_dict():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "tool:web_search" in spans
     span = spans["tool:web_search"]
     assert span["kind"] == "tool_call"
@@ -176,7 +180,7 @@ async def test_on_step_tool_call_from_tool_dict():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "tool:calculator" in spans
     assert spans["tool:calculator"]["attributes"]["tool.output"] == "4"
 
@@ -189,7 +193,6 @@ async def test_on_step_unknown_dict_is_agent_step():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
     step_spans = [s for s in flushed[0]["spans"] if s["kind"] == "agent_step"]
     assert step_spans  # at least one fallback step
 
@@ -213,7 +216,7 @@ async def test_on_step_agent_action_object():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "tool:read_file" in spans
     assert spans["tool:read_file"]["attributes"]["tool.input"] == "data.txt"
     assert spans["tool:read_file"]["attributes"]["agent.thought"] == "I need to read the file."
@@ -257,7 +260,7 @@ async def test_on_task_from_object():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     task_span = spans.get("task:Research the topic")
     assert task_span is not None
     assert task_span["kind"] == "agent_step"
@@ -275,7 +278,7 @@ async def test_on_task_from_dict():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "task:Write report" in spans
     assert spans["task:Write report"]["attributes"]["task.output"] == "Report content here."
 
@@ -292,19 +295,19 @@ async def test_on_task_no_output():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     assert "task:Simple task" in spans
     assert "task.output" not in spans["task:Simple task"]["attributes"]
 
 
 # ---------------------------------------------------------------------------
-# Parent span linkage
+# Parent span linkage (legacy — no agent attribution)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
 async def test_step_is_child_of_workflow():
-    """Steps fired during kickoff are linked to the workflow span."""
+    """Steps without agent info are linked to the workflow span."""
     fox_tracer, flushed = _make_tracer()
     crew = _mock_crew_with_step(
         fox_tracer,
@@ -313,14 +316,14 @@ async def test_step_is_child_of_workflow():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     workflow_id = spans["crew"]["spanId"]
     assert spans["tool:web_search"]["parentSpanId"] == workflow_id
 
 
 @pytest.mark.asyncio
 async def test_task_is_child_of_workflow():
-    """Tasks fired during kickoff are linked to the workflow span."""
+    """Tasks without agent info are linked to the workflow span."""
     fox_tracer, flushed = _make_tracer()
     crew = _mock_crew_with_task(
         fox_tracer,
@@ -329,7 +332,7 @@ async def test_task_is_child_of_workflow():
     fox_tracer.kickoff(crew)
     await fox_tracer.flush()
 
-    spans = {s["name"]: s for s in flushed[0]["spans"]}
+    spans = _spans_by_name(flushed)
     workflow_id = spans["crew"]["spanId"]
     assert spans["task:Summarise docs"]["parentSpanId"] == workflow_id
 
@@ -344,6 +347,247 @@ async def test_step_outside_kickoff_has_no_parent():
     spans = flushed[0]["spans"]
     tool_span = next(s for s in spans if s["name"] == "tool:standalone_tool")
     assert "parentSpanId" not in tool_span
+
+
+# ---------------------------------------------------------------------------
+# Cross-agent trace correlation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_multi_agent_creates_agent_spans():
+    """Steps from different agents produce agent-level spans under workflow."""
+    fox_tracer, flushed = _make_tracer()
+
+    researcher_agent = MagicMock()
+    researcher_agent.role = "Researcher"
+
+    writer_agent = MagicMock()
+    writer_agent.role = "Writer"
+
+    def kickoff(inputs=None):
+        # Researcher does work
+        fox_tracer.on_step({"action": "web_search", "action_input": "topic", "agent": researcher_agent})
+        fox_tracer.on_task(MagicMock(description="Research topic", raw="Found info", agent=researcher_agent))
+        # Writer does work
+        fox_tracer.on_step({"action": "file_write", "action_input": "report.md", "agent": writer_agent})
+        fox_tracer.on_task(MagicMock(description="Write report", raw="Report done", agent=writer_agent))
+        return "complete"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+
+    # Agent-level spans exist
+    assert "agent:Researcher" in spans
+    assert "agent:Writer" in spans
+
+    # Agent spans are children of workflow
+    workflow_id = spans["crew"]["spanId"]
+    assert spans["agent:Researcher"]["parentSpanId"] == workflow_id
+    assert spans["agent:Writer"]["parentSpanId"] == workflow_id
+
+    # Steps are children of their respective agent spans
+    researcher_id = spans["agent:Researcher"]["spanId"]
+    writer_id = spans["agent:Writer"]["spanId"]
+    assert spans["tool:web_search"]["parentSpanId"] == researcher_id
+    assert spans["task:Research topic"]["parentSpanId"] == researcher_id
+    assert spans["tool:file_write"]["parentSpanId"] == writer_id
+    assert spans["task:Write report"]["parentSpanId"] == writer_id
+
+
+@pytest.mark.asyncio
+async def test_agent_span_reused_for_same_agent():
+    """Multiple steps from the same agent reuse the same agent span."""
+    fox_tracer, flushed = _make_tracer()
+
+    agent = MagicMock()
+    agent.role = "Researcher"
+
+    def kickoff(inputs=None):
+        fox_tracer.on_step({"action": "search_1", "action_input": "q1", "agent": agent})
+        fox_tracer.on_step({"action": "search_2", "action_input": "q2", "agent": agent})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = flushed[0]["spans"]
+    agent_spans = [s for s in spans if s["name"] == "agent:Researcher"]
+    assert len(agent_spans) == 1  # only one agent span created
+
+    agent_id = agent_spans[0]["spanId"]
+    tool_spans = [s for s in spans if s["kind"] == "tool_call"]
+    for ts in tool_spans:
+        assert ts["parentSpanId"] == agent_id
+
+
+@pytest.mark.asyncio
+async def test_set_active_agent_explicit():
+    """set_active_agent() creates agent span and parents subsequent steps."""
+    fox_tracer, flushed = _make_tracer()
+
+    def kickoff(inputs=None):
+        fox_tracer.set_active_agent("CustomAgent")
+        fox_tracer.on_step({"action": "tool_a", "action_input": "x"})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    assert "agent:CustomAgent" in spans
+    agent_id = spans["agent:CustomAgent"]["spanId"]
+    assert spans["tool:tool_a"]["parentSpanId"] == agent_id
+
+
+@pytest.mark.asyncio
+async def test_agent_name_from_task_output_object():
+    """Agent name extracted from TaskOutput.agent.role."""
+    fox_tracer, flushed = _make_tracer()
+
+    task_output = MagicMock()
+    task_output.description = "Analyze data"
+    task_output.raw = "Analysis complete"
+    task_output.agent = MagicMock()
+    task_output.agent.role = "DataAnalyst"
+
+    crew = _mock_crew_with_task(fox_tracer, task_output)
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    assert "agent:DataAnalyst" in spans
+    assert spans["task:Analyze data"]["parentSpanId"] == spans["agent:DataAnalyst"]["spanId"]
+    assert spans["task:Analyze data"]["attributes"]["task.agent"] == "DataAnalyst"
+
+
+@pytest.mark.asyncio
+async def test_agent_name_from_dict_string():
+    """Agent name extracted from dict payload with string agent value."""
+    fox_tracer, flushed = _make_tracer()
+
+    def kickoff(inputs=None):
+        fox_tracer.on_step({"action": "search", "action_input": "q", "agent": "Researcher"})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    assert "agent:Researcher" in spans
+    assert spans["tool:search"]["parentSpanId"] == spans["agent:Researcher"]["spanId"]
+
+
+@pytest.mark.asyncio
+async def test_agent_spans_ended_on_kickoff_completion():
+    """Agent spans are properly ended when kickoff completes."""
+    fox_tracer, flushed = _make_tracer()
+
+    agent = MagicMock()
+    agent.role = "Worker"
+
+    def kickoff(inputs=None):
+        fox_tracer.on_step({"action": "work", "action_input": "x", "agent": agent})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    assert spans["agent:Worker"]["status"] == "ok"
+    assert spans["agent:Worker"]["endTimeMs"] is not None
+
+
+@pytest.mark.asyncio
+async def test_agent_spans_ended_on_error():
+    """Agent spans are ended even when kickoff fails."""
+    fox_tracer, flushed = _make_tracer()
+
+    agent = MagicMock()
+    agent.role = "Worker"
+
+    def kickoff(inputs=None):
+        fox_tracer.on_step({"action": "work", "action_input": "x", "agent": agent})
+        raise RuntimeError("boom")
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+
+    with pytest.raises(RuntimeError):
+        fox_tracer.kickoff(crew)
+
+    await fox_tracer.flush()
+    spans = _spans_by_name(flushed)
+    assert spans["agent:Worker"]["status"] == "ok"
+    assert spans["agent:Worker"]["endTimeMs"] is not None
+
+
+@pytest.mark.asyncio
+async def test_mixed_agent_and_no_agent_steps():
+    """Steps with and without agent info coexist correctly."""
+    fox_tracer, flushed = _make_tracer()
+
+    agent = MagicMock()
+    agent.role = "Researcher"
+
+    def kickoff(inputs=None):
+        # Step without agent info → child of workflow
+        fox_tracer.on_step({"action": "global_tool", "action_input": "x"})
+        # Step with agent info → child of agent span
+        fox_tracer.on_step({"action": "agent_tool", "action_input": "y", "agent": agent})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    workflow_id = spans["crew"]["spanId"]
+    researcher_id = spans["agent:Researcher"]["spanId"]
+
+    # global_tool has no agent → parented to workflow
+    assert spans["tool:global_tool"]["parentSpanId"] == workflow_id
+    # agent_tool has agent → parented to agent span
+    assert spans["tool:agent_tool"]["parentSpanId"] == researcher_id
+
+
+@pytest.mark.asyncio
+async def test_active_agent_carries_forward():
+    """Once an agent is set, subsequent steps without explicit agent use it."""
+    fox_tracer, flushed = _make_tracer()
+
+    agent = MagicMock()
+    agent.role = "Writer"
+
+    def kickoff(inputs=None):
+        # First step sets the active agent
+        fox_tracer.on_step({"action": "draft", "action_input": "x", "agent": agent})
+        # Second step has no agent but should use the active one
+        fox_tracer.on_step({"action": "edit", "action_input": "y"})
+        return "done"
+
+    crew = MagicMock()
+    crew.kickoff.side_effect = kickoff
+    fox_tracer.kickoff(crew)
+    await fox_tracer.flush()
+
+    spans = _spans_by_name(flushed)
+    writer_id = spans["agent:Writer"]["spanId"]
+    assert spans["tool:draft"]["parentSpanId"] == writer_id
+    assert spans["tool:edit"]["parentSpanId"] == writer_id
 
 
 # ---------------------------------------------------------------------------
