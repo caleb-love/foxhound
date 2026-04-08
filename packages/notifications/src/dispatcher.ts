@@ -1,9 +1,17 @@
 import type { AlertEvent, AlertRule, NotificationChannel, NotificationProvider } from "./types.js";
 import { SEVERITY_RANK } from "./types.js";
 import { SlackProvider } from "./providers/index.js";
+import { PagerDutyProvider } from "./providers/index.js";
+import { GitHubProvider } from "./providers/index.js";
+import { LinearProvider } from "./providers/index.js";
+import { WebhookProvider } from "./providers/index.js";
 
 const PROVIDERS: Record<string, NotificationProvider> = {
   slack: new SlackProvider(),
+  pagerduty: new PagerDutyProvider(),
+  github: new GitHubProvider(),
+  linear: new LinearProvider(),
+  webhook: new WebhookProvider(),
 };
 
 /**
