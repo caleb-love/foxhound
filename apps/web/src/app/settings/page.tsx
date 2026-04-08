@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { ApiKeyManager } from "./ApiKeyManager";
+import { NotificationsManager } from "./NotificationsManager";
 
 export default function SettingsPage() {
   const { user, loading } = useAuth();
@@ -64,9 +65,22 @@ export default function SettingsPage() {
           border: "1px solid var(--border)",
           borderRadius: 8,
           padding: "20px 24px",
+          marginBottom: 24,
         }}
       >
         <ApiKeyManager />
+      </section>
+
+      {/* Notifications */}
+      <section
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          padding: "20px 24px",
+        }}
+      >
+        <NotificationsManager />
       </section>
     </div>
   );
