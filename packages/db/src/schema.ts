@@ -224,3 +224,50 @@ export const notificationLog = pgTable(
     sentAtIdx: index("notification_log_sent_at_idx").on(table.sentAt),
   }),
 );
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SSO tables
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const ssoConfigs = pgTable(
+  "sso_configs",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .unique(),
+    provider: text("provider", { enum: ["saml", "oidc"] }).notNull(),
+    /** Provider-specific config: SAML metadata XML/URL, OIDC client ID/secret/issuer */
+    config: jsonb("config").notNull().$type<Record<string, unknown>>(),
+    /** When true, all org members must authenticate via SSO */
+    enforceSso: boolean("enforce_sso").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("sso_configs_org_id_idx").on(table.orgId),
+  }),
+);
+
+export const ssoSessions = pgTable(
+  "sso_sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Session ID from the IdP (SAML SessionIndex or OIDC session ID) */
+    idpSessionId: text("idp_session_id"),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("sso_sessions_user_id_idx").on(table.userId),
+    orgIdIdx: index("sso_sessions_org_id_idx").on(table.orgId),
+    expiresAtIdx: index("sso_sessions_expires_at_idx").on(table.expiresAt),
+  }),
+);

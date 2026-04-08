@@ -13,6 +13,7 @@ vi.mock("@foxhound/db", () => ({
   hashPassword: vi.fn((p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(),
   resolveApiKey: vi.fn(),
+  getSsoConfigByOrg: vi.fn().mockResolvedValue(null),
 }));
 
 import * as db from "@foxhound/db";

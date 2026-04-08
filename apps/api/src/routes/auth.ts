@@ -8,6 +8,7 @@ import {
   signup,
   hashPassword,
   verifyPassword,
+  getSsoConfigByOrg,
 } from "@foxhound/db";
 import type { JwtPayload } from "../plugins/auth.js";
 
@@ -108,6 +109,17 @@ export function authRoutes(fastify: FastifyInstance): void {
 
       // Use the first org (owner membership preferred)
       const primary = memberships.find((m) => m.role === "owner") ?? memberships[0]!;
+
+      // Check if SSO is enforced for this org
+      const ssoConfig = await getSsoConfigByOrg(primary.org.id);
+      if (ssoConfig?.enforceSso) {
+        return reply.code(403).send({
+          error: "Forbidden",
+          message: "This organization requires SSO authentication. Use your SSO provider to log in.",
+          ssoRequired: true,
+          orgSlug: primary.org.slug,
+        });
+      }
 
       const payload: JwtPayload = { userId: user.id, orgId: primary.org.id };
       const token = fastify.jwt.sign(payload, { expiresIn: "30d" });
