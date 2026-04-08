@@ -38,6 +38,8 @@ Foxhound gives your team:
 - **Run diffing** to compare two executions side-by-side and pinpoint divergences
 - **Audit logs** for compliance teams that need a tamper-evident record of every agent action
 - **Multi-tenant isolation** so each organization's data is siloed from day one
+- **SSO / SAML 2.0 / OIDC** for enterprise identity providers (Okta, Azure AD)
+- **Alerting & notifications** via PagerDuty, GitHub, Linear, and webhooks
 
 ## Features
 
@@ -57,6 +59,18 @@ Compare two agent runs side-by-side. Foxhound aligns spans using a longest-commo
 
 Enterprise-grade audit trail. Every agent action produces a structured event with org, agent, session, trace, and span context. Query by agent, time range, or event type. Available on Enterprise plans.
 
+### Alert Rules & Notifications
+
+Configure alert rules from the settings dashboard. Route notifications to PagerDuty, GitHub Issues, Linear, or custom webhooks. Combine with trace filters to alert on specific agent behaviors or error patterns.
+
+### SSO / SAML 2.0 / OIDC
+
+Enterprise SSO with SAML 2.0 and OIDC support. Pre-built integrations for Okta and Azure AD with auto-provisioning. Available on Enterprise plans.
+
+### MCP Server & OTel Ingestion
+
+Foxhound ships an MCP server for tool-based integration and accepts OpenTelemetry-compatible trace data, so you can ingest spans from existing OTel-instrumented services alongside agent traces.
+
 ### Billing & Usage Metering
 
 Built-in Stripe integration with metered billing. Free tier includes 10K spans/month. Pro includes 500K with overage billing. Enterprise gets unlimited spans with custom pricing.
@@ -66,20 +80,22 @@ Built-in Stripe integration with metered billing. Free tier includes 10K spans/m
 ```
 foxhound/
 ├── apps/
-│   ├── api/          # Fastify REST API (port 3001)
-│   └── web/          # Next.js dashboard (port 3000)
+│   ├── api/            # Fastify REST API (port 3001)
+│   └── web/            # Next.js dashboard (port 3000)
 ├── packages/
-│   ├── sdk/          # TypeScript SDK — @foxhound/sdk
-│   ├── sdk-py/       # Python SDK — fox-sdk (PyPI)
-│   ├── types/        # Shared TypeScript type definitions
-│   ├── db/           # Drizzle ORM schema + migrations (PostgreSQL)
-│   └── billing/      # Stripe integration + entitlement engine
+│   ├── sdk/            # TypeScript SDK — @foxhound/sdk
+│   ├── sdk-py/         # Python SDK — fox-sdk (PyPI)
+│   ├── types/          # Shared TypeScript type definitions
+│   ├── db/             # Drizzle ORM schema + migrations (PostgreSQL)
+│   ├── billing/        # Stripe integration + entitlement engine
+│   ├── mcp-server/     # MCP server for tool-based integration
+│   └── notifications/  # PagerDuty, GitHub, Linear, webhook providers
 ├── .github/
-│   └── workflows/    # GitHub Actions CI
+│   └── workflows/      # GitHub Actions CI
 └── docker-compose.dev.yml
 ```
 
-**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Next.js 14 · Drizzle ORM · PostgreSQL 16 · Stripe
+**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Next.js 15 · React 19 · Drizzle ORM · PostgreSQL 16 · Stripe · Cloudflare Pages
 
 ## Quickstart
 
@@ -207,6 +223,10 @@ await handler.flush()
 
 The LangGraph integration automatically maps graph invocations to `workflow` spans, LLM calls to `llm_call` spans, and tool calls to `tool_call` spans — preserving parent-child relationships.
 
+### Claude Agent SDK Integration
+
+Both TypeScript and Python SDKs support the Claude Agent SDK with cross-agent trace correlation. Traces from multi-agent systems are automatically linked so you can follow execution across agent boundaries.
+
 ### Local Trace Viewer (CLI)
 
 ```bash
@@ -308,6 +328,23 @@ Foxhound is **open source and free to self-host**. Managed cloud plans are avail
 
 Pro annual billing: **$39/mo** (save 20%).
 
+## Deployment
+
+The web dashboard is configured for [Cloudflare Pages](https://pages.cloudflare.com) via `@opennextjs/cloudflare`.
+
+```bash
+# Build the Cloudflare Worker
+pnpm --filter @foxhound/web build:worker
+
+# Preview locally
+pnpm --filter @foxhound/web preview:worker
+
+# Deploy to Cloudflare
+pnpm --filter @foxhound/web deploy
+```
+
+Configuration lives in `apps/web/wrangler.jsonc`. Run `wrangler login` before your first deploy.
+
 ## Development
 
 ```bash
@@ -321,15 +358,17 @@ pnpm format:check   # Check formatting
 
 ### Project Structure
 
-| Package            | Description                                              |
-| ------------------ | -------------------------------------------------------- |
-| `apps/api`         | Fastify REST API — auth, traces, billing, webhooks       |
-| `apps/web`         | Next.js 14 dashboard — trace explorer, settings, pricing |
-| `packages/sdk`     | TypeScript SDK — `@foxhound/sdk`                         |
-| `packages/sdk-py`  | Python SDK — `fox-sdk` with LangGraph integration        |
-| `packages/db`      | Drizzle ORM schema, queries, and migrations              |
-| `packages/billing` | Stripe integration, entitlements engine, usage metering  |
-| `packages/types`   | Shared TypeScript types (Span, Trace, AuditEvent)        |
+| Package                  | Description                                                 |
+| ------------------------ | ----------------------------------------------------------- |
+| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO     |
+| `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing    |
+| `packages/sdk`           | TypeScript SDK — `@foxhound/sdk` (Claude Agent SDK support) |
+| `packages/sdk-py`        | Python SDK — `fox-sdk` with LangGraph + Claude integration  |
+| `packages/db`            | Drizzle ORM schema, queries, and migrations                 |
+| `packages/billing`       | Stripe integration, entitlements engine, usage metering     |
+| `packages/mcp-server`    | MCP server for tool-based trace integration                 |
+| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks         |
+| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)           |
 
 ### CI
 
