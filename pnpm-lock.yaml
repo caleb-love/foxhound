@@ -56,6 +56,9 @@ importers:
       '@foxhound/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@foxhound/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@foxhound/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -183,6 +186,22 @@ importers:
       zod:
         specifier: ^3.25.0
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.39
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@20.19.39)(jsdom@29.0.2)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/notifications:
+    dependencies:
+      '@foxhound/db':
+        specifier: workspace:*
+        version: link:../db
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
