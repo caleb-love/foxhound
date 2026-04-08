@@ -1,8 +1,23 @@
 {
-  "name": "@foxhound/sdk",
+  "name": "@foxhound-ai/sdk",
   "version": "0.0.1",
-  "private": true,
+  "description": "Compliance-grade observability SDK for AI agents — trace, replay, and audit every agent decision",
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caleb-love/foxhound.git",
+    "directory": "packages/sdk"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "observability",
+    "tracing",
+    "opentelemetry",
+    "llm",
+    "audit"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -13,6 +28,9 @@
       "types": "./dist/integrations/claude-agent.d.ts"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
@@ -20,10 +38,8 @@
     "lint": "eslint src",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "@foxhound/types": "workspace:*"
-  },
   "devDependencies": {
+    "@foxhound/types": "workspace:*",
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
     "vitest": "^3.2.4"
