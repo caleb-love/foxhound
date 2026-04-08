@@ -34,7 +34,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @foxhound-ai/sdk build
+      - name: Build SDK and dependencies
+        run: pnpm turbo build --filter @foxhound-ai/sdk...
 
       - name: Publish SDK
         run: pnpm --filter @foxhound-ai/sdk publish --no-git-checks
@@ -63,7 +64,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @foxhound-ai/mcp-server build
+      - name: Build MCP server and dependencies
+        run: pnpm turbo build --filter @foxhound-ai/mcp-server...
 
       - name: Publish MCP server
         run: pnpm --filter @foxhound-ai/mcp-server publish --no-git-checks
