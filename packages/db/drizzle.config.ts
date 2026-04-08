@@ -5,6 +5,7 @@ export default {
   out: "./drizzle",
   driver: "pg",
   dbCredentials: {
-    connectionString: process.env["DATABASE_URL"] ?? "postgresql://foxhound:foxhound@localhost:5432/foxhound_dev",
+    connectionString:
+      process.env["DATABASE_URL"] ?? "postgresql://foxhound:foxhound@localhost:5432/foxhound_dev",
   },
 } satisfies Config;

@@ -20,7 +20,10 @@ describe("ApiKeyManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Stub window.confirm and window.alert used in component
-    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
     vi.stubGlobal("alert", vi.fn());
     // Stub clipboard (navigator.clipboard is a getter-only in jsdom)
     Object.defineProperty(navigator, "clipboard", {
@@ -38,9 +41,7 @@ describe("ApiKeyManager", () => {
   it("renders error when listApiKeys rejects", async () => {
     vi.mocked(apikeys.listApiKeys).mockRejectedValue(new Error("network error"));
     render(<ApiKeyManager />);
-    await waitFor(() =>
-      expect(screen.getByText("network error")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("network error")).toBeInTheDocument());
   });
 
   it("renders empty state when no keys exist", async () => {
@@ -76,9 +77,7 @@ describe("ApiKeyManager", () => {
     await user.type(screen.getByPlaceholderText("Key name (e.g. production)"), "ci");
     await user.click(screen.getByRole("button", { name: "Create key" }));
 
-    await waitFor(() =>
-      expect(screen.getByText("fox_secret_key_value")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("fox_secret_key_value")).toBeInTheDocument());
     expect(apikeys.createApiKey).toHaveBeenCalledWith("ci");
   });
 
@@ -93,9 +92,7 @@ describe("ApiKeyManager", () => {
     await user.type(screen.getByPlaceholderText("Key name (e.g. production)"), "x");
     await user.click(screen.getByRole("button", { name: "Create key" }));
 
-    await waitFor(() =>
-      expect(screen.getByText("Name too short")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("Name too short")).toBeInTheDocument());
   });
 
   it("does not submit create form when name is blank", async () => {
@@ -117,12 +114,10 @@ describe("ApiKeyManager", () => {
     await waitFor(() => screen.getByText("production"));
 
     const revokeButtons = screen.getAllByRole("button", { name: "Revoke" });
-    await userEvent.click(revokeButtons[0]);
+    await userEvent.click(revokeButtons[0]!);
 
     expect(apikeys.revokeApiKey).toHaveBeenCalledWith("k1");
-    await waitFor(() =>
-      expect(screen.queryByText("production")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText("production")).not.toBeInTheDocument());
   });
 
   it("does not revoke when confirmation is declined", async () => {
@@ -132,7 +127,7 @@ describe("ApiKeyManager", () => {
     render(<ApiKeyManager />);
     await waitFor(() => screen.getByText("production"));
 
-    await userEvent.click(screen.getAllByRole("button", { name: "Revoke" })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: "Revoke" })[0]!);
     expect(apikeys.revokeApiKey).not.toHaveBeenCalled();
   });
 
@@ -178,8 +173,6 @@ describe("ApiKeyManager", () => {
     await waitFor(() => screen.getByText("fox_dismiss_me"));
     await user.click(screen.getByRole("button", { name: "Dismiss" }));
 
-    await waitFor(() =>
-      expect(screen.queryByText("fox_dismiss_me")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText("fox_dismiss_me")).not.toBeInTheDocument());
   });
 });
