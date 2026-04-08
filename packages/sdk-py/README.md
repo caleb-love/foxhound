@@ -1,13 +1,13 @@
-# fox-sdk
+# foxhound-ai
 
 Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.
 
 ## Installation
 
 ```bash
-pip install fox-sdk                   # core only
-pip install fox-sdk[langgraph]        # + LangGraph / LangChain support
-pip install fox-sdk[crewai]           # + CrewAI support
+pip install foxhound-ai                   # core only
+pip install foxhound-ai[langgraph]        # + LangGraph / LangChain support
+pip install foxhound-ai[crewai]           # + CrewAI support
 ```
 
 ## Quickstart
@@ -72,7 +72,7 @@ async with fox.trace(agent_id="my-agent") as tracer:
 Start the local OSS trace viewer:
 
 ```bash
-foxhound serve
+foxhound ui
 ```
 
 ## License

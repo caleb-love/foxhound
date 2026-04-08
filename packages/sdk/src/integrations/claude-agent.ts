@@ -5,8 +5,8 @@
  * message observers that produce structured Fox trace spans.
  *
  * Usage:
- *   import { FoxhoundClient } from "@foxhound/sdk";
- *   import { FoxClaudeTracer } from "@foxhound/sdk/integrations/claude-agent";
+ *   import { FoxhoundClient } from "@foxhound-ai/sdk";
+ *   import { FoxClaudeTracer } from "@foxhound-ai/sdk/integrations/claude-agent";
  *
  *   const fox = new FoxhoundClient({ apiKey: "fox_...", endpoint: "..." });
  *   const tracer = FoxClaudeTracer.fromClient(fox, { agentId: "my-agent" });

@@ -39,7 +39,7 @@ Usage::
     result = await Runner.run(my_agent, "Hello!")
     await processor.flush()
 
-Requires: ``pip install fox-sdk[openai-agents]``
+Requires: ``pip install foxhound-ai[openai-agents]``
 """
 
 from __future__ import annotations
@@ -123,7 +123,7 @@ class FoxOpenAIAgentsProcessor:
         except ImportError as exc:
             raise ImportError(
                 "openai-agents is required for this integration: "
-                "pip install fox-sdk[openai-agents]"
+                "pip install foxhound-ai[openai-agents]"
             ) from exc
         add_trace_processor(self)
 

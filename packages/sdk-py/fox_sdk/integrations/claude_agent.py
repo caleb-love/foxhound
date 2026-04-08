@@ -26,7 +26,7 @@ Usage::
     options = ClaudeAgentOptions(hooks=hooks)
     # ... use with ClaudeSDKClient manually
 
-Requires: ``pip install fox-sdk[claude-agent]``
+Requires: ``pip install foxhound-ai[claude-agent]``
 """
 
 from __future__ import annotations
