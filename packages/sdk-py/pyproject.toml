@@ -19,6 +19,9 @@ langgraph = [
 crewai = [
     "crewai>=0.60.0",
 ]
+openai-agents = [
+    "openai-agents>=0.0.3",
+]
 claude-agent = [
     "claude-agent-sdk>=0.1.0",
 ]
