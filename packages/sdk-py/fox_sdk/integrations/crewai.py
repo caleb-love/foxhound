@@ -4,6 +4,24 @@ CrewAI integration for the Fox observability SDK.
 Instruments CrewAI crews by hooking into the step/task callback system
 and wrapping the kickoff call to produce structured Fox traces.
 
+Cross-agent trace correlation
+-----------------------------
+When a crew contains multiple agents, each agent gets its own ``"agent_step"``
+span under the root ``"workflow"`` span.  Steps and tasks produced by that
+agent are recorded as children of the agent span, producing a trace tree::
+
+    workflow (crew)
+    ├── agent:Researcher
+    │   ├── tool:web_search
+    │   └── task:Research the topic
+    └── agent:Writer
+        ├── tool:file_write
+        └── task:Write the report
+
+Agent identity is extracted from CrewAI callback payloads (``agent`` attribute
+on TaskOutput, ``agent`` key in dicts) or can be set explicitly via
+:meth:`set_active_agent`.
+
 Usage::
 
     from fox_sdk import FoxClient
@@ -13,8 +31,8 @@ Usage::
     tracer = FoxCrewTracer.from_client(fox, agent_id="my-crew")
 
     crew = Crew(
-        agents=[...],
-        tasks=[...],
+        agents=[researcher, writer],
+        tasks=[research_task, write_task],
         step_callback=tracer.on_step,
         task_callback=tracer.on_task,
     )
@@ -50,8 +68,9 @@ class FoxCrewTracer:
     Span-kind mapping
     -----------------
     - Crew kickoff        → ``"workflow"`` (root)
-    - Task completion     → ``"agent_step"``
-    - Agent step / tool   → ``"tool_call"`` or ``"agent_step"``
+    - Agent execution     → ``"agent_step"`` (per-agent, child of workflow)
+    - Task completion     → ``"agent_step"`` (child of agent span)
+    - Agent step / tool   → ``"tool_call"`` or ``"agent_step"`` (child of agent span)
 
     Thread / async safety
     ---------------------
@@ -71,6 +90,9 @@ class FoxCrewTracer:
         self._tracer = tracer
         self._workflow_span: ActiveSpan | None = None
         self._step_count: int = 0
+        # Cross-agent correlation: agent_name → ActiveSpan
+        self._agent_spans: dict[str, ActiveSpan] = {}
+        self._active_agent: str | None = None
 
     # ------------------------------------------------------------------
     # Factory
@@ -98,15 +120,63 @@ class FoxCrewTracer:
 
     async def flush(self) -> None:
         """Flush the trace to the Fox API (async)."""
+        self._end_all_agent_spans()
         await self._tracer.flush()
 
     def flush_sync(self) -> None:
         """Flush the trace to the Fox API (sync)."""
+        self._end_all_agent_spans()
         self._tracer.flush_sync()
 
     @property
     def trace_id(self) -> str:
         return self._tracer.trace_id
+
+    # ------------------------------------------------------------------
+    # Agent tracking
+    # ------------------------------------------------------------------
+
+    def set_active_agent(self, agent_name: str) -> None:
+        """Explicitly set the currently active agent for span parenting."""
+        self._active_agent = agent_name
+        self._get_or_create_agent_span(agent_name)
+
+    def _get_or_create_agent_span(self, agent_name: str) -> ActiveSpan:
+        """Lazily create an agent-level span as a child of the workflow."""
+        if agent_name in self._agent_spans:
+            return self._agent_spans[agent_name]
+
+        parent_span_id = self._workflow_span.span_id if self._workflow_span else None
+        span = self._tracer.start_span(
+            name=f"agent:{agent_name}",
+            kind="agent_step",
+            parent_span_id=parent_span_id,
+        )
+        span.set_attribute("agent.name", agent_name)
+        self._agent_spans[agent_name] = span
+        return span
+
+    def _end_all_agent_spans(self) -> None:
+        """End any still-open agent spans before flushing."""
+        for span in self._agent_spans.values():
+            if span._span.end_time_ms is None:
+                span.end("ok")
+        self._agent_spans.clear()
+        self._active_agent = None
+
+    def _resolve_parent_span_id(self, agent_name: str | None = None) -> str | None:
+        """Determine the parent span ID for a step/task span.
+
+        If an agent name is provided or active, the step becomes a child of
+        that agent's span.  Otherwise falls back to the workflow span.
+        """
+        name = agent_name or self._active_agent
+        if name:
+            agent_span = self._get_or_create_agent_span(name)
+            return agent_span.span_id
+        if self._workflow_span:
+            return self._workflow_span.span_id
+        return None
 
     # ------------------------------------------------------------------
     # Kickoff wrappers
@@ -126,9 +196,11 @@ class FoxCrewTracer:
             span.set_attribute("crew.input_keys", ",".join(str(k) for k in inputs.keys()))
         try:
             result = crew.kickoff(inputs=inputs or {})
+            self._end_all_agent_spans()
             span.end("ok")
             return result
         except Exception as exc:
+            self._end_all_agent_spans()
             span.add_event("error", {"message": str(exc), "type": type(exc).__name__})
             span.end("error")
             raise
@@ -143,9 +215,11 @@ class FoxCrewTracer:
             span.set_attribute("crew.input_keys", ",".join(str(k) for k in inputs.keys()))
         try:
             result = await crew.kickoff_async(inputs=inputs or {})
+            self._end_all_agent_spans()
             span.end("ok")
             return result
         except Exception as exc:
+            self._end_all_agent_spans()
             span.add_event("error", {"message": str(exc), "type": type(exc).__name__})
             span.end("error")
             raise
@@ -170,8 +244,15 @@ class FoxCrewTracer:
 
         When a tool name is detectable the span gets kind ``"tool_call"``;
         otherwise it falls back to ``"agent_step"``.
+
+        Agent attribution is extracted from the payload when available,
+        otherwise the current ``_active_agent`` is used.
         """
-        parent_span_id = self._workflow_span.span_id if self._workflow_span else None
+        agent_name = _extract_agent_name(step_output)
+        if agent_name:
+            self._active_agent = agent_name
+
+        parent_span_id = self._resolve_parent_span_id(agent_name)
         self._step_count += 1
         step_name, kind, attributes = _parse_step_output(step_output, self._step_count)
 
@@ -189,9 +270,14 @@ class FoxCrewTracer:
         ``task_callback`` for CrewAI.
 
         Called when a task finishes.  Records an ``"agent_step"`` span
-        summarising the task result.
+        summarising the task result.  If the task output contains agent
+        information, the span is nested under that agent's span.
         """
-        parent_span_id = self._workflow_span.span_id if self._workflow_span else None
+        agent_name = _extract_agent_name(task_output)
+        if agent_name:
+            self._active_agent = agent_name
+
+        parent_span_id = self._resolve_parent_span_id(agent_name)
         description, raw_output = _parse_task_output(task_output)
         span = self._tracer.start_span(
             name=f"task:{_truncate(description, 64)}",
@@ -200,12 +286,38 @@ class FoxCrewTracer:
         )
         if raw_output:
             span.set_attribute("task.output", _truncate(raw_output, 1024))
+        if agent_name:
+            span.set_attribute("task.agent", agent_name)
         span.end("ok")
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _extract_agent_name(payload: Any) -> str | None:
+    """Try to extract an agent name from a CrewAI callback payload.
+
+    CrewAI TaskOutput objects have an ``agent`` attribute (the agent's role
+    string or an Agent object with a ``role`` attribute).  Dict payloads
+    may contain an ``"agent"`` key.
+    """
+    if isinstance(payload, dict):
+        agent = payload.get("agent")
+        if agent is not None:
+            # Could be an Agent object or a string
+            role = getattr(agent, "role", None)
+            return str(role) if role else str(agent) if agent else None
+        return None
+
+    # Object-based payload (TaskOutput, step objects)
+    agent = getattr(payload, "agent", None)
+    if agent is not None:
+        role = getattr(agent, "role", None)
+        return str(role) if role else str(agent) if agent else None
+
+    return None
 
 
 def _parse_step_output(
