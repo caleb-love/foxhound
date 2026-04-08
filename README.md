@@ -15,8 +15,8 @@
 <p align="center">
   <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://www.npmjs.com/package/@foxhound/sdk"><img src="https://img.shields.io/npm/v/@foxhound/sdk.svg?label=sdk" alt="npm" /></a>
-  <a href="https://pypi.org/project/fox-sdk/"><img src="https://img.shields.io/pypi/v/fox-sdk.svg?label=python" alt="PyPI" /></a>
+  <a href="https://www.npmjs.com/package/@foxhound-ai/sdk"><img src="https://img.shields.io/npm/v/@foxhound-ai/sdk.svg?label=npm" alt="npm" /></a>
+  <a href="https://pypi.org/project/foxhound-ai/"><img src="https://img.shields.io/pypi/v/foxhound-ai.svg?label=python" alt="PyPI" /></a>
 </p>
 
 <p align="center">
@@ -86,8 +86,8 @@ foxhound/
 │   ├── api/            # Fastify REST API (port 3001)
 │   └── web/            # Next.js dashboard (port 3000)
 ├── packages/
-│   ├── sdk/            # TypeScript SDK — @foxhound/sdk
-│   ├── sdk-py/         # Python SDK — fox-sdk (PyPI)
+│   ├── sdk/            # TypeScript SDK — @foxhound-ai/sdk
+│   ├── sdk-py/         # Python SDK — foxhound-ai (PyPI)
 │   ├── types/          # Shared TypeScript type definitions
 │   ├── db/             # Drizzle ORM schema + migrations (PostgreSQL)
 │   ├── billing/        # Stripe integration + entitlement engine
@@ -154,11 +154,11 @@ Foxhound ships first-party SDKs for TypeScript and Python. Both support manual i
 ### TypeScript
 
 ```bash
-npm install @foxhound/sdk
+npm install @foxhound-ai/sdk
 ```
 
 ```typescript
-import { FoxhoundClient } from "@foxhound/sdk";
+import { FoxhoundClient } from "@foxhound-ai/sdk";
 
 const fox = new FoxhoundClient({
   apiKey: process.env.FOXHOUND_API_KEY!,
@@ -189,7 +189,7 @@ await tracer.flush();
 ### Python
 
 ```bash
-pip install fox-sdk
+pip install foxhound-ai
 ```
 
 ```python
@@ -210,7 +210,7 @@ async with fox.trace(agent_id="support-agent") as tracer:
 ### LangGraph Integration
 
 ```bash
-pip install "fox-sdk[langgraph]"
+pip install "foxhound-ai[langgraph]"
 ```
 
 ```python
@@ -365,8 +365,8 @@ pnpm format:check   # Check formatting
 | ------------------------ | ----------------------------------------------------------- |
 | `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO     |
 | `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing    |
-| `packages/sdk`           | TypeScript SDK — `@foxhound/sdk` (Claude Agent SDK support) |
-| `packages/sdk-py`        | Python SDK — `fox-sdk` with LangGraph + Claude integration  |
+| `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support) |
+| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration  |
 | `packages/db`            | Drizzle ORM schema, queries, and migrations                 |
 | `packages/billing`       | Stripe integration, entitlements engine, usage metering     |
 | `packages/mcp-server`    | MCP server for tool-based trace integration                 |

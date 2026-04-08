@@ -1,0 +1,97 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "sdk-v*"
+      - "mcp-v*"
+      - "py-v*"
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+
+jobs:
+  publish-npm-sdk:
+    name: Publish @foxhound-ai/sdk to npm
+    if: startsWith(github.ref_name, 'sdk-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @foxhound-ai/sdk build
+
+      - name: Publish SDK
+        run: pnpm --filter @foxhound-ai/sdk publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-npm-mcp:
+    name: Publish @foxhound-ai/mcp-server to npm
+    if: startsWith(github.ref_name, 'mcp-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @foxhound-ai/mcp-server build
+
+      - name: Publish MCP server
+        run: pnpm --filter @foxhound-ai/mcp-server publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-pypi:
+    name: Publish foxhound-ai to PyPI
+    if: startsWith(github.ref_name, 'py-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install hatch
+        run: pip install hatch
+
+      - name: Build Python package
+        working-directory: packages/sdk-py
+        run: hatch build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk-py/dist/
