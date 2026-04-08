@@ -1,4 +1,8 @@
-export type EventType = "agent_failure" | "anomaly_detected" | "cost_spike" | "compliance_violation";
+export type EventType =
+  | "agent_failure"
+  | "anomaly_detected"
+  | "cost_spike"
+  | "compliance_violation";
 export type Severity = "critical" | "high" | "medium" | "low";
 
 export interface NotificationChannel {

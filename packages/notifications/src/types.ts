@@ -145,9 +145,10 @@ export const SEVERITY_RANK: Record<AlertSeverity, number> = {
 // PagerDuty severity mapping
 // ──────────────────────────────────────────────────────────────────────────────
 
-export const PAGERDUTY_SEVERITY: Record<AlertSeverity, "critical" | "error" | "warning" | "info"> = {
-  critical: "critical",
-  high: "error",
-  medium: "warning",
-  low: "info",
-};
+export const PAGERDUTY_SEVERITY: Record<AlertSeverity, "critical" | "error" | "warning" | "info"> =
+  {
+    critical: "critical",
+    high: "error",
+    medium: "warning",
+    low: "info",
+  };

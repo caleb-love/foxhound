@@ -53,9 +53,10 @@ function buildIssueTitle(event: AlertEvent): string {
 }
 
 function buildIssueBody(event: AlertEvent, config: GitHubChannelConfig): string {
-  const traceUrl = event.traceId && config.dashboardBaseUrl
-    ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
-    : null;
+  const traceUrl =
+    event.traceId && config.dashboardBaseUrl
+      ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
+      : null;
 
   const lines: string[] = [
     `## Foxhound Alert: ${EVENT_LABEL[event.type] ?? event.type}`,

@@ -115,7 +115,8 @@ export function authRoutes(fastify: FastifyInstance): void {
       if (ssoConfig?.enforceSso) {
         return reply.code(403).send({
           error: "Forbidden",
-          message: "This organization requires SSO authentication. Use your SSO provider to log in.",
+          message:
+            "This organization requires SSO authentication. Use your SSO provider to log in.",
           ssoRequired: true,
           orgSlug: primary.org.slug,
         });

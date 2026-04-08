@@ -101,9 +101,10 @@ function buildIssueTitle(event: AlertEvent): string {
 }
 
 function buildIssueDescription(event: AlertEvent, config: LinearChannelConfig): string {
-  const traceUrl = event.traceId && config.dashboardBaseUrl
-    ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
-    : null;
+  const traceUrl =
+    event.traceId && config.dashboardBaseUrl
+      ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
+      : null;
 
   const lines: string[] = [
     `## Foxhound Alert: ${EVENT_LABEL[event.type] ?? event.type}`,
