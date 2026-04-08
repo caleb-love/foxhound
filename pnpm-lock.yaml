@@ -214,11 +214,10 @@ importers:
         version: 3.2.4(@types/node@20.19.39)(jsdom@29.0.2)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/sdk:
-    dependencies:
+    devDependencies:
       '@foxhound/types':
         specifier: workspace:*
         version: link:../types
-    devDependencies:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.39
