@@ -1,12 +1,22 @@
 <p align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="Foxhound" width="80" height="80" />
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="Foxhound" width="200" height="200" />
 </p>
 
-<h1 align="center">Foxhound</h1>
+<h1 align="center">
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="" width="42" height="42" style="vertical-align: middle;" />
+  Foxhound
+</h1>
 
 <p align="center">
   <strong>Compliance-grade observability for AI agent fleets.</strong><br />
   Trace, replay, and audit every agent decision — from tool call to business outcome.
+</p>
+
+<p align="center">
+  <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/@foxhound-ai/sdk"><img src="https://img.shields.io/npm/v/@foxhound-ai/sdk.svg?label=npm" alt="npm" /></a>
+  <a href="https://pypi.org/project/foxhound-ai/"><img src="https://img.shields.io/pypi/v/foxhound-ai.svg?label=python" alt="PyPI" /></a>
 </p>
 
 <p align="center">
@@ -16,13 +26,6 @@
   <a href="#self-hosting">Self-Hosting</a> ·
   <a href="#pricing">Pricing</a> ·
   <a href="#contributing">Contributing</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://www.npmjs.com/package/@foxhound/sdk"><img src="https://img.shields.io/npm/v/@foxhound/sdk.svg?label=sdk" alt="npm" /></a>
-  <a href="https://pypi.org/project/fox-sdk/"><img src="https://img.shields.io/pypi/v/fox-sdk.svg?label=python" alt="PyPI" /></a>
 </p>
 
 ---
@@ -38,6 +41,8 @@ Foxhound gives your team:
 - **Run diffing** to compare two executions side-by-side and pinpoint divergences
 - **Audit logs** for compliance teams that need a tamper-evident record of every agent action
 - **Multi-tenant isolation** so each organization's data is siloed from day one
+- **SSO / SAML 2.0 / OIDC** for enterprise identity providers (Okta, Azure AD)
+- **Alerting & notifications** via PagerDuty, GitHub, Linear, and webhooks
 
 ## Features
 
@@ -57,6 +62,18 @@ Compare two agent runs side-by-side. Foxhound aligns spans using a longest-commo
 
 Enterprise-grade audit trail. Every agent action produces a structured event with org, agent, session, trace, and span context. Query by agent, time range, or event type. Available on Enterprise plans.
 
+### Alert Rules & Notifications
+
+Configure alert rules from the settings dashboard. Route notifications to PagerDuty, GitHub Issues, Linear, or custom webhooks. Combine with trace filters to alert on specific agent behaviors or error patterns.
+
+### SSO / SAML 2.0 / OIDC
+
+Enterprise SSO with SAML 2.0 and OIDC support. Pre-built integrations for Okta and Azure AD with auto-provisioning. Available on Enterprise plans.
+
+### MCP Server & OTel Ingestion
+
+Foxhound ships an MCP server for tool-based integration and accepts OpenTelemetry-compatible trace data, so you can ingest spans from existing OTel-instrumented services alongside agent traces.
+
 ### Billing & Usage Metering
 
 Built-in Stripe integration with metered billing. Free tier includes 10K spans/month. Pro includes 500K with overage billing. Enterprise gets unlimited spans with custom pricing.
@@ -66,20 +83,22 @@ Built-in Stripe integration with metered billing. Free tier includes 10K spans/m
 ```
 foxhound/
 ├── apps/
-│   ├── api/          # Fastify REST API (port 3001)
-│   └── web/          # Next.js dashboard (port 3000)
+│   ├── api/            # Fastify REST API (port 3001)
+│   └── web/            # Next.js dashboard (port 3000)
 ├── packages/
-│   ├── sdk/          # TypeScript SDK — @foxhound/sdk
-│   ├── sdk-py/       # Python SDK — fox-sdk (PyPI)
-│   ├── types/        # Shared TypeScript type definitions
-│   ├── db/           # Drizzle ORM schema + migrations (PostgreSQL)
-│   └── billing/      # Stripe integration + entitlement engine
+│   ├── sdk/            # TypeScript SDK — @foxhound-ai/sdk
+│   ├── sdk-py/         # Python SDK — foxhound-ai (PyPI)
+│   ├── types/          # Shared TypeScript type definitions
+│   ├── db/             # Drizzle ORM schema + migrations (PostgreSQL)
+│   ├── billing/        # Stripe integration + entitlement engine
+│   ├── mcp-server/     # MCP server for tool-based integration
+│   └── notifications/  # PagerDuty, GitHub, Linear, webhook providers
 ├── .github/
-│   └── workflows/    # GitHub Actions CI
+│   └── workflows/      # GitHub Actions CI
 └── docker-compose.dev.yml
 ```
 
-**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Next.js 14 · Drizzle ORM · PostgreSQL 16 · Stripe
+**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Next.js 15 · React 19 · Drizzle ORM · PostgreSQL 16 · Stripe · Cloudflare Pages
 
 ## Quickstart
 
@@ -135,11 +154,11 @@ Foxhound ships first-party SDKs for TypeScript and Python. Both support manual i
 ### TypeScript
 
 ```bash
-npm install @foxhound/sdk
+npm install @foxhound-ai/sdk
 ```
 
 ```typescript
-import { FoxhoundClient } from "@foxhound/sdk";
+import { FoxhoundClient } from "@foxhound-ai/sdk";
 
 const fox = new FoxhoundClient({
   apiKey: process.env.FOXHOUND_API_KEY!,
@@ -170,7 +189,7 @@ await tracer.flush();
 ### Python
 
 ```bash
-pip install fox-sdk
+pip install foxhound-ai
 ```
 
 ```python
@@ -191,7 +210,7 @@ async with fox.trace(agent_id="support-agent") as tracer:
 ### LangGraph Integration
 
 ```bash
-pip install "fox-sdk[langgraph]"
+pip install "foxhound-ai[langgraph]"
 ```
 
 ```python
@@ -206,6 +225,10 @@ await handler.flush()
 ```
 
 The LangGraph integration automatically maps graph invocations to `workflow` spans, LLM calls to `llm_call` spans, and tool calls to `tool_call` spans — preserving parent-child relationships.
+
+### Claude Agent SDK Integration
+
+Both TypeScript and Python SDKs support the Claude Agent SDK with cross-agent trace correlation. Traces from multi-agent systems are automatically linked so you can follow execution across agent boundaries.
 
 ### Local Trace Viewer (CLI)
 
@@ -308,6 +331,23 @@ Foxhound is **open source and free to self-host**. Managed cloud plans are avail
 
 Pro annual billing: **$39/mo** (save 20%).
 
+## Deployment
+
+The web dashboard is configured for [Cloudflare Pages](https://pages.cloudflare.com) via `@opennextjs/cloudflare`.
+
+```bash
+# Build the Cloudflare Worker
+pnpm --filter @foxhound/web build:worker
+
+# Preview locally
+pnpm --filter @foxhound/web preview:worker
+
+# Deploy to Cloudflare
+pnpm --filter @foxhound/web deploy
+```
+
+Configuration lives in `apps/web/wrangler.jsonc`. Run `wrangler login` before your first deploy.
+
 ## Development
 
 ```bash
@@ -321,15 +361,17 @@ pnpm format:check   # Check formatting
 
 ### Project Structure
 
-| Package            | Description                                              |
-| ------------------ | -------------------------------------------------------- |
-| `apps/api`         | Fastify REST API — auth, traces, billing, webhooks       |
-| `apps/web`         | Next.js 14 dashboard — trace explorer, settings, pricing |
-| `packages/sdk`     | TypeScript SDK — `@foxhound/sdk`                         |
-| `packages/sdk-py`  | Python SDK — `fox-sdk` with LangGraph integration        |
-| `packages/db`      | Drizzle ORM schema, queries, and migrations              |
-| `packages/billing` | Stripe integration, entitlements engine, usage metering  |
-| `packages/types`   | Shared TypeScript types (Span, Trace, AuditEvent)        |
+| Package                  | Description                                                    |
+| ------------------------ | -------------------------------------------------------------- |
+| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO        |
+| `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing       |
+| `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support) |
+| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration |
+| `packages/db`            | Drizzle ORM schema, queries, and migrations                    |
+| `packages/billing`       | Stripe integration, entitlements engine, usage metering        |
+| `packages/mcp-server`    | MCP server for tool-based trace integration                    |
+| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks            |
+| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)              |
 
 ### CI
 

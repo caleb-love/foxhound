@@ -5,8 +5,8 @@
  * message observers that produce structured Fox trace spans.
  *
  * Usage:
- *   import { FoxhoundClient } from "@foxhound/sdk";
- *   import { FoxClaudeTracer } from "@foxhound/sdk/integrations/claude-agent";
+ *   import { FoxhoundClient } from "@foxhound-ai/sdk";
+ *   import { FoxClaudeTracer } from "@foxhound-ai/sdk/integrations/claude-agent";
  *
  *   const fox = new FoxhoundClient({ apiKey: "fox_...", endpoint: "..." });
  *   const tracer = FoxClaudeTracer.fromClient(fox, { agentId: "my-agent" });
@@ -123,11 +123,7 @@ export class FoxClaudeTracer {
   // Tool hooks
   // ------------------------------------------------------------------
 
-  async onPreToolUse(
-    toolName: string,
-    toolInput: Record<string, unknown>,
-    toolUseId: string,
-  ): Promise<void> {
+  onPreToolUse(toolName: string, toolInput: Record<string, unknown>, toolUseId: string): void {
     const parentSpanId = this.workflowSpan?.spanId;
     const span = this.tracer.startSpan({
       name: `tool:${toolName}`,
@@ -145,11 +141,7 @@ export class FoxClaudeTracer {
     this.toolSpans.set(toolUseId, span);
   }
 
-  async onPostToolUse(
-    toolUseId: string,
-    result?: string,
-    error?: string,
-  ): Promise<void> {
+  onPostToolUse(toolUseId: string, result?: string, error?: string): void {
     const span = this.toolSpans.get(toolUseId);
     if (!span) return;
     this.toolSpans.delete(toolUseId);

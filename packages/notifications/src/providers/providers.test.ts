@@ -198,7 +198,11 @@ describe("GitHubProvider", () => {
 
   it("includes labels when configured", async () => {
     const provider = new GitHubProvider();
-    const channel = makeChannel("github", { token: "tok", repo: "a/b", labels: ["foxhound", "bug"] });
+    const channel = makeChannel("github", {
+      token: "tok",
+      repo: "a/b",
+      labels: ["foxhound", "bug"],
+    });
     await provider.send(makeEvent(), channel);
     expect(parsedBody(fetchMock)["labels"]).toEqual(["foxhound", "bug"]);
   });
@@ -253,7 +257,12 @@ describe("LinearProvider", () => {
     fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: { issueCreate: { success: true, issue: { id: "i-1", identifier: "FOO-1", url: "https://linear.app" } } },
+        data: {
+          issueCreate: {
+            success: true,
+            issue: { id: "i-1", identifier: "FOO-1", url: "https://linear.app" },
+          },
+        },
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -324,7 +333,11 @@ describe("LinearProvider", () => {
 
   it("includes trace link in description when dashboardBaseUrl set", async () => {
     const provider = new LinearProvider();
-    const channel = makeChannel("linear", { apiKey: "k", teamId: "t", dashboardBaseUrl: "https://fox.example.com" });
+    const channel = makeChannel("linear", {
+      apiKey: "k",
+      teamId: "t",
+      dashboardBaseUrl: "https://fox.example.com",
+    });
     await provider.send(makeEvent({ traceId: "trace-abc" }), channel);
     const vars = parsedBody(fetchMock)["variables"] as Record<string, Record<string, unknown>>;
     expect(String(vars["input"]?.["description"])).toContain("trace-abc");
@@ -383,7 +396,10 @@ describe("WebhookProvider", () => {
 
   it("sends a POST to the configured webhook URL", async () => {
     const provider = new WebhookProvider();
-    const channel = makeChannel("webhook", { url: "https://hooks.example.com/fox", secret: "s3cr3t" });
+    const channel = makeChannel("webhook", {
+      url: "https://hooks.example.com/fox",
+      secret: "s3cr3t",
+    });
     await provider.send(makeEvent(), channel);
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = firstCall(fetchMock);

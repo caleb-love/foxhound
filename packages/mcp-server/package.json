@@ -1,8 +1,23 @@
 {
-  "name": "@foxhound/mcp-server",
+  "name": "@foxhound-ai/mcp-server",
   "version": "0.1.0",
   "description": "MCP server for querying Foxhound traces from Claude Code, Cursor, and other MCP clients",
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caleb-love/foxhound.git",
+    "directory": "packages/mcp-server"
+  },
+  "keywords": [
+    "mcp",
+    "ai",
+    "agents",
+    "observability",
+    "tracing",
+    "claude",
+    "cursor"
+  ],
   "bin": {
     "foxhound-mcp": "./dist/index.js"
   },
@@ -11,6 +26,9 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

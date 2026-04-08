@@ -45,7 +45,7 @@ Usage::
     result = await tracer.kickoff_async(crew, inputs={"topic": "AI safety"})
     await tracer.flush()
 
-Requires: ``pip install fox-sdk[crewai]``
+Requires: ``pip install foxhound-ai[crewai]``
 """
 
 from __future__ import annotations

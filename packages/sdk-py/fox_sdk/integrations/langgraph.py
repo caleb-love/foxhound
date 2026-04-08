@@ -30,7 +30,7 @@ Usage::
     async def run(state):
         return await graph.ainvoke(state)
 
-Requires: ``pip install fox-sdk[langgraph]``
+Requires: ``pip install foxhound-ai[langgraph]``
 """
 
 from __future__ import annotations

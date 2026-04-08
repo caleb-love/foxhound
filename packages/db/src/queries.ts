@@ -56,11 +56,7 @@ export async function getOrganizationById(id: string) {
 }
 
 export async function getOrganizationBySlug(slug: string) {
-  const rows = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, slug))
-    .limit(1);
+  const rows = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -680,11 +676,7 @@ export interface UpsertSsoConfigInput {
 }
 
 export async function getSsoConfigByOrg(orgId: string) {
-  const rows = await db
-    .select()
-    .from(ssoConfigs)
-    .where(eq(ssoConfigs.orgId, orgId))
-    .limit(1);
+  const rows = await db.select().from(ssoConfigs).where(eq(ssoConfigs.orgId, orgId)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -752,11 +744,7 @@ export async function createSsoSession(input: CreateSsoSessionInput) {
 }
 
 export async function getSsoSession(sessionId: string) {
-  const rows = await db
-    .select()
-    .from(ssoSessions)
-    .where(eq(ssoSessions.id, sessionId))
-    .limit(1);
+  const rows = await db.select().from(ssoSessions).where(eq(ssoSessions.id, sessionId)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -785,11 +773,7 @@ export interface JitProvisionInput {
 export async function jitProvisionUser(input: JitProvisionInput) {
   return db.transaction(async (tx) => {
     // Check if user already exists by email
-    const existingRows = await tx
-      .select()
-      .from(users)
-      .where(eq(users.email, input.email))
-      .limit(1);
+    const existingRows = await tx.select().from(users).where(eq(users.email, input.email)).limit(1);
     const existing = existingRows[0];
 
     if (existing) {
@@ -797,9 +781,7 @@ export async function jitProvisionUser(input: JitProvisionInput) {
       const membershipRows = await tx
         .select()
         .from(memberships)
-        .where(
-          and(eq(memberships.userId, existing.id), eq(memberships.orgId, input.orgId)),
-        )
+        .where(and(eq(memberships.userId, existing.id), eq(memberships.orgId, input.orgId)))
         .limit(1);
 
       if (membershipRows.length === 0) {

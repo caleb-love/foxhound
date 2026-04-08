@@ -38,7 +38,7 @@ Usage::
     await tracer.traced_initiate_chat(user_proxy, assistant, message="Hello!")
     await tracer.flush()
 
-Requires: ``pip install fox-sdk[autogen]``
+Requires: ``pip install foxhound-ai[autogen]``
 """
 
 from __future__ import annotations
@@ -558,7 +558,7 @@ def _check_autogen_installed() -> None:
             continue
     raise ImportError(
         "An Autogen-compatible package is required for this integration. "
-        "Install with: pip install fox-sdk[autogen]"
+        "Install with: pip install foxhound-ai[autogen]"
     )
 
 
