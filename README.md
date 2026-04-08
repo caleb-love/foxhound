@@ -1,12 +1,22 @@
 <p align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="Foxhound" width="80" height="80" />
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="Foxhound" width="200" height="200" />
 </p>
 
-<h1 align="center">Foxhound</h1>
+<h1 align="center">
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="" width="42" height="42" style="vertical-align: middle;" />
+  Foxhound
+</h1>
 
 <p align="center">
   <strong>Compliance-grade observability for AI agent fleets.</strong><br />
   Trace, replay, and audit every agent decision — from tool call to business outcome.
+</p>
+
+<p align="center">
+  <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/@foxhound/sdk"><img src="https://img.shields.io/npm/v/@foxhound/sdk.svg?label=sdk" alt="npm" /></a>
+  <a href="https://pypi.org/project/fox-sdk/"><img src="https://img.shields.io/pypi/v/fox-sdk.svg?label=python" alt="PyPI" /></a>
 </p>
 
 <p align="center">
@@ -16,13 +26,6 @@
   <a href="#self-hosting">Self-Hosting</a> ·
   <a href="#pricing">Pricing</a> ·
   <a href="#contributing">Contributing</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://www.npmjs.com/package/@foxhound/sdk"><img src="https://img.shields.io/npm/v/@foxhound/sdk.svg?label=sdk" alt="npm" /></a>
-  <a href="https://pypi.org/project/fox-sdk/"><img src="https://img.shields.io/pypi/v/fox-sdk.svg?label=python" alt="PyPI" /></a>
 </p>
 
 ---
