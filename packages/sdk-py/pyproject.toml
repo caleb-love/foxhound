@@ -19,6 +19,9 @@ langgraph = [
 crewai = [
     "crewai>=0.60.0",
 ]
+claude-agent = [
+    "claude-agent-sdk>=0.1.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
