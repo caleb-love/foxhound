@@ -8,6 +8,8 @@ import { authRoutes } from "./routes/auth.js";
 import { apiKeysRoutes } from "./routes/apiKeys.js";
 import { billingRoutes } from "./routes/billing.js";
 import { billingWebhookRoutes } from "./routes/billing-webhook.js";
+import { otlpRoutes } from "./routes/otlp.js";
+import { notificationsRoutes } from "./routes/notifications.js";
 
 const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -39,8 +41,10 @@ app.get("/health", () => {
 await app.register(authRoutes);
 await app.register(apiKeysRoutes);
 await app.register(tracesRoutes);
+await app.register(otlpRoutes);
 await app.register(billingRoutes);
 await app.register(billingWebhookRoutes);
+await app.register(notificationsRoutes);
 
 const port = Number(process.env["PORT"] ?? 3001);
 const host = process.env["HOST"] ?? "0.0.0.0";
