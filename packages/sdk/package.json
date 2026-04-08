@@ -7,6 +7,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./integrations/claude-agent": {
+      "import": "./dist/integrations/claude-agent.js",
+      "types": "./dist/integrations/claude-agent.d.ts"
     }
   },
   "scripts": {
