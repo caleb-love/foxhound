@@ -62,7 +62,7 @@ Get the full trace with its complete span tree.
 
 ### foxhound_replay_span
 
-Reconstruct agent state at a specific span — LLM context, tool inputs, and memory. Requires Pro plan.
+Reconstruct agent state at a specific span — LLM context, tool inputs, and memory.
 
 ```
 "Replay span xyz in trace abc-123 — what was the agent's context?"
@@ -72,7 +72,7 @@ Reconstruct agent state at a specific span — LLM context, tool inputs, and mem
 
 ### foxhound_diff_runs
 
-Compare two agent runs side-by-side and surface divergence points. Requires Pro plan.
+Compare two agent runs side-by-side and surface divergence points.
 
 ```
 "Compare runs abc and def — why did the second one fail?"

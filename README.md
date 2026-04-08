@@ -8,7 +8,7 @@
 </h1>
 
 <p align="center">
-  <strong>Compliance-grade observability for AI agent fleets.</strong><br />
+  <strong>The open-source, self-hosted observability platform for AI agent fleets.</strong><br />
   Trace, replay, and audit every agent decision — from tool call to business outcome.
 </p>
 
@@ -24,7 +24,6 @@
   <a href="#quickstart">Quickstart</a> ·
   <a href="#sdks">SDKs</a> ·
   <a href="#self-hosting">Self-Hosting</a> ·
-  <a href="#pricing">Pricing</a> ·
   <a href="#contributing">Contributing</a>
 </p>
 
@@ -52,15 +51,15 @@ Browse, search, and filter agent traces. Every trace captures the full span tree
 
 ### Span Replay
 
-Select any span in a trace and reconstruct the agent's exact state at that moment: which LLM calls had been made, which tools had been invoked, and what data was available. Available on Pro and Enterprise plans.
+Select any span in a trace and reconstruct the agent's exact state at that moment: which LLM calls had been made, which tools had been invoked, and what data was available.
 
 ### Run Diff
 
-Compare two agent runs side-by-side. Foxhound aligns spans using a longest-common-subsequence algorithm and highlights every divergence — status changes, attribute differences, added or removed spans, and name changes. Available on Pro and Enterprise plans.
+Compare two agent runs side-by-side. Foxhound aligns spans using a longest-common-subsequence algorithm and highlights every divergence — status changes, attribute differences, added or removed spans, and name changes.
 
 ### Audit Log
 
-Enterprise-grade audit trail. Every agent action produces a structured event with org, agent, session, trace, and span context. Query by agent, time range, or event type. Available on Enterprise plans.
+Enterprise-grade audit trail. Every agent action produces a structured event with org, agent, session, trace, and span context. Query by agent, time range, or event type.
 
 ### Alert Rules & Notifications
 
@@ -68,15 +67,11 @@ Configure alert rules from the settings dashboard. Route notifications to PagerD
 
 ### SSO / SAML 2.0 / OIDC
 
-Enterprise SSO with SAML 2.0 and OIDC support. Pre-built integrations for Okta and Azure AD with auto-provisioning. Available on Enterprise plans.
+Enterprise SSO with SAML 2.0 and OIDC support. Pre-built integrations for Okta and Azure AD with auto-provisioning.
 
 ### MCP Server & OTel Ingestion
 
 Foxhound ships an MCP server for tool-based integration and accepts OpenTelemetry-compatible trace data, so you can ingest spans from existing OTel-instrumented services alongside agent traces.
-
-### Billing & Usage Metering
-
-Built-in Stripe integration with metered billing. Free tier includes 10K spans/month. Pro includes 500K with overage billing. Enterprise gets unlimited spans with custom pricing.
 
 ## Architecture
 
@@ -268,15 +263,6 @@ All endpoints are prefixed with `/v1`. Authentication is via Bearer token (JWT o
 | `GET`    | `/v1/api-keys`     | List active keys (prefix only) |
 | `DELETE` | `/v1/api-keys/:id` | Revoke a key                   |
 
-### Billing
-
-| Method | Path                   | Description                              |
-| ------ | ---------------------- | ---------------------------------------- |
-| `GET`  | `/v1/billing/status`   | Current plan, usage, billing date        |
-| `GET`  | `/v1/billing/usage`    | Span usage and limits for current period |
-| `POST` | `/v1/billing/checkout` | Create Stripe checkout session           |
-| `POST` | `/v1/billing/portal`   | Open Stripe customer portal              |
-
 ## Self-Hosting
 
 Foxhound is designed to be self-hosted. You need:
@@ -290,14 +276,12 @@ Foxhound is designed to be self-hosted. You need:
 | ----------------------------- | -------- | ---------------------------------- |
 | `DATABASE_URL`                | Yes      | PostgreSQL connection string       |
 | `JWT_SECRET`                  | Yes      | Secret for signing auth tokens     |
-| `STRIPE_SECRET_KEY`           | No       | Stripe API key (for billing)       |
-| `STRIPE_WEBHOOK_SECRET`       | No       | Stripe webhook signing secret      |
-| `STRIPE_PRICE_ID_PRO_MONTHLY` | No       | Stripe price ID for Pro monthly    |
-| `STRIPE_PRICE_ID_PRO_ANNUAL`  | No       | Stripe price ID for Pro annual     |
-| `INTERNAL_CRON_SECRET`        | No       | Secret for internal cron endpoints |
+| `STRIPE_SECRET_KEY`           | No       | Stripe API key (for future billing)    |
+| `STRIPE_WEBHOOK_SECRET`       | No       | Stripe webhook signing secret          |
+| `INTERNAL_CRON_SECRET`        | No       | Secret for internal cron endpoints     |
 | `LOG_LEVEL`                   | No       | Logging level (default: `info`)    |
 
-Stripe configuration is only needed if you want billing/plan gating. Without it, Foxhound runs as a fully functional open-source tracing platform on the free tier.
+Stripe configuration is optional. Without it, Foxhound runs as a fully functional open-source tracing platform.
 
 ## Security
 
@@ -311,25 +295,9 @@ Foxhound follows security best practices:
 - **Redirect validation:** Stripe checkout URLs validated before redirect
 - **Password hashing:** scrypt with random salt and timing-safe comparison
 
-## Pricing
+## Managed Cloud
 
-Foxhound is **open source and free to self-host**. Managed cloud plans are available:
-
-|                         | Community | Pro     | Enterprise |
-| ----------------------- | --------- | ------- | ---------- |
-| **Price**               | Free      | $49/mo  | Custom     |
-| **Spans / month**       | 10,000    | 500,000 | Unlimited  |
-| **Data retention**      | 7 days    | 90 days | 365 days   |
-| **Projects**            | 1         | 10      | Unlimited  |
-| **Team seats**          | 1         | 5       | Unlimited  |
-| **Trace explorer**      | ✓         | ✓       | ✓          |
-| **Span replay**         | —         | ✓       | ✓          |
-| **Run diff**            | —         | ✓       | ✓          |
-| **Audit log**           | —         | —       | ✓          |
-| **SSO / SAML**          | —         | —       | ✓          |
-| **SLA & dedicated CSM** | —         | —       | ✓          |
-
-Pro annual billing: **$39/mo** (save 20%).
+Foxhound is **free and open source**. A managed cloud offering is coming soon — [sign up for the waitlist](link) to be notified when it launches.
 
 ## Deployment
 
@@ -364,7 +332,7 @@ pnpm format:check   # Check formatting
 | Package                  | Description                                                    |
 | ------------------------ | -------------------------------------------------------------- |
 | `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO        |
-| `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing       |
+| `apps/web`               | Next.js 15 dashboard — trace explorer, settings                |
 | `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support) |
 | `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration |
 | `packages/db`            | Drizzle ORM schema, queries, and migrations                    |
