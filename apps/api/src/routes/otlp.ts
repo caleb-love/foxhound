@@ -183,9 +183,7 @@ function mapOtlpToFoxhoundTraces(body: OtlpExportRequest): Trace[] {
         const span: Span = {
           traceId,
           spanId: normalizeId(otelSpan.spanId, 8),
-          parentSpanId: otelSpan.parentSpanId
-            ? normalizeId(otelSpan.parentSpanId, 8)
-            : undefined,
+          parentSpanId: otelSpan.parentSpanId ? normalizeId(otelSpan.parentSpanId, 8) : undefined,
           name: otelSpan.name ?? "",
           kind: mapSpanKind(otelSpan.kind, spanAttrs),
           startTimeMs: startMs,
@@ -200,8 +198,7 @@ function mapOtlpToFoxhoundTraces(body: OtlpExportRequest): Trace[] {
           acc.spans.push(span);
           if (startMs < acc.startTimeMs) acc.startTimeMs = startMs;
           if (endMs !== undefined) {
-            acc.endTimeMs =
-              acc.endTimeMs === undefined ? endMs : Math.max(acc.endTimeMs, endMs);
+            acc.endTimeMs = acc.endTimeMs === undefined ? endMs : Math.max(acc.endTimeMs, endMs);
           }
         } else {
           byTraceId.set(traceId, {

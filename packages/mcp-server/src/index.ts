@@ -108,15 +108,9 @@ function formatTrace(data: unknown): string {
     }
   }
 
-  function renderSpan(
-    span: (typeof trace.spans)[number],
-    indent: number,
-  ): string {
+  function renderSpan(span: (typeof trace.spans)[number], indent: number): string {
     const prefix = "  ".repeat(indent);
-    const dur =
-      span.endTimeMs && span.startTimeMs
-        ? `${(span.endTimeMs - span.startTimeMs)}ms`
-        : "?";
+    const dur = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
     const status = span.status === "error" ? " **ERROR**" : "";
     const errors = span.events?.filter((e) => e.name === "error") ?? [];
     const errorMsg = errors.length > 0 ? ` — ${JSON.stringify(errors[0]?.attributes)}` : "";
@@ -155,7 +149,10 @@ async function main(): Promise<void> {
     "Search traces by agent name, time range, and pagination. Returns a summary list of matching traces.",
     {
       agent_name: z.string().optional().describe("Filter by agent ID/name"),
-      status: z.enum(["ok", "error"]).optional().describe("Filter traces containing spans with this status"),
+      status: z
+        .enum(["ok", "error"])
+        .optional()
+        .describe("Filter traces containing spans with this status"),
       from: z.string().optional().describe("Start time (ISO 8601 or epoch ms)"),
       to: z.string().optional().describe("End time (ISO 8601 or epoch ms)"),
       limit: z.number().int().min(1).max(100).optional().describe("Max results (default 20)"),
@@ -224,7 +221,13 @@ async function main(): Promise<void> {
     "Surface behavioral anomalies in recent traces for an agent — unusually slow spans, error spikes, or unexpected tool usage patterns.",
     {
       agent_name: z.string().describe("Agent ID/name to analyze"),
-      hours: z.number().int().min(1).max(168).optional().describe("Lookback window in hours (default 24)"),
+      hours: z
+        .number()
+        .int()
+        .min(1)
+        .max(168)
+        .optional()
+        .describe("Lookback window in hours (default 24)"),
     },
     async (params) => {
       const hours = params.hours ?? 24;
@@ -301,7 +304,9 @@ async function main(): Promise<void> {
         for (const e of errorSpans) {
           errorNames.set(e.name, (errorNames.get(e.name) ?? 0) + 1);
         }
-        for (const [name, count] of [...errorNames.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+        for (const [name, count] of [...errorNames.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)) {
           lines.push(`- **${name}**: ${count} errors`);
         }
         lines.push("");
@@ -332,7 +337,10 @@ async function main(): Promise<void> {
     "foxhound_get_cost_summary",
     "Get token usage and cost breakdown. Shows current billing period span usage and limits.",
     {
-      agent_name: z.string().optional().describe("Filter by agent (not yet supported — returns org-level usage)"),
+      agent_name: z
+        .string()
+        .optional()
+        .describe("Filter by agent (not yet supported — returns org-level usage)"),
     },
     async () => {
       const data = (await api.getBillingUsage()) as {

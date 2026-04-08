@@ -1,4 +1,9 @@
-import type { NotificationProvider, AlertEvent, NotificationChannel, SlackChannelConfig } from "../types.js";
+import type {
+  NotificationProvider,
+  AlertEvent,
+  NotificationChannel,
+  SlackChannelConfig,
+} from "../types.js";
 
 /** Emoji per severity for Block Kit visual hierarchy */
 const SEVERITY_EMOJI: Record<string, string> = {
@@ -36,9 +41,7 @@ export class SlackProvider implements NotificationProvider {
 
     if (!response.ok) {
       const text = await response.text().catch(() => "(no body)");
-      throw new Error(
-        `Slack webhook returned ${response.status}: ${text}`,
-      );
+      throw new Error(`Slack webhook returned ${response.status}: ${text}`);
     }
   }
 }
@@ -87,9 +90,7 @@ function buildBlocks(event: AlertEvent, config: SlackChannelConfig): unknown[] {
     { type: "divider" },
     {
       type: "context",
-      elements: [
-        { type: "mrkdwn", text: `Foxhound • ${ts}` },
-      ],
+      elements: [{ type: "mrkdwn", text: `Foxhound • ${ts}` }],
     },
   ];
 
