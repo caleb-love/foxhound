@@ -93,10 +93,7 @@ export class WebhookProvider implements NotificationProvider {
   }
 }
 
-function buildPayload(
-  event: AlertEvent,
-  config: WebhookChannelConfig,
-): Record<string, unknown> {
+function buildPayload(event: AlertEvent, config: WebhookChannelConfig): Record<string, unknown> {
   const traceUrl =
     event.traceId && config.dashboardBaseUrl
       ? `${config.dashboardBaseUrl}/traces/${event.traceId}`

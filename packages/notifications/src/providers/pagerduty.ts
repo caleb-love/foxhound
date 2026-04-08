@@ -62,14 +62,12 @@ export class PagerDutyProvider implements NotificationProvider {
   }
 }
 
-function buildPayload(
-  event: AlertEvent,
-  config: PagerDutyChannelConfig,
-): Record<string, unknown> {
+function buildPayload(event: AlertEvent, config: PagerDutyChannelConfig): Record<string, unknown> {
   const severity = PAGERDUTY_SEVERITY[event.severity];
-  const traceUrl = event.traceId && config.dashboardBaseUrl
-    ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
-    : undefined;
+  const traceUrl =
+    event.traceId && config.dashboardBaseUrl
+      ? `${config.dashboardBaseUrl}/traces/${event.traceId}`
+      : undefined;
 
   const customDetails: Record<string, unknown> = {
     orgId: event.orgId,
