@@ -361,17 +361,17 @@ pnpm format:check   # Check formatting
 
 ### Project Structure
 
-| Package                  | Description                                                 |
-| ------------------------ | ----------------------------------------------------------- |
-| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO     |
-| `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing    |
+| Package                  | Description                                                    |
+| ------------------------ | -------------------------------------------------------------- |
+| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO        |
+| `apps/web`               | Next.js 15 dashboard — trace explorer, settings, pricing       |
 | `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support) |
-| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration  |
-| `packages/db`            | Drizzle ORM schema, queries, and migrations                 |
-| `packages/billing`       | Stripe integration, entitlements engine, usage metering     |
-| `packages/mcp-server`    | MCP server for tool-based trace integration                 |
-| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks         |
-| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)           |
+| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration |
+| `packages/db`            | Drizzle ORM schema, queries, and migrations                    |
+| `packages/billing`       | Stripe integration, entitlements engine, usage metering        |
+| `packages/mcp-server`    | MCP server for tool-based trace integration                    |
+| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks            |
+| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)              |
 
 ### CI
 

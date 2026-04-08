@@ -1,6 +1,6 @@
 {
   "name": "@foxhound-ai/sdk",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Compliance-grade observability SDK for AI agents — trace, replay, and audit every agent decision",
   "license": "MIT",
   "type": "module",
