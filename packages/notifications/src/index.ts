@@ -14,8 +14,16 @@ export type {
   NotificationChannel,
   NotificationProvider,
   SlackChannelConfig,
+  PagerDutyChannelConfig,
+  GitHubChannelConfig,
+  LinearChannelConfig,
+  WebhookChannelConfig,
 } from "./types.js";
 
-export { SEVERITY_RANK } from "./types.js";
+export { SEVERITY_RANK, PAGERDUTY_SEVERITY } from "./types.js";
 export { dispatchAlert } from "./dispatcher.js";
 export { SlackProvider } from "./providers/index.js";
+export { PagerDutyProvider } from "./providers/index.js";
+export { GitHubProvider } from "./providers/index.js";
+export { LinearProvider } from "./providers/index.js";
+export { WebhookProvider } from "./providers/index.js";
