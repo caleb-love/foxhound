@@ -11,6 +11,7 @@ import {
   notificationLog,
   ssoConfigs,
   ssoSessions,
+  waitlistSignups,
 } from "./schema.js";
 import { eq, and, gte, lte, desc, isNull, sql } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
@@ -814,4 +815,27 @@ export async function jitProvisionUser(input: JitProvisionInput) {
 
     return { user: user!, provisioned: true };
   });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Waitlist queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function insertWaitlistSignup(
+  id: string,
+  email: string,
+): Promise<{ alreadyExists: boolean }> {
+  const existing = await db
+    .select({ id: waitlistSignups.id })
+    .from(waitlistSignups)
+    .where(eq(waitlistSignups.email, email.toLowerCase().trim()))
+    .limit(1);
+
+  if (existing.length > 0) return { alreadyExists: true };
+
+  await db.insert(waitlistSignups).values({
+    id,
+    email: email.toLowerCase().trim(),
+  });
+  return { alreadyExists: false };
 }

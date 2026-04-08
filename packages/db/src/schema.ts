@@ -250,6 +250,22 @@ export const ssoConfigs = pgTable(
   }),
 );
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Waitlist table
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const waitlistSignups = pgTable(
+  "waitlist_signups",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    emailIdx: index("waitlist_signups_email_idx").on(table.email),
+  }),
+);
+
 export const ssoSessions = pgTable(
   "sso_sessions",
   {

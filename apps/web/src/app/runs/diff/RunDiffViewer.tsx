@@ -3,8 +3,6 @@
 import { useState } from "react";
 import type { Span } from "@foxhound/types";
 import type { RunDiffResult, SpanDiff } from "@/lib/api";
-import { usePlan } from "@/hooks/usePlan";
-import { UpgradeBanner } from "@/components/UpgradeBanner";
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -262,23 +260,11 @@ function PaneHeader({ label, color }: { label: string; color: string }) {
 
 export function RunDiffViewer({ diff }: { diff: RunDiffResult }) {
   const [selectedPos, setSelectedPos] = useState<number | null>(null);
-  const { canRunDiff, loading: planLoading } = usePlan();
 
   const selectedEntry = diff.alignedSpans.find((e) => e.position === selectedPos) ?? null;
 
   function select(pos: number) {
     setSelectedPos((prev) => (prev === pos ? null : pos));
-  }
-
-  if (!planLoading && !canRunDiff) {
-    return (
-      <div style={{ padding: "24px" }}>
-        <UpgradeBanner
-          feature="Run diff"
-          description="Run diff is a Pro feature — compare execution traces to spot regressions."
-        />
-      </div>
-    );
   }
 
   return (
