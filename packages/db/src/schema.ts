@@ -7,6 +7,7 @@ import {
   unique,
   primaryKey,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -145,5 +146,81 @@ export const usageRecords = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.orgId, table.period] }),
     orgIdIdx: index("usage_records_org_id_idx").on(table.orgId),
+  }),
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Notification tables
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const notificationChannels = pgTable(
+  "notification_channels",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["slack"] }).notNull(),
+    name: text("name").notNull(),
+    /** Provider-specific config (webhook URL, etc.) stored as jsonb */
+    config: jsonb("config").notNull().$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("notification_channels_org_id_idx").on(table.orgId),
+  }),
+);
+
+export const alertRules = pgTable(
+  "alert_rules",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    eventType: text("event_type", {
+      enum: ["agent_failure", "anomaly_detected", "cost_spike", "compliance_violation"],
+    }).notNull(),
+    minSeverity: text("min_severity", {
+      enum: ["critical", "high", "medium", "low"],
+    })
+      .notNull()
+      .default("high"),
+    channelId: text("channel_id")
+      .notNull()
+      .references(() => notificationChannels.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("alert_rules_org_id_idx").on(table.orgId),
+    channelIdIdx: index("alert_rules_channel_id_idx").on(table.channelId),
+  }),
+);
+
+export const notificationLog = pgTable(
+  "notification_log",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    ruleId: text("rule_id").references(() => alertRules.id, { onDelete: "set null" }),
+    channelId: text("channel_id").references(() => notificationChannels.id, {
+      onDelete: "set null",
+    }),
+    eventType: text("event_type").notNull(),
+    severity: text("severity").notNull(),
+    agentId: text("agent_id").notNull(),
+    traceId: text("trace_id"),
+    status: text("status", { enum: ["sent", "failed"] }).notNull(),
+    error: text("error"),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("notification_log_org_id_idx").on(table.orgId),
+    sentAtIdx: index("notification_log_sent_at_idx").on(table.sentAt),
   }),
 );
