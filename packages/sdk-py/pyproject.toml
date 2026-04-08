@@ -19,8 +19,14 @@ langgraph = [
 crewai = [
     "crewai>=0.60.0",
 ]
+openai-agents = [
+    "openai-agents>=0.0.3",
+]
 claude-agent = [
     "claude-agent-sdk>=0.1.0",
+]
+autogen = [
+    "ag2>=0.7.0",
 ]
 dev = [
     "pytest>=7.0",

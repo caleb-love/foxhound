@@ -9,6 +9,8 @@ import {
   notificationChannels,
   alertRules,
   notificationLog,
+  ssoConfigs,
+  ssoSessions,
 } from "./schema.js";
 import { eq, and, gte, lte, desc, isNull, sql } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
@@ -50,6 +52,15 @@ export function hashApiKey(key: string): string {
 
 export async function getOrganizationById(id: string) {
   const rows = await db.select().from(organizations).where(eq(organizations.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getOrganizationBySlug(slug: string) {
+  const rows = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, slug))
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -654,4 +665,171 @@ export async function createNotificationLogEntry(input: CreateNotificationLogInp
     })
     .returning();
   return rows[0]!;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SSO config queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface UpsertSsoConfigInput {
+  id: string;
+  orgId: string;
+  provider: "saml" | "oidc";
+  config: Record<string, unknown>;
+  enforceSso?: boolean;
+}
+
+export async function getSsoConfigByOrg(orgId: string) {
+  const rows = await db
+    .select()
+    .from(ssoConfigs)
+    .where(eq(ssoConfigs.orgId, orgId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function upsertSsoConfig(input: UpsertSsoConfigInput) {
+  const rows = await db
+    .insert(ssoConfigs)
+    .values({
+      id: input.id,
+      orgId: input.orgId,
+      provider: input.provider,
+      config: input.config,
+      enforceSso: input.enforceSso ?? false,
+    })
+    .onConflictDoUpdate({
+      target: ssoConfigs.orgId,
+      set: {
+        provider: input.provider,
+        config: input.config,
+        enforceSso: input.enforceSso ?? false,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function deleteSsoConfig(orgId: string): Promise<boolean> {
+  const result = await db.delete(ssoConfigs).where(eq(ssoConfigs.orgId, orgId));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+export async function updateSsoEnforcement(orgId: string, enforce: boolean) {
+  const rows = await db
+    .update(ssoConfigs)
+    .set({ enforceSso: enforce, updatedAt: new Date() })
+    .where(eq(ssoConfigs.orgId, orgId))
+    .returning();
+  return rows[0] ?? null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SSO session queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateSsoSessionInput {
+  id: string;
+  userId: string;
+  orgId: string;
+  idpSessionId?: string;
+  expiresAt: Date;
+}
+
+export async function createSsoSession(input: CreateSsoSessionInput) {
+  const rows = await db
+    .insert(ssoSessions)
+    .values({
+      id: input.id,
+      userId: input.userId,
+      orgId: input.orgId,
+      idpSessionId: input.idpSessionId ?? null,
+      expiresAt: input.expiresAt,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function getSsoSession(sessionId: string) {
+  const rows = await db
+    .select()
+    .from(ssoSessions)
+    .where(eq(ssoSessions.id, sessionId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function deleteSsoSessionsByUser(userId: string, orgId: string) {
+  await db
+    .delete(ssoSessions)
+    .where(and(eq(ssoSessions.userId, userId), eq(ssoSessions.orgId, orgId)));
+}
+
+export async function deleteSsoSessionByIdpSession(idpSessionId: string) {
+  await db.delete(ssoSessions).where(eq(ssoSessions.idpSessionId, idpSessionId));
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// JIT user provisioning for SSO
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface JitProvisionInput {
+  userId: string;
+  email: string;
+  name: string;
+  orgId: string;
+  role?: "admin" | "member";
+}
+
+export async function jitProvisionUser(input: JitProvisionInput) {
+  return db.transaction(async (tx) => {
+    // Check if user already exists by email
+    const existingRows = await tx
+      .select()
+      .from(users)
+      .where(eq(users.email, input.email))
+      .limit(1);
+    const existing = existingRows[0];
+
+    if (existing) {
+      // Ensure membership exists for this org
+      const membershipRows = await tx
+        .select()
+        .from(memberships)
+        .where(
+          and(eq(memberships.userId, existing.id), eq(memberships.orgId, input.orgId)),
+        )
+        .limit(1);
+
+      if (membershipRows.length === 0) {
+        await tx.insert(memberships).values({
+          userId: existing.id,
+          orgId: input.orgId,
+          role: input.role ?? "member",
+        });
+      }
+
+      return { user: existing, provisioned: false };
+    }
+
+    // Create new user with a placeholder password hash (SSO-only, no password login)
+    const [user] = await tx
+      .insert(users)
+      .values({
+        id: input.userId,
+        email: input.email,
+        passwordHash: "sso-only:no-password-login",
+        name: input.name,
+      })
+      .returning();
+
+    await tx.insert(memberships).values({
+      userId: input.userId,
+      orgId: input.orgId,
+      role: input.role ?? "member",
+    });
+
+    return { user: user!, provisioned: true };
+  });
 }
