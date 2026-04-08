@@ -29,10 +29,7 @@ function buildApp() {
   return app;
 }
 
-async function getJwt(
-  app: ReturnType<typeof buildApp>,
-  payload: JwtPayload,
-): Promise<string> {
+async function getJwt(app: ReturnType<typeof buildApp>, payload: JwtPayload): Promise<string> {
   await app.ready();
   return app.jwt.sign(payload);
 }
@@ -342,7 +339,7 @@ describe("POST /v1/sso/callback/saml", () => {
     const app = buildApp();
     const relayState = Buffer.from(JSON.stringify({ orgId: "org_1" })).toString("base64");
     const samlResponse = Buffer.from(
-      '<samlp:Response><saml:Assertion><saml:NameID>user@acme.com</saml:NameID></saml:Assertion></samlp:Response>',
+      "<samlp:Response><saml:Assertion><saml:NameID>user@acme.com</saml:NameID></saml:Assertion></samlp:Response>",
     ).toString("base64");
     const res = await app.inject({
       method: "POST",
