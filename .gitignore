@@ -13,3 +13,5 @@ build/
 *.tsbuildinfo
 __pycache__/
 *.pyc
+.open-next/
+.wrangler/
