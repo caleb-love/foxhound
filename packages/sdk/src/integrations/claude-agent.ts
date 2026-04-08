@@ -123,11 +123,11 @@ export class FoxClaudeTracer {
   // Tool hooks
   // ------------------------------------------------------------------
 
-  async onPreToolUse(
+  onPreToolUse(
     toolName: string,
     toolInput: Record<string, unknown>,
     toolUseId: string,
-  ): Promise<void> {
+  ): void {
     const parentSpanId = this.workflowSpan?.spanId;
     const span = this.tracer.startSpan({
       name: `tool:${toolName}`,
@@ -145,11 +145,11 @@ export class FoxClaudeTracer {
     this.toolSpans.set(toolUseId, span);
   }
 
-  async onPostToolUse(
+  onPostToolUse(
     toolUseId: string,
     result?: string,
     error?: string,
-  ): Promise<void> {
+  ): void {
     const span = this.toolSpans.get(toolUseId);
     if (!span) return;
     this.toolSpans.delete(toolUseId);

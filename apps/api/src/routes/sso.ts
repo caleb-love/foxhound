@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { randomUUID, createHash, createHmac } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import {
   getSsoConfigByOrg,
   upsertSsoConfig,

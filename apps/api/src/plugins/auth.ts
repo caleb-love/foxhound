@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyJwt from "@fastify/jwt";
-import { resolveApiKey, getSsoConfigByOrg } from "@foxhound/db";
+import { resolveApiKey } from "@foxhound/db";
 
 export interface JwtPayload {
   userId: string;

@@ -8,8 +8,9 @@ function makeTracer(): { tracer: FoxClaudeTracer; flushed: Trace[] } {
   const inner = new Tracer({
     agentId: "test-claude-agent",
     metadata: {},
-    onFlush: async (trace) => {
+    onFlush: (trace) => {
       flushed.push(trace);
+      return Promise.resolve();
     },
   });
   return { tracer: new FoxClaudeTracer(inner), flushed };
@@ -92,8 +93,8 @@ describe("FoxClaudeTracer", () => {
     const { tracer, flushed } = makeTracer();
     tracer.startWorkflow();
 
-    await tracer.onPreToolUse("Bash", { command: "echo hello" }, "tu_1");
-    await tracer.onPostToolUse("tu_1", "hello\n");
+    tracer.onPreToolUse("Bash", { command: "echo hello" }, "tu_1");
+    tracer.onPostToolUse("tu_1", "hello\n");
 
     tracer.endWorkflow();
     await tracer.flush();
@@ -111,8 +112,8 @@ describe("FoxClaudeTracer", () => {
     const { tracer, flushed } = makeTracer();
     tracer.startWorkflow();
 
-    await tracer.onPreToolUse("Read", { path: "/missing" }, "tu_2");
-    await tracer.onPostToolUse("tu_2", undefined, "File not found");
+    tracer.onPreToolUse("Read", { path: "/missing" }, "tu_2");
+    tracer.onPostToolUse("tu_2", undefined, "File not found");
 
     tracer.endWorkflow();
     await tracer.flush();
@@ -137,7 +138,7 @@ describe("FoxClaudeTracer", () => {
   it("ends unclosed tool spans on flush", async () => {
     const { tracer, flushed } = makeTracer();
     tracer.startWorkflow();
-    await tracer.onPreToolUse("Bash", { command: "sleep 999" }, "tu_orphan");
+    tracer.onPreToolUse("Bash", { command: "sleep 999" }, "tu_orphan");
     tracer.endWorkflow();
     await tracer.flush();
 
@@ -149,8 +150,8 @@ describe("FoxClaudeTracer", () => {
     const { tracer, flushed } = makeTracer();
     tracer.startWorkflow();
     tracer.onMessage(makeAssistantMessage());
-    await tracer.onPreToolUse("Write", { path: "test.py" }, "tu_3");
-    await tracer.onPostToolUse("tu_3", "ok");
+    tracer.onPreToolUse("Write", { path: "test.py" }, "tu_3");
+    tracer.onPostToolUse("tu_3", "ok");
     tracer.endWorkflow();
     await tracer.flush();
 
