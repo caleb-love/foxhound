@@ -10,6 +10,7 @@ import { billingRoutes } from "./routes/billing.js";
 import { billingWebhookRoutes } from "./routes/billing-webhook.js";
 import { otlpRoutes } from "./routes/otlp.js";
 import { notificationsRoutes } from "./routes/notifications.js";
+import { ssoRoutes } from "./routes/sso.js";
 
 const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -45,6 +46,7 @@ await app.register(otlpRoutes);
 await app.register(billingRoutes);
 await app.register(billingWebhookRoutes);
 await app.register(notificationsRoutes);
+await app.register(ssoRoutes);
 
 const port = Number(process.env["PORT"] ?? 3001);
 const host = process.env["HOST"] ?? "0.0.0.0";
