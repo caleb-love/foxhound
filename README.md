@@ -1,11 +1,8 @@
 <p align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo-wordmark.png" alt="Foxhound" width="320" />
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo-wordmark.png" alt="Foxhound" width="480" />
 </p>
 
-<h1 align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="" width="42" height="42" style="vertical-align: middle;" />
-  Foxhound
-</h1>
+<h1 align="center">Foxhound</h1>
 
 <p align="center">
   <strong>The open-source, self-hosted observability platform for AI agent fleets.</strong><br />
