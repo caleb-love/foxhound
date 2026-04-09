@@ -88,6 +88,19 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.39)(jsdom@29.0.2(@noble/hashes@1.8.0))(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.3)
 
+  packages/api-client:
+    dependencies:
+      '@foxhound/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.39
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   packages/billing:
     dependencies:
       '@foxhound/db':
@@ -103,6 +116,28 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.39)(jsdom@29.0.2(@noble/hashes@1.8.0))(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/cli:
+    dependencies:
+      '@foxhound/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@foxhound/types':
+        specifier: workspace:*
+        version: link:../types
+      chalk:
+        specifier: ^5.4.1
+        version: 5.6.2
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.39
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
 
   packages/db:
     dependencies:
@@ -131,6 +166,12 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@foxhound/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@foxhound/types':
+        specifier: workspace:*
+        version: link:../types
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.29.0(zod@3.25.76)

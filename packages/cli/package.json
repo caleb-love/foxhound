@@ -1,25 +1,24 @@
 {
-  "name": "@foxhound-ai/mcp-server",
+  "name": "@foxhound-ai/cli",
   "version": "0.1.0",
-  "description": "MCP server for querying Foxhound traces from Claude Code, Cursor, and other MCP clients",
+  "description": "CLI for the Foxhound AI agent observability platform",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/caleb-love/foxhound.git",
-    "directory": "packages/mcp-server"
+    "directory": "packages/cli"
   },
   "keywords": [
-    "mcp",
+    "foxhound",
     "ai",
     "agents",
     "observability",
     "tracing",
-    "claude",
-    "cursor"
+    "cli"
   ],
   "bin": {
-    "foxhound-mcp": "./dist/index.js"
+    "foxhound": "./dist/index.js"
   },
   "exports": {
     ".": {
@@ -33,7 +32,6 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist"
@@ -41,12 +39,11 @@
   "dependencies": {
     "@foxhound/api-client": "workspace:*",
     "@foxhound/types": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "zod": "^3.25.0"
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^3.2.4"
+    "typescript": "^5.4.0"
   }
 }
