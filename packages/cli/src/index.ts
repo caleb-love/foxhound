@@ -8,6 +8,7 @@ import { registerTracesCommands } from "./commands/traces.js";
 import { registerAlertsCommands } from "./commands/alerts.js";
 import { registerChannelsCommands } from "./commands/channels.js";
 import { registerKeysCommands } from "./commands/keys.js";
+import { registerInitCommand } from "./commands/init.js";
 
 const program = new Command();
 
@@ -28,6 +29,7 @@ registerTracesCommands(program);
 registerAlertsCommands(program);
 registerChannelsCommands(program);
 registerKeysCommands(program);
+registerInitCommand(program);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
