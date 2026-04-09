@@ -485,7 +485,7 @@ function CodeSnippets() {
 
 const ARCH_NODES = [
   { label: "Your Agents", sub: "TS / Python" },
-  { label: "Foxhound SDK", sub: "OpenTelemetry" },
+  { label: "Foxhound SDK", sub: "LangGraph · more" },
   { label: "Foxhound API", sub: "Fastify" },
   { label: "PostgreSQL", sub: "Drizzle ORM" },
   { label: "Dashboard", sub: "Next.js" },
@@ -547,9 +547,7 @@ function ArchFlow() {
 
 function WaitlistForm() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -592,7 +590,12 @@ function WaitlistForm() {
           You&apos;re on the list. We&apos;ll notify you when paid plans launch.
         </div>
       ) : (
-        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: "flex", gap: 8 }}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+          style={{ display: "flex", gap: 8 }}
+        >
           <input
             ref={inputRef}
             type="email"
@@ -747,7 +750,7 @@ export function Landing() {
             {/* CTAs */}
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a
-                href="/signup"
+                href="https://github.com/caleb-love/foxhound"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -851,10 +854,104 @@ export function Landing() {
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
           <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
-            OpenTelemetry compatible
+            LangGraph native
+          </span>
+          <span style={{ color: "var(--border)" }}>·</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            CrewAI · AutoGen · OpenAI Agents · more
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Self-host in minutes</span>
+        </div>
+      </section>
+
+      {/* Integrations */}
+      <section
+        className="landing-section"
+        style={{ padding: "64px 24px", maxWidth: 1100, margin: "0 auto" }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <h2
+            className="section-title"
+            style={{
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: "-0.6px",
+              marginBottom: 10,
+            }}
+          >
+            Works with every major agent framework
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", maxWidth: 480, margin: "0 auto" }}>
+            Drop-in integrations for LangGraph, CrewAI, AutoGen, OpenAI Agents, Claude Agent SDK,
+            and any OpenTelemetry-compatible runtime.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 12,
+          }}
+        >
+          {[
+            { name: "LangGraph", color: "#1c7ed6", featured: true },
+            { name: "Claude Agent SDK", color: "#c084fc", featured: false },
+            { name: "CrewAI", color: "#e55a00", featured: false },
+            { name: "AutoGen", color: "#3dd68c", featured: false },
+            { name: "OpenAI Agents", color: "#10a37f", featured: false },
+            { name: "OpenTelemetry", color: "#f78c40", featured: false },
+          ].map((integration) => (
+            <div
+              key={integration.name}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: integration.featured ? "12px 24px" : "10px 20px",
+                background: integration.featured ? `${integration.color}14` : "var(--surface)",
+                border: integration.featured
+                  ? `1.5px solid ${integration.color}88`
+                  : `1px solid ${integration.color}44`,
+                borderRadius: 10,
+                fontSize: integration.featured ? 14 : 13,
+                fontWeight: 700,
+                color: integration.featured ? integration.color : "var(--text)",
+              }}
+            >
+              <span
+                style={{
+                  width: integration.featured ? 10 : 8,
+                  height: integration.featured ? 10 : 8,
+                  borderRadius: "50%",
+                  background: integration.color,
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              {integration.name}
+              {integration.featured && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-mono)",
+                    background: `${integration.color}22`,
+                    border: `1px solid ${integration.color}44`,
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    marginLeft: 4,
+                    color: integration.color,
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  primary
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1002,8 +1099,8 @@ export function Landing() {
             Paid plans coming soon
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-muted)", marginBottom: 32 }}>
-            Foxhound is free and open-source today. Managed hosting and enterprise support are on the
-            roadmap — get notified when they launch.
+            Foxhound is free and open-source today. Managed hosting and enterprise support are on
+            the roadmap — get notified when they launch.
           </p>
           <WaitlistForm />
         </div>
@@ -1023,7 +1120,11 @@ export function Landing() {
           }}
         >
           <div style={{ margin: "0 auto 20px", width: 64, height: 64 }}>
-            <img src="/logo-mark.png" alt="Foxhound" style={{ width: 64, height: 64, borderRadius: 14 }} />
+            <img
+              src="/logo-mark.png"
+              alt="Foxhound"
+              style={{ width: 64, height: 64, borderRadius: 14 }}
+            />
           </div>
           <h2
             className="section-title"
@@ -1068,7 +1169,7 @@ export function Landing() {
               Star on GitHub
             </a>
             <a
-              href="/signup"
+              href="https://github.com/caleb-love/foxhound"
               style={{
                 display: "inline-flex",
                 alignItems: "center",

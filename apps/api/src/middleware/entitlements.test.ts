@@ -20,16 +20,6 @@ vi.mock("@foxhound/billing", () => ({
 import * as db from "@foxhound/db";
 import * as billing from "@foxhound/billing";
 
-const FREE_ENTITLEMENTS = {
-  canReplay: false,
-  canRunDiff: false,
-  canAuditLog: false,
-  maxSpans: 10_000,
-  maxProjects: 1,
-  maxSeats: 1,
-  retentionDays: 7,
-};
-
 const PRO_ENTITLEMENTS = {
   canReplay: true,
   canRunDiff: true,
@@ -78,25 +68,7 @@ describe("GET /v1/traces/:traceId/spans/:spanId/replay — entitlement gating", 
     vi.clearAllMocks();
   });
 
-  it("returns 403 upgrade_required for free-tier orgs", async () => {
-    mockApiKey();
-    vi.mocked(billing.getEntitlements).mockResolvedValue(FREE_ENTITLEMENTS);
-
-    const app = buildApp();
-    const res = await app.inject({
-      method: "GET",
-      url: "/v1/traces/trace_1/spans/span_1/replay",
-      headers: { authorization: "Bearer sk-test-key" },
-    });
-
-    expect(res.statusCode).toBe(403);
-    const body = res.json();
-    expect(body.error).toBe("upgrade_required");
-    expect(body.feature).toBe("replay");
-    expect(body.upgradeUrl).toBe("/pricing");
-  });
-
-  it("allows replay for pro-tier orgs", async () => {
+  it("allows replay for all orgs (self-hosted open-source)", async () => {
     mockApiKey("org_pro");
     vi.mocked(billing.getEntitlements).mockResolvedValue(PRO_ENTITLEMENTS);
     vi.mocked(db.getReplayContext).mockResolvedValue({
@@ -134,25 +106,7 @@ describe("GET /v1/runs/diff — entitlement gating", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 403 upgrade_required for free-tier orgs", async () => {
-    mockApiKey();
-    vi.mocked(billing.getEntitlements).mockResolvedValue(FREE_ENTITLEMENTS);
-
-    const app = buildApp();
-    const res = await app.inject({
-      method: "GET",
-      url: "/v1/runs/diff?runA=trace_a&runB=trace_b",
-      headers: { authorization: "Bearer sk-test-key" },
-    });
-
-    expect(res.statusCode).toBe(403);
-    const body = res.json();
-    expect(body.error).toBe("upgrade_required");
-    expect(body.feature).toBe("run_diff");
-    expect(body.upgradeUrl).toBe("/pricing");
-  });
-
-  it("allows diff for pro-tier orgs", async () => {
+  it("allows diff for all orgs (self-hosted open-source)", async () => {
     mockApiKey("org_pro");
     vi.mocked(billing.getEntitlements).mockResolvedValue(PRO_ENTITLEMENTS);
     vi.mocked(db.diffTraces).mockResolvedValue({

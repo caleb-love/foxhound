@@ -143,6 +143,17 @@ pnpm dev
 
 Foxhound ships first-party SDKs for TypeScript and Python. Both support manual instrumentation and framework-specific auto-instrumentation.
 
+### Framework Support
+
+| Framework        | SDK                 | Auto-instrumentation |
+| ---------------- | ------------------- | -------------------- |
+| LangGraph        | Python              | Yes                  |
+| Claude Agent SDK | Python + TypeScript | Yes                  |
+| CrewAI           | Python              | Yes                  |
+| AutoGen          | Python              | Yes                  |
+| OpenAI Agents    | Python              | Yes                  |
+| OpenTelemetry    | Any                 | Protocol-level       |
+
 ### TypeScript
 
 ```bash
@@ -220,7 +231,93 @@ The LangGraph integration automatically maps graph invocations to `workflow` spa
 
 ### Claude Agent SDK Integration
 
+```bash
+pip install "foxhound-ai[claude-agent]"
+```
+
+```python
+from fox_sdk import FoxClient
+from fox_sdk.integrations.claude_agent import FoxClaudeTracer
+
+fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
+tracer = FoxClaudeTracer.from_client(fox, agent_id="my-claude-agent")
+
+async for message in tracer.traced_query(
+    prompt="Write a hello world script",
+    options=options,
+):
+    print(message)
+await tracer.flush()
+```
+
 Both TypeScript and Python SDKs support the Claude Agent SDK with cross-agent trace correlation. Traces from multi-agent systems are automatically linked so you can follow execution across agent boundaries.
+
+### CrewAI Integration
+
+```bash
+pip install "foxhound-ai[crewai]"
+```
+
+```python
+from fox_sdk import FoxClient
+from fox_sdk.integrations.crewai import FoxCrewTracer
+
+fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
+tracer = FoxCrewTracer.from_client(fox, agent_id="my-crew")
+
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, write_task],
+    step_callback=tracer.on_step,
+    task_callback=tracer.on_task,
+)
+
+result = tracer.kickoff(crew, inputs={"topic": "AI safety"})
+tracer.flush_sync()
+```
+
+Each agent in the crew gets its own `agent_step` span under the root `workflow` span, with tool calls and task completions nested beneath the appropriate agent.
+
+### AutoGen Integration
+
+```bash
+pip install "foxhound-ai[autogen]"
+```
+
+```python
+from fox_sdk import FoxClient
+from fox_sdk.integrations.autogen import instrument
+
+fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
+
+tracer = instrument(fox, agent_id="my-autogen-app", agents=[assistant, user_proxy])
+
+user_proxy.initiate_chat(assistant, message="Write a hello world script")
+tracer.flush_sync()
+```
+
+The one-line `instrument()` call patches all provided agents — their LLM replies, function/tool calls, and code execution steps are captured automatically as Fox spans.
+
+### OpenAI Agents Integration
+
+```bash
+pip install "foxhound-ai[openai-agents]"
+```
+
+```python
+from fox_sdk import FoxClient
+from fox_sdk.integrations.openai_agents import instrument
+
+fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
+
+processor = instrument(fox, agent_id="my-openai-agent")
+
+from agents import Runner
+result = await Runner.run(my_agent, "Hello!")
+await processor.flush()
+```
+
+`instrument()` registers a `TracingProcessor` with the OpenAI Agents SDK globally — every subsequent `Runner.run()` call is captured automatically, including agent handoffs, guardrail evaluations, and nested agent spans.
 
 ### Local Trace Viewer (CLI)
 
@@ -269,14 +366,14 @@ Foxhound is designed to be self-hosted. You need:
 
 ### Environment Variables
 
-| Variable                      | Required | Description                        |
-| ----------------------------- | -------- | ---------------------------------- |
-| `DATABASE_URL`                | Yes      | PostgreSQL connection string       |
-| `JWT_SECRET`                  | Yes      | Secret for signing auth tokens     |
-| `STRIPE_SECRET_KEY`           | No       | Stripe API key (for future billing)    |
-| `STRIPE_WEBHOOK_SECRET`       | No       | Stripe webhook signing secret          |
-| `INTERNAL_CRON_SECRET`        | No       | Secret for internal cron endpoints     |
-| `LOG_LEVEL`                   | No       | Logging level (default: `info`)    |
+| Variable                | Required | Description                         |
+| ----------------------- | -------- | ----------------------------------- |
+| `DATABASE_URL`          | Yes      | PostgreSQL connection string        |
+| `JWT_SECRET`            | Yes      | Secret for signing auth tokens      |
+| `STRIPE_SECRET_KEY`     | No       | Stripe API key (for future billing) |
+| `STRIPE_WEBHOOK_SECRET` | No       | Stripe webhook signing secret       |
+| `INTERNAL_CRON_SECRET`  | No       | Secret for internal cron endpoints  |
+| `LOG_LEVEL`             | No       | Logging level (default: `info`)     |
 
 Stripe configuration is optional. Without it, Foxhound runs as a fully functional open-source tracing platform.
 
@@ -326,17 +423,17 @@ pnpm format:check   # Check formatting
 
 ### Project Structure
 
-| Package                  | Description                                                    |
-| ------------------------ | -------------------------------------------------------------- |
-| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO        |
-| `apps/web`               | Next.js 15 dashboard — trace explorer, settings                |
-| `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support) |
-| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph + Claude integration |
-| `packages/db`            | Drizzle ORM schema, queries, and migrations                    |
-| `packages/billing`       | Stripe integration, entitlements engine, usage metering        |
-| `packages/mcp-server`    | MCP server for tool-based trace integration                    |
-| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks            |
-| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)              |
+| Package                  | Description                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO                           |
+| `apps/web`               | Next.js 15 dashboard — trace explorer, settings                                   |
+| `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support)                    |
+| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph, Claude, CrewAI, AutoGen, OpenAI Agents |
+| `packages/db`            | Drizzle ORM schema, queries, and migrations                                       |
+| `packages/billing`       | Stripe integration, entitlements engine, usage metering                           |
+| `packages/mcp-server`    | MCP server for tool-based trace integration                                       |
+| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks                               |
+| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)                                 |
 
 ### CI
 
