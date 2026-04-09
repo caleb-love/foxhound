@@ -24,15 +24,24 @@ async function handleSubscriptionEvent(
   const org = await getOrganizationByStripeCustomerId(stripeCustomerId);
   if (!org) return;
 
-  let plan: "free" | "pro" | "enterprise" = "free";
+  let plan: "free" | "pro" | "team" | "enterprise" = "free";
 
   if (
     eventType === "customer.subscription.created" ||
     eventType === "customer.subscription.updated"
   ) {
     if (subscription.status === "active" || subscription.status === "trialing") {
-      // Default to pro for paid subscriptions; enterprise is set manually
-      plan = org.plan === "enterprise" ? "enterprise" : "pro";
+      if (org.plan === "enterprise") {
+        plan = "enterprise";
+      } else {
+        // Determine plan from price — default to pro
+        const priceId = subscription.items.data[0]?.price?.id;
+        const teamPriceIds = [
+          process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"],
+          process.env["STRIPE_PRICE_ID_TEAM_ANNUAL"],
+        ].filter(Boolean);
+        plan = teamPriceIds.includes(priceId) ? "team" : "pro";
+      }
     } else if (
       subscription.status === "canceled" ||
       subscription.status === "unpaid" ||
