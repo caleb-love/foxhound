@@ -21,9 +21,7 @@ export function printTable(rows: Record<string, string>[]): void {
   if (rows.length === 0) return;
 
   const keys = Object.keys(rows[0]!);
-  const widths = keys.map((k) =>
-    Math.max(k.length, ...rows.map((r) => (r[k] ?? "").length)),
-  );
+  const widths = keys.map((k) => Math.max(k.length, ...rows.map((r) => (r[k] ?? "").length)));
 
   const header = keys.map((k, i) => k.padEnd(widths[i]!)).join("  ");
   const sep = widths.map((w) => "─".repeat(w)).join("──");

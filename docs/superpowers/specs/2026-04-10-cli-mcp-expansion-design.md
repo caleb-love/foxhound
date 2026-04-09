@@ -27,14 +27,14 @@ Extracted from `packages/mcp-server/src/api-client.ts`. Exports `FoxhoundApiClie
 
 **Methods:**
 
-| Group | Methods |
-|-------|---------|
-| Traces | `searchTraces`, `getTrace`, `replaySpan`, `diffRuns` |
-| Alerts | `listAlertRules`, `createAlertRule`, `deleteAlertRule` |
+| Group    | Methods                                                         |
+| -------- | --------------------------------------------------------------- |
+| Traces   | `searchTraces`, `getTrace`, `replaySpan`, `diffRuns`            |
+| Alerts   | `listAlertRules`, `createAlertRule`, `deleteAlertRule`          |
 | Channels | `listChannels`, `createChannel`, `testChannel`, `deleteChannel` |
-| Keys | `listApiKeys`, `createApiKey`, `revokeApiKey` |
-| Auth | `login`, `getMe` |
-| Health | `getHealth`, `getUsage` |
+| Keys     | `listApiKeys`, `createApiKey`, `revokeApiKey`                   |
+| Auth     | `login`, `getMe`                                                |
+| Health   | `getHealth`, `getUsage`                                         |
 
 The client exposes both `get` and `post`/`delete` private helpers. All methods return typed responses, not `unknown`.
 
@@ -60,28 +60,33 @@ Env vars `FOXHOUND_API_KEY` and `FOXHOUND_ENDPOINT` override the config file. Pr
 ### Commands
 
 **Auth & status:**
+
 - `foxhound login` — store credentials
 - `foxhound whoami` — show current org/user
 - `foxhound status` — health check + usage summary
 
 **Traces:**
+
 - `foxhound traces list` — search traces (`--agent`, `--status`, `--from`, `--to`, `--limit`)
 - `foxhound traces get <id>` — full span tree
 - `foxhound traces diff <id-a> <id-b>` — compare two runs
 - `foxhound traces replay <trace-id> <span-id>` — replay span state
 
 **Alerts:**
+
 - `foxhound alerts list` — list alert rules
 - `foxhound alerts create` — create rule (`--event`, `--severity`, `--channel`)
 - `foxhound alerts delete <id>` — delete rule
 
 **Channels:**
+
 - `foxhound channels list` — list notification channels
 - `foxhound channels add` — add channel (`--type slack --url <webhook-url>`)
 - `foxhound channels test <id>` — send test alert
 - `foxhound channels delete <id>` — remove channel
 
 **API Keys:**
+
 - `foxhound keys list` — list active keys (masked)
 - `foxhound keys create` — create key (prints plaintext once)
 - `foxhound keys revoke <id>` — revoke key
@@ -107,19 +112,19 @@ Env vars `FOXHOUND_API_KEY` and `FOXHOUND_ENDPOINT` override the config file. Pr
 
 ### New tools
 
-| Tool | Description | Mutating |
-|------|-------------|----------|
-| `foxhound_list_alert_rules` | List all alert rules for the org | No |
-| `foxhound_create_alert_rule` | Create a new alert rule | Yes |
-| `foxhound_delete_alert_rule` | Delete an alert rule by ID | Yes |
-| `foxhound_list_channels` | List notification channels | No |
-| `foxhound_create_channel` | Add a Slack webhook channel | Yes |
-| `foxhound_test_channel` | Send a test alert to a channel | Yes |
-| `foxhound_delete_channel` | Remove a notification channel | Yes |
-| `foxhound_list_api_keys` | List active API keys (masked) | No |
-| `foxhound_create_api_key` | Create a new API key | Yes |
-| `foxhound_revoke_api_key` | Revoke an API key by ID | Yes |
-| `foxhound_status` | Health check + usage summary | No |
+| Tool                         | Description                      | Mutating |
+| ---------------------------- | -------------------------------- | -------- |
+| `foxhound_list_alert_rules`  | List all alert rules for the org | No       |
+| `foxhound_create_alert_rule` | Create a new alert rule          | Yes      |
+| `foxhound_delete_alert_rule` | Delete an alert rule by ID       | Yes      |
+| `foxhound_list_channels`     | List notification channels       | No       |
+| `foxhound_create_channel`    | Add a Slack webhook channel      | Yes      |
+| `foxhound_test_channel`      | Send a test alert to a channel   | Yes      |
+| `foxhound_delete_channel`    | Remove a notification channel    | Yes      |
+| `foxhound_list_api_keys`     | List active API keys (masked)    | No       |
+| `foxhound_create_api_key`    | Create a new API key             | Yes      |
+| `foxhound_revoke_api_key`    | Revoke an API key by ID          | Yes      |
+| `foxhound_status`            | Health check + usage summary     | No       |
 
 ### Client migration
 

@@ -5,7 +5,10 @@ import { getClient } from "../config.js";
 import { isJsonMode, printJson, printTable } from "../output.js";
 
 const EVENT_TYPES: AlertEventType[] = [
-  "agent_failure", "anomaly_detected", "cost_spike", "compliance_violation",
+  "agent_failure",
+  "anomaly_detected",
+  "cost_spike",
+  "compliance_violation",
 ];
 const SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
 

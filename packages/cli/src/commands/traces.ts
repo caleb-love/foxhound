@@ -138,8 +138,7 @@ export function registerTracesCommands(program: Command): void {
 
 function printSpan(span: Span, childMap: Map<string, Span[]>, indent: number): void {
   const prefix = "  ".repeat(indent);
-  const dur =
-    span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+  const dur = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
   const status = span.status === "error" ? chalk.red(" ERROR") : "";
   const kindTag = chalk.dim(`[${span.kind}]`);
 

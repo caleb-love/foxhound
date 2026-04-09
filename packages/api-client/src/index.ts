@@ -127,10 +127,13 @@ export class FoxhoundApiClient {
     return this.post("/v1/notifications/channels", params);
   }
 
-  async testChannel(channelId: string, params?: {
-    eventType?: AlertEventType;
-    severity?: AlertSeverity;
-  }): Promise<{ ok: boolean }> {
+  async testChannel(
+    channelId: string,
+    params?: {
+      eventType?: AlertEventType;
+      severity?: AlertSeverity;
+    },
+  ): Promise<{ ok: boolean }> {
     return this.post("/v1/notifications/test", {
       channelId,
       eventType: params?.eventType ?? "agent_failure",

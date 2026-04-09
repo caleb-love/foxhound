@@ -17,11 +17,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import {
-  FoxhoundApiClient,
-  toEpochMs,
-  type TraceListResponse,
-} from "@foxhound/api-client";
+import { FoxhoundApiClient, toEpochMs, type TraceListResponse } from "@foxhound/api-client";
 import type { Trace, Span } from "@foxhound/types";
 
 function getConfig(): { endpoint: string; apiKey: string } {
@@ -322,7 +318,9 @@ async function main(): Promise<void> {
           `- **${r.id}** | ${r.eventType} >= ${r.minSeverity} -> channel ${r.channelId} | ${r.enabled ? "enabled" : "disabled"}`,
       );
       return {
-        content: [{ type: "text", text: `## Alert Rules (${rules.length})\n\n${lines.join("\n")}` }],
+        content: [
+          { type: "text", text: `## Alert Rules (${rules.length})\n\n${lines.join("\n")}` },
+        ],
       };
     },
   );
@@ -449,9 +447,7 @@ async function main(): Promise<void> {
     async (params) => {
       await api.testChannel(params.channel_id);
       return {
-        content: [
-          { type: "text", text: `Test alert sent to channel **${params.channel_id}**.` },
-        ],
+        content: [{ type: "text", text: `Test alert sent to channel **${params.channel_id}**.` }],
       };
     },
   );
@@ -497,9 +493,7 @@ async function main(): Promise<void> {
         (k) => `- **${k.id}** | "${k.name}" | prefix: ${k.prefix}... | created ${k.createdAt}`,
       );
       return {
-        content: [
-          { type: "text", text: `## API Keys (${keys.length})\n\n${lines.join("\n")}` },
-        ],
+        content: [{ type: "text", text: `## API Keys (${keys.length})\n\n${lines.join("\n")}` }],
       };
     },
   );
@@ -517,7 +511,8 @@ async function main(): Promise<void> {
         content: [
           {
             type: "text",
-            text: `API key created: **${result.id}** ("${result.name}", prefix: ${result.prefix}...)\n\n` +
+            text:
+              `API key created: **${result.id}** ("${result.name}", prefix: ${result.prefix}...)\n\n` +
               `The plaintext key is not shown in MCP for security reasons.\n` +
               `Retrieve it from the CLI output or dashboard. It cannot be shown again after creation.`,
           },
@@ -532,7 +527,10 @@ async function main(): Promise<void> {
     "Revoke an API key by ID. The key will immediately stop working. Set confirm=true to execute.",
     {
       key_id: z.string().describe("The API key ID to revoke"),
-      confirm: z.boolean().optional().describe("Set to true to confirm revocation. Omit to preview."),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to confirm revocation. Omit to preview."),
     },
     async (params) => {
       if (!params.confirm) {
