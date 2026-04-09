@@ -70,12 +70,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               />
               Foxhound
             </a>
-            <a href="/traces" className="nav-link">
-              Traces
-            </a>
-            <a href="/pricing" className="nav-link">
-              Pricing
-            </a>
             <NavClient />
           </nav>
           <main style={{ minHeight: "calc(100vh - 48px)" }}>{children}</main>
