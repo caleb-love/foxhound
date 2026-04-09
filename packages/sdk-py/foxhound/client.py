@@ -10,6 +10,106 @@ import httpx
 from .tracer import Tracer
 
 
+class ScoresNamespace:
+    """Namespaced API for creating scores. Access via ``fox.scores.create(...)``."""
+
+    def __init__(self, endpoint: str, api_key: str, timeout: float) -> None:
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout
+
+    async def create(
+        self,
+        *,
+        trace_id: str,
+        name: str,
+        value: float | None = None,
+        label: str | None = None,
+        span_id: str | None = None,
+        source: str = "sdk",
+        comment: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a score attached to a trace (and optionally a span).
+
+        Usage::
+
+            score = await fox.scores.create(
+                trace_id=t.id, name="helpfulness", value=0.9
+            )
+        """
+        body: dict[str, Any] = {
+            "traceId": trace_id,
+            "name": name,
+            "source": source,
+        }
+        if value is not None:
+            body["value"] = value
+        if label is not None:
+            body["label"] = label
+        if span_id is not None:
+            body["spanId"] = span_id
+        if comment is not None:
+            body["comment"] = comment
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._endpoint}/v1/scores",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {self._api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Foxhound: failed to create score: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    def create_sync(
+        self,
+        *,
+        trace_id: str,
+        name: str,
+        value: float | None = None,
+        label: str | None = None,
+        span_id: str | None = None,
+        source: str = "sdk",
+        comment: str | None = None,
+    ) -> dict[str, Any]:
+        """Synchronous version of :meth:`create`."""
+        body: dict[str, Any] = {
+            "traceId": trace_id,
+            "name": name,
+            "source": source,
+        }
+        if value is not None:
+            body["value"] = value
+        if label is not None:
+            body["label"] = label
+        if span_id is not None:
+            body["spanId"] = span_id
+        if comment is not None:
+            body["comment"] = comment
+
+        with httpx.Client(timeout=self._timeout) as client:
+            response = client.post(
+                f"{self._endpoint}/v1/scores",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {self._api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Foxhound: failed to create score: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+
 class FoxhoundClient:
     """
     Client for the Foxhound observability platform.
@@ -23,6 +123,9 @@ class FoxhoundClient:
         span = tracer.start_span(name="step", kind="agent_step")
         span.end()
         await tracer.flush()
+
+        # Score a trace
+        await fox.scores.create(trace_id=tracer.trace_id, name="helpfulness", value=0.9)
 
         # LangGraph integration
         from foxhound.integrations.langgraph import FoxCallbackHandler
@@ -40,6 +143,9 @@ class FoxhoundClient:
         self._api_key = api_key
         self._endpoint = endpoint.rstrip("/")
         self._timeout = timeout
+
+        # Namespaced sub-clients
+        self.scores = ScoresNamespace(self._endpoint, self._api_key, self._timeout)
 
     # ------------------------------------------------------------------
     # Tracer factory

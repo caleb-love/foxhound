@@ -6,12 +6,15 @@ import { registerAuth } from "./plugins/auth.js";
 import { tracesRoutes } from "./routes/traces.js";
 import { authRoutes } from "./routes/auth.js";
 import { apiKeysRoutes } from "./routes/apiKeys.js";
-// import { billingRoutes } from "./routes/billing.js";         // disabled: paid plans not active
-// import { billingWebhookRoutes } from "./routes/billing-webhook.js"; // disabled: paid plans not active
+import { billingRoutes } from "./routes/billing.js";
+import { billingWebhookRoutes } from "./routes/billing-webhook.js";
 import { otlpRoutes } from "./routes/otlp.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { ssoRoutes } from "./routes/sso.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
+import { scoresRoutes } from "./routes/scores.js";
+import { evaluatorsRoutes } from "./routes/evaluators.js";
+import { annotationsRoutes } from "./routes/annotations.js";
 import { startRetentionCleanup, stopRetentionCleanup } from "./jobs/retention-cleanup.js";
 
 const app = Fastify({
@@ -50,11 +53,14 @@ await app.register(authRoutes);
 await app.register(apiKeysRoutes);
 await app.register(tracesRoutes);
 await app.register(otlpRoutes);
-// await app.register(billingRoutes);        // disabled: paid plans not active
-// await app.register(billingWebhookRoutes); // disabled: paid plans not active
+await app.register(billingRoutes);
+await app.register(billingWebhookRoutes);
 await app.register(notificationsRoutes);
 await app.register(ssoRoutes);
 await app.register(waitlistRoutes);
+await app.register(scoresRoutes);
+await app.register(evaluatorsRoutes);
+await app.register(annotationsRoutes);
 
 // Start retention cleanup cron
 startRetentionCleanup(app.log);

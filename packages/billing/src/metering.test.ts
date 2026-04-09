@@ -20,13 +20,14 @@ import {
 
 function mockEntitlements(maxSpans: number) {
   vi.mocked(entitlementsMod.getEntitlements).mockResolvedValue({
-    canReplay: false,
-    canRunDiff: false,
+    canReplay: true,
+    canRunDiff: true,
     canAuditLog: false,
+    canEvaluate: false,
     maxSpans,
-    maxProjects: 1,
-    maxSeats: 1,
-    retentionDays: 7,
+    maxProjects: -1,
+    maxSeats: -1,
+    retentionDays: 30,
   });
 }
 
@@ -61,41 +62,41 @@ describe("periodBounds", () => {
   it("handles February correctly", () => {
     const { periodStart, periodEnd } = periodBounds("2024-02");
     expect(periodStart).toBe("2024-02-01");
-    expect(periodEnd).toBe("2024-02-29"); // 2024 is a leap year
+    expect(periodEnd).toBe("2024-02-29");
   });
 });
 
 describe("checkSpanLimit — free tier", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEntitlements(10_000);
+    mockEntitlements(100_000);
   });
 
   it("allows ingestion when under limit", async () => {
-    mockUsage(5_000);
-    const check = await checkSpanLimit("org_1", 100);
+    mockUsage(50_000);
+    const check = await checkSpanLimit("org_1", 1_000);
     expect(check.allowed).toBe(true);
     expect(check.isOverage).toBe(false);
-    expect(check.spansUsed).toBe(5_000);
-    expect(check.spansLimit).toBe(10_000);
+    expect(check.spansUsed).toBe(50_000);
+    expect(check.spansLimit).toBe(100_000);
   });
 
-  it("allows ingestion exactly at limit boundary (5000 + 5000 = 10000, not exceeded)", async () => {
-    mockUsage(5_000);
-    const check = await checkSpanLimit("org_1", 5_000);
+  it("allows ingestion exactly at limit boundary", async () => {
+    mockUsage(50_000);
+    const check = await checkSpanLimit("org_1", 50_000);
     expect(check.allowed).toBe(true);
     expect(check.isOverage).toBe(false);
   });
 
   it("blocks ingestion when it would exceed limit", async () => {
-    mockUsage(9_900);
-    const check = await checkSpanLimit("org_1", 200);
+    mockUsage(99_000);
+    const check = await checkSpanLimit("org_1", 2_000);
     expect(check.allowed).toBe(false);
     expect(check.isOverage).toBe(true);
   });
 
   it("blocks when already at limit", async () => {
-    mockUsage(10_000);
+    mockUsage(100_000);
     const check = await checkSpanLimit("org_1", 1);
     expect(check.allowed).toBe(false);
     expect(check.isOverage).toBe(true);
@@ -112,26 +113,47 @@ describe("checkSpanLimit — free tier", () => {
 describe("checkSpanLimit — pro tier", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEntitlements(500_000);
+    mockEntitlements(1_000_000);
   });
 
   it("allows ingestion under pro limit without overage", async () => {
-    mockUsage(100_000);
+    mockUsage(500_000);
     const check = await checkSpanLimit("org_1", 1_000);
     expect(check.allowed).toBe(true);
     expect(check.isOverage).toBe(false);
   });
 
   it("allows ingestion that would exceed pro limit (overage — not hard blocked)", async () => {
-    mockUsage(499_000);
+    mockUsage(999_000);
     const check = await checkSpanLimit("org_1", 5_000);
     expect(check.allowed).toBe(true);
     expect(check.isOverage).toBe(true);
   });
 
   it("allows ingestion well past pro limit and flags overage", async () => {
-    mockUsage(600_000);
+    mockUsage(1_200_000);
     const check = await checkSpanLimit("org_1", 1_000);
+    expect(check.allowed).toBe(true);
+    expect(check.isOverage).toBe(true);
+  });
+});
+
+describe("checkSpanLimit — team tier", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEntitlements(5_000_000);
+  });
+
+  it("allows ingestion under team limit", async () => {
+    mockUsage(2_000_000);
+    const check = await checkSpanLimit("org_1", 10_000);
+    expect(check.allowed).toBe(true);
+    expect(check.isOverage).toBe(false);
+  });
+
+  it("allows overage without hard block", async () => {
+    mockUsage(4_999_000);
+    const check = await checkSpanLimit("org_1", 5_000);
     expect(check.allowed).toBe(true);
     expect(check.isOverage).toBe(true);
   });

@@ -6,6 +6,7 @@ import { otlpRoutes } from "./otlp.js";
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
   insertTrace: vi.fn(),
+  insertSpans: vi.fn(),
 }));
 
 vi.mock("@foxhound/billing", () => ({

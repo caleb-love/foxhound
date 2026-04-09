@@ -6,8 +6,10 @@ import { tracesRoutes } from "./traces.js";
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
   insertTrace: vi.fn(),
+  insertSpans: vi.fn(),
   queryTraces: vi.fn(),
   getTrace: vi.fn(),
+  getTraceWithSpans: vi.fn(),
   getReplayContext: vi.fn(),
   diffTraces: vi.fn(),
 }));
@@ -286,7 +288,7 @@ describe("GET /v1/traces/:id — single trace", () => {
 
   it("returns 404 when trace not found", async () => {
     mockApiKey();
-    vi.mocked(db.getTrace).mockResolvedValue(null);
+    vi.mocked(db.getTraceWithSpans).mockResolvedValue(null);
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
@@ -309,7 +311,7 @@ describe("GET /v1/traces/:id — single trace", () => {
       spans: [],
       createdAt: new Date(),
     };
-    vi.mocked(db.getTrace).mockResolvedValue(mockTrace as never);
+    vi.mocked(db.getTraceWithSpans).mockResolvedValue(mockTrace as never);
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
@@ -317,6 +319,6 @@ describe("GET /v1/traces/:id — single trace", () => {
       headers: { authorization: "Bearer sk-test-key" },
     });
     expect(res.statusCode).toBe(200);
-    expect(vi.mocked(db.getTrace)).toHaveBeenCalledWith("trace_1", "org_1");
+    expect(vi.mocked(db.getTraceWithSpans)).toHaveBeenCalledWith("trace_1", "org_1");
   });
 });

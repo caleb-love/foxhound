@@ -37,7 +37,7 @@ function getStripe(): Stripe {
 }
 
 const CheckoutSchema = z.object({
-  plan: z.enum(["pro_monthly", "pro_annual"]),
+  plan: z.enum(["pro_monthly", "pro_annual", "team_monthly", "team_annual"]),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 });
@@ -59,10 +59,13 @@ export function billingRoutes(fastify: FastifyInstance): void {
 
       const { plan, successUrl, cancelUrl } = result.data;
 
-      const priceId =
-        plan === "pro_monthly"
-          ? process.env["STRIPE_PRICE_ID_PRO_MONTHLY"]
-          : process.env["STRIPE_PRICE_ID_PRO_ANNUAL"];
+      const priceMap: Record<string, string | undefined> = {
+        pro_monthly: process.env["STRIPE_PRICE_ID_PRO_MONTHLY"],
+        pro_annual: process.env["STRIPE_PRICE_ID_PRO_ANNUAL"],
+        team_monthly: process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"],
+        team_annual: process.env["STRIPE_PRICE_ID_TEAM_ANNUAL"],
+      };
+      const priceId = priceMap[plan];
 
       if (!priceId) {
         return reply
@@ -273,8 +276,8 @@ export function billingRoutes(fastify: FastifyInstance): void {
     const spansUsed = usage?.spanCount ?? 0;
     const includedLimit = entitlements.maxSpans;
 
-    // Only pro orgs with a Stripe subscription get metered overage billing
-    if (org.plan !== "pro" || !org.stripeCustomerId || includedLimit <= 0) {
+    // Only paid orgs (pro/team) with a Stripe subscription get metered overage billing
+    if (!["pro", "team"].includes(org.plan) || !org.stripeCustomerId || includedLimit <= 0) {
       return reply.code(200).send({ reported: false, reason: "not_applicable" });
     }
 

@@ -47,7 +47,7 @@ export async function checkSpanLimit(
     return { allowed: true, spansUsed, spansLimit, isOverage: false };
   }
 
-  const isFree = spansLimit <= 10_000;
+  const isFree = spansLimit <= 100_000;
   const wouldExceedLimit = spansUsed + incomingSpans > spansLimit;
 
   if (wouldExceedLimit && isFree) {

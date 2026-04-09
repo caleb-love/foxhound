@@ -85,7 +85,9 @@ function makeSubscriptionEvent(
   type: string,
   status: Stripe.Subscription.Status,
   customerId = "cus_test123",
+  priceId?: string,
 ): Stripe.Event {
+  const items = priceId ? [{ price: { id: priceId } }] : [];
   return {
     id: `evt_${type.replace(/\./g, "_")}`,
     object: "event",
@@ -102,7 +104,7 @@ function makeSubscriptionEvent(
         customer: customerId,
         status,
         current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-        items: { object: "list", data: [], has_more: false, url: "" },
+        items: { object: "list", data: items, has_more: false, url: "" },
       } as unknown as Stripe.Subscription,
     },
   } as unknown as Stripe.Event;
@@ -138,7 +140,7 @@ function makeInvoiceEvent(customerId = "cus_test123"): Stripe.Event {
 
 interface MockOrg {
   id: string;
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro" | "team" | "enterprise";
   stripeCustomerId: string;
 }
 
@@ -152,11 +154,21 @@ async function invokeSubscriptionHandler(event: Stripe.Event): Promise<void> {
   )(stripeCustomerId);
   if (!org) return;
 
-  let plan: "free" | "pro" | "enterprise" = "free";
+  let plan: "free" | "pro" | "team" | "enterprise" = "free";
 
   if (type === "customer.subscription.created" || type === "customer.subscription.updated") {
     if (subscription.status === "active" || subscription.status === "trialing") {
-      plan = org.plan === "enterprise" ? "enterprise" : "pro";
+      if (org.plan === "enterprise") {
+        plan = "enterprise";
+      } else {
+        // Determine plan from price — default to pro
+        const priceId = subscription.items.data[0]?.price?.id;
+        const teamPriceIds = [
+          process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"],
+          process.env["STRIPE_PRICE_ID_TEAM_ANNUAL"],
+        ].filter(Boolean);
+        plan = teamPriceIds.includes(priceId) ? "team" : "pro";
+      }
     } else if (
       subscription.status === "canceled" ||
       subscription.status === "unpaid" ||
@@ -219,6 +231,58 @@ describe("billing webhook — subscription events", () => {
     await invokeSubscriptionHandler(event);
 
     expect(updateOrgPlan).toHaveBeenCalledWith("org_123", "enterprise");
+  });
+
+  it("assigns team plan when subscription price matches team monthly", async () => {
+    process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"] = "price_team_monthly";
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(mockOrg);
+    (updateOrgPlan as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mockOrg, plan: "team" });
+
+    const event = makeSubscriptionEvent(
+      "customer.subscription.created",
+      "active",
+      "cus_test123",
+      "price_team_monthly",
+    );
+    await invokeSubscriptionHandler(event);
+
+    expect(updateOrgPlan).toHaveBeenCalledWith("org_123", "team");
+    expect(invalidateEntitlements).toHaveBeenCalledWith("org_123");
+    delete process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"];
+  });
+
+  it("assigns team plan when subscription price matches team annual", async () => {
+    process.env["STRIPE_PRICE_ID_TEAM_ANNUAL"] = "price_team_annual";
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(mockOrg);
+    (updateOrgPlan as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mockOrg, plan: "team" });
+
+    const event = makeSubscriptionEvent(
+      "customer.subscription.created",
+      "active",
+      "cus_test123",
+      "price_team_annual",
+    );
+    await invokeSubscriptionHandler(event);
+
+    expect(updateOrgPlan).toHaveBeenCalledWith("org_123", "team");
+    delete process.env["STRIPE_PRICE_ID_TEAM_ANNUAL"];
+  });
+
+  it("defaults to pro when price does not match team", async () => {
+    process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"] = "price_team_monthly";
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(mockOrg);
+    (updateOrgPlan as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mockOrg, plan: "pro" });
+
+    const event = makeSubscriptionEvent(
+      "customer.subscription.created",
+      "active",
+      "cus_test123",
+      "price_pro_monthly",
+    );
+    await invokeSubscriptionHandler(event);
+
+    expect(updateOrgPlan).toHaveBeenCalledWith("org_123", "pro");
+    delete process.env["STRIPE_PRICE_ID_TEAM_MONTHLY"];
   });
 
   it("downgrades org to free on subscription.deleted", async () => {

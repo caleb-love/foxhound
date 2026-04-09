@@ -1,4 +1,11 @@
-import type { Trace } from "@foxhound/types";
+import type {
+  Trace,
+  Score,
+  Evaluator,
+  EvaluatorRun,
+  AnnotationQueue,
+  AnnotationQueueItem,
+} from "@foxhound/types";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -123,4 +130,65 @@ export interface UsageResponse {
   spansUsed: number;
   spansLimit: number;
   period: string;
+}
+
+// ── Billing ────────────────────────────────────────────────────────────────
+
+export type CheckoutPlan = "pro_monthly" | "pro_annual" | "team_monthly" | "team_annual";
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface PortalResponse {
+  url: string;
+}
+
+export interface BillingStatusResponse {
+  plan: string;
+  period: string;
+  spanCount: number;
+  nextBillingDate: string | null;
+}
+
+// ── Scores ─────────────────────────────────────────────────────────────────
+
+export interface ScoreListResponse {
+  data: Score[];
+  pagination: { page: number; limit: number; count: number };
+}
+
+export interface TraceScoresResponse {
+  data: Score[];
+}
+
+// ── Evaluators ─────────────────────────────────────────────────────────────
+
+export interface EvaluatorListResponse {
+  data: Evaluator[];
+}
+
+export interface TriggerEvaluatorRunsResponse {
+  message: string;
+  runs: Array<{ id: string; traceId: string; status: string }>;
+}
+
+// ── Annotation Queues ──────────────────────────────────────────────────────
+
+export interface AnnotationQueueListResponse {
+  data: AnnotationQueue[];
+}
+
+export interface AnnotationQueueWithStats extends AnnotationQueue {
+  stats: { pending: number; completed: number; skipped: number; total: number };
+}
+
+export interface AddAnnotationItemsResponse {
+  added: number;
+  items: AnnotationQueueItem[];
+}
+
+export interface SubmitAnnotationResponse {
+  item: AnnotationQueueItem;
+  scores: Score[];
 }
