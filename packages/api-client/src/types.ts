@@ -124,3 +124,22 @@ export interface UsageResponse {
   spansLimit: number;
   period: string;
 }
+
+// ── Billing ────────────────────────────────────────────────────────────────
+
+export type CheckoutPlan = "pro_monthly" | "pro_annual" | "team_monthly" | "team_annual";
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface PortalResponse {
+  url: string;
+}
+
+export interface BillingStatusResponse {
+  plan: string;
+  period: string;
+  spanCount: number;
+  nextBillingDate: string | null;
+}

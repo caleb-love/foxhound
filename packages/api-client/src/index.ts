@@ -179,6 +179,24 @@ export class FoxhoundApiClient {
     return this.get("/v1/billing/usage");
   }
 
+  // ── Billing ──────────────────────────────────────────────────────────────
+
+  async createCheckout(params: {
+    plan: import("./types.js").CheckoutPlan;
+    successUrl: string;
+    cancelUrl: string;
+  }): Promise<import("./types.js").CheckoutResponse> {
+    return this.post("/v1/billing/checkout", params as unknown as Record<string, unknown>);
+  }
+
+  async createPortalSession(returnUrl: string): Promise<import("./types.js").PortalResponse> {
+    return this.post("/v1/billing/portal", { returnUrl });
+  }
+
+  async getBillingStatus(): Promise<import("./types.js").BillingStatusResponse> {
+    return this.get("/v1/billing/status");
+  }
+
   // ── HTTP helpers ──────────────────────────────────────────────────────
 
   private async get<T>(path: string): Promise<T> {
