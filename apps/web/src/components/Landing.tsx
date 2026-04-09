@@ -68,10 +68,10 @@ const TRACE_SPANS: TraceSpan[] = [
   },
 ];
 
-const STATUS_COLORS = { ok: "#3dd68c", error: "#f25f5c", running: "#6b7aff" };
+const STATUS_COLORS = { ok: "#3dd68c", error: "#f25f5c", running: "#e55a00" };
 const KIND_COLORS: Record<string, string> = {
-  agent: "#6b7aff",
-  tool_call: "#f59e0b",
+  agent: "#e55a00",
+  tool_call: "#d4870a",
   llm_call: "#c084fc",
 };
 
@@ -247,14 +247,14 @@ const FEATURES: Feature[] = [
     title: "Trace Explorer",
     description:
       "Browse, search, and filter traces with full span trees — timestamps, attributes, and events in one view.",
-    color: "#6b7aff",
+    color: "#e55a00",
   },
   {
     icon: "◎",
     title: "Span Replay",
     description:
       "Reconstruct agent state at any point in time. See exactly what data was available when a decision was made.",
-    color: "#c084fc",
+    color: "#d4870a",
   },
   {
     icon: "⟺",
@@ -675,14 +675,23 @@ export function Landing() {
         >
           {/* Left: copy */}
           <div>
+            {/* Wordmark */}
+            <div style={{ marginBottom: 28 }}>
+              <img
+                src="/logo-wordmark.png"
+                alt="Foxhound"
+                style={{ height: 56, width: "auto", display: "block" }}
+              />
+            </div>
+
             {/* Badge */}
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                background: "rgba(107,122,255,0.1)",
-                border: "1px solid rgba(107,122,255,0.3)",
+                background: "rgba(229,90,0,0.1)",
+                border: "1px solid rgba(229,90,0,0.3)",
                 borderRadius: 20,
                 padding: "4px 14px",
                 marginBottom: 24,
@@ -1013,21 +1022,8 @@ export function Landing() {
             padding: "56px 40px",
           }}
         >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              background: "rgba(107,122,255,0.12)",
-              border: "1px solid rgba(107,122,255,0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-              fontSize: 24,
-            }}
-          >
-            ⬡
+          <div style={{ margin: "0 auto 20px", width: 64, height: 64 }}>
+            <img src="/logo-mark.png" alt="Foxhound" style={{ width: 64, height: 64, borderRadius: 14 }} />
           </div>
           <h2
             className="section-title"

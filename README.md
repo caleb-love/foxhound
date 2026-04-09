@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo.png" alt="Foxhound" width="200" height="200" />
+  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo-wordmark.png" alt="Foxhound" width="320" />
 </p>
 
 <h1 align="center">
