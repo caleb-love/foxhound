@@ -80,7 +80,7 @@ export async function updateOrgStripeCustomerId(orgId: string, stripeCustomerId:
   return rows[0] ?? null;
 }
 
-export async function updateOrgPlan(orgId: string, plan: "free" | "pro" | "enterprise") {
+export async function updateOrgPlan(orgId: string, plan: "free" | "pro" | "team" | "enterprise") {
   const rows = await db
     .update(organizations)
     .set({ plan, updatedAt: new Date() })
