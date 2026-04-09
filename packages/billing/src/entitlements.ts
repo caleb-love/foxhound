@@ -10,26 +10,35 @@ export interface Entitlements {
   retentionDays: number;
 }
 
-export type Plan = "free" | "pro" | "enterprise";
+export type Plan = "free" | "pro" | "team" | "enterprise";
 
 const PLAN_LIMITS: Record<Plan, Entitlements> = {
   free: {
-    canReplay: false,
-    canRunDiff: false,
+    canReplay: true,
+    canRunDiff: true,
     canAuditLog: false,
-    maxSpans: 10_000,
-    maxProjects: 1,
-    maxSeats: 1,
-    retentionDays: 7,
+    maxSpans: 100_000,
+    maxProjects: -1,
+    maxSeats: -1,
+    retentionDays: 30,
   },
   pro: {
     canReplay: true,
     canRunDiff: true,
     canAuditLog: false,
-    maxSpans: 500_000,
-    maxProjects: 10,
-    maxSeats: 5,
-    retentionDays: 90,
+    maxSpans: 1_000_000,
+    maxProjects: -1,
+    maxSeats: -1,
+    retentionDays: 365,
+  },
+  team: {
+    canReplay: true,
+    canRunDiff: true,
+    canAuditLog: true,
+    maxSpans: 5_000_000,
+    maxProjects: -1,
+    maxSeats: -1,
+    retentionDays: 730,
   },
   enterprise: {
     canReplay: true,

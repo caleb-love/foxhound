@@ -20,7 +20,7 @@ export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  plan: text("plan", { enum: ["free", "pro", "enterprise"] })
+  plan: text("plan", { enum: ["free", "pro", "team", "enterprise"] })
     .notNull()
     .default("free"),
   stripeCustomerId: text("stripe_customer_id"),

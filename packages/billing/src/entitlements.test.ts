@@ -27,6 +27,7 @@ describe("getEntitlements", () => {
     vi.clearAllMocks();
     invalidateEntitlements("org_1");
     invalidateEntitlements("org_pro");
+    invalidateEntitlements("org_team");
     invalidateEntitlements("org_enterprise");
   });
 
@@ -35,13 +36,13 @@ describe("getEntitlements", () => {
 
     const e = await getEntitlements("org_1");
 
-    expect(e.canReplay).toBe(false);
-    expect(e.canRunDiff).toBe(false);
+    expect(e.canReplay).toBe(true);
+    expect(e.canRunDiff).toBe(true);
     expect(e.canAuditLog).toBe(false);
-    expect(e.maxSpans).toBe(10_000);
-    expect(e.maxProjects).toBe(1);
-    expect(e.maxSeats).toBe(1);
-    expect(e.retentionDays).toBe(7);
+    expect(e.maxSpans).toBe(100_000);
+    expect(e.maxProjects).toBe(-1);
+    expect(e.maxSeats).toBe(-1);
+    expect(e.retentionDays).toBe(30);
   });
 
   it("returns pro plan limits for a pro-tier org", async () => {
@@ -52,8 +53,22 @@ describe("getEntitlements", () => {
     expect(e.canReplay).toBe(true);
     expect(e.canRunDiff).toBe(true);
     expect(e.canAuditLog).toBe(false);
-    expect(e.maxSpans).toBe(500_000);
-    expect(e.retentionDays).toBe(90);
+    expect(e.maxSpans).toBe(1_000_000);
+    expect(e.retentionDays).toBe(365);
+  });
+
+  it("returns team plan limits for a team-tier org", async () => {
+    vi.mocked(db.getOrganizationById).mockResolvedValue(makeOrg("team"));
+
+    const e = await getEntitlements("org_team");
+
+    expect(e.canReplay).toBe(true);
+    expect(e.canRunDiff).toBe(true);
+    expect(e.canAuditLog).toBe(true);
+    expect(e.maxSpans).toBe(5_000_000);
+    expect(e.maxProjects).toBe(-1);
+    expect(e.maxSeats).toBe(-1);
+    expect(e.retentionDays).toBe(730);
   });
 
   it("returns enterprise plan limits for an enterprise org", async () => {
@@ -73,8 +88,8 @@ describe("getEntitlements", () => {
 
     const e = await getEntitlements("org_1");
 
-    expect(e.canReplay).toBe(false);
-    expect(e.canRunDiff).toBe(false);
+    expect(e.canReplay).toBe(true);
+    expect(e.canRunDiff).toBe(true);
     expect(db.getOrganizationById).toHaveBeenCalledTimes(1);
   });
 
