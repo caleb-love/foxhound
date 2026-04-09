@@ -132,6 +132,7 @@ export interface UsageResponse {
   period: string;
 }
 
+
 // ── Billing ────────────────────────────────────────────────────────────────
 
 export type CheckoutPlan = "pro_monthly" | "pro_annual" | "team_monthly" | "team_annual";
