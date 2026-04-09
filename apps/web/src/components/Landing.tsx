@@ -680,7 +680,7 @@ export function Landing() {
               <img
                 src="/logo-wordmark.png"
                 alt="Foxhound"
-                style={{ height: 120, width: "auto", display: "block" }}
+                style={{ height: 240, width: "auto", display: "block", maxWidth: "100%" }}
               />
             </div>
 
