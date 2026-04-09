@@ -267,84 +267,88 @@ export function ssoRoutes(fastify: FastifyInstance): void {
    * GET /v1/sso/login/:orgSlug
    * Initiate SSO login. Redirects to IdP.
    */
-  fastify.get("/v1/sso/login/:orgSlug", async (request, reply) => {
-    const { orgSlug } = request.params as { orgSlug: string };
+  fastify.get(
+    "/v1/sso/login/:orgSlug",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { orgSlug } = request.params as { orgSlug: string };
 
-    // Look up org by slug to find SSO config
-    const org = await getOrganizationBySlug(orgSlug);
+      // Look up org by slug to find SSO config
+      const org = await getOrganizationBySlug(orgSlug);
 
-    if (!org) {
-      return reply.code(404).send({ error: "Not Found", message: "Organization not found" });
-    }
-
-    const ssoConfig = await getSsoConfigByOrg(org.id);
-    if (!ssoConfig) {
-      return reply
-        .code(404)
-        .send({ error: "Not Found", message: "SSO not configured for this organization" });
-    }
-
-    if (ssoConfig.provider === "saml") {
-      const config = ssoConfig.config as { entryPoint: string; issuer: string };
-      const callbackUrl = `${baseUrl}/v1/sso/callback/saml`;
-      const relayState = Buffer.from(JSON.stringify({ orgId: org.id })).toString("base64");
-
-      // Build SAML AuthnRequest redirect URL
-      const samlRequest = Buffer.from(
-        `<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ` +
-          `ID="_${randomUUID()}" Version="2.0" IssueInstant="${new Date().toISOString()}" ` +
-          `AssertionConsumerServiceURL="${callbackUrl}" ` +
-          `Destination="${config.entryPoint}">` +
-          `<saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">${config.issuer}</saml:Issuer>` +
-          `</samlp:AuthnRequest>`,
-      ).toString("base64");
-
-      const redirectUrl =
-        `${config.entryPoint}?SAMLRequest=${encodeURIComponent(samlRequest)}` +
-        `&RelayState=${encodeURIComponent(relayState)}`;
-
-      return reply.redirect(redirectUrl);
-    }
-
-    if (ssoConfig.provider === "oidc") {
-      const config = ssoConfig.config as {
-        issuer: string;
-        clientId: string;
-      };
-
-      // Discover authorization endpoint
-      const wellKnownUrl = `${config.issuer}/.well-known/openid-configuration`;
-      const discovery = await fetch(wellKnownUrl);
-      if (!discovery.ok) {
-        return reply.code(502).send({ error: "Bad Gateway", message: "OIDC discovery failed" });
+      if (!org) {
+        return reply.code(404).send({ error: "Not Found", message: "Organization not found" });
       }
-      const { authorization_endpoint } = (await discovery.json()) as {
-        authorization_endpoint: string;
-      };
 
-      const state = createHash("sha256")
-        .update(`${org.id}:${randomUUID()}`)
-        .digest("hex")
-        .slice(0, 32);
+      const ssoConfig = await getSsoConfigByOrg(org.id);
+      if (!ssoConfig) {
+        return reply
+          .code(404)
+          .send({ error: "Not Found", message: "SSO not configured for this organization" });
+      }
 
-      // Store state → orgId mapping in a signed cookie or query param
-      const statePayload = Buffer.from(JSON.stringify({ orgId: org.id, nonce: state })).toString(
-        "base64",
-      );
+      if (ssoConfig.provider === "saml") {
+        const config = ssoConfig.config as { entryPoint: string; issuer: string };
+        const callbackUrl = `${baseUrl}/v1/sso/callback/saml`;
+        const relayState = Buffer.from(JSON.stringify({ orgId: org.id })).toString("base64");
 
-      const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
-      const authUrl =
-        `${authorization_endpoint}?response_type=code` +
-        `&client_id=${encodeURIComponent(config.clientId)}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&scope=${encodeURIComponent("openid email profile")}` +
-        `&state=${encodeURIComponent(statePayload)}`;
+        // Build SAML AuthnRequest redirect URL
+        const samlRequest = Buffer.from(
+          `<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ` +
+            `ID="_${randomUUID()}" Version="2.0" IssueInstant="${new Date().toISOString()}" ` +
+            `AssertionConsumerServiceURL="${callbackUrl}" ` +
+            `Destination="${config.entryPoint}">` +
+            `<saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">${config.issuer}</saml:Issuer>` +
+            `</samlp:AuthnRequest>`,
+        ).toString("base64");
 
-      return reply.redirect(authUrl);
-    }
+        const redirectUrl =
+          `${config.entryPoint}?SAMLRequest=${encodeURIComponent(samlRequest)}` +
+          `&RelayState=${encodeURIComponent(relayState)}`;
 
-    return reply.code(400).send({ error: "Bad Request", message: "Unknown SSO provider" });
-  });
+        return reply.redirect(redirectUrl);
+      }
+
+      if (ssoConfig.provider === "oidc") {
+        const config = ssoConfig.config as {
+          issuer: string;
+          clientId: string;
+        };
+
+        // Discover authorization endpoint
+        const wellKnownUrl = `${config.issuer}/.well-known/openid-configuration`;
+        const discovery = await fetch(wellKnownUrl);
+        if (!discovery.ok) {
+          return reply.code(502).send({ error: "Bad Gateway", message: "OIDC discovery failed" });
+        }
+        const { authorization_endpoint } = (await discovery.json()) as {
+          authorization_endpoint: string;
+        };
+
+        const state = createHash("sha256")
+          .update(`${org.id}:${randomUUID()}`)
+          .digest("hex")
+          .slice(0, 32);
+
+        // Store state → orgId mapping in a signed cookie or query param
+        const statePayload = Buffer.from(
+          JSON.stringify({ orgId: org.id, nonce: state }),
+        ).toString("base64");
+
+        const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
+        const authUrl =
+          `${authorization_endpoint}?response_type=code` +
+          `&client_id=${encodeURIComponent(config.clientId)}` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+          `&scope=${encodeURIComponent("openid email profile")}` +
+          `&state=${encodeURIComponent(statePayload)}`;
+
+        return reply.redirect(authUrl);
+      }
+
+      return reply.code(400).send({ error: "Bad Request", message: "Unknown SSO provider" });
+    },
+  );
 
   // ────────────────────────────────────────────
   // SAML Callback
@@ -354,83 +358,89 @@ export function ssoRoutes(fastify: FastifyInstance): void {
    * POST /v1/sso/callback/saml
    * Handles SAML assertion from IdP. JIT provisions user, creates session, returns JWT.
    */
-  fastify.post("/v1/sso/callback/saml", async (request, reply) => {
-    const result = SamlCallbackSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+  fastify.post(
+    "/v1/sso/callback/saml",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const result = SamlCallbackSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { SAMLResponse, RelayState } = result.data;
+      const { SAMLResponse, RelayState } = result.data;
 
-    // Decode RelayState to get orgId
-    let orgId: string;
-    try {
-      const relayData = JSON.parse(Buffer.from(RelayState ?? "", "base64").toString("utf-8")) as {
-        orgId: string;
-      };
-      orgId = relayData.orgId;
-    } catch {
-      return reply.code(400).send({ error: "Bad Request", message: "Invalid RelayState" });
-    }
+      // Decode RelayState to get orgId
+      let orgId: string;
+      try {
+        const relayData = JSON.parse(
+          Buffer.from(RelayState ?? "", "base64").toString("utf-8"),
+        ) as { orgId: string };
+        orgId = relayData.orgId;
+      } catch {
+        return reply.code(400).send({ error: "Bad Request", message: "Invalid RelayState" });
+      }
 
-    // Verify SSO config exists for this org
-    const ssoConfig = await getSsoConfigByOrg(orgId);
-    if (!ssoConfig || ssoConfig.provider !== "saml") {
-      return reply
-        .code(400)
-        .send({ error: "Bad Request", message: "SAML not configured for this org" });
-    }
+      // Verify SSO config exists for this org
+      const ssoConfig = await getSsoConfigByOrg(orgId);
+      if (!ssoConfig || ssoConfig.provider !== "saml") {
+        return reply
+          .code(400)
+          .send({ error: "Bad Request", message: "SAML not configured for this org" });
+      }
 
-    // Parse SAML assertion
-    let assertion: SamlAssertion;
-    try {
-      assertion = parseSamlResponse(SAMLResponse);
-    } catch (err) {
-      return reply.code(400).send({
-        error: "Bad Request",
-        message: `Invalid SAML response: ${(err as Error).message}`,
+      // Parse SAML assertion
+      let assertion: SamlAssertion;
+      try {
+        assertion = parseSamlResponse(SAMLResponse);
+      } catch (err) {
+        return reply.code(400).send({
+          error: "Bad Request",
+          message: `Invalid SAML response: ${(err as Error).message}`,
+        });
+      }
+
+      // Extract user info from assertion
+      const email =
+        assertion.attributes["email"] ??
+        assertion.attributes[
+          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+        ] ??
+        assertion.nameId;
+      const name =
+        assertion.attributes["displayName"] ??
+        assertion.attributes["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
+        assertion.attributes["firstName"] ??
+        email.split("@")[0] ??
+        "SSO User";
+
+      // JIT provision or find existing user
+      const { user } = await jitProvisionUser({
+        userId: `usr_${randomUUID().replace(/-/g, "")}`,
+        email,
+        name,
+        orgId,
       });
-    }
 
-    // Extract user info from assertion
-    const email =
-      assertion.attributes["email"] ??
-      assertion.attributes["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] ??
-      assertion.nameId;
-    const name =
-      assertion.attributes["displayName"] ??
-      assertion.attributes["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
-      assertion.attributes["firstName"] ??
-      email.split("@")[0] ??
-      "SSO User";
+      // Create SSO session
+      const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
+      await deleteSsoSessionsByUser(user.id, orgId);
+      await createSsoSession({
+        id: sessionId,
+        userId: user.id,
+        orgId,
+        idpSessionId: assertion.sessionIndex,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      });
 
-    // JIT provision or find existing user
-    const { user } = await jitProvisionUser({
-      userId: `usr_${randomUUID().replace(/-/g, "")}`,
-      email,
-      name,
-      orgId,
-    });
+      // Issue JWT
+      const payload: JwtPayload = { userId: user.id, orgId };
+      const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
 
-    // Create SSO session
-    const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
-    await deleteSsoSessionsByUser(user.id, orgId);
-    await createSsoSession({
-      id: sessionId,
-      userId: user.id,
-      orgId,
-      idpSessionId: assertion.sessionIndex,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-    });
-
-    // Issue JWT
-    const payload: JwtPayload = { userId: user.id, orgId };
-    const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
-
-    // Redirect to frontend with token (frontend will store it)
-    const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
-    return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
-  });
+      // Redirect to frontend with token (frontend will store it)
+      const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
+      return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
+    },
+  );
 
   // ────────────────────────────────────────────
   // OIDC Callback
@@ -440,83 +450,90 @@ export function ssoRoutes(fastify: FastifyInstance): void {
    * GET /v1/sso/callback/oidc
    * Handles OIDC authorization code callback. Exchanges code, JIT provisions, returns JWT.
    */
-  fastify.get("/v1/sso/callback/oidc", async (request, reply) => {
-    const result = OidcCallbackSchema.safeParse(request.query);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+  fastify.get(
+    "/v1/sso/callback/oidc",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const result = OidcCallbackSchema.safeParse(request.query);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { code, state } = result.data;
+      const { code, state } = result.data;
 
-    // Decode state to get orgId
-    let orgId: string;
-    try {
-      const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8")) as {
-        orgId: string;
+      // Decode state to get orgId
+      let orgId: string;
+      try {
+        const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8")) as {
+          orgId: string;
+        };
+        orgId = stateData.orgId;
+      } catch {
+        return reply.code(400).send({ error: "Bad Request", message: "Invalid state parameter" });
+      }
+
+      // Verify SSO config
+      const ssoConfig = await getSsoConfigByOrg(orgId);
+      if (!ssoConfig || ssoConfig.provider !== "oidc") {
+        return reply
+          .code(400)
+          .send({ error: "Bad Request", message: "OIDC not configured for this org" });
+      }
+
+      const config = ssoConfig.config as {
+        issuer: string;
+        clientId: string;
+        clientSecret: string;
       };
-      orgId = stateData.orgId;
-    } catch {
-      return reply.code(400).send({ error: "Bad Request", message: "Invalid state parameter" });
-    }
 
-    // Verify SSO config
-    const ssoConfig = await getSsoConfigByOrg(orgId);
-    if (!ssoConfig || ssoConfig.provider !== "oidc") {
-      return reply
-        .code(400)
-        .send({ error: "Bad Request", message: "OIDC not configured for this org" });
-    }
+      // Exchange code for tokens and get user info
+      let userInfo: OidcUserInfo;
+      try {
+        const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
+        const result = await exchangeOidcCode(config, code, redirectUri);
+        userInfo = result.userInfo;
+      } catch (err) {
+        return reply.code(502).send({
+          error: "Bad Gateway",
+          message: `OIDC token exchange failed: ${(err as Error).message}`,
+        });
+      }
 
-    const config = ssoConfig.config as {
-      issuer: string;
-      clientId: string;
-      clientSecret: string;
-    };
+      if (!userInfo.email) {
+        return reply
+          .code(400)
+          .send({ error: "Bad Request", message: "OIDC provider did not return email" });
+      }
 
-    // Exchange code for tokens and get user info
-    let userInfo: OidcUserInfo;
-    try {
-      const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
-      const result = await exchangeOidcCode(config, code, redirectUri);
-      userInfo = result.userInfo;
-    } catch (err) {
-      return reply.code(502).send({
-        error: "Bad Gateway",
-        message: `OIDC token exchange failed: ${(err as Error).message}`,
+      // JIT provision or find existing user
+      const { user } = await jitProvisionUser({
+        userId: `usr_${randomUUID().replace(/-/g, "")}`,
+        email: userInfo.email,
+        name:
+          userInfo.name ??
+          userInfo.preferred_username ??
+          userInfo.email.split("@")[0] ??
+          "SSO User",
+        orgId,
       });
-    }
 
-    if (!userInfo.email) {
-      return reply
-        .code(400)
-        .send({ error: "Bad Request", message: "OIDC provider did not return email" });
-    }
+      // Create SSO session
+      const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
+      await deleteSsoSessionsByUser(user.id, orgId);
+      await createSsoSession({
+        id: sessionId,
+        userId: user.id,
+        orgId,
+        idpSessionId: userInfo.sub,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
 
-    // JIT provision or find existing user
-    const { user } = await jitProvisionUser({
-      userId: `usr_${randomUUID().replace(/-/g, "")}`,
-      email: userInfo.email,
-      name:
-        userInfo.name ?? userInfo.preferred_username ?? userInfo.email.split("@")[0] ?? "SSO User",
-      orgId,
-    });
+      // Issue JWT
+      const payload: JwtPayload = { userId: user.id, orgId };
+      const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
 
-    // Create SSO session
-    const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
-    await deleteSsoSessionsByUser(user.id, orgId);
-    await createSsoSession({
-      id: sessionId,
-      userId: user.id,
-      orgId,
-      idpSessionId: userInfo.sub,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
-
-    // Issue JWT
-    const payload: JwtPayload = { userId: user.id, orgId };
-    const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
-
-    const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
-    return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
-  });
+      const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
+      return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
+    },
+  );
 }

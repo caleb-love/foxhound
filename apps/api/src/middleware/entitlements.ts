@@ -5,11 +5,6 @@ type BooleanEntitlementKey = {
   [K in keyof Entitlements]: Entitlements[K] extends boolean ? K : never;
 }[keyof Entitlements];
 
-const FEATURE_LABELS: Record<BooleanEntitlementKey, string> = {
-  canReplay: "replay",
-  canRunDiff: "run_diff",
-  canAuditLog: "audit_log",
-};
 
 /**
  * Returns a Fastify preHandler that gates the route on a boolean entitlement.
