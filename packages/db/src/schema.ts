@@ -8,6 +8,8 @@ import {
   primaryKey,
   integer,
   boolean,
+  bigint,
+  real,
 } from "drizzle-orm/pg-core";
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -22,6 +24,10 @@ export const organizations = pgTable("organizations", {
     .notNull()
     .default("free"),
   stripeCustomerId: text("stripe_customer_id"),
+  /** Days to retain spans/traces before cleanup deletes them (default 90) */
+  retentionDays: integer("retention_days").notNull().default(90),
+  /** Server-side sampling rate 0.0–1.0 (default 1.0 = keep all) */
+  samplingRate: real("sampling_rate").notNull().default(1.0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -107,6 +113,46 @@ export const traces = pgTable(
     agentIdIdx: index("traces_agent_id_idx").on(table.agentId),
     sessionIdIdx: index("traces_session_id_idx").on(table.sessionId),
     orgIdIdx: index("traces_org_id_idx").on(table.orgId),
+    orgCreatedAtIdx: index("traces_org_id_created_at_idx").on(table.orgId, table.createdAt),
+  }),
+);
+
+export const spans = pgTable(
+  "spans",
+  {
+    id: text("id").notNull(),
+    traceId: text("trace_id")
+      .notNull()
+      .references(() => traces.id, { onDelete: "cascade" }),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    parentSpanId: text("parent_span_id"),
+    name: text("name").notNull(),
+    kind: text("kind", {
+      enum: ["tool_call", "llm_call", "agent_step", "workflow", "custom"],
+    }).notNull(),
+    status: text("status", { enum: ["ok", "error", "unset"] })
+      .notNull()
+      .default("ok"),
+    startTimeMs: bigint("start_time_ms", { mode: "number" }).notNull(),
+    endTimeMs: bigint("end_time_ms", { mode: "number" }),
+    attributes: jsonb("attributes")
+      .notNull()
+      .default({})
+      .$type<Record<string, string | number | boolean | null>>(),
+    events: jsonb("events").notNull().default([]).$type<
+      Array<{
+        timeMs: number;
+        name: string;
+        attributes: Record<string, string | number | boolean | null>;
+      }>
+    >(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.traceId, table.id] }),
+    traceIdIdx: index("spans_trace_id_idx").on(table.traceId),
   }),
 );
 

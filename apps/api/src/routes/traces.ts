@@ -2,9 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import {
-  insertTrace,
   queryTraces,
-  getTrace,
+  getTraceWithSpans,
   getReplayContext,
   diffTraces,
   getAlertRulesForOrg,
@@ -12,40 +11,11 @@ import {
   createNotificationLogEntry,
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
-import { checkSpanLimit, incrementSpanCount } from "@foxhound/billing";
+import { checkSpanLimit } from "@foxhound/billing";
+import { persistTraceWithRetry } from "../persistence.js";
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
 import type { Trace } from "@foxhound/types";
-
-async function persistTraceWithRetry(
-  fastify: FastifyInstance,
-  trace: Trace,
-  orgId: string,
-  spanCount: number,
-  maxAttempts = 3,
-): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      await Promise.all([insertTrace(trace, orgId), incrementSpanCount(orgId, spanCount)]);
-      void maybeFireAlerts(fastify, trace, orgId);
-      return;
-    } catch (err: unknown) {
-      if (attempt === maxAttempts) {
-        fastify.log.error(
-          { err, traceId: trace.id, attempt },
-          "Failed to persist trace after all retries",
-        );
-        return;
-      }
-      const delayMs = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms
-      fastify.log.warn(
-        { err, traceId: trace.id, attempt, nextRetryMs: delayMs },
-        "Trace persist failed, retrying",
-      );
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-  }
-}
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -196,12 +166,21 @@ export function tracesRoutes(fastify: FastifyInstance): void {
         });
       }
 
+      // Server-side sampling: drop non-error traces probabilistically.
+      // Always keep error traces — losing errors defeats observability.
+      const hasError = trace.spans.some((s) => s.status === "error");
+      if (!hasError) {
+        const samplingRate = request.samplingRate;
+        if (samplingRate < 1.0 && Math.random() >= samplingRate) {
+          return reply.code(202).send({ accepted: true, id: trace.id, sampled: false });
+        }
+      }
+
       void reply.code(202).send({ accepted: true, id: trace.id });
 
       setImmediate(() => {
-        persistTraceWithRetry(fastify, trace as unknown as Trace, orgId, spanCount).catch(() => {
-          // Errors are already logged inside persistTraceWithRetry
-        });
+        persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch(() => {});
+        void maybeFireAlerts(fastify, trace as unknown as Trace, orgId);
       });
     },
   );
@@ -212,7 +191,7 @@ export function tracesRoutes(fastify: FastifyInstance): void {
    */
   fastify.get("/v1/traces/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const trace = await getTrace(id, request.orgId);
+    const trace = await getTraceWithSpans(id, request.orgId);
     if (!trace) {
       return reply.code(404).send({ error: "Not Found" });
     }

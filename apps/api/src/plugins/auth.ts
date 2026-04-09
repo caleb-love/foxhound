@@ -14,6 +14,8 @@ declare module "fastify" {
     orgId: string;
     /** Resolved user ID — only set for JWT-authenticated requests */
     userId?: string;
+    /** Org sampling rate (0.0–1.0) — set by API key middleware */
+    samplingRate: number;
   }
   interface FastifyInstance {
     /** Verify JWT and attach userId + orgId to request */
@@ -95,5 +97,6 @@ export function registerAuth(fastify: FastifyInstance): void {
     }
 
     request.orgId = resolved.org.id;
+    request.samplingRate = resolved.org.samplingRate;
   });
 }
