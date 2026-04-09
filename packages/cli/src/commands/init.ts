@@ -48,11 +48,12 @@ function detectFramework(cwd: string): DetectedFramework | null {
   return null;
 }
 
-function pythonSnippet(framework: DetectedFramework, apiKey: string, endpoint: string): string {
-  const base = `from foxhound import FoxhoundClient
+function pythonSnippet(framework: DetectedFramework, _apiKey: string, endpoint: string): string {
+  const base = `import os
+from foxhound import FoxhoundClient
 
 fox = FoxhoundClient(
-    api_key="${apiKey}",
+    api_key=os.environ["FOXHOUND_API_KEY"],
     endpoint="${endpoint}",
 )`;
 
@@ -86,11 +87,15 @@ handler = FoxhoundCrewHandler(fox)
 `;
 }
 
-function typescriptSnippet(framework: DetectedFramework, apiKey: string, endpoint: string): string {
+function typescriptSnippet(
+  framework: DetectedFramework,
+  _apiKey: string,
+  endpoint: string,
+): string {
   const base = `import { FoxhoundClient } from "@foxhound-ai/sdk";
 
 const fox = new FoxhoundClient({
-  apiKey: "${apiKey}",
+  apiKey: process.env.FOXHOUND_API_KEY!,
   endpoint: "${endpoint}",
 });`;
 
@@ -171,7 +176,9 @@ export function registerInitCommand(program: Command): void {
       }
 
       console.log(chalk.dim("─".repeat(60)));
-      console.log(`\nNext: import ${chalk.cyan(filename)} in your agent code and run it.`);
+      console.log(`\nNext steps:`);
+      console.log(`  1. Set your API key: ${chalk.cyan("export FOXHOUND_API_KEY=" + apiKey)}`);
+      console.log(`  2. Import ${chalk.cyan(filename)} in your agent code and run it.`);
       console.log("Your first trace should appear at https://app.foxhound.dev within seconds.\n");
     });
 }

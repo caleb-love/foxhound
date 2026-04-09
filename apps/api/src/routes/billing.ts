@@ -276,8 +276,8 @@ export function billingRoutes(fastify: FastifyInstance): void {
     const spansUsed = usage?.spanCount ?? 0;
     const includedLimit = entitlements.maxSpans;
 
-    // Only pro orgs with a Stripe subscription get metered overage billing
-    if (org.plan !== "pro" || !org.stripeCustomerId || includedLimit <= 0) {
+    // Only paid orgs (pro/team) with a Stripe subscription get metered overage billing
+    if (!["pro", "team"].includes(org.plan) || !org.stripeCustomerId || includedLimit <= 0) {
       return reply.code(200).send({ reported: false, reason: "not_applicable" });
     }
 
