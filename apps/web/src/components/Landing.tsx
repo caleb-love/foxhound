@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 // ─── Hero Trace Tree ─────────────────────────────────────────────────────────
 
@@ -543,126 +543,99 @@ function ArchFlow() {
   );
 }
 
-// ─── Pricing Summary ──────────────────────────────────────────────────────────
+// ─── Waitlist Form ────────────────────────────────────────────────────────────
 
-function PricingSummary() {
-  const tiers = [
-    {
-      name: "Free",
-      price: "$0",
-      billing: "Forever free",
-      spans: "10K spans/mo",
-      retention: "7-day retention",
-      cta: "Get started free",
-      href: "/signup",
-      accent: false,
-    },
-    {
-      name: "Pro",
-      price: "$49",
-      billing: "per month",
-      spans: "500K spans/mo",
-      retention: "90-day retention",
-      cta: "Upgrade to Pro",
-      href: "/pricing",
-      accent: true,
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      billing: "Volume pricing",
-      spans: "Unlimited spans",
-      retention: "365-day retention",
-      cta: "Contact sales",
-      href: "mailto:sales@foxhound.ai",
-      accent: false,
-    },
-  ];
+function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "idle",
+  );
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const formData = new FormData(e.currentTarget);
+      formData.append("access_key", "e229d932-d3bc-4f77-866b-b88470c2e596");
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await res.json()) as { success: boolean; message?: string };
+      if (res.ok && data.success) {
+        setStatus("success");
+        setEmail("");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: 16,
-      }}
-      className="pricing-grid"
-    >
-      {tiers.map((tier) => (
+    <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "center" }}>
+      {status === "success" ? (
         <div
-          key={tier.name}
           style={{
-            background: "var(--surface)",
-            border: tier.accent ? "2px solid var(--accent)" : "1px solid var(--border)",
-            borderRadius: 12,
-            padding: "24px 20px",
-            position: "relative",
+            background: "rgba(61,214,140,0.08)",
+            border: "1px solid rgba(61,214,140,0.3)",
+            borderRadius: 10,
+            padding: "20px 24px",
+            color: "#3dd68c",
+            fontSize: 14,
+            fontWeight: 600,
           }}
         >
-          {tier.accent && (
-            <span
-              style={{
-                position: "absolute",
-                top: -11,
-                left: "50%",
-                transform: "translateX(-50%)",
-                background: "var(--accent)",
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.6px",
-                textTransform: "uppercase",
-                borderRadius: 4,
-                padding: "2px 10px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Most popular
-            </span>
-          )}
-          <div
+          You&apos;re on the list. We&apos;ll notify you when paid plans launch.
+        </div>
+      ) : (
+        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: "flex", gap: 8 }}>
+          <input
+            ref={inputRef}
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            required
             style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.8px",
-              color: tier.accent ? "var(--accent)" : "var(--text-muted)",
-              textTransform: "uppercase",
-              marginBottom: 6,
+              flex: 1,
+              padding: "10px 14px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "var(--text)",
+              outline: "none",
             }}
-          >
-            {tier.name}
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.8px", marginBottom: 2 }}>
-            {tier.price}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-            {tier.billing}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
-            {tier.spans}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 20 }}>
-            {tier.retention}
-          </div>
-          <a
-            href={tier.href}
+          />
+          <button
+            type="submit"
+            disabled={status === "loading"}
             style={{
-              display: "block",
-              textAlign: "center",
-              padding: "9px 0",
-              background: tier.accent ? "var(--accent)" : "var(--surface-2)",
-              border: tier.accent ? "none" : "1px solid var(--border)",
+              padding: "10px 20px",
+              background: status === "loading" ? "rgba(107,122,255,0.5)" : "var(--accent)",
+              border: "none",
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
-              color: tier.accent ? "#fff" : "var(--text)",
-              textDecoration: "none",
+              color: "#fff",
+              cursor: status === "loading" ? "not-allowed" : "pointer",
+              whiteSpace: "nowrap",
             }}
           >
-            {tier.cta}
-          </a>
-        </div>
-      ))}
+            {status === "loading" ? "Joining…" : "Get notified"}
+          </button>
+        </form>
+      )}
+      {status === "error" && (
+        <p style={{ marginTop: 8, fontSize: 12, color: "var(--red)" }}>
+          Something went wrong. Please try again.
+        </p>
+      )}
     </div>
   );
 }
@@ -676,7 +649,6 @@ export function Landing() {
         @media (max-width: 899px) {
           .hero-grid { grid-template-columns: 1fr !important; }
           .features-grid { grid-template-columns: 1fr !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
           .hero-headline { font-size: 32px !important; }
           .arch-flow { flex-direction: column !important; }
         }
@@ -783,7 +755,7 @@ export function Landing() {
                 Get started free
               </a>
               <a
-                href="https://github.com/foxhound-sh/foxhound"
+                href="https://github.com/caleb-love/foxhound"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -998,7 +970,7 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Pricing summary */}
+      {/* Waitlist */}
       <section
         className="landing-section"
         style={{
@@ -1008,27 +980,23 @@ export function Landing() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <h2
-              className="section-title"
-              style={{
-                fontSize: 30,
-                fontWeight: 800,
-                letterSpacing: "-0.8px",
-                marginBottom: 12,
-              }}
-            >
-              Start free, scale when ready
-            </h2>
-            <p style={{ fontSize: 15, color: "var(--text-muted)" }}>
-              No credit card required for the free tier.{" "}
-              <a href="/pricing" style={{ color: "var(--accent)" }}>
-                See full feature comparison →
-              </a>
-            </p>
-          </div>
-          <PricingSummary />
+        <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
+          <h2
+            className="section-title"
+            style={{
+              fontSize: 30,
+              fontWeight: 800,
+              letterSpacing: "-0.8px",
+              marginBottom: 12,
+            }}
+          >
+            Paid plans coming soon
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--text-muted)", marginBottom: 32 }}>
+            Foxhound is free and open-source today. Managed hosting and enterprise support are on the
+            roadmap — get notified when they launch.
+          </p>
+          <WaitlistForm />
         </div>
       </section>
 
@@ -1086,7 +1054,7 @@ export function Landing() {
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <a
-              href="https://github.com/foxhound-sh/foxhound"
+              href="https://github.com/caleb-love/foxhound"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1151,8 +1119,7 @@ export function Landing() {
           </div>
           <div style={{ display: "flex", gap: 24 }}>
             {[
-              { label: "GitHub", href: "https://github.com/foxhound-sh/foxhound" },
-              { label: "Pricing", href: "/pricing" },
+              { label: "GitHub", href: "https://github.com/caleb-love/foxhound" },
               { label: "Login", href: "/login" },
               { label: "Sign up", href: "/signup" },
             ].map((link) => (
