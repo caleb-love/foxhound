@@ -75,8 +75,7 @@ Foxhound ships an MCP server for tool-based integration and accepts OpenTelemetr
 ```
 foxhound/
 ├── apps/
-│   ├── api/            # Fastify REST API (port 3001)
-│   └── web/            # Next.js dashboard (port 3000)
+│   └── api/            # Fastify REST API (port 3001)
 ├── packages/
 │   ├── sdk/            # TypeScript SDK — @foxhound-ai/sdk
 │   ├── sdk-py/         # Python SDK — foxhound-ai (PyPI)
@@ -90,7 +89,7 @@ foxhound/
 └── docker-compose.dev.yml
 ```
 
-**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Next.js 15 · React 19 · Drizzle ORM · PostgreSQL 16 · Stripe · Cloudflare Pages
+**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Drizzle ORM · PostgreSQL 16 · Stripe
 
 ## Quickstart
 
@@ -135,9 +134,10 @@ pnpm dev
 
 | Service      | URL                          |
 | ------------ | ---------------------------- |
-| Dashboard    | http://localhost:3000        |
 | API          | http://localhost:3001        |
 | Health check | http://localhost:3001/health |
+
+> **Web dashboard:** The Next.js frontend lives in a separate repo at [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web).
 
 ## SDKs
 
@@ -395,20 +395,7 @@ Foxhound is **free and open source**. A managed cloud offering is coming soon �
 
 ## Deployment
 
-The web dashboard is configured for [Cloudflare Pages](https://pages.cloudflare.com) via `@opennextjs/cloudflare`.
-
-```bash
-# Build the Cloudflare Worker
-pnpm --filter @foxhound/web build:worker
-
-# Preview locally
-pnpm --filter @foxhound/web preview:worker
-
-# Deploy to Cloudflare
-pnpm --filter @foxhound/web deploy
-```
-
-Configuration lives in `apps/web/wrangler.jsonc`. Run `wrangler login` before your first deploy.
+The web dashboard has been extracted to its own repository: [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web). It deploys to Cloudflare Workers independently.
 
 ## Development
 
@@ -426,7 +413,6 @@ pnpm format:check   # Check formatting
 | Package                  | Description                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------- |
 | `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO                           |
-| `apps/web`               | Next.js 15 dashboard — trace explorer, settings                                   |
 | `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support)                    |
 | `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph, Claude, CrewAI, AutoGen, OpenAI Agents |
 | `packages/db`            | Drizzle ORM schema, queries, and migrations                                       |
