@@ -17,7 +17,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { FoxhoundApiClient } from "./api-client.js";
+import { FoxhoundApiClient, toEpochMs, type TraceListResponse } from "@foxhound/api-client";
+import type { Trace, Span } from "@foxhound/types";
 
 function getConfig(): { endpoint: string; apiKey: string } {
   const apiKey = process.env["FOXHOUND_API_KEY"];
@@ -32,19 +33,7 @@ function getConfig(): { endpoint: string; apiKey: string } {
   return { endpoint, apiKey };
 }
 
-function formatTraceList(data: unknown): string {
-  const result = data as {
-    data: Array<{
-      id: string;
-      agentId: string;
-      startTimeMs: number;
-      endTimeMs?: number;
-      spans: Array<{ status: string; kind: string; name: string }>;
-      metadata: Record<string, unknown>;
-    }>;
-    pagination: { page: number; limit: number; count: number };
-  };
-
+function formatTraceList(result: TraceListResponse): string {
   if (!result.data.length) return "No traces found matching your criteria.";
 
   const lines = result.data.map((t) => {
@@ -60,27 +49,7 @@ function formatTraceList(data: unknown): string {
   return `Found ${result.pagination.count} trace(s) (page ${result.pagination.page}):\n\n${lines.join("\n")}`;
 }
 
-function formatTrace(data: unknown): string {
-  const trace = data as {
-    id: string;
-    agentId: string;
-    sessionId?: string;
-    startTimeMs: number;
-    endTimeMs?: number;
-    spans: Array<{
-      spanId: string;
-      parentSpanId?: string;
-      name: string;
-      kind: string;
-      status: string;
-      startTimeMs: number;
-      endTimeMs?: number;
-      attributes: Record<string, unknown>;
-      events: Array<{ name: string; attributes: Record<string, unknown> }>;
-    }>;
-    metadata: Record<string, unknown>;
-  };
-
+function formatTrace(trace: Trace): string {
   const duration =
     trace.endTimeMs && trace.startTimeMs
       ? `${((trace.endTimeMs - trace.startTimeMs) / 1000).toFixed(1)}s`
@@ -99,7 +68,7 @@ function formatTrace(data: unknown): string {
 
   // Build span tree
   const rootSpans = trace.spans.filter((s) => !s.parentSpanId);
-  const childMap = new Map<string, typeof trace.spans>();
+  const childMap = new Map<string, Span[]>();
   for (const span of trace.spans) {
     if (span.parentSpanId) {
       const siblings = childMap.get(span.parentSpanId) ?? [];
@@ -108,7 +77,7 @@ function formatTrace(data: unknown): string {
     }
   }
 
-  function renderSpan(span: (typeof trace.spans)[number], indent: number): string {
+  function renderSpan(span: Span, indent: number): string {
     const prefix = "  ".repeat(indent);
     const dur = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
     const status = span.status === "error" ? " **ERROR**" : "";
@@ -149,10 +118,6 @@ async function main(): Promise<void> {
     "Search traces by agent name, time range, and pagination. Returns a summary list of matching traces.",
     {
       agent_name: z.string().optional().describe("Filter by agent ID/name"),
-      status: z
-        .enum(["ok", "error"])
-        .optional()
-        .describe("Filter traces containing spans with this status"),
       from: z.string().optional().describe("Start time (ISO 8601 or epoch ms)"),
       to: z.string().optional().describe("End time (ISO 8601 or epoch ms)"),
       limit: z.number().int().min(1).max(100).optional().describe("Max results (default 20)"),
@@ -234,26 +199,12 @@ async function main(): Promise<void> {
       const toMs = Date.now();
       const fromMs = toMs - hours * 60 * 60 * 1000;
 
-      const data = (await api.searchTraces({
+      const data = await api.searchTraces({
         agentId: params.agent_name,
         from: fromMs,
         to: toMs,
         limit: 100,
-      })) as {
-        data: Array<{
-          id: string;
-          agentId: string;
-          startTimeMs: number;
-          endTimeMs?: number;
-          spans: Array<{
-            name: string;
-            kind: string;
-            status: string;
-            startTimeMs: number;
-            endTimeMs?: number;
-          }>;
-        }>;
-      };
+      });
 
       if (!data.data.length) {
         return {
@@ -336,18 +287,9 @@ async function main(): Promise<void> {
   server.tool(
     "foxhound_get_cost_summary",
     "Get token usage and cost breakdown. Shows current billing period span usage and limits.",
-    {
-      agent_name: z
-        .string()
-        .optional()
-        .describe("Filter by agent (not yet supported — returns org-level usage)"),
-    },
+    {},
     async () => {
-      const data = (await api.getBillingUsage()) as {
-        spansUsed: number;
-        spansLimit: number;
-        period: string;
-      };
+      const data = await api.getUsage();
 
       const pct = data.spansLimit > 0 ? ((data.spansUsed / data.spansLimit) * 100).toFixed(1) : "∞";
       const lines = [
@@ -361,17 +303,278 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Tool: list alert rules ---
+  server.tool(
+    "foxhound_list_alert_rules",
+    "List all alert rules configured for your organization.",
+    {},
+    async () => {
+      const data = await api.listAlertRules();
+      const rules = data.data;
+      if (!rules.length) return { content: [{ type: "text", text: "No alert rules configured." }] };
+
+      const lines = rules.map(
+        (r) =>
+          `- **${r.id}** | ${r.eventType} >= ${r.minSeverity} -> channel ${r.channelId} | ${r.enabled ? "enabled" : "disabled"}`,
+      );
+      return {
+        content: [
+          { type: "text", text: `## Alert Rules (${rules.length})\n\n${lines.join("\n")}` },
+        ],
+      };
+    },
+  );
+
+  // --- Tool: create alert rule ---
+  server.tool(
+    "foxhound_create_alert_rule",
+    "Create a new alert rule that routes events to a notification channel. This is a write operation.",
+    {
+      event_type: z
+        .enum(["agent_failure", "anomaly_detected", "cost_spike", "compliance_violation"])
+        .describe("The event type to trigger on"),
+      min_severity: z
+        .enum(["critical", "high", "medium", "low"])
+        .optional()
+        .describe("Minimum severity to trigger (default: high)"),
+      channel_id: z.string().describe("The notification channel ID to route alerts to"),
+    },
+    async (params) => {
+      const rule = await api.createAlertRule({
+        eventType: params.event_type,
+        minSeverity: params.min_severity ?? "high",
+        channelId: params.channel_id,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Alert rule created: **${rule.id}**\n- Event: ${rule.eventType}\n- Severity >= ${rule.minSeverity}\n- Channel: ${rule.channelId}`,
+          },
+        ],
+      };
+    },
+  );
+
+  // --- Tool: delete alert rule ---
+  server.tool(
+    "foxhound_delete_alert_rule",
+    "Delete an alert rule by ID. Set confirm=true to execute. Without confirmation, returns a preview of what will be deleted.",
+    {
+      rule_id: z.string().describe("The alert rule ID to delete"),
+      confirm: z.boolean().optional().describe("Set to true to confirm deletion. Omit to preview."),
+    },
+    async (params) => {
+      if (!params.confirm) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `**Preview:** Will delete alert rule **${params.rule_id}**.\n\nCall again with \`confirm: true\` to execute.`,
+            },
+          ],
+        };
+      }
+
+      await api.deleteAlertRule(params.rule_id);
+      return {
+        content: [{ type: "text", text: `Alert rule **${params.rule_id}** deleted.` }],
+      };
+    },
+  );
+
+  // --- Tool: list channels ---
+  server.tool(
+    "foxhound_list_channels",
+    "List all notification channels (e.g. Slack webhooks) configured for your organization.",
+    {},
+    async () => {
+      const data = await api.listChannels();
+      const channels = data.data;
+      if (!channels.length)
+        return { content: [{ type: "text", text: "No notification channels configured." }] };
+
+      const lines = channels.map(
+        (c) => `- **${c.id}** | ${c.kind} | "${c.name}" | created ${c.createdAt}`,
+      );
+      return {
+        content: [
+          {
+            type: "text",
+            text: `## Notification Channels (${channels.length})\n\n${lines.join("\n")}`,
+          },
+        ],
+      };
+    },
+  );
+
+  // --- Tool: create channel ---
+  server.tool(
+    "foxhound_create_channel",
+    "Create a new Slack notification channel. This is a write operation.",
+    {
+      name: z.string().describe("A human-readable name for the channel"),
+      webhook_url: z.string().describe("The Slack incoming webhook URL"),
+      slack_channel: z.string().optional().describe("Optional Slack channel override"),
+    },
+    async (params) => {
+      const channel = await api.createChannel({
+        name: params.name,
+        kind: "slack",
+        config: {
+          webhookUrl: params.webhook_url,
+          channel: params.slack_channel,
+        },
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Channel created: **${channel.id}** ("${channel.name}", ${channel.kind})`,
+          },
+        ],
+      };
+    },
+  );
+
+  // --- Tool: test channel ---
+  server.tool(
+    "foxhound_test_channel",
+    "Send a test alert through a notification channel to verify it works.",
+    {
+      channel_id: z.string().describe("The channel ID to test"),
+    },
+    async (params) => {
+      await api.testChannel(params.channel_id);
+      return {
+        content: [{ type: "text", text: `Test alert sent to channel **${params.channel_id}**.` }],
+      };
+    },
+  );
+
+  // --- Tool: delete channel ---
+  server.tool(
+    "foxhound_delete_channel",
+    "Delete a notification channel by ID. This may also delete associated alert rules. Set confirm=true to execute.",
+    {
+      channel_id: z.string().describe("The channel ID to delete"),
+      confirm: z.boolean().optional().describe("Set to true to confirm deletion. Omit to preview."),
+    },
+    async (params) => {
+      if (!params.confirm) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `**Preview:** Will delete channel **${params.channel_id}** and any alert rules routing to it.\n\nCall again with \`confirm: true\` to execute.`,
+            },
+          ],
+        };
+      }
+
+      await api.deleteChannel(params.channel_id);
+      return {
+        content: [{ type: "text", text: `Channel **${params.channel_id}** deleted.` }],
+      };
+    },
+  );
+
+  // --- Tool: list API keys ---
+  server.tool(
+    "foxhound_list_api_keys",
+    "List active API keys for your organization. Keys are masked — only the prefix is shown.",
+    {},
+    async () => {
+      const data = await api.listApiKeys();
+      const keys = data.data;
+      if (!keys.length) return { content: [{ type: "text", text: "No API keys found." }] };
+
+      const lines = keys.map(
+        (k) => `- **${k.id}** | "${k.name}" | prefix: ${k.prefix}... | created ${k.createdAt}`,
+      );
+      return {
+        content: [{ type: "text", text: `## API Keys (${keys.length})\n\n${lines.join("\n")}` }],
+      };
+    },
+  );
+
+  // --- Tool: create API key ---
+  server.tool(
+    "foxhound_create_api_key",
+    "Create a new API key. For security, the plaintext key is NOT returned through MCP — use the CLI (`foxhound keys create`) or dashboard to retrieve it.",
+    {
+      name: z.string().describe("A human-readable name for the key"),
+    },
+    async (params) => {
+      const result = await api.createApiKey(params.name);
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `API key created: **${result.id}** ("${result.name}", prefix: ${result.prefix}...)\n\n` +
+              `The plaintext key is not shown in MCP for security reasons.\n` +
+              `Retrieve it from the CLI output or dashboard. It cannot be shown again after creation.`,
+          },
+        ],
+      };
+    },
+  );
+
+  // --- Tool: revoke API key ---
+  server.tool(
+    "foxhound_revoke_api_key",
+    "Revoke an API key by ID. The key will immediately stop working. Set confirm=true to execute.",
+    {
+      key_id: z.string().describe("The API key ID to revoke"),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to confirm revocation. Omit to preview."),
+    },
+    async (params) => {
+      if (!params.confirm) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `**Preview:** Will revoke API key **${params.key_id}**. Any integrations using this key will immediately stop working.\n\nCall again with \`confirm: true\` to execute.`,
+            },
+          ],
+        };
+      }
+
+      await api.revokeApiKey(params.key_id);
+      return {
+        content: [{ type: "text", text: `API key **${params.key_id}** revoked.` }],
+      };
+    },
+  );
+
+  // --- Tool: status ---
+  server.tool(
+    "foxhound_status",
+    "Check the Foxhound API health and show usage summary for the current billing period.",
+    {},
+    async () => {
+      const [health, usage] = await Promise.all([api.getHealth(), api.getUsage()]);
+
+      const pct =
+        usage.spansLimit > 0 ? ((usage.spansUsed / usage.spansLimit) * 100).toFixed(1) : "∞";
+      const lines = [
+        `## Foxhound Status`,
+        `- API: ${health.status} (v${health.version})`,
+        `- Period: ${usage.period}`,
+        `- Spans: ${usage.spansUsed.toLocaleString()} / ${usage.spansLimit > 0 ? usage.spansLimit.toLocaleString() : "unlimited"} (${pct}%)`,
+      ];
+
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);
-}
-
-function toEpochMs(value: string): number {
-  const num = Number(value);
-  if (!isNaN(num)) return num;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) throw new Error(`Invalid date: ${value}`);
-  return date.getTime();
 }
 
 main().catch((err) => {
