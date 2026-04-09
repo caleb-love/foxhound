@@ -1,6 +1,7 @@
 import { db } from "./client.js";
 import {
   traces,
+  spans,
   users,
   organizations,
   memberships,
@@ -13,7 +14,7 @@ import {
   ssoSessions,
   waitlistSignups,
 } from "./schema.js";
-import { eq, and, gte, lte, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, asc, isNull, sql } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -291,6 +292,16 @@ export async function getTrace(id: string, orgId: string) {
   return rows[0] ?? null;
 }
 
+/**
+ * Get a trace with spans resolved from normalized table (JSONB fallback).
+ */
+export async function getTraceWithSpans(id: string, orgId: string) {
+  const row = await getTrace(id, orgId);
+  if (!row) return null;
+  const resolvedSpans = await resolveSpans(id, orgId, row);
+  return { ...row, spans: resolvedSpans };
+}
+
 export interface ReplayContext {
   traceId: string;
   spanId: string;
@@ -301,6 +312,23 @@ export interface ReplayContext {
   agentStepHistory: Span[];
 }
 
+/**
+ * Resolve spans for a trace: prefer normalized spans table, fallback to JSONB.
+ */
+async function resolveSpans(
+  traceId: string,
+  orgId: string,
+  existingRow?: { spans: unknown },
+): Promise<Span[]> {
+  const normalized = await getSpansByTraceId(traceId, orgId);
+  if (normalized.length > 0) return normalized;
+
+  // Fallback: read from legacy JSONB column
+  const row = existingRow ?? (await getTrace(traceId, orgId));
+  if (!row) return [];
+  return (row.spans as unknown as Span[]).slice().sort((a, b) => a.startTimeMs - b.startTimeMs);
+}
+
 export async function getReplayContext(
   traceId: string,
   spanId: string,
@@ -309,9 +337,7 @@ export async function getReplayContext(
   const row = await getTrace(traceId, orgId);
   if (!row) return null;
 
-  const allSpans = (row.spans as unknown as Span[])
-    .slice()
-    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+  const allSpans = await resolveSpans(traceId, orgId, row);
 
   const target = allSpans.find((s) => s.spanId === spanId);
   if (!target) return null;
@@ -429,12 +455,10 @@ export async function diffTraces(
   const [rowA, rowB] = await Promise.all([getTrace(traceIdA, orgId), getTrace(traceIdB, orgId)]);
   if (!rowA || !rowB) return null;
 
-  const spansA = (rowA.spans as unknown as Span[])
-    .slice()
-    .sort((a, b) => a.startTimeMs - b.startTimeMs);
-  const spansB = (rowB.spans as unknown as Span[])
-    .slice()
-    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+  const [spansA, spansB] = await Promise.all([
+    resolveSpans(traceIdA, orgId),
+    resolveSpans(traceIdB, orgId),
+  ]);
 
   const matchedPairs = lcsAlign(spansA, spansB);
   const matchedA = new Set(matchedPairs.map(([i]) => i));
@@ -546,6 +570,84 @@ export async function queryTraces(filters: TraceFilters) {
     .orderBy(desc(traces.createdAt))
     .limit(limit)
     .offset(offset);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Normalized span queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Batch-insert normalized spans into the spans table.
+ * Uses onConflictDoNothing for idempotent writes.
+ */
+export async function insertSpans(traceId: string, orgId: string, spanList: Span[]): Promise<void> {
+  if (spanList.length === 0) return;
+  await db
+    .insert(spans)
+    .values(
+      spanList.map((s) => ({
+        id: s.spanId,
+        traceId,
+        orgId,
+        parentSpanId: s.parentSpanId ?? null,
+        name: s.name,
+        kind: s.kind,
+        status: s.status,
+        startTimeMs: s.startTimeMs,
+        endTimeMs: s.endTimeMs ?? null,
+        attributes: s.attributes,
+        events: s.events,
+      })),
+    )
+    .onConflictDoNothing();
+}
+
+/**
+ * Fetch all normalized spans for a trace, ordered by start time.
+ */
+async function getSpansByTraceId(traceId: string, orgId: string): Promise<Span[]> {
+  const rows = await db
+    .select()
+    .from(spans)
+    .where(and(eq(spans.traceId, traceId), eq(spans.orgId, orgId)))
+    .orderBy(asc(spans.startTimeMs));
+
+  return rows.map((r) => ({
+    traceId: r.traceId,
+    spanId: r.id,
+    parentSpanId: r.parentSpanId ?? undefined,
+    name: r.name,
+    kind: r.kind as Span["kind"],
+    startTimeMs: r.startTimeMs,
+    endTimeMs: r.endTimeMs ?? undefined,
+    status: r.status as Span["status"],
+    attributes: r.attributes as Span["attributes"],
+    events: r.events as Span["events"],
+  }));
+}
+
+/**
+ * Delete traces older than the org's retention cutoff.
+ * CASCADE will also delete associated spans.
+ */
+export async function deleteExpiredTraces(orgId: string, retentionDays: number): Promise<number> {
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const result = await db
+    .delete(traces)
+    .where(and(eq(traces.orgId, orgId), lt(traces.createdAt, cutoff)));
+  return (result as unknown as { rowCount?: number }).rowCount ?? 0;
+}
+
+/**
+ * Fetch all orgs with their retention config for the cleanup job.
+ */
+export async function getOrgsWithRetention() {
+  return db
+    .select({
+      id: organizations.id,
+      retentionDays: organizations.retentionDays,
+    })
+    .from(organizations);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

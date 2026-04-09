@@ -15,6 +15,8 @@ function makeOrg(plan: Plan) {
     slug: "test-org",
     plan,
     stripeCustomerId: null,
+    retentionDays: 90,
+    samplingRate: 1.0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

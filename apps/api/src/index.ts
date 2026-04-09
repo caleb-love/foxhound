@@ -12,6 +12,7 @@ import { otlpRoutes } from "./routes/otlp.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { ssoRoutes } from "./routes/sso.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
+import { startRetentionCleanup, stopRetentionCleanup } from "./jobs/retention-cleanup.js";
 
 const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -54,6 +55,13 @@ await app.register(otlpRoutes);
 await app.register(notificationsRoutes);
 await app.register(ssoRoutes);
 await app.register(waitlistRoutes);
+
+// Start retention cleanup cron
+startRetentionCleanup(app.log);
+
+app.addHook("onClose", () => {
+  stopRetentionCleanup();
+});
 
 const port = Number(process.env["PORT"] ?? 3001);
 const host = process.env["HOST"] ?? "0.0.0.0";

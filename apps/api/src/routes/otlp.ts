@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { insertTrace } from "@foxhound/db";
-import { checkSpanLimit, incrementSpanCount } from "@foxhound/billing";
+import { checkSpanLimit } from "@foxhound/billing";
+import { persistTraceWithRetry } from "../persistence.js";
 import type { Trace, Span, SpanKind, SpanEvent } from "@foxhound/types";
 
 // ---------------------------------------------------------------------------
@@ -226,38 +226,6 @@ function mapOtlpToFoxhoundTraces(body: OtlpExportRequest): Trace[] {
 }
 
 // ---------------------------------------------------------------------------
-// Persistence (shared with native traces route)
-// ---------------------------------------------------------------------------
-
-async function persistTraceWithRetry(
-  fastify: FastifyInstance,
-  trace: Trace,
-  orgId: string,
-  maxAttempts = 3,
-): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      await Promise.all([insertTrace(trace, orgId), incrementSpanCount(orgId, trace.spans.length)]);
-      return;
-    } catch (err: unknown) {
-      if (attempt === maxAttempts) {
-        fastify.log.error(
-          { err, traceId: trace.id, attempt },
-          "OTLP trace persist failed after all retries",
-        );
-        return;
-      }
-      const delayMs = 100 * Math.pow(2, attempt - 1);
-      fastify.log.warn(
-        { err, traceId: trace.id, attempt, nextRetryMs: delayMs },
-        "OTLP trace persist failed, retrying",
-      );
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Route registration
 // ---------------------------------------------------------------------------
 
@@ -329,14 +297,22 @@ export function otlpRoutes(fastify: FastifyInstance): void {
         });
       }
 
+      // Server-side sampling: filter out non-error traces probabilistically.
+      const samplingRate = request.samplingRate;
+      const tracesToPersist =
+        samplingRate >= 1.0
+          ? traces
+          : traces.filter((t) => {
+              const hasError = t.spans.some((s) => s.status === "error");
+              return hasError || Math.random() < samplingRate;
+            });
+
       // Respond immediately — OTLP spec requires 202 before slow persistence
       void reply.code(202).send({ partialSuccess: {} });
 
       setImmediate(() => {
-        for (const trace of traces) {
-          persistTraceWithRetry(fastify, trace, orgId).catch(() => {
-            // Errors are already logged inside persistTraceWithRetry
-          });
+        for (const trace of tracesToPersist) {
+          persistTraceWithRetry(fastify.log, trace, orgId).catch(() => {});
         }
       });
     },

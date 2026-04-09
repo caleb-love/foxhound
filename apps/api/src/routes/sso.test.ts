@@ -40,6 +40,8 @@ const mockOrg = {
   slug: "acme",
   plan: "enterprise" as const,
   stripeCustomerId: null,
+  retentionDays: 90,
+  samplingRate: 1.0,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
