@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import type { Trace } from "@foxhound/types";
 import { Tracer } from "../tracer.js";
-import { FoxClaudeTracer } from "./claude-agent.js";
+import { FoxhoundClaudeTracer } from "./claude-agent.js";
 
-function makeTracer(): { tracer: FoxClaudeTracer; flushed: Trace[] } {
+function makeTracer(): { tracer: FoxhoundClaudeTracer; flushed: Trace[] } {
   const flushed: Trace[] = [];
   const inner = new Tracer({
     agentId: "test-claude-agent",
@@ -13,7 +13,7 @@ function makeTracer(): { tracer: FoxClaudeTracer; flushed: Trace[] } {
       return Promise.resolve();
     },
   });
-  return { tracer: new FoxClaudeTracer(inner), flushed };
+  return { tracer: new FoxhoundClaudeTracer(inner), flushed };
 }
 
 function spansByName(flushed: Trace[]): Record<string, Trace["spans"][number]> {
@@ -46,7 +46,7 @@ function makeResultMessage(overrides: Record<string, unknown> = {}): unknown {
   return msg;
 }
 
-describe("FoxClaudeTracer", () => {
+describe("FoxhoundClaudeTracer", () => {
   it("creates workflow span", async () => {
     const { tracer, flushed } = makeTracer();
     tracer.startWorkflow("Write a script");

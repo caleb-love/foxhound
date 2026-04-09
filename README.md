@@ -20,8 +20,7 @@
   <a href="#features">Features</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#sdks">SDKs</a> ·
-  <a href="#self-hosting">Self-Hosting</a> ·
-  <a href="#contributing">Contributing</a>
+  <a href="#self-hosting">Self-Hosting</a>
 </p>
 
 ---
@@ -42,362 +41,69 @@ Foxhound gives your team:
 
 ## Features
 
-### Trace Explorer
-
-Browse, search, and filter agent traces. Every trace captures the full span tree — tool calls, LLM calls, agent steps, and custom spans — with timestamps, attributes, and events.
-
-### Span Replay
-
-Select any span in a trace and reconstruct the agent's exact state at that moment: which LLM calls had been made, which tools had been invoked, and what data was available.
-
-### Run Diff
-
-Compare two agent runs side-by-side. Foxhound aligns spans using a longest-common-subsequence algorithm and highlights every divergence — status changes, attribute differences, added or removed spans, and name changes.
-
-### Audit Log
-
-Enterprise-grade audit trail. Every agent action produces a structured event with org, agent, session, trace, and span context. Query by agent, time range, or event type.
-
-### Alert Rules & Notifications
-
-Configure alert rules from the settings dashboard. Route notifications to PagerDuty, GitHub Issues, Linear, or custom webhooks. Combine with trace filters to alert on specific agent behaviors or error patterns.
-
-### SSO / SAML 2.0 / OIDC
-
-Enterprise SSO with SAML 2.0 and OIDC support. Pre-built integrations for Okta and Azure AD with auto-provisioning.
-
-### MCP Server & OTel Ingestion
-
-Foxhound ships an MCP server for tool-based integration and accepts OpenTelemetry-compatible trace data, so you can ingest spans from existing OTel-instrumented services alongside agent traces.
-
-## Architecture
-
-```
-foxhound/
-├── apps/
-│   └── api/            # Fastify REST API (port 3001)
-├── packages/
-│   ├── sdk/            # TypeScript SDK — @foxhound-ai/sdk
-│   ├── sdk-py/         # Python SDK — foxhound-ai (PyPI)
-│   ├── types/          # Shared TypeScript type definitions
-│   ├── db/             # Drizzle ORM schema + migrations (PostgreSQL)
-│   ├── billing/        # Stripe integration + entitlement engine
-│   ├── mcp-server/     # MCP server for tool-based integration
-│   └── notifications/  # PagerDuty, GitHub, Linear, webhook providers
-├── .github/
-│   └── workflows/      # GitHub Actions CI
-└── docker-compose.dev.yml
-```
-
-**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Drizzle ORM · PostgreSQL 16 · Stripe
+- **Trace Explorer** — Browse the full span tree of any agent run
+- **Session Replay** — Reconstruct agent state at any point in execution
+- **Run Diff** — Compare two runs side-by-side, spot every divergence
+- **Audit Log** — Tamper-evident record of every agent action
+- **Alert Rules** — Route to PagerDuty, GitHub, Linear, or webhooks
+- **SSO / SAML 2.0** — Enterprise identity with Okta and Azure AD
+- **OTel Ingestion** — Accept OpenTelemetry spans alongside agent traces
 
 ## Quickstart
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org) ≥ 20
-- [pnpm](https://pnpm.io) ≥ 9
-- [Docker](https://www.docker.com) (for PostgreSQL)
-
-### 1. Clone and install
-
 ```bash
-git clone https://github.com/caleb-love/foxhound.git
-cd foxhound
+git clone https://github.com/caleb-love/foxhound.git && cd foxhound
 pnpm install
-```
-
-### 2. Start PostgreSQL
-
-```bash
 docker compose -f docker-compose.dev.yml up -d
-```
-
-### 3. Configure environment
-
-```bash
-cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env with your JWT_SECRET and (optionally) Stripe keys
-```
-
-### 4. Run migrations
-
-```bash
+cp apps/api/.env.example apps/api/.env   # set JWT_SECRET
 pnpm --filter @foxhound/db db:migrate
+pnpm dev                                 # API → localhost:3001
 ```
 
-### 5. Start development servers
-
-```bash
-pnpm dev
-```
-
-| Service      | URL                          |
-| ------------ | ---------------------------- |
-| API          | http://localhost:3001        |
-| Health check | http://localhost:3001/health |
-
-> **Web dashboard:** The Next.js frontend lives in a separate repo at [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web).
+> **Dashboard:** [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web)
 
 ## SDKs
 
-Foxhound ships first-party SDKs for TypeScript and Python. Both support manual instrumentation and framework-specific auto-instrumentation.
-
-### Framework Support
+First-party SDKs for Python and TypeScript with auto-instrumentation for major agent frameworks.
 
 | Framework        | SDK                 | Auto-instrumentation |
 | ---------------- | ------------------- | -------------------- |
 | LangGraph        | Python              | Yes                  |
-| Claude Agent SDK | Python + TypeScript | Yes                  |
 | CrewAI           | Python              | Yes                  |
 | AutoGen          | Python              | Yes                  |
 | OpenAI Agents    | Python              | Yes                  |
+| Claude Agent SDK | Python + TypeScript | Yes                  |
 | OpenTelemetry    | Any                 | Protocol-level       |
 
-### TypeScript
+### Install
 
 ```bash
-npm install @foxhound-ai/sdk
+pip install foxhound-ai          # Python
+npm install @foxhound-ai/sdk    # TypeScript
 ```
 
-```typescript
-import { FoxhoundClient } from "@foxhound-ai/sdk";
-
-const fox = new FoxhoundClient({
-  apiKey: process.env.FOXHOUND_API_KEY!,
-  endpoint: "https://your-foxhound-instance.com",
-});
-
-const tracer = fox.startTrace({ agentId: "support-agent" });
-
-const span = tracer.startSpan({
-  name: "tool_call:knowledge_search",
-  kind: "tool_call",
-});
-span.setAttribute("query", "refund policy");
-span.end();
-
-const llmSpan = tracer.startSpan({
-  name: "llm_call:gpt-4",
-  kind: "llm_call",
-});
-llmSpan.setAttribute("model", "gpt-4o");
-llmSpan.setAttribute("tokens.prompt", 340);
-llmSpan.setAttribute("tokens.completion", 128);
-llmSpan.end();
-
-await tracer.flush();
-```
-
-### Python
-
-```bash
-pip install foxhound-ai
-```
+### Example
 
 ```python
-from fox_sdk import FoxClient
+from foxhound import FoxhoundClient
 
-fox = FoxClient(
-    api_key="sk-...",
-    endpoint="https://your-foxhound-instance.com",
-)
+fox = FoxhoundClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
 
-# Async context manager — auto-flushes on exit
 async with fox.trace(agent_id="support-agent") as tracer:
     span = tracer.start_span(name="tool:search", kind="tool_call")
     span.set_attribute("query", "refund policy")
     span.end()
 ```
 
-### LangGraph Integration
-
-```bash
-pip install "foxhound-ai[langgraph]"
-```
-
-```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.langgraph import FoxCallbackHandler
-
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
-
-handler = FoxCallbackHandler.from_client(fox, agent_id="my-langgraph-agent")
-result = await graph.ainvoke(state, config={"callbacks": [handler]})
-await handler.flush()
-```
-
-The LangGraph integration automatically maps graph invocations to `workflow` spans, LLM calls to `llm_call` spans, and tool calls to `tool_call` spans — preserving parent-child relationships.
-
-### Claude Agent SDK Integration
-
-```bash
-pip install "foxhound-ai[claude-agent]"
-```
-
-```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.claude_agent import FoxClaudeTracer
-
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
-tracer = FoxClaudeTracer.from_client(fox, agent_id="my-claude-agent")
-
-async for message in tracer.traced_query(
-    prompt="Write a hello world script",
-    options=options,
-):
-    print(message)
-await tracer.flush()
-```
-
-Both TypeScript and Python SDKs support the Claude Agent SDK with cross-agent trace correlation. Traces from multi-agent systems are automatically linked so you can follow execution across agent boundaries.
-
-### CrewAI Integration
-
-```bash
-pip install "foxhound-ai[crewai]"
-```
-
-```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.crewai import FoxCrewTracer
-
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
-tracer = FoxCrewTracer.from_client(fox, agent_id="my-crew")
-
-crew = Crew(
-    agents=[researcher, writer],
-    tasks=[research_task, write_task],
-    step_callback=tracer.on_step,
-    task_callback=tracer.on_task,
-)
-
-result = tracer.kickoff(crew, inputs={"topic": "AI safety"})
-tracer.flush_sync()
-```
-
-Each agent in the crew gets its own `agent_step` span under the root `workflow` span, with tool calls and task completions nested beneath the appropriate agent.
-
-### AutoGen Integration
-
-```bash
-pip install "foxhound-ai[autogen]"
-```
-
-```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.autogen import instrument
-
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
-
-tracer = instrument(fox, agent_id="my-autogen-app", agents=[assistant, user_proxy])
-
-user_proxy.initiate_chat(assistant, message="Write a hello world script")
-tracer.flush_sync()
-```
-
-The one-line `instrument()` call patches all provided agents — their LLM replies, function/tool calls, and code execution steps are captured automatically as Fox spans.
-
-### OpenAI Agents Integration
-
-```bash
-pip install "foxhound-ai[openai-agents]"
-```
-
-```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.openai_agents import instrument
-
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
-
-processor = instrument(fox, agent_id="my-openai-agent")
-
-from agents import Runner
-result = await Runner.run(my_agent, "Hello!")
-await processor.flush()
-```
-
-`instrument()` registers a `TracingProcessor` with the OpenAI Agents SDK globally — every subsequent `Runner.run()` call is captured automatically, including agent handoffs, guardrail evaluations, and nested agent spans.
-
-### Local Trace Viewer (CLI)
-
-```bash
-foxhound ui --api http://localhost:3001 --api-key sk-...
-```
-
-Opens an interactive trace viewer in your browser, connected to your running Foxhound API.
-
-## API Reference
-
-All endpoints are prefixed with `/v1`. Authentication is via Bearer token (JWT or API key).
-
-### Traces
-
-| Method | Path                                       | Description                             |
-| ------ | ------------------------------------------ | --------------------------------------- |
-| `POST` | `/v1/traces`                               | Ingest trace from SDK (202 Accepted)    |
-| `GET`  | `/v1/traces`                               | List traces with filters and pagination |
-| `GET`  | `/v1/traces/:id`                           | Get single trace with all spans         |
-| `GET`  | `/v1/traces/:traceId/spans/:spanId/replay` | Reconstruct agent state at span         |
-| `GET`  | `/v1/runs/diff?runA=:id&runB=:id`          | Side-by-side diff of two agent runs     |
-
-### Auth
-
-| Method | Path              | Description                  |
-| ------ | ----------------- | ---------------------------- |
-| `POST` | `/v1/auth/signup` | Create user + organization   |
-| `POST` | `/v1/auth/login`  | Authenticate and receive JWT |
-| `GET`  | `/v1/auth/me`     | Current user profile         |
-
-### API Keys
-
-| Method   | Path               | Description                    |
-| -------- | ------------------ | ------------------------------ |
-| `POST`   | `/v1/api-keys`     | Create API key (shown once)    |
-| `GET`    | `/v1/api-keys`     | List active keys (prefix only) |
-| `DELETE` | `/v1/api-keys/:id` | Revoke a key                   |
+Framework-specific extras: `pip install "foxhound-ai[langgraph]"`, `"foxhound-ai[claude-agent]"`, `"foxhound-ai[crewai]"`, `"foxhound-ai[autogen]"`, `"foxhound-ai[openai-agents]"`.
 
 ## Self-Hosting
 
-Foxhound is designed to be self-hosted. You need:
-
-- PostgreSQL 16+
-- Node.js 20+
-
-### Environment Variables
-
-| Variable                | Required | Description                         |
-| ----------------------- | -------- | ----------------------------------- |
-| `DATABASE_URL`          | Yes      | PostgreSQL connection string        |
-| `JWT_SECRET`            | Yes      | Secret for signing auth tokens      |
-| `STRIPE_SECRET_KEY`     | No       | Stripe API key (for future billing) |
-| `STRIPE_WEBHOOK_SECRET` | No       | Stripe webhook signing secret       |
-| `INTERNAL_CRON_SECRET`  | No       | Secret for internal cron endpoints  |
-| `LOG_LEVEL`             | No       | Logging level (default: `info`)     |
-
-Stripe configuration is optional. Without it, Foxhound runs as a fully functional open-source tracing platform.
-
-## Security
-
-Foxhound follows security best practices:
-
-- **Authentication:** JWT tokens (30-day expiry) + API keys (`sk-` prefix, SHA-256 hashed, never stored in plaintext)
-- **Cookies:** HttpOnly, Secure, SameSite=Lax — tokens are not accessible to JavaScript
-- **CSP:** Content Security Policy headers via Helmet
-- **Rate limiting:** Global 60 req/min, auth endpoints 10/min, trace ingestion 1000/min
-- **Multi-tenancy:** All data queries scoped by organization ID at the database layer
-- **Redirect validation:** Stripe checkout URLs validated before redirect
-- **Password hashing:** scrypt with random salt and timing-safe comparison
-
-## Managed Cloud
-
-Foxhound is **free and open source**. A managed cloud offering is coming soon — [sign up for the waitlist](link) to be notified when it launches.
-
-## Deployment
-
-The web dashboard has been extracted to its own repository: [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web). It deploys to Cloudflare Workers independently.
+Foxhound is designed to be self-hosted. You need PostgreSQL 16+ and Node.js 20+. See `apps/api/.env.example` for all configuration options.
 
 ## Development
+
+**Stack:** TypeScript · Node.js 20 · pnpm workspaces · Turborepo · Fastify · Drizzle ORM · PostgreSQL 16
 
 ```bash
 pnpm build          # Build all packages
@@ -405,72 +111,26 @@ pnpm test           # Run all tests
 pnpm lint           # Lint all packages
 pnpm typecheck      # TypeScript type checking
 pnpm format         # Format with Prettier
-pnpm format:check   # Check formatting
 ```
-
-### Project Structure
-
-| Package                  | Description                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `apps/api`               | Fastify REST API — auth, traces, billing, webhooks, SSO                           |
-| `packages/sdk`           | TypeScript SDK — `@foxhound-ai/sdk` (Claude Agent SDK support)                    |
-| `packages/sdk-py`        | Python SDK — `foxhound-ai` with LangGraph, Claude, CrewAI, AutoGen, OpenAI Agents |
-| `packages/db`            | Drizzle ORM schema, queries, and migrations                                       |
-| `packages/billing`       | Stripe integration, entitlements engine, usage metering                           |
-| `packages/mcp-server`    | MCP server for tool-based trace integration                                       |
-| `packages/notifications` | Alert routing — PagerDuty, GitHub, Linear, webhooks                               |
-| `packages/types`         | Shared TypeScript types (Span, Trace, AuditEvent)                                 |
-
-### CI
-
-GitHub Actions runs on every push and PR to `main`:
-
-1. Lint + format check
-2. TypeScript type checking
-3. Test suite
-4. Full build
 
 ## Span Model
 
-Foxhound uses a hierarchical span model inspired by OpenTelemetry:
-
 ```
 Trace
-└── Span (kind: workflow)
-    ├── Span (kind: llm_call)
-    ├── Span (kind: tool_call)
-    │   └── Span (kind: llm_call)
-    └── Span (kind: agent_step)
-        ├── Span (kind: tool_call)
-        └── Span (kind: llm_call)
+└── Span (workflow)
+    ├── Span (llm_call)
+    ├── Span (tool_call)
+    │   └── Span (llm_call)
+    └── Span (agent_step)
+        ├── Span (tool_call)
+        └── Span (llm_call)
 ```
 
-**Span kinds:**
+Span kinds: `tool_call` · `llm_call` · `agent_step` · `workflow` · `custom`. Each span carries attributes, events, status, and a parent link for tree reconstruction.
 
-- `tool_call` — External tool invocations (search, API calls, file I/O)
-- `llm_call` — LLM / chat model completions
-- `agent_step` — High-level agent reasoning steps
-- `workflow` — Top-level graph or workflow execution
-- `custom` — User-defined spans
+## Security
 
-Each span carries:
-
-- `attributes` — Key-value metadata (model name, token counts, tool inputs)
-- `events` — Timestamped occurrences within the span
-- `status` — `ok`, `error`, or `unset`
-- `parentSpanId` — Links to parent span for tree reconstruction
-
-## Contributing
-
-We welcome contributions. To get started:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Make your changes with tests
-4. Run `pnpm lint && pnpm typecheck && pnpm test`
-5. Open a pull request
-
-Please open an issue first for large changes so we can discuss the approach.
+JWT auth (30-day expiry) · API keys (SHA-256 hashed, never stored plaintext) · HttpOnly/Secure/SameSite cookies · CSP headers via Helmet · rate limiting on all endpoints · all data queries scoped by organization ID at the database layer.
 
 ## License
 

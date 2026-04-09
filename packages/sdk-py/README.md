@@ -15,10 +15,10 @@ pip install foxhound-ai[crewai]           # + CrewAI support
 ### LangGraph
 
 ```python
-from fox_sdk import FoxClient
-from fox_sdk.integrations.langgraph import FoxCallbackHandler
+from foxhound import FoxhoundClient
+from foxhound.integrations.langgraph import FoxCallbackHandler
 
-fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
 handler = FoxCallbackHandler.from_client(fox, agent_id="my-langgraph-agent")
 result = await graph.ainvoke(state, config={"callbacks": [handler]})
@@ -29,10 +29,10 @@ await handler.flush()
 
 ```python
 from crewai import Agent, Crew, Task
-from fox_sdk import FoxClient
-from fox_sdk.integrations.crewai import FoxCrewTracer
+from foxhound import FoxhoundClient
+from foxhound.integrations.crewai import FoxCrewTracer
 
-fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 tracer = FoxCrewTracer.from_client(fox, agent_id="my-crew")
 
 researcher = Agent(role="Researcher", goal="Research topics", backstory="...")
@@ -57,9 +57,9 @@ await tracer.flush()
 ### Manual tracing
 
 ```python
-from fox_sdk import FoxClient
+from foxhound import FoxhoundClient
 
-fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
 async with fox.trace(agent_id="my-agent") as tracer:
     span = tracer.start_span(name="tool:search", kind="tool_call")

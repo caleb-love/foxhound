@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from fox_sdk.tracer import Tracer
-from fox_sdk.integrations.openai_agents import (
+from foxhound.tracer import Tracer
+from foxhound.integrations.openai_agents import (
     FoxOpenAIAgentsProcessor,
     _classify_span,
     _span_type,
@@ -607,7 +607,7 @@ def test_instrument_registers_processor():
     """instrument() calls add_trace_processor on the SDK."""
     processor, _ = _make_processor()
 
-    with patch("fox_sdk.integrations.openai_agents.FoxOpenAIAgentsProcessor.instrument") as mock_inst:
+    with patch("foxhound.integrations.openai_agents.FoxOpenAIAgentsProcessor.instrument") as mock_inst:
         # Verify instrument() is called during construction path
         processor.instrument = mock_inst
         processor.instrument()
@@ -617,13 +617,13 @@ def test_instrument_registers_processor():
 @pytest.mark.asyncio
 async def test_from_client_creates_processor():
     """FoxOpenAIAgentsProcessor.from_client() creates a working processor."""
-    from fox_sdk.client import FoxClient
+    from foxhound.client import FoxhoundClient
     import respx
     import httpx
 
     with respx.mock:
         respx.post("https://api.fox.ai/v1/traces").mock(return_value=httpx.Response(202))
-        fox = FoxClient(api_key="fox_test", endpoint="https://api.fox.ai")
+        fox = FoxhoundClient(api_key="fox_test", endpoint="https://api.fox.ai")
         processor = FoxOpenAIAgentsProcessor.from_client(fox, agent_id="test-agent")
         assert processor.trace_id
         data = _make_span_data("agent", name="TestAgent", tools=None, handoffs=None, output_type=None)

@@ -19,10 +19,10 @@ hierarchy by mapping OpenAI span IDs to Fox span IDs as spans open and close::
 
 Usage::
 
-    from fox_sdk import FoxClient
-    from fox_sdk.integrations.openai_agents import instrument
+    from foxhound import FoxhoundClient
+    from foxhound.integrations.openai_agents import instrument
 
-    fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+    fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
     # One-line auto-instrumentation
     processor = instrument(fox, agent_id="my-openai-agent")
@@ -33,7 +33,7 @@ Usage::
     await processor.flush()
 
     # Or use the class for more control
-    from fox_sdk.integrations.openai_agents import FoxOpenAIAgentsProcessor
+    from foxhound.integrations.openai_agents import FoxOpenAIAgentsProcessor
     processor = FoxOpenAIAgentsProcessor.from_client(fox, agent_id="my-agent")
     processor.instrument()
     result = await Runner.run(my_agent, "Hello!")
@@ -47,10 +47,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from fox_sdk.tracer import ActiveSpan, SpanKind, Tracer
+from foxhound.tracer import ActiveSpan, SpanKind, Tracer
 
 if TYPE_CHECKING:
-    from fox_sdk.client import FoxClient
+    from foxhound.client import FoxhoundClient
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +96,12 @@ class FoxOpenAIAgentsProcessor:
     @classmethod
     def from_client(
         cls,
-        client: "FoxClient",
+        client: "FoxhoundClient",
         agent_id: str,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "FoxOpenAIAgentsProcessor":
-        """Create a processor from a ``FoxClient`` instance."""
+        """Create a processor from a ``FoxhoundClient`` instance."""
         tracer = client.start_trace(
             agent_id=agent_id,
             session_id=session_id,
@@ -297,7 +297,7 @@ class FoxOpenAIAgentsProcessor:
 
 
 def instrument(
-    client: "FoxClient",
+    client: "FoxhoundClient",
     agent_id: str,
     session_id: str | None = None,
     metadata: dict[str, Any] | None = None,
@@ -308,7 +308,7 @@ def instrument(
     system.  Every subsequent agent run is captured automatically.
 
     Args:
-        client:     An initialised :class:`~fox_sdk.client.FoxClient`.
+        client:     An initialised :class:`~foxhound.client.FoxhoundClient`.
         agent_id:   Identifier for the agent or service being traced.
         session_id: Optional session / conversation identifier.
         metadata:   Optional key-value metadata attached to the trace.

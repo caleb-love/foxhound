@@ -10,10 +10,10 @@ span and emitted as a structured trace to the Fox ingestion API.
 
 Usage::
 
-    from fox_sdk import FoxClient
-    from fox_sdk.integrations.langgraph import FoxCallbackHandler
+    from foxhound import FoxhoundClient
+    from foxhound.integrations.langgraph import FoxCallbackHandler
 
-    fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+    fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
     # --- async graph (most common) ---
     handler = FoxCallbackHandler.from_client(fox, agent_id="my-agent")
@@ -42,10 +42,10 @@ from uuid import UUID
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 
-from fox_sdk.tracer import ActiveSpan, SpanKind, Tracer
+from foxhound.tracer import ActiveSpan, SpanKind, Tracer
 
 if TYPE_CHECKING:
-    from fox_sdk.client import FoxClient
+    from foxhound.client import FoxhoundClient
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +92,12 @@ class FoxCallbackHandler(BaseCallbackHandler):
     @classmethod
     def from_client(
         cls,
-        client: "FoxClient",
+        client: "FoxhoundClient",
         agent_id: str,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "FoxCallbackHandler":
-        """Create a handler from a ``FoxClient`` instance."""
+        """Create a handler from a ``FoxhoundClient`` instance."""
         tracer = client.start_trace(
             agent_id=agent_id,
             session_id=session_id,
