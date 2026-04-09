@@ -485,7 +485,7 @@ function CodeSnippets() {
 
 const ARCH_NODES = [
   { label: "Your Agents", sub: "TS / Python" },
-  { label: "Foxhound SDK", sub: "OpenTelemetry" },
+  { label: "Foxhound SDK", sub: "LangGraph · more" },
   { label: "Foxhound API", sub: "Fastify" },
   { label: "PostgreSQL", sub: "Drizzle ORM" },
   { label: "Dashboard", sub: "Next.js" },
@@ -851,7 +851,11 @@ export function Landing() {
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
           <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
-            OpenTelemetry compatible
+            LangGraph native
+          </span>
+          <span style={{ color: "var(--border)" }}>·</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            CrewAI · AutoGen · OpenAI Agents · more
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Self-host in minutes</span>
@@ -890,12 +894,12 @@ export function Landing() {
           }}
         >
           {[
-            { name: "LangGraph", color: "#1c7ed6" },
-            { name: "Claude Agent SDK", color: "#c084fc" },
-            { name: "CrewAI", color: "#e55a00" },
-            { name: "AutoGen", color: "#3dd68c" },
-            { name: "OpenAI Agents", color: "#10a37f" },
-            { name: "OpenTelemetry", color: "#f78c40" },
+            { name: "LangGraph", color: "#1c7ed6", featured: true },
+            { name: "Claude Agent SDK", color: "#c084fc", featured: false },
+            { name: "CrewAI", color: "#e55a00", featured: false },
+            { name: "AutoGen", color: "#3dd68c", featured: false },
+            { name: "OpenAI Agents", color: "#10a37f", featured: false },
+            { name: "OpenTelemetry", color: "#f78c40", featured: false },
           ].map((integration) => (
             <div
               key={integration.name}
@@ -903,19 +907,21 @@ export function Landing() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "10px 20px",
-                background: "var(--surface)",
-                border: `1px solid ${integration.color}44`,
+                padding: integration.featured ? "12px 24px" : "10px 20px",
+                background: integration.featured ? `${integration.color}14` : "var(--surface)",
+                border: integration.featured
+                  ? `1.5px solid ${integration.color}88`
+                  : `1px solid ${integration.color}44`,
                 borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--text)",
+                fontSize: integration.featured ? 14 : 13,
+                fontWeight: 700,
+                color: integration.featured ? integration.color : "var(--text)",
               }}
             >
               <span
                 style={{
-                  width: 8,
-                  height: 8,
+                  width: integration.featured ? 10 : 8,
+                  height: integration.featured ? 10 : 8,
                   borderRadius: "50%",
                   background: integration.color,
                   display: "inline-block",
@@ -923,6 +929,24 @@ export function Landing() {
                 }}
               />
               {integration.name}
+              {integration.featured && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-mono)",
+                    background: `${integration.color}22`,
+                    border: `1px solid ${integration.color}44`,
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    marginLeft: 4,
+                    color: integration.color,
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  primary
+                </span>
+              )}
             </div>
           ))}
         </div>
