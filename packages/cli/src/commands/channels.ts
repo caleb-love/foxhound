@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import chalk from "chalk";
 import type { ChannelKind } from "@foxhound/api-client";
 import { getClient } from "../config.js";

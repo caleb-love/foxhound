@@ -1,8 +1,8 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { FoxhoundApiClient } from "@foxhound/api-client";
-import { loadConfig, saveConfig, getClient } from "../config.js";
+import { saveConfig, getClient } from "../config.js";
 import { isJsonMode, printJson } from "../output.js";
 
 export function registerAuthCommands(program: Command): void {

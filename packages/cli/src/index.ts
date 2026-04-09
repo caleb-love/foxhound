@@ -18,7 +18,7 @@ program
   .option("--json", "Output as JSON")
   .option("--no-color", "Disable color output")
   .hook("preAction", (_thisCommand, actionCommand) => {
-    const opts = actionCommand.optsWithGlobals() as { json?: boolean; color?: boolean };
+    const opts: { json?: boolean; color?: boolean } = actionCommand.optsWithGlobals();
     setOutputMode({ json: opts.json, noColor: opts.color === false });
   });
 

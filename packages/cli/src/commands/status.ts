@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import chalk from "chalk";
 import { getClient } from "../config.js";
 import { isJsonMode, printJson } from "../output.js";

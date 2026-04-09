@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import chalk from "chalk";
 import { toEpochMs } from "@foxhound/api-client";
 import type { Span } from "@foxhound/types";
