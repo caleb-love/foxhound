@@ -17,7 +17,12 @@ const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
 });
 
-await app.register(cors);
+await app.register(cors, {
+  origin: process.env["FRONTEND_URL"]
+    ? process.env["FRONTEND_URL"].split(",")
+    : ["http://localhost:3000"],
+  credentials: true,
+});
 await app.register(helmet);
 
 // Global rate limiting — per-route overrides applied below via config.rateLimit
