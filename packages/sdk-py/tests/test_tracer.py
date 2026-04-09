@@ -1,7 +1,7 @@
 """Unit tests for the core Tracer / ActiveSpan primitives."""
 
 import pytest
-from fox_sdk.tracer import Tracer
+from foxhound.tracer import Tracer
 
 
 @pytest.mark.asyncio

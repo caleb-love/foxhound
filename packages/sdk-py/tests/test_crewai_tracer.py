@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from fox_sdk.tracer import Tracer
-from fox_sdk.integrations.crewai import FoxCrewTracer
+from foxhound.tracer import Tracer
+from foxhound.integrations.crewai import FoxCrewTracer
 
 
 # ---------------------------------------------------------------------------

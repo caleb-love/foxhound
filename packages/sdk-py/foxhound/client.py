@@ -1,4 +1,4 @@
-"""FoxClient — top-level entry point for the Fox observability SDK."""
+"""FoxhoundClient — top-level entry point for the Foxhound observability SDK."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ import httpx
 from .tracer import Tracer
 
 
-class FoxClient:
+class FoxhoundClient:
     """
-    Client for the Fox observability platform.
+    Client for the Foxhound observability platform.
 
     Usage::
 
-        fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+        fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
         # Manual tracing
         tracer = fox.start_trace(agent_id="my-agent")
@@ -25,7 +25,7 @@ class FoxClient:
         await tracer.flush()
 
         # LangGraph integration
-        from fox_sdk.integrations.langgraph import FoxCallbackHandler
+        from foxhound.integrations.langgraph import FoxCallbackHandler
         handler = FoxCallbackHandler.from_client(fox, agent_id="my-agent")
         result = await graph.ainvoke(state, config={"callbacks": [handler]})
         await handler.flush()
@@ -75,7 +75,7 @@ class FoxClient:
             )
         if response.status_code not in (200, 201, 202):
             raise RuntimeError(
-                f"Fox: failed to ingest trace {payload.get('id')}: "
+                f"Foxhound: failed to ingest trace {payload.get('id')}: "
                 f"{response.status_code} {response.text}"
             )
 
@@ -91,7 +91,7 @@ class FoxClient:
             )
         if response.status_code not in (200, 201, 202):
             raise RuntimeError(
-                f"Fox: failed to ingest trace {payload.get('id')}: "
+                f"Foxhound: failed to ingest trace {payload.get('id')}: "
                 f"{response.status_code} {response.text}"
             )
 

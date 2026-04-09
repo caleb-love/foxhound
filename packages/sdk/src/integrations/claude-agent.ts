@@ -6,10 +6,10 @@
  *
  * Usage:
  *   import { FoxhoundClient } from "@foxhound-ai/sdk";
- *   import { FoxClaudeTracer } from "@foxhound-ai/sdk/integrations/claude-agent";
+ *   import { FoxhoundClaudeTracer } from "@foxhound-ai/sdk/integrations/claude-agent";
  *
  *   const fox = new FoxhoundClient({ apiKey: "fox_...", endpoint: "..." });
- *   const tracer = FoxClaudeTracer.fromClient(fox, { agentId: "my-agent" });
+ *   const tracer = FoxhoundClaudeTracer.fromClient(fox, { agentId: "my-agent" });
  *
  *   tracer.startWorkflow("Write a script");
  *   // ... process messages from the agent loop ...
@@ -28,7 +28,7 @@ export interface ClaudeTracerOptions {
   metadata?: Record<string, string | number | boolean | null>;
 }
 
-export class FoxClaudeTracer {
+export class FoxhoundClaudeTracer {
   private readonly tracer: Tracer;
   private workflowSpan: ActiveSpan | null = null;
   private toolSpans: Map<string, ActiveSpan> = new Map();
@@ -38,13 +38,13 @@ export class FoxClaudeTracer {
     this.tracer = tracer;
   }
 
-  static fromClient(client: FoxhoundClient, options: ClaudeTracerOptions): FoxClaudeTracer {
+  static fromClient(client: FoxhoundClient, options: ClaudeTracerOptions): FoxhoundClaudeTracer {
     const tracer = client.startTrace({
       agentId: options.agentId,
       sessionId: options.sessionId,
       metadata: options.metadata,
     });
-    return new FoxClaudeTracer(tracer);
+    return new FoxhoundClaudeTracer(tracer);
   }
 
   get traceId(): string {

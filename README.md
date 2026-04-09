@@ -85,9 +85,9 @@ npm install @foxhound-ai/sdk    # TypeScript
 ### Example
 
 ```python
-from fox_sdk import FoxClient
+from foxhound import FoxhoundClient
 
-fox = FoxClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
+fox = FoxhoundClient(api_key="sk-...", endpoint="https://your-foxhound-instance.com")
 
 async with fox.trace(agent_id="support-agent") as tracer:
     span = tracer.start_span(name="tool:search", kind="tool_call")

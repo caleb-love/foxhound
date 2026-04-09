@@ -35,11 +35,11 @@ dev = [
 ]
 
 [project.scripts]
-foxhound = "fox_sdk.cli:main"
+foxhound = "foxhound.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["fox_sdk"]
-include = ["fox_sdk/static/*"]
+packages = ["foxhound"]
+include = ["foxhound/static/*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

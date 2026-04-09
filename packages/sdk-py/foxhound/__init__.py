@@ -1,14 +1,14 @@
 """
-Fox SDK — compliance-grade observability for AI agent fleets.
+Foxhound SDK — compliance-grade observability for AI agent fleets.
 
 Quickstart::
 
-    from fox_sdk import FoxClient
+    from foxhound import FoxhoundClient
 
-    fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+    fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
     # LangGraph (most common)
-    from fox_sdk.integrations.langgraph import FoxCallbackHandler
+    from foxhound.integrations.langgraph import FoxCallbackHandler
 
     handler = FoxCallbackHandler.from_client(fox, agent_id="my-langgraph-agent")
     result = await graph.ainvoke(state, config={"callbacks": [handler]})
@@ -21,7 +21,7 @@ Quickstart::
         span.end()
 """
 
-from .client import FoxClient
+from .client import FoxhoundClient
 from .tracer import ActiveSpan, Tracer
 
-__all__ = ["FoxClient", "Tracer", "ActiveSpan"]
+__all__ = ["FoxhoundClient", "Tracer", "ActiveSpan"]

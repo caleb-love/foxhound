@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 from langchain_core.outputs import LLMResult, Generation
 
-from fox_sdk.tracer import Tracer
-from fox_sdk.integrations.langgraph import FoxCallbackHandler
+from foxhound.tracer import Tracer
+from foxhound.integrations.langgraph import FoxCallbackHandler
 
 
 def _handler() -> tuple[FoxCallbackHandler, list[dict]]:

@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from fox_sdk.tracer import Tracer
-from fox_sdk.integrations.autogen import FoxAutogenTracer
+from foxhound.tracer import Tracer
+from foxhound.integrations.autogen import FoxAutogenTracer
 
 
 # ---------------------------------------------------------------------------
@@ -548,7 +548,7 @@ async def test_reply_span_captures_sender_name():
 
 def test_get_agent_name_fallback_to_class_name():
     """_get_agent_name falls back to type name when agent has no .name."""
-    from fox_sdk.integrations.autogen import _get_agent_name
+    from foxhound.integrations.autogen import _get_agent_name
 
     class MyCustomAgent:
         pass
@@ -559,7 +559,7 @@ def test_get_agent_name_fallback_to_class_name():
 
 def test_get_agent_name_from_name_attr():
     """_get_agent_name uses .name when present."""
-    from fox_sdk.integrations.autogen import _get_agent_name
+    from foxhound.integrations.autogen import _get_agent_name
 
     agent = MagicMock()
     agent.name = "ResearchBot"
@@ -572,25 +572,25 @@ def test_get_agent_name_from_name_attr():
 
 
 def test_extract_func_name_from_dict():
-    from fox_sdk.integrations.autogen import _extract_func_name
+    from foxhound.integrations.autogen import _extract_func_name
 
     assert _extract_func_name({"name": "my_tool", "arguments": "{}"}) == "my_tool"
 
 
 def test_extract_func_name_from_nested_dict():
-    from fox_sdk.integrations.autogen import _extract_func_name
+    from foxhound.integrations.autogen import _extract_func_name
 
     assert _extract_func_name({"function": {"name": "nested_tool"}}) == "nested_tool"
 
 
 def test_extract_func_name_unknown():
-    from fox_sdk.integrations.autogen import _extract_func_name
+    from foxhound.integrations.autogen import _extract_func_name
 
     assert _extract_func_name({}) == "unknown"
 
 
 def test_extract_func_args_from_dict():
-    from fox_sdk.integrations.autogen import _extract_func_args
+    from foxhound.integrations.autogen import _extract_func_args
 
     result = _extract_func_args({"name": "tool", "arguments": '{"x": 1}'})
     assert result == '{"x": 1}'
@@ -617,7 +617,7 @@ async def test_trace_id_accessible():
 @pytest.mark.asyncio
 async def test_instrument_function_raises_if_autogen_missing():
     """The module-level instrument() raises ImportError if autogen is absent."""
-    from fox_sdk.integrations import autogen as autogen_module
+    from foxhound.integrations import autogen as autogen_module
 
     with patch.object(autogen_module, "_check_autogen_installed", side_effect=ImportError("not installed")):
         with pytest.raises(ImportError):
@@ -631,7 +631,7 @@ async def test_instrument_function_raises_if_autogen_missing():
 @pytest.mark.asyncio
 async def test_instrument_function_returns_tracer():
     """The module-level instrument() returns a FoxAutogenTracer."""
-    from fox_sdk.integrations import autogen as autogen_module
+    from foxhound.integrations import autogen as autogen_module
 
     mock_client = MagicMock()
     mock_client.start_trace.return_value = Tracer(agent_id="x")

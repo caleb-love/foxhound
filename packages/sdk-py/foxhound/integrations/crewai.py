@@ -24,10 +24,10 @@ on TaskOutput, ``agent`` key in dicts) or can be set explicitly via
 
 Usage::
 
-    from fox_sdk import FoxClient
-    from fox_sdk.integrations.crewai import FoxCrewTracer
+    from foxhound import FoxhoundClient
+    from foxhound.integrations.crewai import FoxCrewTracer
 
-    fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+    fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
     tracer = FoxCrewTracer.from_client(fox, agent_id="my-crew")
 
     crew = Crew(
@@ -53,10 +53,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from fox_sdk.tracer import ActiveSpan, Tracer
+from foxhound.tracer import ActiveSpan, Tracer
 
 if TYPE_CHECKING:
-    from fox_sdk.client import FoxClient
+    from foxhound.client import FoxhoundClient
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +101,12 @@ class FoxCrewTracer:
     @classmethod
     def from_client(
         cls,
-        client: "FoxClient",
+        client: "FoxhoundClient",
         agent_id: str,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "FoxCrewTracer":
-        """Create a tracer from a ``FoxClient`` instance."""
+        """Create a tracer from a ``FoxhoundClient`` instance."""
         tracer = client.start_trace(
             agent_id=agent_id,
             session_id=session_id,

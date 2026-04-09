@@ -19,7 +19,7 @@ def _build_handler(api_url: str, api_key: str):
 
     try:
         # Python 3.9+
-        ref = importlib.resources.files("fox_sdk.static").joinpath("index.html")
+        ref = importlib.resources.files("foxhound.static").joinpath("index.html")
         html_bytes = ref.read_bytes()
     except Exception:
         pass

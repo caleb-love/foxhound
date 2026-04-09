@@ -20,10 +20,10 @@ turns, tool/function calls, and code execution are recorded as children::
 
 Usage::
 
-    from fox_sdk import FoxClient
-    from fox_sdk.integrations.autogen import FoxAutogenTracer, instrument
+    from foxhound import FoxhoundClient
+    from foxhound.integrations.autogen import FoxAutogenTracer, instrument
 
-    fox = FoxClient(api_key="fox_...", endpoint="https://api.fox.ai")
+    fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
 
     # One-line auto-instrumentation
     tracer = instrument(fox, agent_id="my-autogen-app", agents=[assistant, user_proxy])
@@ -46,10 +46,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from fox_sdk.tracer import ActiveSpan, Tracer
+from foxhound.tracer import ActiveSpan, Tracer
 
 if TYPE_CHECKING:
-    from fox_sdk.client import FoxClient
+    from foxhound.client import FoxhoundClient
 
 logger = logging.getLogger(__name__)
 
@@ -95,12 +95,12 @@ class FoxAutogenTracer:
     @classmethod
     def from_client(
         cls,
-        client: "FoxClient",
+        client: "FoxhoundClient",
         agent_id: str,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "FoxAutogenTracer":
-        """Create a tracer from a :class:`~fox_sdk.client.FoxClient` instance."""
+        """Create a tracer from a :class:`~foxhound.client.FoxhoundClient` instance."""
         tracer = client.start_trace(
             agent_id=agent_id,
             session_id=session_id,
@@ -511,7 +511,7 @@ class FoxAutogenTracer:
 
 
 def instrument(
-    client: "FoxClient",
+    client: "FoxhoundClient",
     agent_id: str,
     agents: list[Any],
     session_id: str | None = None,
@@ -523,7 +523,7 @@ def instrument(
     and code execution steps are captured as Fox spans automatically.
 
     Args:
-        client:     An initialised :class:`~fox_sdk.client.FoxClient`.
+        client:     An initialised :class:`~foxhound.client.FoxhoundClient`.
         agent_id:   Identifier for the application being traced.
         agents:     List of ``ConversableAgent`` instances to instrument.
         session_id: Optional session / conversation identifier.
