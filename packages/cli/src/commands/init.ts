@@ -86,11 +86,7 @@ handler = FoxhoundCrewHandler(fox)
 `;
 }
 
-function typescriptSnippet(
-  framework: DetectedFramework,
-  apiKey: string,
-  endpoint: string,
-): string {
+function typescriptSnippet(framework: DetectedFramework, apiKey: string, endpoint: string): string {
   const base = `import { FoxhoundClient } from "@foxhound-ai/sdk";
 
 const fox = new FoxhoundClient({
@@ -175,9 +171,7 @@ export function registerInitCommand(program: Command): void {
       }
 
       console.log(chalk.dim("─".repeat(60)));
-      console.log(
-        `\nNext: import ${chalk.cyan(filename)} in your agent code and run it.`,
-      );
+      console.log(`\nNext: import ${chalk.cyan(filename)} in your agent code and run it.`);
       console.log("Your first trace should appear at https://app.foxhound.dev within seconds.\n");
     });
 }

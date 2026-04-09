@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import type { FastifyRequest, FastifyReply } from "fastify";
 
 vi.mock("@foxhound/billing", () => ({
   getEntitlements: vi.fn(),
@@ -8,14 +9,14 @@ import { getEntitlements } from "@foxhound/billing";
 import { requireEntitlement } from "./entitlements.js";
 
 function mockRequest(orgId: string) {
-  return { orgId } as import("fastify").FastifyRequest;
+  return { orgId } as FastifyRequest;
 }
 
 function mockReply() {
   const reply = {
     code: vi.fn().mockReturnThis(),
     send: vi.fn().mockReturnThis(),
-  } as unknown as import("fastify").FastifyReply;
+  } as unknown as FastifyReply;
   return reply;
 }
 
@@ -38,6 +39,7 @@ describe("requireEntitlement", () => {
 
     await handler(mockRequest("org_1"), reply);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(reply.code).not.toHaveBeenCalled();
   });
 
@@ -58,6 +60,7 @@ describe("requireEntitlement", () => {
 
     await handler(mockRequest("org_1"), reply);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(reply.code).not.toHaveBeenCalled();
   });
 
@@ -78,6 +81,7 @@ describe("requireEntitlement", () => {
 
     await handler(mockRequest("org_1"), reply);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(reply.code).toHaveBeenCalledWith(403);
   });
 });
