@@ -1,0 +1,49 @@
+{
+  "name": "@foxhound-ai/cli",
+  "version": "0.1.0",
+  "description": "CLI for the Foxhound AI agent observability platform",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caleb-love/foxhound.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "foxhound",
+    "ai",
+    "agents",
+    "observability",
+    "tracing",
+    "cli"
+  ],
+  "bin": {
+    "foxhound": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@foxhound/api-client": "workspace:*",
+    "@foxhound/types": "workspace:*",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

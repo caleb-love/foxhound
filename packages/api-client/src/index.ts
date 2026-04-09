@@ -1,0 +1,401 @@
+/**
+ * Typed HTTP client for the Foxhound API.
+ * Shared by the CLI and MCP server packages.
+ */
+
+import type { Trace } from "@foxhound/types";
+import type {
+  FoxhoundApiConfig,
+  TraceListResponse,
+  ReplayResponse,
+  DiffResponse,
+  AlertRule,
+  AlertRuleListResponse,
+  AlertEventType,
+  AlertSeverity,
+  ChannelKind,
+  NotificationChannel,
+  ChannelListResponse,
+  ApiKeyCreatedResponse,
+  ApiKeyListResponse,
+  LoginResponse,
+  MeResponse,
+  HealthResponse,
+  UsageResponse,
+  ScoreListResponse,
+  TraceScoresResponse,
+  EvaluatorListResponse,
+  TriggerEvaluatorRunsResponse,
+  AnnotationQueueListResponse,
+  AnnotationQueueWithStats,
+  AddAnnotationItemsResponse,
+  SubmitAnnotationResponse,
+} from "./types.js";
+import type {
+  Score,
+  Evaluator,
+  EvaluatorRun,
+  AnnotationQueueItem,
+  ScoreSource,
+} from "@foxhound/types";
+
+export * from "./types.js";
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+
+/** Parse an ISO 8601 string or epoch-ms string into epoch milliseconds. */
+export function toEpochMs(value: string): number {
+  const num = Number(value);
+  if (!isNaN(num)) return num;
+  const date = new Date(value);
+  if (isNaN(date.getTime())) throw new Error(`Invalid date: ${value}`);
+  return date.getTime();
+}
+
+// ── Client ────────────────────────────────────────────────────────────────
+
+export class FoxhoundApiClient {
+  private readonly endpoint: string;
+  private readonly apiKey: string;
+
+  constructor(config: FoxhoundApiConfig) {
+    let endpoint = config.endpoint;
+    while (endpoint.endsWith("/")) endpoint = endpoint.slice(0, -1);
+
+    // Enforce HTTPS for non-localhost endpoints
+    if (
+      !endpoint.startsWith("https://") &&
+      !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(endpoint)
+    ) {
+      throw new Error(
+        "Non-localhost endpoints must use HTTPS. " +
+          "Use https:// or connect to localhost for development.",
+      );
+    }
+
+    this.endpoint = endpoint;
+    this.apiKey = config.apiKey;
+  }
+
+  // ── Traces ──────────────────────────────────────────────────────────────
+
+  async searchTraces(params: {
+    agentId?: string;
+    from?: number;
+    to?: number;
+    limit?: number;
+    page?: number;
+  }): Promise<TraceListResponse> {
+    const query = new URLSearchParams();
+    if (params.agentId !== undefined) query.set("agentId", params.agentId);
+    if (params.from !== undefined) query.set("from", String(params.from));
+    if (params.to !== undefined) query.set("to", String(params.to));
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.page !== undefined) query.set("page", String(params.page));
+    return this.get(`/v1/traces?${query.toString()}`);
+  }
+
+  async getTrace(traceId: string): Promise<Trace> {
+    return this.get(`/v1/traces/${encodeURIComponent(traceId)}`);
+  }
+
+  async replaySpan(traceId: string, spanId: string): Promise<ReplayResponse> {
+    return this.get(
+      `/v1/traces/${encodeURIComponent(traceId)}/spans/${encodeURIComponent(spanId)}/replay`,
+    );
+  }
+
+  async diffRuns(runA: string, runB: string): Promise<DiffResponse> {
+    const query = new URLSearchParams({ runA, runB });
+    return this.get(`/v1/runs/diff?${query.toString()}`);
+  }
+
+  // ── Alert Rules ─────────────────────────────────────────────────────────
+
+  async listAlertRules(): Promise<AlertRuleListResponse> {
+    return this.get("/v1/notifications/rules");
+  }
+
+  async createAlertRule(params: {
+    eventType: AlertEventType;
+    minSeverity: AlertSeverity;
+    channelId: string;
+  }): Promise<AlertRule> {
+    return this.post("/v1/notifications/rules", params);
+  }
+
+  async deleteAlertRule(ruleId: string): Promise<{ success: boolean }> {
+    return this.del(`/v1/notifications/rules/${encodeURIComponent(ruleId)}`);
+  }
+
+  // ── Notification Channels ─────────────────────────────────────────────
+
+  async listChannels(): Promise<ChannelListResponse> {
+    return this.get("/v1/notifications/channels");
+  }
+
+  async createChannel(params: {
+    name: string;
+    kind: ChannelKind;
+    config: { webhookUrl: string; channel?: string; dashboardBaseUrl?: string };
+  }): Promise<NotificationChannel> {
+    return this.post("/v1/notifications/channels", params);
+  }
+
+  async testChannel(
+    channelId: string,
+    params?: {
+      eventType?: AlertEventType;
+      severity?: AlertSeverity;
+    },
+  ): Promise<{ ok: boolean }> {
+    return this.post("/v1/notifications/test", {
+      channelId,
+      eventType: params?.eventType ?? "agent_failure",
+      severity: params?.severity ?? "high",
+    });
+  }
+
+  async deleteChannel(channelId: string): Promise<{ success: boolean }> {
+    return this.del(`/v1/notifications/channels/${encodeURIComponent(channelId)}`);
+  }
+
+  // ── API Keys ──────────────────────────────────────────────────────────
+
+  async listApiKeys(): Promise<ApiKeyListResponse> {
+    return this.get("/v1/api-keys");
+  }
+
+  async createApiKey(name: string): Promise<ApiKeyCreatedResponse> {
+    return this.post("/v1/api-keys", { name });
+  }
+
+  async revokeApiKey(keyId: string): Promise<{ success: boolean }> {
+    return this.del(`/v1/api-keys/${encodeURIComponent(keyId)}`);
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────
+
+  async login(email: string, password: string): Promise<LoginResponse> {
+    return this.post("/v1/auth/login", { email, password });
+  }
+
+  async getMe(): Promise<MeResponse> {
+    return this.get("/v1/auth/me");
+  }
+
+  // ── Health / Usage ────────────────────────────────────────────────────
+
+  async getHealth(): Promise<HealthResponse> {
+    return this.get("/health");
+  }
+
+  async getUsage(): Promise<UsageResponse> {
+    return this.get("/v1/billing/usage");
+  }
+
+  // ── Billing ──────────────────────────────────────────────────────────────
+
+  async createCheckout(params: {
+    plan: import("./types.js").CheckoutPlan;
+    successUrl: string;
+    cancelUrl: string;
+  }): Promise<import("./types.js").CheckoutResponse> {
+    return this.post("/v1/billing/checkout", params as unknown as Record<string, unknown>);
+  }
+
+  async createPortalSession(returnUrl: string): Promise<import("./types.js").PortalResponse> {
+    return this.post("/v1/billing/portal", { returnUrl });
+  }
+
+  async getBillingStatus(): Promise<import("./types.js").BillingStatusResponse> {
+    return this.get("/v1/billing/status");
+  }
+
+  // ── Scores ──────────────────────────────────────────────────────────
+
+  async createScore(params: {
+    traceId: string;
+    spanId?: string;
+    name: string;
+    value?: number;
+    label?: string;
+    source: ScoreSource;
+    comment?: string;
+  }): Promise<Score> {
+    return this.post("/v1/scores", params as unknown as Record<string, unknown>);
+  }
+
+  async queryScores(params?: {
+    traceId?: string;
+    name?: string;
+    source?: string;
+    minValue?: number;
+    maxValue?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<ScoreListResponse> {
+    const query = new URLSearchParams();
+    if (params?.traceId !== undefined) query.set("traceId", params.traceId);
+    if (params?.name !== undefined) query.set("name", params.name);
+    if (params?.source !== undefined) query.set("source", params.source);
+    if (params?.minValue !== undefined) query.set("minValue", String(params.minValue));
+    if (params?.maxValue !== undefined) query.set("maxValue", String(params.maxValue));
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    return this.get(`/v1/scores?${query.toString()}`);
+  }
+
+  async getTraceScores(traceId: string): Promise<TraceScoresResponse> {
+    return this.get(`/v1/traces/${encodeURIComponent(traceId)}/scores`);
+  }
+
+  async deleteScore(scoreId: string): Promise<void> {
+    await this.del(`/v1/scores/${encodeURIComponent(scoreId)}`);
+  }
+
+  // ── Evaluators ─────────────────────────────────────────────────────
+
+  async createEvaluator(params: {
+    name: string;
+    promptTemplate: string;
+    model: string;
+    scoringType: "numeric" | "categorical";
+    labels?: string[];
+  }): Promise<Evaluator> {
+    return this.post("/v1/evaluators", params as unknown as Record<string, unknown>);
+  }
+
+  async listEvaluators(): Promise<EvaluatorListResponse> {
+    return this.get("/v1/evaluators");
+  }
+
+  async getEvaluator(evaluatorId: string): Promise<Evaluator> {
+    return this.get(`/v1/evaluators/${encodeURIComponent(evaluatorId)}`);
+  }
+
+  async deleteEvaluator(evaluatorId: string): Promise<void> {
+    await this.del(`/v1/evaluators/${encodeURIComponent(evaluatorId)}`);
+  }
+
+  async triggerEvaluatorRuns(params: {
+    evaluatorId: string;
+    traceIds: string[];
+  }): Promise<TriggerEvaluatorRunsResponse> {
+    return this.post("/v1/evaluator-runs", params as unknown as Record<string, unknown>);
+  }
+
+  async getEvaluatorRun(runId: string): Promise<EvaluatorRun> {
+    return this.get(`/v1/evaluator-runs/${encodeURIComponent(runId)}`);
+  }
+
+  // ── Annotation Queues ──────────────────────────────────────────────
+
+  async createAnnotationQueue(params: {
+    name: string;
+    description?: string;
+    scoreConfigs?: Array<{ name: string; type: "numeric" | "categorical"; labels?: string[] }>;
+  }): Promise<import("@foxhound/types").AnnotationQueue> {
+    return this.post("/v1/annotation-queues", params as unknown as Record<string, unknown>);
+  }
+
+  async listAnnotationQueues(): Promise<AnnotationQueueListResponse> {
+    return this.get("/v1/annotation-queues");
+  }
+
+  async getAnnotationQueue(queueId: string): Promise<AnnotationQueueWithStats> {
+    return this.get(`/v1/annotation-queues/${encodeURIComponent(queueId)}`);
+  }
+
+  async deleteAnnotationQueue(queueId: string): Promise<void> {
+    await this.del(`/v1/annotation-queues/${encodeURIComponent(queueId)}`);
+  }
+
+  async addAnnotationItems(
+    queueId: string,
+    traceIds: string[],
+  ): Promise<AddAnnotationItemsResponse> {
+    return this.post(`/v1/annotation-queues/${encodeURIComponent(queueId)}/items`, { traceIds });
+  }
+
+  async claimAnnotationItem(queueId: string): Promise<AnnotationQueueItem | null> {
+    const response = await fetch(
+      `${this.endpoint}/v1/annotation-queues/${encodeURIComponent(queueId)}/claim`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    if (response.status === 204) return null;
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      const text = raw.length > 500 ? raw.slice(0, 500) + "…" : raw;
+      throw new Error(`Foxhound API ${response.status}: ${text || response.statusText}`);
+    }
+    return response.json() as Promise<AnnotationQueueItem>;
+  }
+
+  async submitAnnotationItem(
+    itemId: string,
+    scores: Array<{ name: string; value?: number; label?: string; comment?: string }>,
+  ): Promise<SubmitAnnotationResponse> {
+    return this.post(`/v1/annotation-queue-items/${encodeURIComponent(itemId)}/submit`, {
+      scores,
+    } as unknown as Record<string, unknown>);
+  }
+
+  async skipAnnotationItem(itemId: string): Promise<AnnotationQueueItem> {
+    return this.post(`/v1/annotation-queue-items/${encodeURIComponent(itemId)}/skip`, {});
+  }
+
+  // ── HTTP helpers ──────────────────────────────────────────────────────
+
+  private async get<T>(path: string): Promise<T> {
+    return this.request("GET", path);
+  }
+
+  private async post<T>(path: string, body: Record<string, unknown>): Promise<T> {
+    return this.request("POST", path, body);
+  }
+
+  private async del<T>(path: string): Promise<T> {
+    return this.request("DELETE", path);
+  }
+
+  /**
+   * NOTE: Response type T is asserted, not validated at runtime.
+   * The API server is the source of truth. If runtime validation
+   * is needed, add zod schemas per-endpoint.
+   */
+  private async request<T>(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<T> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.apiKey}`,
+      Accept: "application/json",
+    };
+
+    const init: RequestInit = { method, headers };
+
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${this.endpoint}${path}`, init);
+
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      // Truncate long error bodies (e.g. HTML error pages) to avoid leaking server internals
+      const text = raw.length > 500 ? raw.slice(0, 500) + "…" : raw;
+      throw new Error(`Foxhound API ${response.status}: ${text || response.statusText}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+}

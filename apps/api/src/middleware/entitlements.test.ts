@@ -1,131 +1,89 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import Fastify from "fastify";
-import { registerAuth } from "../plugins/auth.js";
-import { tracesRoutes } from "../routes/traces.js";
-
-vi.mock("@foxhound/db", () => ({
-  resolveApiKey: vi.fn(),
-  insertTrace: vi.fn(),
-  queryTraces: vi.fn(),
-  getTrace: vi.fn(),
-  getReplayContext: vi.fn(),
-  diffTraces: vi.fn(),
-}));
+import { describe, it, expect, vi, afterEach } from "vitest";
+import type { FastifyRequest, FastifyReply } from "fastify";
 
 vi.mock("@foxhound/billing", () => ({
   getEntitlements: vi.fn(),
-  invalidateEntitlements: vi.fn(),
 }));
 
-import * as db from "@foxhound/db";
-import * as billing from "@foxhound/billing";
+import { getEntitlements } from "@foxhound/billing";
+import { requireEntitlement } from "./entitlements.js";
 
-const PRO_ENTITLEMENTS = {
-  canReplay: true,
-  canRunDiff: true,
-  canAuditLog: false,
-  maxSpans: 500_000,
-  maxProjects: 10,
-  maxSeats: 5,
-  retentionDays: 90,
-};
-
-function buildApp() {
-  const app = Fastify({ logger: false });
-  process.env["JWT_SECRET"] = "test-secret-for-unit-tests";
-  registerAuth(app);
-  void app.register(tracesRoutes);
-  return app;
+function mockRequest(orgId: string) {
+  return { orgId } as FastifyRequest;
 }
 
-function mockApiKey(orgId = "org_1") {
-  vi.mocked(db.resolveApiKey).mockResolvedValue({
-    apiKey: {
-      id: "key_1",
-      orgId,
-      keyHash: "hash",
-      prefix: "sk-test",
-      name: "Test Key",
-      createdByUserId: null,
-      revokedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    org: {
-      id: orgId,
-      name: "Test Org",
-      slug: "test-org",
-      plan: "free" as const,
-      stripeCustomerId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  });
+function mockReply() {
+  const reply = {
+    code: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  } as unknown as FastifyReply;
+  return reply;
 }
 
-describe("GET /v1/traces/:traceId/spans/:spanId/replay — entitlement gating", () => {
-  beforeEach(() => {
+describe("requireEntitlement", () => {
+  const originalEnv = process.env["FOXHOUND_CLOUD"];
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env["FOXHOUND_CLOUD"];
+    } else {
+      process.env["FOXHOUND_CLOUD"] = originalEnv;
+    }
     vi.clearAllMocks();
   });
 
-  it("allows replay for all orgs (self-hosted open-source)", async () => {
-    mockApiKey("org_pro");
-    vi.mocked(billing.getEntitlements).mockResolvedValue(PRO_ENTITLEMENTS);
-    vi.mocked(db.getReplayContext).mockResolvedValue({
-      traceId: "trace_1",
-      spanId: "span_1",
-      targetSpan: {
-        traceId: "trace_1",
-        spanId: "span_1",
-        name: "test",
-        kind: "agent_step",
-        startTimeMs: 0,
-        status: "ok",
-        attributes: {},
-        events: [],
-      },
-      spansUpToPoint: [],
-      llmCallHistory: [],
-      toolCallHistory: [],
-      agentStepHistory: [],
-    });
+  it("passes through in self-hosted mode (no FOXHOUND_CLOUD)", async () => {
+    delete process.env["FOXHOUND_CLOUD"];
+    const handler = requireEntitlement("canReplay");
+    const reply = mockReply();
 
-    const app = buildApp();
-    const res = await app.inject({
-      method: "GET",
-      url: "/v1/traces/trace_1/spans/span_1/replay",
-      headers: { authorization: "Bearer sk-test-key" },
-    });
+    await handler(mockRequest("org_1"), reply);
 
-    expect(res.statusCode).toBe(200);
-  });
-});
-
-describe("GET /v1/runs/diff — entitlement gating", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(reply.code).not.toHaveBeenCalled();
   });
 
-  it("allows diff for all orgs (self-hosted open-source)", async () => {
-    mockApiKey("org_pro");
-    vi.mocked(billing.getEntitlements).mockResolvedValue(PRO_ENTITLEMENTS);
-    vi.mocked(db.diffTraces).mockResolvedValue({
-      traceIdA: "trace_a",
-      traceIdB: "trace_b",
-      totalSpansA: 1,
-      totalSpansB: 1,
-      alignedSpans: [],
-      divergenceCount: 0,
-      summary: "Runs are identical.",
+  it("allows access when entitlement is granted in cloud mode", async () => {
+    process.env["FOXHOUND_CLOUD"] = "1";
+    vi.mocked(getEntitlements).mockResolvedValue({
+      canReplay: true,
+      canRunDiff: true,
+      canAuditLog: false,
+      canEvaluate: false,
+      maxSpans: 100_000,
+      maxProjects: -1,
+      maxSeats: -1,
+      retentionDays: 30,
     });
 
-    const app = buildApp();
-    const res = await app.inject({
-      method: "GET",
-      url: "/v1/runs/diff?runA=trace_a&runB=trace_b",
-      headers: { authorization: "Bearer sk-test-key" },
+    const handler = requireEntitlement("canReplay");
+    const reply = mockReply();
+
+    await handler(mockRequest("org_1"), reply);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(reply.code).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when entitlement is denied in cloud mode", async () => {
+    process.env["FOXHOUND_CLOUD"] = "1";
+    vi.mocked(getEntitlements).mockResolvedValue({
+      canReplay: false,
+      canRunDiff: false,
+      canAuditLog: false,
+      canEvaluate: false,
+      maxSpans: 100_000,
+      maxProjects: -1,
+      maxSeats: -1,
+      retentionDays: 30,
     });
 
-    expect(res.statusCode).toBe(200);
+    const handler = requireEntitlement("canAuditLog");
+    const reply = mockReply();
+
+    await handler(mockRequest("org_1"), reply);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(reply.code).toHaveBeenCalledWith(403);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { FoxhoundApiClient } from "./api-client.js";
+import { FoxhoundApiClient } from "@foxhound/api-client";
 
 describe("FoxhoundApiClient", () => {
   const mockFetch = vi.fn();

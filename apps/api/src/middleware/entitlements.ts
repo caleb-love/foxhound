@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { Entitlements } from "@foxhound/billing";
+import { getEntitlements } from "@foxhound/billing";
 
 type BooleanEntitlementKey = {
   [K in keyof Entitlements]: Entitlements[K] extends boolean ? K : never;
@@ -7,12 +8,19 @@ type BooleanEntitlementKey = {
 
 /**
  * Returns a Fastify preHandler that gates the route on a boolean entitlement.
- * Self-hosted open-source mode: all features are available to all users.
- * This is a pass-through — no plan checks are performed.
+ * Self-hosted: pass-through (all features available).
+ * Cloud (FOXHOUND_CLOUD=1): checks the org's plan entitlements.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function requireEntitlement(_feature: BooleanEntitlementKey) {
-  return async (_request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
-    // Pass-through: all entitlements granted for self-hosted deployments.
+export function requireEntitlement(feature: BooleanEntitlementKey) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    if (!process.env["FOXHOUND_CLOUD"]) return;
+
+    const entitlements = await getEntitlements(request.orgId);
+    if (!entitlements[feature]) {
+      return reply.code(403).send({
+        error: "Forbidden",
+        message: `Your plan does not include the "${feature}" feature. Upgrade at /billing.`,
+      });
+    }
   };
 }

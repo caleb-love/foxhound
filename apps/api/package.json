@@ -21,7 +21,9 @@
     "@foxhound/db": "workspace:*",
     "@foxhound/notifications": "workspace:*",
     "@foxhound/types": "workspace:*",
+    "bullmq": "^5.0.0",
     "fastify": "^5.8.4",
+    "ioredis": "^5.4.0",
     "stripe": "^14.0.0",
     "zod": "^3.22.0"
   },

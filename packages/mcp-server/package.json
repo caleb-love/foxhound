@@ -39,6 +39,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@foxhound/api-client": "workspace:*",
+    "@foxhound/types": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.25.0"
   },

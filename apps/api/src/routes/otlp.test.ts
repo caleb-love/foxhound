@@ -6,6 +6,7 @@ import { otlpRoutes } from "./otlp.js";
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
   insertTrace: vi.fn(),
+  insertSpans: vi.fn(),
 }));
 
 vi.mock("@foxhound/billing", () => ({
@@ -43,6 +44,8 @@ function mockApiKey(orgId = "org_1") {
       slug: "test-org",
       plan: "free" as const,
       stripeCustomerId: null,
+      retentionDays: 90,
+      samplingRate: 1.0,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
