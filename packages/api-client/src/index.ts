@@ -22,7 +22,22 @@ import type {
   MeResponse,
   HealthResponse,
   UsageResponse,
+  ScoreListResponse,
+  TraceScoresResponse,
+  EvaluatorListResponse,
+  TriggerEvaluatorRunsResponse,
+  AnnotationQueueListResponse,
+  AnnotationQueueWithStats,
+  AddAnnotationItemsResponse,
+  SubmitAnnotationResponse,
 } from "./types.js";
+import type {
+  Score,
+  Evaluator,
+  EvaluatorRun,
+  AnnotationQueueItem,
+  ScoreSource,
+} from "@foxhound/types";
 
 export * from "./types.js";
 
@@ -195,6 +210,145 @@ export class FoxhoundApiClient {
 
   async getBillingStatus(): Promise<import("./types.js").BillingStatusResponse> {
     return this.get("/v1/billing/status");
+  }
+
+  // ── Scores ──────────────────────────────────────────────────────────
+
+  async createScore(params: {
+    traceId: string;
+    spanId?: string;
+    name: string;
+    value?: number;
+    label?: string;
+    source: ScoreSource;
+    comment?: string;
+  }): Promise<Score> {
+    return this.post("/v1/scores", params as unknown as Record<string, unknown>);
+  }
+
+  async queryScores(params?: {
+    traceId?: string;
+    name?: string;
+    source?: string;
+    minValue?: number;
+    maxValue?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<ScoreListResponse> {
+    const query = new URLSearchParams();
+    if (params?.traceId !== undefined) query.set("traceId", params.traceId);
+    if (params?.name !== undefined) query.set("name", params.name);
+    if (params?.source !== undefined) query.set("source", params.source);
+    if (params?.minValue !== undefined) query.set("minValue", String(params.minValue));
+    if (params?.maxValue !== undefined) query.set("maxValue", String(params.maxValue));
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    return this.get(`/v1/scores?${query.toString()}`);
+  }
+
+  async getTraceScores(traceId: string): Promise<TraceScoresResponse> {
+    return this.get(`/v1/traces/${encodeURIComponent(traceId)}/scores`);
+  }
+
+  async deleteScore(scoreId: string): Promise<void> {
+    await this.del(`/v1/scores/${encodeURIComponent(scoreId)}`);
+  }
+
+  // ── Evaluators ─────────────────────────────────────────────────────
+
+  async createEvaluator(params: {
+    name: string;
+    promptTemplate: string;
+    model: string;
+    scoringType: "numeric" | "categorical";
+    labels?: string[];
+  }): Promise<Evaluator> {
+    return this.post("/v1/evaluators", params as unknown as Record<string, unknown>);
+  }
+
+  async listEvaluators(): Promise<EvaluatorListResponse> {
+    return this.get("/v1/evaluators");
+  }
+
+  async getEvaluator(evaluatorId: string): Promise<Evaluator> {
+    return this.get(`/v1/evaluators/${encodeURIComponent(evaluatorId)}`);
+  }
+
+  async deleteEvaluator(evaluatorId: string): Promise<void> {
+    await this.del(`/v1/evaluators/${encodeURIComponent(evaluatorId)}`);
+  }
+
+  async triggerEvaluatorRuns(params: {
+    evaluatorId: string;
+    traceIds: string[];
+  }): Promise<TriggerEvaluatorRunsResponse> {
+    return this.post("/v1/evaluator-runs", params as unknown as Record<string, unknown>);
+  }
+
+  async getEvaluatorRun(runId: string): Promise<EvaluatorRun> {
+    return this.get(`/v1/evaluator-runs/${encodeURIComponent(runId)}`);
+  }
+
+  // ── Annotation Queues ──────────────────────────────────────────────
+
+  async createAnnotationQueue(params: {
+    name: string;
+    description?: string;
+    scoreConfigs?: Array<{ name: string; type: "numeric" | "categorical"; labels?: string[] }>;
+  }): Promise<import("@foxhound/types").AnnotationQueue> {
+    return this.post("/v1/annotation-queues", params as unknown as Record<string, unknown>);
+  }
+
+  async listAnnotationQueues(): Promise<AnnotationQueueListResponse> {
+    return this.get("/v1/annotation-queues");
+  }
+
+  async getAnnotationQueue(queueId: string): Promise<AnnotationQueueWithStats> {
+    return this.get(`/v1/annotation-queues/${encodeURIComponent(queueId)}`);
+  }
+
+  async deleteAnnotationQueue(queueId: string): Promise<void> {
+    await this.del(`/v1/annotation-queues/${encodeURIComponent(queueId)}`);
+  }
+
+  async addAnnotationItems(
+    queueId: string,
+    traceIds: string[],
+  ): Promise<AddAnnotationItemsResponse> {
+    return this.post(`/v1/annotation-queues/${encodeURIComponent(queueId)}/items`, { traceIds });
+  }
+
+  async claimAnnotationItem(queueId: string): Promise<AnnotationQueueItem | null> {
+    const response = await fetch(
+      `${this.endpoint}/v1/annotation-queues/${encodeURIComponent(queueId)}/claim`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    if (response.status === 204) return null;
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      const text = raw.length > 500 ? raw.slice(0, 500) + "…" : raw;
+      throw new Error(`Foxhound API ${response.status}: ${text || response.statusText}`);
+    }
+    return response.json() as Promise<AnnotationQueueItem>;
+  }
+
+  async submitAnnotationItem(
+    itemId: string,
+    scores: Array<{ name: string; value?: number; label?: string; comment?: string }>,
+  ): Promise<SubmitAnnotationResponse> {
+    return this.post(`/v1/annotation-queue-items/${encodeURIComponent(itemId)}/submit`, {
+      scores,
+    } as unknown as Record<string, unknown>);
+  }
+
+  async skipAnnotationItem(itemId: string): Promise<AnnotationQueueItem> {
+    return this.post(`/v1/annotation-queue-items/${encodeURIComponent(itemId)}/skip`, {});
   }
 
   // ── HTTP helpers ──────────────────────────────────────────────────────

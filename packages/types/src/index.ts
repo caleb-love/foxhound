@@ -55,3 +55,69 @@ export interface AuditEvent {
   eventType: string;
   payload: Record<string, unknown>;
 }
+
+// ── Evaluation types ───────────────────────────────────────────────────────
+
+export type ScoreSource = "manual" | "llm_judge" | "sdk" | "user_feedback";
+
+export interface Score {
+  id: string;
+  orgId: string;
+  traceId: string;
+  spanId?: string;
+  name: string;
+  value?: number;
+  label?: string;
+  source: ScoreSource;
+  comment?: string;
+  userId?: string;
+  createdAt: string;
+}
+
+export type ScoringType = "numeric" | "categorical";
+
+export interface Evaluator {
+  id: string;
+  orgId: string;
+  name: string;
+  promptTemplate: string;
+  model: string;
+  scoringType: ScoringType;
+  labels: string[];
+  enabled: boolean;
+  createdAt: string;
+}
+
+export type EvaluatorRunStatus = "pending" | "running" | "completed" | "failed";
+
+export interface EvaluatorRun {
+  id: string;
+  evaluatorId: string;
+  traceId: string;
+  scoreId?: string;
+  status: EvaluatorRunStatus;
+  error?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface AnnotationQueue {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+  scoreConfigs: Array<{ name: string; type: ScoringType; labels?: string[] }>;
+  createdAt: string;
+}
+
+export type AnnotationQueueItemStatus = "pending" | "completed" | "skipped";
+
+export interface AnnotationQueueItem {
+  id: string;
+  queueId: string;
+  traceId: string;
+  status: AnnotationQueueItemStatus;
+  assignedTo?: string;
+  completedAt?: string;
+  createdAt: string;
+}

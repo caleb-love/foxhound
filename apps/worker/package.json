@@ -1,5 +1,5 @@
 {
-  "name": "@foxhound/api",
+  "name": "@foxhound/worker",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -7,31 +7,19 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
-    "@fastify/helmet": "^13.0.2",
-    "@fastify/jwt": "^10.0.0",
-    "@fastify/rate-limit": "^10.3.0",
-    "@foxhound/billing": "workspace:*",
     "@foxhound/db": "workspace:*",
-    "@foxhound/notifications": "workspace:*",
     "@foxhound/types": "workspace:*",
     "bullmq": "^5.0.0",
-    "fastify": "^5.8.4",
-    "ioredis": "^5.4.0",
-    "stripe": "^14.0.0",
-    "zod": "^3.22.0"
+    "ioredis": "^5.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.0",
-    "vite": "^6.4.2",
-    "vitest": "^3.2.4"
+    "typescript": "^5.4.0"
   }
 }

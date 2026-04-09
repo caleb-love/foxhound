@@ -12,6 +12,9 @@ import { otlpRoutes } from "./routes/otlp.js";
 import { notificationsRoutes } from "./routes/notifications.js";
 import { ssoRoutes } from "./routes/sso.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
+import { scoresRoutes } from "./routes/scores.js";
+import { evaluatorsRoutes } from "./routes/evaluators.js";
+import { annotationsRoutes } from "./routes/annotations.js";
 import { startRetentionCleanup, stopRetentionCleanup } from "./jobs/retention-cleanup.js";
 
 const app = Fastify({
@@ -55,6 +58,9 @@ await app.register(billingWebhookRoutes);
 await app.register(notificationsRoutes);
 await app.register(ssoRoutes);
 await app.register(waitlistRoutes);
+await app.register(scoresRoutes);
+await app.register(evaluatorsRoutes);
+await app.register(annotationsRoutes);
 
 // Start retention cleanup cron
 startRetentionCleanup(app.log);
