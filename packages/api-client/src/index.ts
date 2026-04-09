@@ -44,7 +44,8 @@ export class FoxhoundApiClient {
   private readonly apiKey: string;
 
   constructor(config: FoxhoundApiConfig) {
-    const endpoint = config.endpoint.replace(/\/+$/, "");
+    let endpoint = config.endpoint;
+    while (endpoint.endsWith("/")) endpoint = endpoint.slice(0, -1);
 
     // Enforce HTTPS for non-localhost endpoints
     if (
