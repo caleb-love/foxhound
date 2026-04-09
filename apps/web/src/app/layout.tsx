@@ -62,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }}
             >
               <img
-                src="/logo.png"
+                src="/logo-mark.png"
                 alt="Foxhound"
                 width={28}
                 height={28}
