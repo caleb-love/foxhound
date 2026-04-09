@@ -20,8 +20,7 @@
   <a href="#features">Features</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#sdks">SDKs</a> ·
-  <a href="#self-hosting">Self-Hosting</a> ·
-  <a href="#contributing">Contributing</a>
+  <a href="#self-hosting">Self-Hosting</a>
 </p>
 
 ---
@@ -65,22 +64,22 @@ pnpm dev                                 # API → localhost:3001
 
 ## SDKs
 
-First-party SDKs for TypeScript and Python with auto-instrumentation for major agent frameworks.
+First-party SDKs for Python and TypeScript with auto-instrumentation for major agent frameworks.
 
 | Framework        | SDK                 | Auto-instrumentation |
 | ---------------- | ------------------- | -------------------- |
 | LangGraph        | Python              | Yes                  |
-| Claude Agent SDK | Python + TypeScript | Yes                  |
 | CrewAI           | Python              | Yes                  |
 | AutoGen          | Python              | Yes                  |
 | OpenAI Agents    | Python              | Yes                  |
+| Claude Agent SDK | Python + TypeScript | Yes                  |
 | OpenTelemetry    | Any                 | Protocol-level       |
 
 ### Install
 
 ```bash
-npm install @foxhound-ai/sdk    # TypeScript
 pip install foxhound-ai          # Python
+npm install @foxhound-ai/sdk    # TypeScript
 ```
 
 ### Example
@@ -114,17 +113,24 @@ pnpm typecheck      # TypeScript type checking
 pnpm format         # Format with Prettier
 ```
 
-## Contributing
+## Span Model
 
-We welcome contributions. To get started:
+```
+Trace
+└── Span (workflow)
+    ├── Span (llm_call)
+    ├── Span (tool_call)
+    │   └── Span (llm_call)
+    └── Span (agent_step)
+        ├── Span (tool_call)
+        └── Span (llm_call)
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Make your changes with tests
-4. Run `pnpm lint && pnpm typecheck && pnpm test`
-5. Open a pull request
+Span kinds: `tool_call` · `llm_call` · `agent_step` · `workflow` · `custom`. Each span carries attributes, events, status, and a parent link for tree reconstruction.
 
-Please open an issue first for large changes so we can discuss the approach.
+## Security
+
+JWT auth (30-day expiry) · API keys (SHA-256 hashed, never stored plaintext) · HttpOnly/Secure/SameSite cookies · CSP headers via Helmet · rate limiting on all endpoints · all data queries scoped by organization ID at the database layer.
 
 ## License
 
