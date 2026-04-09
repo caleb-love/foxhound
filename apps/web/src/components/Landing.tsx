@@ -747,7 +747,7 @@ export function Landing() {
             {/* CTAs */}
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a
-                href="/signup"
+                href="https://github.com/caleb-love/foxhound"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -855,6 +855,76 @@ export function Landing() {
           </span>
           <span style={{ color: "var(--border)" }}>·</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Self-host in minutes</span>
+        </div>
+      </section>
+
+      {/* Integrations */}
+      <section
+        className="landing-section"
+        style={{ padding: "64px 24px", maxWidth: 1100, margin: "0 auto" }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <h2
+            className="section-title"
+            style={{
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: "-0.6px",
+              marginBottom: 10,
+            }}
+          >
+            Works with every major agent framework
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", maxWidth: 480, margin: "0 auto" }}>
+            Drop-in integrations for LangGraph, CrewAI, AutoGen, OpenAI Agents, Claude Agent SDK,
+            and any OpenTelemetry-compatible runtime.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 12,
+          }}
+        >
+          {[
+            { name: "LangGraph", color: "#1c7ed6" },
+            { name: "Claude Agent SDK", color: "#c084fc" },
+            { name: "CrewAI", color: "#e55a00" },
+            { name: "AutoGen", color: "#3dd68c" },
+            { name: "OpenAI Agents", color: "#10a37f" },
+            { name: "OpenTelemetry", color: "#f78c40" },
+          ].map((integration) => (
+            <div
+              key={integration.name}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 20px",
+                background: "var(--surface)",
+                border: `1px solid ${integration.color}44`,
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--text)",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: integration.color,
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              {integration.name}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1068,7 +1138,7 @@ export function Landing() {
               Star on GitHub
             </a>
             <a
-              href="/signup"
+              href="https://github.com/caleb-love/foxhound"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
