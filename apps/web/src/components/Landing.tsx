@@ -547,24 +547,25 @@ function ArchFlow() {
 
 function WaitlistForm() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">(
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
   );
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("loading");
     try {
-      const res = await fetch("/api/waitlist", {
+      const formData = new FormData(e.currentTarget);
+      formData.append("access_key", "e229d932-d3bc-4f77-866b-b88470c2e596");
+      const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: formData,
       });
-      if (res.ok) {
-        const data = (await res.json()) as { alreadyExists?: boolean };
-        setStatus(data.alreadyExists ? "duplicate" : "success");
+      const data = (await res.json()) as { success: boolean; message?: string };
+      if (res.ok && data.success) {
+        setStatus("success");
         setEmail("");
       } else {
         setStatus("error");
@@ -590,25 +591,12 @@ function WaitlistForm() {
         >
           You&apos;re on the list. We&apos;ll notify you when paid plans launch.
         </div>
-      ) : status === "duplicate" ? (
-        <div
-          style={{
-            background: "rgba(107,122,255,0.08)",
-            border: "1px solid rgba(107,122,255,0.25)",
-            borderRadius: 10,
-            padding: "20px 24px",
-            color: "var(--accent)",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          You&apos;re already on the waitlist.
-        </div>
       ) : (
         <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: "flex", gap: 8 }}>
           <input
             ref={inputRef}
             type="email"
+            name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
