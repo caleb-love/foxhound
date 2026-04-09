@@ -767,7 +767,7 @@ export function Landing() {
                 Get started free
               </a>
               <a
-                href="https://github.com/foxhound-sh/foxhound"
+                href="https://github.com/caleb-love/foxhound"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1066,7 +1066,7 @@ export function Landing() {
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <a
-              href="https://github.com/foxhound-sh/foxhound"
+              href="https://github.com/caleb-love/foxhound"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1131,7 +1131,7 @@ export function Landing() {
           </div>
           <div style={{ display: "flex", gap: 24 }}>
             {[
-              { label: "GitHub", href: "https://github.com/foxhound-sh/foxhound" },
+              { label: "GitHub", href: "https://github.com/caleb-love/foxhound" },
               { label: "Login", href: "/login" },
               { label: "Sign up", href: "/signup" },
             ].map((link) => (
