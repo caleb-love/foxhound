@@ -177,7 +177,7 @@ export function registerInitCommand(program: Command): void {
 
       console.log(chalk.dim("─".repeat(60)));
       console.log(`\nNext steps:`);
-      console.log(`  1. Set your API key: ${chalk.cyan("export FOXHOUND_API_KEY=" + apiKey)}`);
+      console.log(`  1. Set your API key: ${chalk.cyan("export FOXHOUND_API_KEY=<your_api_key>")}`);
       console.log(`  2. Import ${chalk.cyan(filename)} in your agent code and run it.`);
       console.log("Your first trace should appear at https://app.foxhound.dev within seconds.\n");
     });
