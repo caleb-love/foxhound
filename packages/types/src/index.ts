@@ -1,6 +1,6 @@
 /**
  * Core types for the Fox observability platform.
- * Shared across SDK, API, and web packages.
+ * Shared across SDK and API packages.
  */
 
 export type SpanKind = "tool_call" | "llm_call" | "agent_step" | "workflow" | "custom";

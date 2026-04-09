@@ -7,11 +7,8 @@ dist/
 .DS_Store
 coverage/
 .turbo/
-.next/
 out/
 build/
 *.tsbuildinfo
 __pycache__/
 *.pyc
-.open-next/
-.wrangler/
