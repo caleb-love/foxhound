@@ -8,8 +8,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  // API calls go to /api/* (same origin); Stripe JS loaded for checkout
-  "connect-src 'self' https://api.stripe.com",
+  // API calls go to /api/* (same origin); Stripe JS loaded for checkout; web3forms for waitlist
+  "connect-src 'self' https://api.stripe.com https://api.web3forms.com",
   // Stripe hosted checkout/billing portal pages are opened via window.location.href, not iframes
   "frame-src 'none'",
   "frame-ancestors 'none'",
