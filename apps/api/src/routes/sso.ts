@@ -331,9 +331,9 @@ export function ssoRoutes(fastify: FastifyInstance): void {
           .slice(0, 32);
 
         // Store state → orgId mapping in a signed cookie or query param
-        const statePayload = Buffer.from(
-          JSON.stringify({ orgId: org.id, nonce: state }),
-        ).toString("base64");
+        const statePayload = Buffer.from(JSON.stringify({ orgId: org.id, nonce: state })).toString(
+          "base64",
+        );
 
         const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
         const authUrl =
@@ -372,9 +372,9 @@ export function ssoRoutes(fastify: FastifyInstance): void {
       // Decode RelayState to get orgId
       let orgId: string;
       try {
-        const relayData = JSON.parse(
-          Buffer.from(RelayState ?? "", "base64").toString("utf-8"),
-        ) as { orgId: string };
+        const relayData = JSON.parse(Buffer.from(RelayState ?? "", "base64").toString("utf-8")) as {
+          orgId: string;
+        };
         orgId = relayData.orgId;
       } catch {
         return reply.code(400).send({ error: "Bad Request", message: "Invalid RelayState" });

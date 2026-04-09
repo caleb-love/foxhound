@@ -5,7 +5,6 @@ type BooleanEntitlementKey = {
   [K in keyof Entitlements]: Entitlements[K] extends boolean ? K : never;
 }[keyof Entitlements];
 
-
 /**
  * Returns a Fastify preHandler that gates the route on a boolean entitlement.
  * Self-hosted open-source mode: all features are available to all users.

@@ -547,9 +547,7 @@ function ArchFlow() {
 
 function WaitlistForm() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -592,7 +590,12 @@ function WaitlistForm() {
           You&apos;re on the list. We&apos;ll notify you when paid plans launch.
         </div>
       ) : (
-        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: "flex", gap: 8 }}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+          style={{ display: "flex", gap: 8 }}
+        >
           <input
             ref={inputRef}
             type="email"
@@ -1096,8 +1099,8 @@ export function Landing() {
             Paid plans coming soon
           </h2>
           <p style={{ fontSize: 15, color: "var(--text-muted)", marginBottom: 32 }}>
-            Foxhound is free and open-source today. Managed hosting and enterprise support are on the
-            roadmap — get notified when they launch.
+            Foxhound is free and open-source today. Managed hosting and enterprise support are on
+            the roadmap — get notified when they launch.
           </p>
           <WaitlistForm />
         </div>
@@ -1117,7 +1120,11 @@ export function Landing() {
           }}
         >
           <div style={{ margin: "0 auto 20px", width: 64, height: 64 }}>
-            <img src="/logo-mark.png" alt="Foxhound" style={{ width: 64, height: 64, borderRadius: 14 }} />
+            <img
+              src="/logo-mark.png"
+              alt="Foxhound"
+              style={{ width: 64, height: 64, borderRadius: 14 }}
+            />
           </div>
           <h2
             className="section-title"

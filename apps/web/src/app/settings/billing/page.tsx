@@ -13,8 +13,8 @@ export default function BillingPage() {
         }}
       >
         <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.7, margin: 0 }}>
-          Foxhound is self-hosted and open-source. All features are available at no cost.
-          Paid plans with additional support and managed hosting are coming soon.
+          Foxhound is self-hosted and open-source. All features are available at no cost. Paid plans
+          with additional support and managed hosting are coming soon.
         </p>
       </div>
     </div>
