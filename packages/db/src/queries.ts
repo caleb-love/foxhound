@@ -18,8 +18,12 @@ import {
   evaluatorRuns,
   annotationQueues,
   annotationQueueItems,
+  datasets,
+  datasetItems,
+  experiments,
+  experimentRuns,
 } from "./schema.js";
-import { eq, and, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
+import { eq, and, gt, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -1349,4 +1353,376 @@ export async function getAnnotationQueueItem(itemId: string) {
     .where(eq(annotationQueueItems.id, itemId))
     .limit(1);
   return rows[0] ?? null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dataset queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateDatasetInput {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+}
+
+export async function createDataset(input: CreateDatasetInput) {
+  const rows = await db
+    .insert(datasets)
+    .values({
+      id: input.id,
+      orgId: input.orgId,
+      name: input.name,
+      description: input.description ?? null,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function listDatasets(orgId: string) {
+  return db
+    .select()
+    .from(datasets)
+    .where(eq(datasets.orgId, orgId))
+    .orderBy(desc(datasets.createdAt));
+}
+
+export async function getDataset(id: string, orgId: string) {
+  const rows = await db
+    .select()
+    .from(datasets)
+    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function deleteDataset(id: string, orgId: string): Promise<boolean> {
+  const result = await db
+    .delete(datasets)
+    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dataset item queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateDatasetItemInput {
+  id: string;
+  datasetId: string;
+  input: Record<string, unknown>;
+  expectedOutput?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  sourceTraceId?: string;
+}
+
+export async function createDatasetItem(input: CreateDatasetItemInput) {
+  const rows = await db
+    .insert(datasetItems)
+    .values({
+      id: input.id,
+      datasetId: input.datasetId,
+      input: input.input,
+      expectedOutput: input.expectedOutput ?? null,
+      metadata: input.metadata ?? {},
+      sourceTraceId: input.sourceTraceId ?? null,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function createDatasetItems(inputs: CreateDatasetItemInput[]) {
+  if (inputs.length === 0) return [];
+  const rows = await db
+    .insert(datasetItems)
+    .values(
+      inputs.map((input) => ({
+        id: input.id,
+        datasetId: input.datasetId,
+        input: input.input,
+        expectedOutput: input.expectedOutput ?? null,
+        metadata: input.metadata ?? {},
+        sourceTraceId: input.sourceTraceId ?? null,
+      })),
+    )
+    .returning();
+  return rows;
+}
+
+export interface DatasetItemFilters {
+  datasetId: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function listDatasetItems(filters: DatasetItemFilters) {
+  const { datasetId, page = 1, limit = 50 } = filters;
+  const offset = (page - 1) * limit;
+  return db
+    .select()
+    .from(datasetItems)
+    .where(eq(datasetItems.datasetId, datasetId))
+    .orderBy(desc(datasetItems.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getDatasetItem(id: string) {
+  const rows = await db.select().from(datasetItems).where(eq(datasetItems.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function deleteDatasetItem(id: string): Promise<boolean> {
+  const result = await db.delete(datasetItems).where(eq(datasetItems.id, id));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+export async function countDatasetItems(datasetId: string): Promise<number> {
+  const rows = await db
+    .select({ count: count() })
+    .from(datasetItems)
+    .where(eq(datasetItems.datasetId, datasetId));
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * Auto-curate dataset items from production traces filtered by score.
+ * This is the "killer feature" — traces matching score filters become test cases.
+ */
+export async function getTracesForDatasetCuration(filters: {
+  orgId: string;
+  scoreName: string;
+  scoreOperator: "lt" | "gt" | "lte" | "gte";
+  scoreThreshold: number;
+  since?: Date;
+  limit?: number;
+}) {
+  const {
+    orgId,
+    scoreName,
+    scoreOperator,
+    scoreThreshold,
+    since,
+    limit: maxResults = 100,
+  } = filters;
+
+  const conditions = [eq(scores.orgId, orgId), eq(scores.name, scoreName)];
+
+  if (scoreOperator === "lt") conditions.push(lt(scores.value, scoreThreshold));
+  else if (scoreOperator === "gt") conditions.push(gt(scores.value, scoreThreshold));
+  else if (scoreOperator === "lte") conditions.push(lte(scores.value, scoreThreshold));
+  else if (scoreOperator === "gte") conditions.push(gte(scores.value, scoreThreshold));
+
+  if (since) conditions.push(gte(scores.createdAt, since));
+
+  const matchingScores = await db
+    .select({ traceId: scores.traceId })
+    .from(scores)
+    .where(and(...conditions))
+    .groupBy(scores.traceId)
+    .limit(maxResults);
+
+  if (matchingScores.length === 0) return [];
+
+  const traceIds = matchingScores.map((s) => s.traceId);
+
+  const results = [];
+  for (const traceId of traceIds) {
+    const trace = await db
+      .select()
+      .from(traces)
+      .where(and(eq(traces.id, traceId), eq(traces.orgId, orgId)))
+      .limit(1);
+
+    if (trace[0]) {
+      const traceSpans = await db
+        .select()
+        .from(spans)
+        .where(eq(spans.traceId, traceId))
+        .orderBy(asc(spans.startTimeMs));
+
+      results.push({ trace: trace[0], spans: traceSpans });
+    }
+  }
+
+  return results;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Experiment queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateExperimentInput {
+  id: string;
+  orgId: string;
+  datasetId: string;
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export async function createExperiment(input: CreateExperimentInput) {
+  const rows = await db
+    .insert(experiments)
+    .values({
+      id: input.id,
+      orgId: input.orgId,
+      datasetId: input.datasetId,
+      name: input.name,
+      config: input.config,
+      status: "pending",
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function listExperiments(orgId: string, datasetId?: string) {
+  const conditions = [eq(experiments.orgId, orgId)];
+  if (datasetId) conditions.push(eq(experiments.datasetId, datasetId));
+
+  return db
+    .select()
+    .from(experiments)
+    .where(and(...conditions))
+    .orderBy(desc(experiments.createdAt));
+}
+
+export async function getExperiment(id: string, orgId: string) {
+  const rows = await db
+    .select()
+    .from(experiments)
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateExperimentStatus(
+  id: string,
+  status: "running" | "completed" | "failed",
+) {
+  const set: Record<string, unknown> = { status };
+  if (status === "completed" || status === "failed") set.completedAt = new Date();
+
+  const rows = await db.update(experiments).set(set).where(eq(experiments.id, id)).returning();
+  return rows[0] ?? null;
+}
+
+export async function deleteExperiment(id: string, orgId: string): Promise<boolean> {
+  const result = await db
+    .delete(experiments)
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Experiment run queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateExperimentRunInput {
+  id: string;
+  experimentId: string;
+  datasetItemId: string;
+}
+
+export async function createExperimentRun(input: CreateExperimentRunInput) {
+  const rows = await db
+    .insert(experimentRuns)
+    .values({
+      id: input.id,
+      experimentId: input.experimentId,
+      datasetItemId: input.datasetItemId,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function createExperimentRuns(inputs: CreateExperimentRunInput[]) {
+  if (inputs.length === 0) return [];
+  const rows = await db
+    .insert(experimentRuns)
+    .values(
+      inputs.map((input) => ({
+        id: input.id,
+        experimentId: input.experimentId,
+        datasetItemId: input.datasetItemId,
+      })),
+    )
+    .returning();
+  return rows;
+}
+
+export async function getExperimentRun(id: string) {
+  const rows = await db.select().from(experimentRuns).where(eq(experimentRuns.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export interface UpdateExperimentRunInput {
+  output?: Record<string, unknown>;
+  latencyMs?: number;
+  tokenCount?: number;
+  cost?: number;
+}
+
+export async function updateExperimentRun(id: string, input: UpdateExperimentRunInput) {
+  const rows = await db
+    .update(experimentRuns)
+    .set({
+      output: input.output ?? null,
+      latencyMs: input.latencyMs ?? null,
+      tokenCount: input.tokenCount ?? null,
+      cost: input.cost ?? null,
+    })
+    .where(eq(experimentRuns.id, id))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function listExperimentRuns(experimentId: string) {
+  return db
+    .select()
+    .from(experimentRuns)
+    .where(eq(experimentRuns.experimentId, experimentId))
+    .orderBy(asc(experimentRuns.createdAt));
+}
+
+/**
+ * Get side-by-side comparison data for multiple experiments.
+ * Returns experiment runs grouped by dataset item for easy comparison.
+ */
+export async function getExperimentComparison(experimentIds: string[], orgId: string) {
+  // Verify all experiments belong to this org
+  const exps = await db
+    .select()
+    .from(experiments)
+    .where(and(eq(experiments.orgId, orgId), sql`${experiments.id} = ANY(${experimentIds})`));
+
+  if (exps.length !== experimentIds.length) return null;
+
+  // Fetch all runs for these experiments
+  const runs = await db
+    .select()
+    .from(experimentRuns)
+    .where(sql`${experimentRuns.experimentId} = ANY(${experimentIds})`)
+    .orderBy(asc(experimentRuns.datasetItemId));
+
+  // Fetch the dataset items referenced by these runs
+  const itemIds = [...new Set(runs.map((r) => r.datasetItemId))];
+  const items =
+    itemIds.length > 0
+      ? await db
+          .select()
+          .from(datasetItems)
+          .where(sql`${datasetItems.id} = ANY(${itemIds})`)
+      : [];
+
+  // Fetch scores for experiment runs
+  const runIds = runs.map((r) => r.id);
+  const runScores =
+    runIds.length > 0
+      ? await db
+          .select()
+          .from(scores)
+          .where(sql`${scores.comment} = ANY(${runIds})`)
+      : [];
+
+  return { experiments: exps, runs, items, scores: runScores };
 }

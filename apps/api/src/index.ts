@@ -15,6 +15,8 @@ import { waitlistRoutes } from "./routes/waitlist.js";
 import { scoresRoutes } from "./routes/scores.js";
 import { evaluatorsRoutes } from "./routes/evaluators.js";
 import { annotationsRoutes } from "./routes/annotations.js";
+import { datasetsRoutes } from "./routes/datasets.js";
+import { experimentsRoutes } from "./routes/experiments.js";
 import { startRetentionCleanup, stopRetentionCleanup } from "./jobs/retention-cleanup.js";
 
 const app = Fastify({
@@ -61,6 +63,8 @@ await app.register(waitlistRoutes);
 await app.register(scoresRoutes);
 await app.register(evaluatorsRoutes);
 await app.register(annotationsRoutes);
+await app.register(datasetsRoutes);
+await app.register(experimentsRoutes);
 
 // Start retention cleanup cron
 startRetentionCleanup(app.log);

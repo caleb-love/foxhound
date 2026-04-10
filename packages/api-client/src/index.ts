@@ -30,6 +30,14 @@ import type {
   AnnotationQueueWithStats,
   AddAnnotationItemsResponse,
   SubmitAnnotationResponse,
+  DatasetListResponse,
+  DatasetWithCount,
+  DatasetItemListResponse,
+  FromTracesResponse,
+  ExperimentListResponse,
+  ExperimentWithRuns,
+  CreateExperimentResponse,
+  ExperimentComparisonResponse,
 } from "./types.js";
 import type {
   Score,
@@ -37,6 +45,9 @@ import type {
   EvaluatorRun,
   AnnotationQueueItem,
   ScoreSource,
+  Dataset,
+  DatasetItem,
+  Experiment,
 } from "@foxhound/types";
 
 export * from "./types.js";
@@ -349,6 +360,100 @@ export class FoxhoundApiClient {
 
   async skipAnnotationItem(itemId: string): Promise<AnnotationQueueItem> {
     return this.post(`/v1/annotation-queue-items/${encodeURIComponent(itemId)}/skip`, {});
+  }
+
+  // ── Datasets ──────────────────────────────────────────────────────────
+
+  async createDataset(params: { name: string; description?: string }): Promise<Dataset> {
+    return this.post("/v1/datasets", params as unknown as Record<string, unknown>);
+  }
+
+  async listDatasets(): Promise<DatasetListResponse> {
+    return this.get("/v1/datasets");
+  }
+
+  async getDataset(datasetId: string): Promise<DatasetWithCount> {
+    return this.get(`/v1/datasets/${encodeURIComponent(datasetId)}`);
+  }
+
+  async deleteDataset(datasetId: string): Promise<void> {
+    await this.del(`/v1/datasets/${encodeURIComponent(datasetId)}`);
+  }
+
+  async createDatasetItem(
+    datasetId: string,
+    params: {
+      input: Record<string, unknown>;
+      expectedOutput?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
+      sourceTraceId?: string;
+    },
+  ): Promise<DatasetItem> {
+    return this.post(
+      `/v1/datasets/${encodeURIComponent(datasetId)}/items`,
+      params as unknown as Record<string, unknown>,
+    );
+  }
+
+  async listDatasetItems(
+    datasetId: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<DatasetItemListResponse> {
+    const query = new URLSearchParams();
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    return this.get(`/v1/datasets/${encodeURIComponent(datasetId)}/items?${query.toString()}`);
+  }
+
+  async deleteDatasetItem(datasetId: string, itemId: string): Promise<void> {
+    await this.del(
+      `/v1/datasets/${encodeURIComponent(datasetId)}/items/${encodeURIComponent(itemId)}`,
+    );
+  }
+
+  async createDatasetItemsFromTraces(
+    datasetId: string,
+    params: {
+      scoreName: string;
+      scoreOperator: "lt" | "gt" | "lte" | "gte";
+      scoreThreshold: number;
+      sinceDays?: number;
+      limit?: number;
+    },
+  ): Promise<FromTracesResponse> {
+    return this.post(
+      `/v1/datasets/${encodeURIComponent(datasetId)}/items/from-traces`,
+      params as unknown as Record<string, unknown>,
+    );
+  }
+
+  // ── Experiments ────────────────────────────────────────────────────────
+
+  async createExperiment(params: {
+    datasetId: string;
+    name: string;
+    config: Record<string, unknown>;
+  }): Promise<CreateExperimentResponse> {
+    return this.post("/v1/experiments", params as unknown as Record<string, unknown>);
+  }
+
+  async listExperiments(params?: { datasetId?: string }): Promise<ExperimentListResponse> {
+    const query = new URLSearchParams();
+    if (params?.datasetId !== undefined) query.set("datasetId", params.datasetId);
+    return this.get(`/v1/experiments?${query.toString()}`);
+  }
+
+  async getExperiment(experimentId: string): Promise<ExperimentWithRuns> {
+    return this.get(`/v1/experiments/${encodeURIComponent(experimentId)}`);
+  }
+
+  async deleteExperiment(experimentId: string): Promise<void> {
+    await this.del(`/v1/experiments/${encodeURIComponent(experimentId)}`);
+  }
+
+  async compareExperiments(experimentIds: string[]): Promise<ExperimentComparisonResponse> {
+    const ids = experimentIds.join(",");
+    return this.get(`/v1/experiment-comparisons?experiment_ids=${encodeURIComponent(ids)}`);
   }
 
   // ── HTTP helpers ──────────────────────────────────────────────────────
