@@ -9,6 +9,7 @@
 
 import type { ConnectionOptions } from "bullmq";
 import { startEvaluatorWorker } from "./queues/evaluator.js";
+import { startExperimentWorker } from "./queues/experiment.js";
 
 const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
 
@@ -31,10 +32,14 @@ console.log(`[worker] Redis: ${redisUrl.replace(/\/\/.*@/, "//***@")}`);
 const evaluatorWorker = startEvaluatorWorker(connection);
 console.log("[worker] Evaluator worker started (concurrency: 10)");
 
+// Start experiment worker
+const experimentWorker = startExperimentWorker(connection);
+console.log("[worker] Experiment worker started (concurrency: 5)");
+
 // Graceful shutdown
 async function shutdown(signal: string): Promise<void> {
   console.log(`[worker] Received ${signal}, shutting down...`);
-  await evaluatorWorker.close();
+  await Promise.all([evaluatorWorker.close(), experimentWorker.close()]);
   console.log("[worker] Shutdown complete");
   process.exit(0);
 }
