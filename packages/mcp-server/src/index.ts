@@ -733,6 +733,415 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Tool: explain failure ---
+  server.tool(
+    "foxhound_explain_failure",
+    "Analyze a failed trace and provide a detailed explanation of what went wrong, including the error chain, affected spans, and timing information.",
+    {
+      trace_id: z.string().describe("The trace ID to analyze"),
+    },
+    async (params) => {
+      try {
+        const trace = await api.getTrace(params.trace_id);
+
+        // Find all error spans
+        const errorSpans = trace.spans.filter((s) => s.status === "error");
+
+        if (!errorSpans.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Trace ${trace.id}\n\nNo errors detected in this trace. All ${trace.spans.length} spans completed successfully.`,
+              },
+            ],
+          };
+        }
+
+        // Build span lookup maps
+        const spanMap = new Map<string, Span>();
+        for (const span of trace.spans) {
+          spanMap.set(span.spanId, span);
+        }
+
+        // Build parent chains for each error span
+        function getParentChain(span: Span): Span[] {
+          const chain: Span[] = [span];
+          let current = span;
+          while (current.parentSpanId) {
+            const parent = spanMap.get(current.parentSpanId);
+            if (!parent) break;
+            chain.unshift(parent);
+            current = parent;
+          }
+          return chain;
+        }
+
+        // Find the first error (earliest start time)
+        const firstError = errorSpans.reduce((earliest, current) =>
+          current.startTimeMs < earliest.startTimeMs ? current : earliest,
+        );
+
+        // Extract error details from events
+        const errorEvents = firstError.events.filter((e) => e.name === "error");
+        const errorMessage =
+          errorEvents.length > 0
+            ? String(errorEvents[0]?.attributes["error.message"] ?? errorEvents[0]?.attributes["message"] ?? "Unknown error")
+            : "Unknown error";
+
+        const parentChain = getParentChain(firstError);
+
+        // Format output
+        const lines: string[] = [
+          `# Failure Analysis: ${trace.id}`,
+          "",
+          `## Summary`,
+          `- **Error**: ${errorMessage}`,
+          `- **Failed Span**: ${firstError.name} (${firstError.kind})`,
+          `- **Error Count**: ${errorSpans.length} span(s) with errors`,
+          `- **Trace Duration**: ${trace.endTimeMs && trace.startTimeMs ? `${((trace.endTimeMs - trace.startTimeMs) / 1000).toFixed(2)}s` : "incomplete"}`,
+          "",
+          `## Error Chain`,
+          "",
+        ];
+
+        // Render parent chain
+        for (let i = 0; i < parentChain.length; i++) {
+          const span = parentChain[i];
+          if (!span) continue;
+
+          const isError = span.spanId === firstError.spanId;
+          const prefix = "  ".repeat(i);
+          const status = isError ? " ❌ **ERROR**" : "";
+          const duration =
+            span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+
+          lines.push(`${prefix}${i + 1}. [${span.kind}] **${span.name}** (${duration})${status}`);
+
+          if (isError && errorEvents.length > 0) {
+            const event = errorEvents[0];
+            if (event) {
+              lines.push(`${prefix}   **Error Details**:`);
+              for (const [key, value] of Object.entries(event.attributes ?? {})) {
+                if (value !== null && value !== undefined) {
+                  lines.push(`${prefix}   - ${key}: ${JSON.stringify(value)}`);
+                }
+              }
+            }
+          }
+
+          // Show key attributes
+          const attrs = Object.entries(span.attributes ?? {}).filter(
+            ([, v]) => v !== null && v !== undefined && v !== "",
+          );
+          if (attrs.length > 0 && i < 3) {
+            // Only show attributes for top 3 levels to keep output compact
+            const attrStr = attrs
+              .slice(0, 3)
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(", ");
+            lines.push(`${prefix}   Attributes: ${attrStr}${attrs.length > 3 ? ", ..." : ""}`);
+          }
+        }
+
+        // List other error spans if any
+        if (errorSpans.length > 1) {
+          lines.push("", `## Other Errors (${errorSpans.length - 1})`);
+          for (const span of errorSpans.slice(1)) {
+            const duration = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+            const events = span.events.filter((e) => e.name === "error");
+            const msg =
+              events.length > 0
+                ? String(events[0]?.attributes["error.message"] ?? events[0]?.attributes["message"] ?? "Unknown")
+                : "Unknown";
+            lines.push(`- [${span.kind}] **${span.name}** (${duration}): ${msg}`);
+          }
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: suggest fix ---
+  server.tool(
+    "foxhound_suggest_fix",
+    "Analyze a failed trace and suggest specific fixes based on error patterns, including timeout issues, auth failures, rate limits, and more.",
+    {
+      trace_id: z.string().describe("The trace ID to analyze"),
+    },
+    async (params) => {
+      try {
+        const trace = await api.getTrace(params.trace_id);
+
+        // Find all error spans
+        const errorSpans = trace.spans.filter((s) => s.status === "error");
+
+        if (!errorSpans.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Fix Suggestions: ${trace.id}\n\nNo errors detected in this trace. No fixes needed.`,
+              },
+            ],
+          };
+        }
+
+        // Classify errors and collect suggestions
+        type ErrorCategory =
+          | "timeout"
+          | "auth"
+          | "rate_limit"
+          | "tool_error"
+          | "llm_error"
+          | "validation"
+          | "unknown";
+
+        interface CategorizedError {
+          category: ErrorCategory;
+          span: Span;
+          message: string;
+        }
+
+        const categorized: CategorizedError[] = [];
+
+        for (const span of errorSpans) {
+          // Extract error message
+          const errorEvents = span.events.filter((e) => e.name === "error");
+          const errorMsg =
+            errorEvents.length > 0
+              ? String(
+                  errorEvents[0]?.attributes["error.message"] ??
+                    errorEvents[0]?.attributes["message"] ??
+                    "",
+                ).toLowerCase()
+              : "";
+
+          // Classify by pattern matching
+          let category: ErrorCategory = "unknown";
+
+          // Check for timeout
+          const duration = span.endTimeMs && span.startTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+          if (
+            duration > 30000 ||
+            errorMsg.includes("timeout") ||
+            errorMsg.includes("timed out") ||
+            errorMsg.includes("deadline")
+          ) {
+            category = "timeout";
+          }
+          // Check for auth
+          else if (
+            errorMsg.includes("unauthorized") ||
+            errorMsg.includes("forbidden") ||
+            errorMsg.includes("401") ||
+            errorMsg.includes("403") ||
+            errorMsg.includes("api key") ||
+            errorMsg.includes("authentication")
+          ) {
+            category = "auth";
+          }
+          // Check for rate limit
+          else if (
+            errorMsg.includes("rate limit") ||
+            errorMsg.includes("429") ||
+            errorMsg.includes("too many requests") ||
+            errorMsg.includes("quota")
+          ) {
+            category = "rate_limit";
+          }
+          // Check for tool error
+          else if (span.kind === "tool_call") {
+            category = "tool_error";
+          }
+          // Check for LLM error
+          else if (
+            span.kind === "llm_call" ||
+            errorMsg.includes("model") ||
+            errorMsg.includes("openai") ||
+            errorMsg.includes("anthropic")
+          ) {
+            category = "llm_error";
+          }
+          // Check for validation
+          else if (
+            errorMsg.includes("validation") ||
+            errorMsg.includes("invalid") ||
+            errorMsg.includes("required") ||
+            errorMsg.includes("schema")
+          ) {
+            category = "validation";
+          }
+
+          categorized.push({ category, span, message: errorMsg });
+        }
+
+        // Group by category
+        const byCategory = new Map<ErrorCategory, CategorizedError[]>();
+        for (const item of categorized) {
+          const existing = byCategory.get(item.category) ?? [];
+          existing.push(item);
+          byCategory.set(item.category, existing);
+        }
+
+        // Generate suggestions
+        const lines: string[] = [`# Fix Suggestions: ${trace.id}`, ""];
+
+        // Timeout
+        if (byCategory.has("timeout")) {
+          const errors = byCategory.get("timeout")!;
+          lines.push(`## Timeout Issues (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            const duration =
+              e.span.endTimeMs && e.span.startTimeMs ? e.span.endTimeMs - e.span.startTimeMs : 0;
+            lines.push(`**${e.span.name}** (${duration}ms)`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Increase timeout threshold in your client configuration");
+          lines.push("- Optimize the underlying query or operation to reduce latency");
+          lines.push("- Add retry logic with exponential backoff");
+          lines.push("- Consider breaking the operation into smaller chunks");
+          lines.push("");
+        }
+
+        // Auth
+        if (byCategory.has("auth")) {
+          const errors = byCategory.get("auth")!;
+          lines.push(`## Authentication Failures (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Verify API key is set correctly in environment variables");
+          lines.push("- Check that credentials haven't expired or been revoked");
+          lines.push("- Ensure you have the necessary permissions for this operation");
+          lines.push("- Confirm the API endpoint is correct for your key");
+          lines.push("");
+        }
+
+        // Rate limit
+        if (byCategory.has("rate_limit")) {
+          const errors = byCategory.get("rate_limit")!;
+          lines.push(`## Rate Limit Exceeded (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Implement exponential backoff with jitter");
+          lines.push("- Reduce request rate or batch operations");
+          lines.push("- Upgrade your API plan for higher rate limits");
+          lines.push("- Add request queuing to smooth traffic");
+          lines.push("");
+        }
+
+        // Tool error
+        if (byCategory.has("tool_error")) {
+          const errors = byCategory.get("tool_error")!;
+          lines.push(`## Tool Execution Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Verify tool configuration and parameters are correct");
+          lines.push("- Check that the tool service is available and responsive");
+          lines.push("- Inspect tool-specific logs for detailed error messages");
+          lines.push("- Validate tool input schema and required fields");
+          lines.push("");
+        }
+
+        // LLM error
+        if (byCategory.has("llm_error")) {
+          const errors = byCategory.get("llm_error")!;
+          lines.push(`## LLM Call Failures (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Check prompt length against model context window limits");
+          lines.push("- Verify model name/identifier is correct and available");
+          lines.push("- Confirm API quota hasn't been exceeded");
+          lines.push("- Review model-specific error codes in LLM provider docs");
+          lines.push("");
+        }
+
+        // Validation
+        if (byCategory.has("validation")) {
+          const errors = byCategory.get("validation")!;
+          lines.push(`## Validation Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Review input schema and ensure all required fields are provided");
+          lines.push("- Verify data types match the expected schema");
+          lines.push("- Check for null/undefined values in required fields");
+          lines.push("- Inspect detailed error messages for specific validation failures");
+          lines.push("");
+        }
+
+        // Unknown
+        if (byCategory.has("unknown")) {
+          const errors = byCategory.get("unknown")!;
+          lines.push(`## Other Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            const errorEvents = e.span.events.filter((ev) => ev.name === "error");
+            const msg =
+              errorEvents.length > 0
+                ? String(
+                    errorEvents[0]?.attributes["error.message"] ??
+                      errorEvents[0]?.attributes["message"] ??
+                      "Unknown error",
+                  )
+                : "Unknown error";
+            lines.push(`**${e.span.name}**: ${msg}`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Inspect error events and attributes for more context");
+          lines.push("- Check application logs for additional error details");
+          lines.push("- Use `foxhound_explain_failure` for detailed error chain analysis");
+          lines.push("");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);

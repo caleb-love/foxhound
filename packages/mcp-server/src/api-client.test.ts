@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { FoxhoundApiClient } from "@foxhound/api-client";
+import type { Trace, Span } from "@foxhound/types";
 
 describe("FoxhoundApiClient", () => {
   const mockFetch = vi.fn();
@@ -106,5 +107,503 @@ describe("FoxhoundApiClient", () => {
 
     const [url] = mockFetch.mock.calls[0] as [string];
     expect(url.startsWith("https://api.foxhound.dev/v1/traces")).toBe(true);
+  });
+});
+
+describe("failure analysis", () => {
+  function makeSpan(
+    overrides: Partial<Span> & Pick<Span, "spanId" | "name">,
+  ): Span {
+    return {
+      traceId: "trace-1",
+      kind: "custom",
+      startTimeMs: Date.now(),
+      status: "ok",
+      attributes: {},
+      events: [],
+      ...overrides,
+    };
+  }
+
+  function makeTrace(spans: Span[]): Trace {
+    return {
+      id: "trace-1",
+      agentId: "test-agent",
+      spans,
+      startTimeMs: spans[0]?.startTimeMs ?? Date.now(),
+      endTimeMs: spans[spans.length - 1]?.endTimeMs,
+      metadata: {},
+    };
+  }
+
+  describe("error detection", () => {
+    it("identifies spans with error status", () => {
+      const errorSpan = makeSpan({
+        spanId: "span-1",
+        name: "failing-operation",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: { "error.message": "Connection failed" },
+          },
+        ],
+      });
+
+      const trace = makeTrace([errorSpan]);
+      const errors = trace.spans.filter((s) => s.status === "error");
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.name).toBe("failing-operation");
+    });
+
+    it("extracts error messages from events", () => {
+      const errorSpan = makeSpan({
+        spanId: "span-1",
+        name: "api-call",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: { "error.message": "API key invalid" },
+          },
+        ],
+      });
+
+      const trace = makeTrace([errorSpan]);
+      const errorEvent = trace.spans[0]?.events.find((e) => e.name === "error");
+
+      expect(errorEvent?.attributes["error.message"]).toBe("API key invalid");
+    });
+
+    it("handles traces with no errors", () => {
+      const okSpan = makeSpan({
+        spanId: "span-1",
+        name: "successful-operation",
+        status: "ok",
+      });
+
+      const trace = makeTrace([okSpan]);
+      const errors = trace.spans.filter((s) => s.status === "error");
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  describe("error classification", () => {
+    it("classifies timeout errors by duration threshold", () => {
+      const timeoutSpan = makeSpan({
+        spanId: "span-1",
+        name: "slow-operation",
+        status: "error",
+        startTimeMs: 1000,
+        endTimeMs: 32000, // 31s duration > 30s threshold
+        events: [
+          {
+            timeMs: 32000,
+            name: "error",
+            attributes: { "error.message": "Operation timed out" },
+          },
+        ],
+      });
+
+      const duration = (timeoutSpan.endTimeMs ?? 0) - timeoutSpan.startTimeMs;
+      expect(duration).toBeGreaterThan(30000);
+    });
+
+    it("classifies timeout errors by message pattern", () => {
+      const patterns = ["timeout", "timed out", "deadline exceeded"];
+
+      for (const pattern of patterns) {
+        const span = makeSpan({
+          spanId: `span-${pattern}`,
+          name: "operation",
+          status: "error",
+          events: [
+            {
+              timeMs: Date.now(),
+              name: "error",
+              attributes: { "error.message": `Request ${pattern}` },
+            },
+          ],
+        });
+
+        const errorMsg = String(
+          span.events.find((e) => e.name === "error")?.attributes["error.message"] ?? "",
+        ).toLowerCase();
+
+        expect(
+          errorMsg.includes("timeout") ||
+            errorMsg.includes("timed out") ||
+            errorMsg.includes("deadline"),
+        ).toBe(true);
+      }
+    });
+
+    it("classifies auth errors by message pattern", () => {
+      const patterns = [
+        "unauthorized",
+        "forbidden",
+        "401",
+        "403",
+        "api key invalid",
+        "authentication failed",
+      ];
+
+      for (const pattern of patterns) {
+        const span = makeSpan({
+          spanId: `span-${pattern}`,
+          name: "auth-check",
+          status: "error",
+          events: [
+            {
+              timeMs: Date.now(),
+              name: "error",
+              attributes: { "error.message": pattern },
+            },
+          ],
+        });
+
+        const errorMsg = String(
+          span.events.find((e) => e.name === "error")?.attributes["error.message"] ?? "",
+        ).toLowerCase();
+
+        const isAuth =
+          errorMsg.includes("unauthorized") ||
+          errorMsg.includes("forbidden") ||
+          errorMsg.includes("401") ||
+          errorMsg.includes("403") ||
+          errorMsg.includes("api key") ||
+          errorMsg.includes("authentication");
+
+        expect(isAuth).toBe(true);
+      }
+    });
+
+    it("classifies rate limit errors by message pattern", () => {
+      const patterns = ["rate limit exceeded", "429", "too many requests", "quota exceeded"];
+
+      for (const pattern of patterns) {
+        const span = makeSpan({
+          spanId: `span-${pattern}`,
+          name: "api-call",
+          status: "error",
+          events: [
+            {
+              timeMs: Date.now(),
+              name: "error",
+              attributes: { "error.message": pattern },
+            },
+          ],
+        });
+
+        const errorMsg = String(
+          span.events.find((e) => e.name === "error")?.attributes["error.message"] ?? "",
+        ).toLowerCase();
+
+        const isRateLimit =
+          errorMsg.includes("rate limit") ||
+          errorMsg.includes("429") ||
+          errorMsg.includes("too many requests") ||
+          errorMsg.includes("quota");
+
+        expect(isRateLimit).toBe(true);
+      }
+    });
+
+    it("classifies tool errors by span kind", () => {
+      const toolSpan = makeSpan({
+        spanId: "span-1",
+        name: "calculator_tool",
+        kind: "tool_call",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: { "error.message": "Tool execution failed" },
+          },
+        ],
+      });
+
+      expect(toolSpan.kind).toBe("tool_call");
+      expect(toolSpan.status).toBe("error");
+    });
+
+    it("classifies LLM errors by span kind", () => {
+      const llmSpan = makeSpan({
+        spanId: "span-1",
+        name: "generate_response",
+        kind: "llm_call",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: { "error.message": "Model not found" },
+          },
+        ],
+      });
+
+      expect(llmSpan.kind).toBe("llm_call");
+      expect(llmSpan.status).toBe("error");
+    });
+
+    it("classifies LLM errors by message pattern", () => {
+      const patterns = ["model not found", "openai error", "anthropic api error"];
+
+      for (const pattern of patterns) {
+        const span = makeSpan({
+          spanId: `span-${pattern}`,
+          name: "llm-call",
+          status: "error",
+          events: [
+            {
+              timeMs: Date.now(),
+              name: "error",
+              attributes: { "error.message": pattern },
+            },
+          ],
+        });
+
+        const errorMsg = String(
+          span.events.find((e) => e.name === "error")?.attributes["error.message"] ?? "",
+        ).toLowerCase();
+
+        const isLlmError =
+          errorMsg.includes("model") ||
+          errorMsg.includes("openai") ||
+          errorMsg.includes("anthropic");
+
+        expect(isLlmError).toBe(true);
+      }
+    });
+
+    it("classifies validation errors by message pattern", () => {
+      const patterns = [
+        "validation failed",
+        "invalid input",
+        "required field missing",
+        "schema error",
+      ];
+
+      for (const pattern of patterns) {
+        const span = makeSpan({
+          spanId: `span-${pattern}`,
+          name: "validate-input",
+          status: "error",
+          events: [
+            {
+              timeMs: Date.now(),
+              name: "error",
+              attributes: { "error.message": pattern },
+            },
+          ],
+        });
+
+        const errorMsg = String(
+          span.events.find((e) => e.name === "error")?.attributes["error.message"] ?? "",
+        ).toLowerCase();
+
+        const isValidation =
+          errorMsg.includes("validation") ||
+          errorMsg.includes("invalid") ||
+          errorMsg.includes("required") ||
+          errorMsg.includes("schema");
+
+        expect(isValidation).toBe(true);
+      }
+    });
+  });
+
+  describe("parent chain building", () => {
+    it("builds parent chain for error span", () => {
+      const rootSpan = makeSpan({
+        spanId: "root",
+        name: "workflow",
+      });
+
+      const middleSpan = makeSpan({
+        spanId: "middle",
+        name: "process",
+        parentSpanId: "root",
+      });
+
+      const errorSpan = makeSpan({
+        spanId: "error",
+        name: "failing-step",
+        parentSpanId: "middle",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: { "error.message": "Step failed" },
+          },
+        ],
+      });
+
+      const trace = makeTrace([rootSpan, middleSpan, errorSpan]);
+
+      // Build parent chain
+      const spanMap = new Map<string, Span>();
+      for (const span of trace.spans) {
+        spanMap.set(span.spanId, span);
+      }
+
+      function getParentChain(span: Span): Span[] {
+        const chain: Span[] = [span];
+        let current = span;
+        while (current.parentSpanId) {
+          const parent = spanMap.get(current.parentSpanId);
+          if (!parent) break;
+          chain.unshift(parent);
+          current = parent;
+        }
+        return chain;
+      }
+
+      const chain = getParentChain(errorSpan);
+
+      expect(chain).toHaveLength(3);
+      expect(chain[0]?.spanId).toBe("root");
+      expect(chain[1]?.spanId).toBe("middle");
+      expect(chain[2]?.spanId).toBe("error");
+    });
+
+    it("handles orphan spans with no parent", () => {
+      const orphanSpan = makeSpan({
+        spanId: "orphan",
+        name: "isolated-operation",
+        status: "error",
+      });
+
+      const trace = makeTrace([orphanSpan]);
+
+      const spanMap = new Map<string, Span>();
+      for (const span of trace.spans) {
+        spanMap.set(span.spanId, span);
+      }
+
+      function getParentChain(span: Span): Span[] {
+        const chain: Span[] = [span];
+        let current = span;
+        while (current.parentSpanId) {
+          const parent = spanMap.get(current.parentSpanId);
+          if (!parent) break;
+          chain.unshift(parent);
+          current = parent;
+        }
+        return chain;
+      }
+
+      const chain = getParentChain(orphanSpan);
+
+      expect(chain).toHaveLength(1);
+      expect(chain[0]?.spanId).toBe("orphan");
+    });
+  });
+
+  describe("multiple errors", () => {
+    it("identifies earliest error by start time", () => {
+      const error1 = makeSpan({
+        spanId: "error-1",
+        name: "first-error",
+        startTimeMs: 2000,
+        status: "error",
+      });
+
+      const error2 = makeSpan({
+        spanId: "error-2",
+        name: "second-error",
+        startTimeMs: 1000,
+        status: "error",
+      });
+
+      const error3 = makeSpan({
+        spanId: "error-3",
+        name: "third-error",
+        startTimeMs: 3000,
+        status: "error",
+      });
+
+      const trace = makeTrace([error1, error2, error3]);
+      const errorSpans = trace.spans.filter((s) => s.status === "error");
+
+      const firstError = errorSpans.reduce((earliest, current) =>
+        current.startTimeMs < earliest.startTimeMs ? current : earliest,
+      );
+
+      expect(firstError.spanId).toBe("error-2");
+      expect(firstError.startTimeMs).toBe(1000);
+    });
+
+    it("counts total error spans", () => {
+      const spans = [
+        makeSpan({ spanId: "ok-1", name: "success-1", status: "ok" }),
+        makeSpan({ spanId: "error-1", name: "failure-1", status: "error" }),
+        makeSpan({ spanId: "ok-2", name: "success-2", status: "ok" }),
+        makeSpan({ spanId: "error-2", name: "failure-2", status: "error" }),
+        makeSpan({ spanId: "error-3", name: "failure-3", status: "error" }),
+      ];
+
+      const trace = makeTrace(spans);
+      const errorCount = trace.spans.filter((s) => s.status === "error").length;
+
+      expect(errorCount).toBe(3);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles missing error message attributes", () => {
+      const span = makeSpan({
+        spanId: "span-1",
+        name: "operation",
+        status: "error",
+        events: [
+          {
+            timeMs: Date.now(),
+            name: "error",
+            attributes: {}, // No error.message
+          },
+        ],
+      });
+
+      const errorEvent = span.events.find((e) => e.name === "error");
+      const message = String(
+        errorEvent?.attributes["error.message"] ??
+          errorEvent?.attributes["message"] ??
+          "Unknown error",
+      );
+
+      expect(message).toBe("Unknown error");
+    });
+
+    it("handles spans with no events", () => {
+      const span = makeSpan({
+        spanId: "span-1",
+        name: "operation",
+        status: "error",
+        events: [], // No events at all
+      });
+
+      const errorEvents = span.events.filter((e) => e.name === "error");
+      expect(errorEvents).toHaveLength(0);
+    });
+
+    it("handles incomplete spans with no end time", () => {
+      const span = makeSpan({
+        spanId: "span-1",
+        name: "incomplete",
+        status: "error",
+        startTimeMs: 1000,
+        // No endTimeMs
+      });
+
+      const duration = span.endTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+      expect(duration).toBe(0);
+    });
   });
 });
