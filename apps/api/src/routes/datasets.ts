@@ -168,9 +168,7 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
 
     const { scoreName, scoreOperator, scoreThreshold, sinceDays, limit } = result.data;
 
-    const since = sinceDays
-      ? new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000)
-      : undefined;
+    const since = sinceDays ? new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000) : undefined;
 
     const traceResults = await getTracesForDatasetCuration({
       orgId: request.orgId,
@@ -195,9 +193,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
         id: `dsi_${randomUUID()}`,
         datasetId: id,
         input: typeof input === "object" ? (input as Record<string, unknown>) : { value: input },
-        expectedOutput: typeof output === "object"
-          ? (output as Record<string, unknown>)
-          : { value: output },
+        expectedOutput:
+          typeof output === "object" ? (output as Record<string, unknown>) : { value: output },
         metadata: trace.metadata,
         sourceTraceId: trace.id,
       };

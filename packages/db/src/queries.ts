@@ -1468,11 +1468,7 @@ export async function listDatasetItems(filters: DatasetItemFilters) {
 }
 
 export async function getDatasetItem(id: string) {
-  const rows = await db
-    .select()
-    .from(datasetItems)
-    .where(eq(datasetItems.id, id))
-    .limit(1);
+  const rows = await db.select().from(datasetItems).where(eq(datasetItems.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -1501,12 +1497,16 @@ export async function getTracesForDatasetCuration(filters: {
   since?: Date;
   limit?: number;
 }) {
-  const { orgId, scoreName, scoreOperator, scoreThreshold, since, limit: maxResults = 100 } = filters;
+  const {
+    orgId,
+    scoreName,
+    scoreOperator,
+    scoreThreshold,
+    since,
+    limit: maxResults = 100,
+  } = filters;
 
-  const conditions = [
-    eq(scores.orgId, orgId),
-    eq(scores.name, scoreName),
-  ];
+  const conditions = [eq(scores.orgId, orgId), eq(scores.name, scoreName)];
 
   if (scoreOperator === "lt") conditions.push(lt(scores.value, scoreThreshold));
   else if (scoreOperator === "gt") conditions.push(gt(scores.value, scoreThreshold));
@@ -1602,11 +1602,7 @@ export async function updateExperimentStatus(
   const set: Record<string, unknown> = { status };
   if (status === "completed" || status === "failed") set.completedAt = new Date();
 
-  const rows = await db
-    .update(experiments)
-    .set(set)
-    .where(eq(experiments.id, id))
-    .returning();
+  const rows = await db.update(experiments).set(set).where(eq(experiments.id, id)).returning();
   return rows[0] ?? null;
 }
 
@@ -1655,11 +1651,7 @@ export async function createExperimentRuns(inputs: CreateExperimentRunInput[]) {
 }
 
 export async function getExperimentRun(id: string) {
-  const rows = await db
-    .select()
-    .from(experimentRuns)
-    .where(eq(experimentRuns.id, id))
-    .limit(1);
+  const rows = await db.select().from(experimentRuns).where(eq(experimentRuns.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -1701,10 +1693,7 @@ export async function getExperimentComparison(experimentIds: string[], orgId: st
   const exps = await db
     .select()
     .from(experiments)
-    .where(and(
-      eq(experiments.orgId, orgId),
-      sql`${experiments.id} = ANY(${experimentIds})`,
-    ));
+    .where(and(eq(experiments.orgId, orgId), sql`${experiments.id} = ANY(${experimentIds})`));
 
   if (exps.length !== experimentIds.length) return null;
 

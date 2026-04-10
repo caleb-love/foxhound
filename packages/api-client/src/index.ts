@@ -364,10 +364,7 @@ export class FoxhoundApiClient {
 
   // ── Datasets ──────────────────────────────────────────────────────────
 
-  async createDataset(params: {
-    name: string;
-    description?: string;
-  }): Promise<Dataset> {
+  async createDataset(params: { name: string; description?: string }): Promise<Dataset> {
     return this.post("/v1/datasets", params as unknown as Record<string, unknown>);
   }
 

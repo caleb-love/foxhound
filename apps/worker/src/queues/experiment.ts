@@ -26,7 +26,12 @@ export interface ExperimentJobData {
 async function executeExperimentRun(
   config: Record<string, unknown>,
   input: Record<string, unknown>,
-): Promise<{ output: Record<string, unknown>; latencyMs: number; tokenCount: number; cost: number }> {
+): Promise<{
+  output: Record<string, unknown>;
+  latencyMs: number;
+  tokenCount: number;
+  cost: number;
+}> {
   const apiKey = process.env["OPENAI_API_KEY"];
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is required for experiment execution");
@@ -164,10 +169,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
       const item = await getDatasetItem(run.datasetItemId);
       if (!item) continue;
 
-      const result = await executeExperimentRun(
-        experiment.config,
-        item.input,
-      );
+      const result = await executeExperimentRun(experiment.config, item.input);
 
       await updateExperimentRun(run.id, {
         output: result.output,
@@ -202,11 +204,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
 
         for (const evaluator of active) {
           try {
-            const result = await invokeEvaluator(
-              evaluator,
-              item.input,
-              updatedRun.output,
-            );
+            const result = await invokeEvaluator(evaluator, item.input, updatedRun.output);
 
             await createScore({
               id: `scr_${randomUUID()}`,
@@ -228,10 +226,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
     console.error(`[experiment] Auto-scoring failed:`, (err as Error).message);
   }
 
-  await updateExperimentStatus(
-    experimentId,
-    failedCount === runs.length ? "failed" : "completed",
-  );
+  await updateExperimentStatus(experimentId, failedCount === runs.length ? "failed" : "completed");
 }
 
 /**
