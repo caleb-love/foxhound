@@ -480,3 +480,92 @@ export const annotationQueueItems = pgTable(
     traceIdIdx: index("annotation_queue_items_trace_id_idx").on(table.traceId),
   }),
 );
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dataset & Experiment tables (Phase 3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const datasets = pgTable(
+  "datasets",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("datasets_org_id_idx").on(table.orgId),
+    orgNameIdx: index("datasets_org_name_idx").on(table.orgId, table.name),
+  }),
+);
+
+export const datasetItems = pgTable(
+  "dataset_items",
+  {
+    id: text("id").primaryKey(),
+    datasetId: text("dataset_id")
+      .notNull()
+      .references(() => datasets.id, { onDelete: "cascade" }),
+    input: jsonb("input").notNull().$type<Record<string, unknown>>(),
+    expectedOutput: jsonb("expected_output").$type<Record<string, unknown>>(),
+    metadata: jsonb("metadata").default({}).$type<Record<string, unknown>>(),
+    sourceTraceId: text("source_trace_id").references(() => traces.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    datasetIdIdx: index("dataset_items_dataset_id_idx").on(table.datasetId),
+    sourceTraceIdIdx: index("dataset_items_source_trace_id_idx").on(table.sourceTraceId),
+  }),
+);
+
+export const experiments = pgTable(
+  "experiments",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    datasetId: text("dataset_id")
+      .notNull()
+      .references(() => datasets.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    config: jsonb("config").notNull().default({}).$type<Record<string, unknown>>(),
+    status: text("status", {
+      enum: ["pending", "running", "completed", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => ({
+    orgIdIdx: index("experiments_org_id_idx").on(table.orgId),
+    datasetIdIdx: index("experiments_dataset_id_idx").on(table.datasetId),
+    orgStatusIdx: index("experiments_org_status_idx").on(table.orgId, table.status),
+  }),
+);
+
+export const experimentRuns = pgTable(
+  "experiment_runs",
+  {
+    id: text("id").primaryKey(),
+    experimentId: text("experiment_id")
+      .notNull()
+      .references(() => experiments.id, { onDelete: "cascade" }),
+    datasetItemId: text("dataset_item_id")
+      .notNull()
+      .references(() => datasetItems.id, { onDelete: "cascade" }),
+    output: jsonb("output").$type<Record<string, unknown>>(),
+    latencyMs: integer("latency_ms"),
+    tokenCount: integer("token_count"),
+    cost: doublePrecision("cost"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    experimentIdIdx: index("experiment_runs_experiment_id_idx").on(table.experimentId),
+    datasetItemIdIdx: index("experiment_runs_dataset_item_id_idx").on(table.datasetItemId),
+  }),
+);

@@ -5,6 +5,8 @@ import type {
   EvaluatorRun,
   AnnotationQueue,
   AnnotationQueueItem,
+  Dataset,
+  Experiment,
 } from "@foxhound/types";
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -190,5 +192,48 @@ export interface AddAnnotationItemsResponse {
 
 export interface SubmitAnnotationResponse {
   item: AnnotationQueueItem;
+  scores: Score[];
+}
+
+// ── Datasets ──────────────────────────────────────────────────────────────
+
+export interface DatasetListResponse {
+  data: import("@foxhound/types").Dataset[];
+}
+
+export interface DatasetWithCount extends Dataset {
+  itemCount: number;
+}
+
+export interface DatasetItemListResponse {
+  data: import("@foxhound/types").DatasetItem[];
+  pagination: { page: number; limit: number; count: number };
+}
+
+export interface FromTracesResponse {
+  added: number;
+  items: import("@foxhound/types").DatasetItem[];
+}
+
+// ── Experiments ───────────────────────────────────────────────────────────
+
+export interface ExperimentListResponse {
+  data: import("@foxhound/types").Experiment[];
+}
+
+export interface ExperimentWithRuns extends Experiment {
+  runs: import("@foxhound/types").ExperimentRun[];
+}
+
+export interface CreateExperimentResponse {
+  experiment: import("@foxhound/types").Experiment;
+  runCount: number;
+  message: string;
+}
+
+export interface ExperimentComparisonResponse {
+  experiments: import("@foxhound/types").Experiment[];
+  runs: import("@foxhound/types").ExperimentRun[];
+  items: import("@foxhound/types").DatasetItem[];
   scores: Score[];
 }
