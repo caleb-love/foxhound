@@ -111,8 +111,8 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
       if (!item) continue;
 
       const result = await executeExperimentRun(
-        experiment.config as Record<string, unknown>,
-        item.input as Record<string, unknown>,
+        experiment.config,
+        item.input,
       );
 
       await updateExperimentRun(run.id, {
@@ -141,7 +141,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
       );
       for (const run of runs) {
         const updatedRun = await getExperimentRun(run.id);
-        if (!updatedRun?.output || (updatedRun.output as Record<string, unknown>).error) continue;
+        if (!updatedRun?.output || updatedRun.output.error) continue;
 
         for (const evaluator of active) {
           try {
