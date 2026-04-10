@@ -237,3 +237,31 @@ export interface ExperimentComparisonResponse {
   items: import("@foxhound/types").DatasetItem[];
   scores: Score[];
 }
+
+// ── Agent Intelligence (Phase 4) ────────────────────────────────────────
+
+export interface AgentConfigResponse {
+  id: string; orgId: string; agentId: string;
+  costBudgetUsd: string | null; costAlertThresholdPct: number | null; budgetPeriod: string | null;
+  maxDurationMs: number | null; minSuccessRate: string | null; evaluationWindowMs: number | null; minSampleSize: number | null;
+  lastCostStatus: Record<string, unknown> | null; lastSlaStatus: Record<string, unknown> | null;
+  createdAt: string; updatedAt: string;
+}
+
+export interface AgentConfigListResponse {
+  data: AgentConfigResponse[];
+  pagination: { page: number; limit: number; count: number };
+}
+
+export interface BaselineResponse {
+  id: string; agentId: string; agentVersion: string; sampleSize: number;
+  spanStructure: Record<string, number>; createdAt: string;
+}
+
+export interface BaselineListResponse { data: BaselineResponse[]; }
+
+export interface RegressionReportResponse {
+  agentId: string; previousVersion: string; newVersion: string;
+  regressions: Array<{ type: "missing" | "new"; span: string; previousFrequency?: number; newFrequency?: number }>;
+  sampleSize: { before: number; after: number };
+}

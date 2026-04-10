@@ -38,6 +38,10 @@ import type {
   ExperimentWithRuns,
   CreateExperimentResponse,
   ExperimentComparisonResponse,
+  AgentConfigResponse,
+  AgentConfigListResponse,
+  BaselineListResponse,
+  RegressionReportResponse,
 } from "./types.js";
 import type {
   Score,
@@ -456,6 +460,66 @@ export class FoxhoundApiClient {
     return this.get(`/v1/experiment-comparisons?experiment_ids=${encodeURIComponent(ids)}`);
   }
 
+  // ── Budgets ────────────────────────────────────────────────────────────
+
+  async setBudget(agentId: string, params: { costBudgetUsd: number; costAlertThresholdPct?: number; budgetPeriod?: string }): Promise<AgentConfigResponse> {
+    return this.request("PUT", `/v1/budgets/${encodeURIComponent(agentId)}`, params as unknown as Record<string, unknown>);
+  }
+
+  async getBudget(agentId: string): Promise<AgentConfigResponse> {
+    return this.get(`/v1/budgets/${encodeURIComponent(agentId)}`);
+  }
+
+  async listBudgets(params?: { page?: number; limit?: number }): Promise<AgentConfigListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return this.get(`/v1/budgets?${qs}`);
+  }
+
+  async deleteBudget(agentId: string): Promise<void> {
+    await this.del(`/v1/budgets/${encodeURIComponent(agentId)}`);
+  }
+
+  // ── SLAs ───────────────────────────────────────────────────────────────
+
+  async setSla(agentId: string, params: { maxDurationMs?: number; minSuccessRate?: number; evaluationWindowMs?: number; minSampleSize?: number }): Promise<AgentConfigResponse> {
+    return this.request("PUT", `/v1/slas/${encodeURIComponent(agentId)}`, params as unknown as Record<string, unknown>);
+  }
+
+  async getSla(agentId: string): Promise<AgentConfigResponse> {
+    return this.get(`/v1/slas/${encodeURIComponent(agentId)}`);
+  }
+
+  async listSlas(params?: { page?: number; limit?: number }): Promise<AgentConfigListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return this.get(`/v1/slas?${qs}`);
+  }
+
+  async deleteSla(agentId: string): Promise<void> {
+    await this.del(`/v1/slas/${encodeURIComponent(agentId)}`);
+  }
+
+  // ── Regressions ────────────────────────────────────────────────────────
+
+  async getRegression(agentId: string): Promise<RegressionReportResponse> {
+    return this.get(`/v1/regressions/${encodeURIComponent(agentId)}`);
+  }
+
+  async compareVersions(agentId: string, versionA: string, versionB: string): Promise<RegressionReportResponse> {
+    return this.post(`/v1/regressions/${encodeURIComponent(agentId)}/compare`, { versionA, versionB });
+  }
+
+  async listBaselines(agentId: string): Promise<BaselineListResponse> {
+    return this.get(`/v1/regressions/${encodeURIComponent(agentId)}/baselines`);
+  }
+
+  async deleteBaseline(agentId: string, version: string): Promise<void> {
+    await this.del(`/v1/regressions/${encodeURIComponent(agentId)}/baselines?version=${encodeURIComponent(version)}`);
+  }
+
   // ── HTTP helpers ──────────────────────────────────────────────────────
 
   private async get<T>(path: string): Promise<T> {
@@ -476,7 +540,7 @@ export class FoxhoundApiClient {
    * is needed, add zod schemas per-endpoint.
    */
   private async request<T>(
-    method: "GET" | "POST" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     body?: Record<string, unknown>,
   ): Promise<T> {
