@@ -23,7 +23,7 @@ import {
   experiments,
   experimentRuns,
 } from "./schema.js";
-import { eq, and, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
+import { eq, and, gt, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -1509,7 +1509,7 @@ export async function getTracesForDatasetCuration(filters: {
   ];
 
   if (scoreOperator === "lt") conditions.push(lt(scores.value, scoreThreshold));
-  else if (scoreOperator === "gt") conditions.push(gte(scores.value, scoreThreshold + 0.0001));
+  else if (scoreOperator === "gt") conditions.push(gt(scores.value, scoreThreshold));
   else if (scoreOperator === "lte") conditions.push(lte(scores.value, scoreThreshold));
   else if (scoreOperator === "gte") conditions.push(gte(scores.value, scoreThreshold));
 

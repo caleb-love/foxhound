@@ -9,6 +9,7 @@ import {
   createDatasetItem,
   createDatasetItems,
   listDatasetItems,
+  getDatasetItem,
   deleteDatasetItem,
   countDatasetItems,
   getTracesForDatasetCuration,
@@ -143,10 +144,12 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       return reply.code(404).send({ error: "Dataset not found" });
     }
 
-    const deleted = await deleteDatasetItem(itemId);
-    if (!deleted) {
+    const item = await getDatasetItem(itemId);
+    if (!item || item.datasetId !== id) {
       return reply.code(404).send({ error: "Not Found" });
     }
+
+    await deleteDatasetItem(itemId);
     return reply.code(204).send();
   });
 
@@ -195,7 +198,7 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
         expectedOutput: typeof output === "object"
           ? (output as Record<string, unknown>)
           : { value: output },
-        metadata: trace.metadata as Record<string, unknown>,
+        metadata: trace.metadata,
         sourceTraceId: trace.id,
       };
     });

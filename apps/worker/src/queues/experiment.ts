@@ -16,6 +16,7 @@ export const EXPERIMENT_QUEUE_NAME = "experiment-runs";
 
 export interface ExperimentJobData {
   experimentId: string;
+  orgId: string;
 }
 
 /**
@@ -90,14 +91,67 @@ async function executeExperimentRun(
 }
 
 /**
+ * Call an LLM to evaluate a run output using the evaluator's prompt template.
+ * Returns a numeric score (0-1) or a categorical label depending on scoringType.
+ */
+async function invokeEvaluator(
+  evaluator: { promptTemplate: string; model: string; scoringType: string },
+  input: Record<string, unknown>,
+  output: Record<string, unknown>,
+): Promise<{ value?: number; label?: string }> {
+  const apiKey = process.env["OPENAI_API_KEY"];
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is required for evaluator invocation");
+  }
+
+  const prompt = evaluator.promptTemplate
+    .replace(/\{\{input\}\}/g, JSON.stringify(input))
+    .replace(/\{\{output\}\}/g, JSON.stringify(output));
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: evaluator.model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Evaluator LLM error: ${response.status} ${text}`);
+  }
+
+  const data = (await response.json()) as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  const content = (data.choices[0]?.message?.content ?? "").trim();
+
+  if (evaluator.scoringType === "numeric") {
+    const match = content.match(/(\d+(?:\.\d+)?)/);
+    const raw = match ? parseFloat(match[1]) : undefined;
+    // Clamp to 0-1 range
+    const value = raw != null ? Math.max(0, Math.min(1, raw)) : undefined;
+    return { value };
+  }
+
+  return { label: content };
+}
+
+/**
  * Process an entire experiment: run all dataset items, then auto-score.
  */
 async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> {
-  const { experimentId } = job.data;
+  const { experimentId, orgId } = job.data;
 
   await updateExperimentStatus(experimentId, "running");
 
-  const experiment = await getExperiment(experimentId, "");
+  const experiment = await getExperiment(experimentId, orgId);
   if (!experiment) {
     throw new Error(`Experiment ${experimentId} not found`);
   }
@@ -132,7 +186,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
 
   // Auto-score experiment runs using org's enabled evaluators
   try {
-    const enabledEvaluators = await listEvaluators(experiment.orgId);
+    const enabledEvaluators = await listEvaluators(orgId);
     const active = enabledEvaluators.filter((e) => e.enabled);
 
     if (active.length > 0) {
@@ -143,15 +197,26 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
         const updatedRun = await getExperimentRun(run.id);
         if (!updatedRun?.output || updatedRun.output.error) continue;
 
+        const item = await getDatasetItem(run.datasetItemId);
+        if (!item?.sourceTraceId) continue;
+
         for (const evaluator of active) {
           try {
+            const result = await invokeEvaluator(
+              evaluator,
+              item.input,
+              updatedRun.output,
+            );
+
             await createScore({
               id: `scr_${randomUUID()}`,
-              orgId: experiment.orgId,
-              traceId: experiment.id,
+              orgId,
+              traceId: item.sourceTraceId,
               name: evaluator.name,
               source: "llm_judge",
-              comment: run.id,
+              value: result.value,
+              label: result.label,
+              comment: `experiment:${experiment.id} run:${run.id}`,
             });
           } catch {
             // Non-fatal: scoring failure shouldn't fail the experiment

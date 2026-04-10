@@ -69,7 +69,7 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
     if (queue) {
       await queue.add(
         "run-experiment",
-        { experimentId: experiment.id },
+        { experimentId: experiment.id, orgId },
         {
           attempts: 3,
           backoff: { type: "exponential", delay: 5000 },
