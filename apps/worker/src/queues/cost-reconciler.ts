@@ -1,20 +1,10 @@
 import { Worker } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
 import { Redis } from "ioredis";
-import { getAllAgentConfigsWithSLA, sumSpanCosts } from "@foxhound/db";
+import { getAllAgentConfigs, sumSpanCosts } from "@foxhound/db";
+import { getBudgetPeriodKey, parsePeriodStart } from "@foxhound/types";
 
 export const COST_RECONCILER_QUEUE = "cost-reconciler";
-
-function parsePeriodStart(periodKey: string): number {
-  if (periodKey.includes("W")) {
-    const [yearStr, weekStr] = periodKey.split("-W");
-    const d = new Date(Number(yearStr), 0, 1);
-    d.setDate(d.getDate() + (Number(weekStr) - 1) * 7);
-    return d.getTime();
-  }
-  if (periodKey.length === 10) return new Date(periodKey + "T00:00:00Z").getTime();
-  return new Date(periodKey + "-01T00:00:00Z").getTime();
-}
 
 export function startCostReconcilerWorker(connection: ConnectionOptions): Worker {
   const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
@@ -23,19 +13,13 @@ export function startCostReconcilerWorker(connection: ConnectionOptions): Worker
   const worker = new Worker(
     COST_RECONCILER_QUEUE,
     async () => {
-      const configs = await getAllAgentConfigsWithSLA();
+      const configs = await getAllAgentConfigs();
       const now = Date.now();
 
       for (const config of configs) {
         if (!config.costBudgetUsd) continue;
         const period = config.budgetPeriod ?? "monthly";
-        const d = new Date(now);
-        const periodKey =
-          period === "daily"
-            ? d.toISOString().slice(0, 10)
-            : period === "weekly"
-              ? `${d.getUTCFullYear()}-W${String(Math.ceil((d.getTime() - new Date(d.getUTCFullYear(), 0, 1).getTime()) / 604800000)).padStart(2, "0")}`
-              : d.toISOString().slice(0, 7);
+        const periodKey = getBudgetPeriodKey(period, now);
 
         const redisKey = `cost:${config.orgId}:${config.agentId}:${periodKey}`;
         const periodStart = parsePeriodStart(periodKey);

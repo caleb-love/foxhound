@@ -10,6 +10,7 @@ import {
 } from "@foxhound/db";
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import { parsePeriodStart } from "@foxhound/types";
 import { randomUUID } from "crypto";
 
 export const COST_MONITOR_QUEUE = "cost-monitor";
@@ -93,19 +94,6 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
         }),
       ),
   );
-}
-
-function parsePeriodStart(periodKey: string): number {
-  if (periodKey.includes("W")) {
-    const [yearStr, weekStr] = periodKey.split("-W");
-    const year = Number(yearStr);
-    const week = Number(weekStr);
-    const jan1 = new Date(year, 0, 1);
-    const d = new Date(jan1.getTime() + (week - 1) * 7 * 86400000);
-    return d.getTime();
-  }
-  if (periodKey.length === 10) return new Date(periodKey + "T00:00:00Z").getTime();
-  return new Date(periodKey + "-01T00:00:00Z").getTime();
 }
 
 export function startCostMonitorWorker(connection: ConnectionOptions): Worker<CostAlertJobData> {

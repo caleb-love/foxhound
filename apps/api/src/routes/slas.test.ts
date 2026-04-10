@@ -73,7 +73,7 @@ describe("PUT /v1/slas/:agentId", () => {
 
   it("creates SLA (201)", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(null);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(undefined);
     vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseSlaConfig as any);
 
     const app = buildApp();

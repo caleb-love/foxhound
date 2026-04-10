@@ -16,6 +16,8 @@ import { persistTraceWithRetry } from "../persistence.js";
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
 import type { Trace } from "@foxhound/types";
+import { getBudgetPeriodKey } from "@foxhound/types";
+import { updateSpanCosts } from "@foxhound/db";
 import { lookupPricing } from "../lib/pricing-cache.js";
 import { getRedis } from "../lib/redis.js";
 import { getConfigFromCache } from "../lib/config-cache.js";
@@ -152,6 +154,7 @@ async function handlePhase4Ingestion(
 
     // 1. Cost extraction for LLM spans
     let traceCost = 0;
+    const spanCosts: Array<{ traceId: string; spanId: string; costUsd: number }> = [];
     for (const span of trace.spans) {
       if (span.kind !== "llm_call") continue;
 
@@ -178,7 +181,13 @@ async function handlePhase4Ingestion(
 
       if (cost !== null) {
         traceCost += cost;
+        spanCosts.push({ traceId: trace.id, spanId: span.spanId, costUsd: cost });
       }
+    }
+
+    // Persist computed costs to spans.cost_usd
+    if (spanCosts.length > 0) {
+      await updateSpanCosts(spanCosts);
     }
 
     // 2. Update Redis running cost total
@@ -247,30 +256,6 @@ async function handlePhase4Ingestion(
     }
   } catch (err) {
     fastify.log.error({ err }, "Phase 4 ingestion processing failed");
-  }
-}
-
-function getBudgetPeriodKey(period: string, timestampMs: number): string {
-  const d = new Date(timestampMs);
-  switch (period) {
-    case "daily":
-      return d.toISOString().slice(0, 10); // 2026-04-10
-    case "weekly": {
-      // ISO week: get the Monday of the week
-      const day = d.getUTCDay();
-      const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d);
-      monday.setUTCDate(diff);
-      const year = monday.getUTCFullYear();
-      const oneJan = new Date(year, 0, 1);
-      const week = Math.ceil(
-        ((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getUTCDay() + 1) / 7,
-      );
-      return `${year}-W${String(week).padStart(2, "0")}`;
-    }
-    case "monthly":
-    default:
-      return d.toISOString().slice(0, 7); // 2026-04
   }
 }
 

@@ -13,7 +13,7 @@ const UpsertSLASchema = z
   .object({
     maxDurationMs: z.number().int().positive().optional(),
     minSuccessRate: z.number().min(0).max(1).optional(),
-    evaluationWindowMs: z.number().int().positive().default(86400000),
+    evaluationWindowMs: z.number().int().positive().max(604_800_000).default(86400000),
     minSampleSize: z.number().int().positive().default(10),
   })
   .refine((data) => data.maxDurationMs !== undefined || data.minSuccessRate !== undefined, {

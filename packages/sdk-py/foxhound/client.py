@@ -336,8 +336,8 @@ class BudgetsNamespace:
         *,
         agent_id: str,
         cost_budget_usd: float,
-        alert_threshold_pct: float = 80,
-        period: str = "monthly",
+        cost_alert_threshold_pct: float = 80,
+        budget_period: str = "monthly",
     ) -> dict[str, Any]:
         """Create or update a cost budget for an agent.
 
@@ -347,8 +347,8 @@ class BudgetsNamespace:
         """
         body: dict[str, Any] = {
             "costBudgetUsd": cost_budget_usd,
-            "alertThresholdPct": alert_threshold_pct,
-            "period": period,
+            "costAlertThresholdPct": cost_alert_threshold_pct,
+            "budgetPeriod": budget_period,
         }
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.put(

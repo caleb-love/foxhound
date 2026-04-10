@@ -303,6 +303,8 @@ export async function insertTrace(trace: Trace, orgId: string): Promise<void> {
       sessionId: trace.sessionId ?? null,
       startTimeMs: trace.startTimeMs,
       endTimeMs: trace.endTimeMs ?? null,
+      parentAgentId: trace.parentAgentId ?? null,
+      correlationId: trace.correlationId ?? null,
       spans: trace.spans as unknown[],
       metadata: trace.metadata as Record<string, unknown>,
     })
@@ -626,6 +628,23 @@ export async function insertSpans(traceId: string, orgId: string, spanList: Span
       })),
     )
     .onConflictDoNothing();
+}
+
+/**
+ * Batch-update cost_usd for spans that had their cost computed post-ingestion.
+ */
+export async function updateSpanCosts(
+  costs: Array<{ traceId: string; spanId: string; costUsd: number }>,
+): Promise<void> {
+  if (costs.length === 0) return;
+  await Promise.all(
+    costs.map((c) =>
+      db
+        .update(spans)
+        .set({ costUsd: String(c.costUsd) })
+        .where(and(eq(spans.traceId, c.traceId), eq(spans.id, c.spanId))),
+    ),
+  );
 }
 
 /**
@@ -1812,20 +1831,26 @@ export async function updateAgentConfigStatus(
   await db
     .update(agentConfigs)
     .set({
-      ...(costStatus !== undefined ? { lastCostStatus: costStatus } : {}),
-      ...(slaStatus !== undefined ? { lastSlaStatus: slaStatus } : {}),
+      ...(costStatus !== null ? { lastCostStatus: costStatus } : {}),
+      ...(slaStatus !== null ? { lastSlaStatus: slaStatus } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
 }
 
-export async function getAllAgentConfigsWithSLA(): Promise<
+export async function getAllAgentConfigs(): Promise<
   Array<typeof agentConfigs.$inferSelect>
 > {
   return db
     .select()
     .from(agentConfigs)
-    .where(or(isNotNull(agentConfigs.maxDurationMs), isNotNull(agentConfigs.minSuccessRate)));
+    .where(
+      or(
+        isNotNull(agentConfigs.maxDurationMs),
+        isNotNull(agentConfigs.minSuccessRate),
+        isNotNull(agentConfigs.costBudgetUsd),
+      ),
+    );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

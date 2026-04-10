@@ -21,8 +21,8 @@ export interface CreateScoreParams {
 export interface SetBudgetParams {
   agentId: string;
   costBudgetUsd: number;
-  alertThresholdPct?: number;
-  period?: string;
+  costAlertThresholdPct?: number;
+  budgetPeriod?: string;
 }
 
 export interface SetSLAParams {

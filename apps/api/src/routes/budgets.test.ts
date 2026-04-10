@@ -73,7 +73,7 @@ describe("PUT /v1/budgets/:agentId", () => {
 
   it("creates a new budget (201)", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(null);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(undefined);
     vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseBudgetConfig as any);
 
     const app = buildApp();
@@ -127,7 +127,7 @@ describe("GET /v1/budgets/:agentId", () => {
 
   it("returns 404 for non-existent", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(null);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(undefined);
 
     const app = buildApp();
     const res = await app.inject({

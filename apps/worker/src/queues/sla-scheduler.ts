@@ -1,6 +1,6 @@
 import { Worker, Queue } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
-import { getAllAgentConfigsWithSLA } from "@foxhound/db";
+import { getAllAgentConfigs } from "@foxhound/db";
 
 export const SLA_SCHEDULER_QUEUE = "sla-scheduler";
 export const SLA_CHECK_QUEUE = "sla-check";
@@ -11,7 +11,7 @@ export function startSlaSchedulerWorker(connection: ConnectionOptions): Worker {
   const worker = new Worker(
     SLA_SCHEDULER_QUEUE,
     async () => {
-      const configs = await getAllAgentConfigsWithSLA();
+      const configs = await getAllAgentConfigs();
       const minute = Math.floor(Date.now() / 60000);
 
       await Promise.all(

@@ -1,4 +1,4 @@
-import { getAllAgentConfigsWithSLA } from "@foxhound/db";
+import { getAllAgentConfigs } from "@foxhound/db";
 
 interface CachedConfig {
   costBudgetUsd: number | null;
@@ -18,7 +18,7 @@ export async function refreshConfigCache(): Promise<void> {
   // Load configs for all orgs (this is a small table)
   // In production, this would be scoped or paginated
   // For now, load all — same pattern as pricing cache
-  const rows = await getAllAgentConfigsWithSLA();
+  const rows = await getAllAgentConfigs();
   cache = new Map();
   for (const row of rows) {
     cache.set(`${row.orgId}:${row.agentId}`, {

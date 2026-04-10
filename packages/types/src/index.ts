@@ -230,3 +230,49 @@ export interface RegressionReport {
   }>;
   sampleSize: { before: number; after: number };
 }
+
+// ── Budget period utilities (shared between API + worker) ─────────────
+
+/**
+ * Compute a deterministic Redis key suffix for a budget period.
+ * Must produce identical keys in the API ingestion path and the cost-reconciler worker.
+ */
+export function getBudgetPeriodKey(period: string, timestampMs: number): string {
+  const d = new Date(timestampMs);
+  switch (period) {
+    case "daily":
+      return d.toISOString().slice(0, 10); // 2026-04-10
+    case "weekly": {
+      // ISO 8601 week: Monday-based
+      const day = d.getUTCDay();
+      const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
+      const year = monday.getUTCFullYear();
+      const jan4 = new Date(Date.UTC(year, 0, 4));
+      const jan4Day = jan4.getUTCDay() || 7;
+      const jan4Monday = new Date(Date.UTC(year, 0, 4 - jan4Day + 1));
+      const week = Math.round((monday.getTime() - jan4Monday.getTime()) / 604800000) + 1;
+      return `${year}-W${String(week).padStart(2, "0")}`;
+    }
+    case "monthly":
+    default:
+      return d.toISOString().slice(0, 7); // 2026-04
+  }
+}
+
+/**
+ * Inverse of getBudgetPeriodKey: parse a period key back to a start-of-period timestamp.
+ */
+export function parsePeriodStart(periodKey: string): number {
+  if (periodKey.includes("W")) {
+    const [yearStr, weekStr] = periodKey.split("-W");
+    const year = Number(yearStr);
+    const week = Number(weekStr);
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const jan4Monday = new Date(Date.UTC(year, 0, 4 - jan4Day + 1));
+    return jan4Monday.getTime() + (week - 1) * 7 * 86400000;
+  }
+  if (periodKey.length === 10) return new Date(periodKey + "T00:00:00Z").getTime();
+  return new Date(periodKey + "-01T00:00:00Z").getTime();
+}
