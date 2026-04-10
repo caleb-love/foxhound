@@ -22,8 +22,25 @@ import {
   datasetItems,
   experiments,
   experimentRuns,
+  agentConfigs,
+  behaviorBaselines,
+  modelPricingOverrides,
 } from "./schema.js";
-import { eq, and, gt, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
+import {
+  eq,
+  and,
+  gt,
+  gte,
+  lte,
+  lt,
+  desc,
+  asc,
+  isNull,
+  isNotNull,
+  or,
+  sql,
+  count,
+} from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -284,8 +301,10 @@ export async function insertTrace(trace: Trace, orgId: string): Promise<void> {
       orgId,
       agentId: trace.agentId,
       sessionId: trace.sessionId ?? null,
-      startTimeMs: String(trace.startTimeMs),
-      endTimeMs: trace.endTimeMs != null ? String(trace.endTimeMs) : null,
+      startTimeMs: trace.startTimeMs,
+      endTimeMs: trace.endTimeMs ?? null,
+      parentAgentId: trace.parentAgentId ?? null,
+      correlationId: trace.correlationId ?? null,
       spans: trace.spans as unknown[],
       metadata: trace.metadata as Record<string, unknown>,
     })
@@ -569,8 +588,8 @@ export async function queryTraces(filters: TraceFilters) {
   const conditions = [eq(traces.orgId, orgId)];
   if (agentId) conditions.push(eq(traces.agentId, agentId));
   if (sessionId) conditions.push(eq(traces.sessionId, sessionId));
-  if (from != null) conditions.push(gte(traces.startTimeMs, String(from)));
-  if (to != null) conditions.push(lte(traces.startTimeMs, String(to)));
+  if (from != null) conditions.push(gte(traces.startTimeMs, from));
+  if (to != null) conditions.push(lte(traces.startTimeMs, to));
 
   return db
     .select()
@@ -609,6 +628,23 @@ export async function insertSpans(traceId: string, orgId: string, spanList: Span
       })),
     )
     .onConflictDoNothing();
+}
+
+/**
+ * Batch-update cost_usd for spans that had their cost computed post-ingestion.
+ */
+export async function updateSpanCosts(
+  costs: Array<{ traceId: string; spanId: string; costUsd: number }>,
+): Promise<void> {
+  if (costs.length === 0) return;
+  await Promise.all(
+    costs.map((c) =>
+      db
+        .update(spans)
+        .set({ costUsd: String(c.costUsd) })
+        .where(and(eq(spans.traceId, c.traceId), eq(spans.id, c.spanId))),
+    ),
+  );
 }
 
 /**
@@ -1725,4 +1761,264 @@ export async function getExperimentComparison(experimentIds: string[], orgId: st
       : [];
 
   return { experiments: exps, runs, items, scores: runScores };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Agent Config queries (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function upsertAgentConfig(
+  data: typeof agentConfigs.$inferInsert,
+): Promise<typeof agentConfigs.$inferSelect> {
+  const [row] = await db
+    .insert(agentConfigs)
+    .values(data)
+    .onConflictDoUpdate({
+      target: [agentConfigs.orgId, agentConfigs.agentId],
+      set: {
+        costBudgetUsd: data.costBudgetUsd,
+        costAlertThresholdPct: data.costAlertThresholdPct,
+        budgetPeriod: data.budgetPeriod,
+        maxDurationMs: data.maxDurationMs,
+        minSuccessRate: data.minSuccessRate,
+        evaluationWindowMs: data.evaluationWindowMs,
+        minSampleSize: data.minSampleSize,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  return row!;
+}
+
+export async function getAgentConfig(
+  orgId: string,
+  agentId: string,
+): Promise<typeof agentConfigs.$inferSelect | undefined> {
+  const [row] = await db
+    .select()
+    .from(agentConfigs)
+    .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
+  return row;
+}
+
+export async function listAgentConfigs(
+  orgId: string,
+  page = 1,
+  limit = 50,
+): Promise<Array<typeof agentConfigs.$inferSelect>> {
+  return db
+    .select()
+    .from(agentConfigs)
+    .where(eq(agentConfigs.orgId, orgId))
+    .orderBy(agentConfigs.createdAt)
+    .limit(limit)
+    .offset((page - 1) * limit);
+}
+
+export async function deleteAgentConfig(orgId: string, agentId: string): Promise<boolean> {
+  const result = await db
+    .delete(agentConfigs)
+    .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+export async function updateAgentConfigStatus(
+  orgId: string,
+  agentId: string,
+  costStatus: Record<string, unknown> | null,
+  slaStatus: Record<string, unknown> | null,
+): Promise<void> {
+  await db
+    .update(agentConfigs)
+    .set({
+      ...(costStatus !== null ? { lastCostStatus: costStatus } : {}),
+      ...(slaStatus !== null ? { lastSlaStatus: slaStatus } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
+}
+
+export async function getAllAgentConfigs(): Promise<Array<typeof agentConfigs.$inferSelect>> {
+  return db
+    .select()
+    .from(agentConfigs)
+    .where(
+      or(
+        isNotNull(agentConfigs.maxDurationMs),
+        isNotNull(agentConfigs.minSuccessRate),
+        isNotNull(agentConfigs.costBudgetUsd),
+      ),
+    );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Behavior Baseline queries (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function upsertBaseline(
+  data: typeof behaviorBaselines.$inferInsert,
+): Promise<typeof behaviorBaselines.$inferSelect> {
+  const [row] = await db
+    .insert(behaviorBaselines)
+    .values(data)
+    .onConflictDoUpdate({
+      target: [behaviorBaselines.orgId, behaviorBaselines.agentId, behaviorBaselines.agentVersion],
+      set: {
+        sampleSize: data.sampleSize,
+        spanStructure: data.spanStructure,
+      },
+    })
+    .returning();
+  return row!;
+}
+
+export async function getBaseline(
+  orgId: string,
+  agentId: string,
+  agentVersion: string,
+): Promise<typeof behaviorBaselines.$inferSelect | undefined> {
+  const [row] = await db
+    .select()
+    .from(behaviorBaselines)
+    .where(
+      and(
+        eq(behaviorBaselines.orgId, orgId),
+        eq(behaviorBaselines.agentId, agentId),
+        eq(behaviorBaselines.agentVersion, agentVersion),
+      ),
+    );
+  return row;
+}
+
+export async function getRecentBaselines(
+  orgId: string,
+  agentId: string,
+  limit = 10,
+): Promise<Array<typeof behaviorBaselines.$inferSelect>> {
+  return db
+    .select()
+    .from(behaviorBaselines)
+    .where(and(eq(behaviorBaselines.orgId, orgId), eq(behaviorBaselines.agentId, agentId)))
+    .orderBy(desc(behaviorBaselines.createdAt))
+    .limit(limit);
+}
+
+export async function deleteBaseline(
+  orgId: string,
+  agentId: string,
+  agentVersion: string,
+): Promise<boolean> {
+  const result = await db
+    .delete(behaviorBaselines)
+    .where(
+      and(
+        eq(behaviorBaselines.orgId, orgId),
+        eq(behaviorBaselines.agentId, agentId),
+        eq(behaviorBaselines.agentVersion, agentVersion),
+      ),
+    );
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Model Pricing Override queries (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function getModelPricingOverrides(): Promise<
+  Array<typeof modelPricingOverrides.$inferSelect>
+> {
+  return db.select().from(modelPricingOverrides);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Cost aggregation queries (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function sumSpanCosts(
+  orgId: string,
+  agentId: string,
+  fromMs: number,
+  toMs: number,
+): Promise<{ totalCost: number; totalSpans: number; unknownCostSpans: number }> {
+  const rows = await db
+    .select({
+      totalCost: sql<string>`COALESCE(SUM(${spans.costUsd}), 0)`,
+      totalSpans: sql<number>`COUNT(*) FILTER (WHERE ${spans.kind} = 'llm_call')`,
+      unknownCostSpans: sql<number>`COUNT(*) FILTER (WHERE ${spans.kind} = 'llm_call' AND ${spans.costUsd} IS NULL)`,
+    })
+    .from(spans)
+    .innerJoin(traces, eq(spans.traceId, traces.id))
+    .where(
+      and(
+        eq(spans.orgId, orgId),
+        eq(traces.agentId, agentId),
+        gte(traces.startTimeMs, fromMs),
+        lt(traces.startTimeMs, toMs),
+        eq(spans.kind, "llm_call"),
+      ),
+    );
+  const row = rows[0]!;
+  return {
+    totalCost: Number(row.totalCost),
+    totalSpans: row.totalSpans,
+    unknownCostSpans: row.unknownCostSpans,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Span structure queries for regression detection (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function countTracesForVersion(
+  orgId: string,
+  agentId: string,
+  agentVersion: string,
+): Promise<number> {
+  const rows = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(traces)
+    .where(
+      and(
+        eq(traces.orgId, orgId),
+        eq(traces.agentId, agentId),
+        sql`${traces.metadata}->>'agent_version' = ${agentVersion}`,
+      ),
+    );
+  return rows[0]?.count ?? 0;
+}
+
+export async function getSpanStructureForVersion(
+  orgId: string,
+  agentId: string,
+  agentVersion: string,
+  limit = 100,
+): Promise<Record<string, number>> {
+  // Get span (kind, name) frequency across recent traces for this version
+  const rows = await db
+    .select({
+      kind: spans.kind,
+      name: spans.name,
+      traceCount: sql<number>`COUNT(DISTINCT ${spans.traceId})`,
+    })
+    .from(spans)
+    .innerJoin(traces, eq(spans.traceId, traces.id))
+    .where(
+      and(
+        eq(spans.orgId, orgId),
+        eq(traces.agentId, agentId),
+        sql`${traces.metadata}->>'agent_version' = ${agentVersion}`,
+      ),
+    )
+    .groupBy(spans.kind, spans.name);
+
+  // Count total traces for this version
+  const totalTraces = await countTracesForVersion(orgId, agentId, agentVersion);
+  if (totalTraces === 0) return {};
+
+  const structure: Record<string, number> = {};
+  for (const row of rows) {
+    const key = `${row.kind}:${row.name}`;
+    structure[key] = row.traceCount / Math.min(totalTraces, limit);
+  }
+  return structure;
 }

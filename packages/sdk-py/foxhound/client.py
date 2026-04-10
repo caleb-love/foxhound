@@ -317,6 +317,311 @@ class ExperimentsNamespace:
         return response.json()
 
 
+class BudgetsNamespace:
+    """Namespaced API for managing cost budgets. Access via ``fox.budgets.set(...)``."""
+
+    def __init__(self, endpoint: str, api_key: str, timeout: float) -> None:
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+    async def set(
+        self,
+        *,
+        agent_id: str,
+        cost_budget_usd: float,
+        cost_alert_threshold_pct: float = 80,
+        budget_period: str = "monthly",
+    ) -> dict[str, Any]:
+        """Create or update a cost budget for an agent.
+
+        Usage::
+
+            await fox.budgets.set(agent_id="my-agent", cost_budget_usd=100.0)
+        """
+        body: dict[str, Any] = {
+            "costBudgetUsd": cost_budget_usd,
+            "costAlertThresholdPct": cost_alert_threshold_pct,
+            "budgetPeriod": budget_period,
+        }
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.put(
+                f"{self._endpoint}/v1/budgets/{agent_id}",
+                json=body,
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Foxhound: failed to set budget: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def get(self, *, agent_id: str) -> dict[str, Any]:
+        """Get the budget for an agent.
+
+        Usage::
+
+            budget = await fox.budgets.get(agent_id="my-agent")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/budgets/{agent_id}",
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to get budget: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def list(self) -> dict[str, Any]:
+        """List all budgets.
+
+        Usage::
+
+            budgets = await fox.budgets.list()
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/budgets",
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to list budgets: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def delete(self, *, agent_id: str) -> dict[str, Any]:
+        """Delete the budget for an agent.
+
+        Usage::
+
+            await fox.budgets.delete(agent_id="my-agent")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.delete(
+                f"{self._endpoint}/v1/budgets/{agent_id}",
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 204):
+            raise RuntimeError(
+                f"Foxhound: failed to delete budget: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json() if response.content else {}
+
+
+class SLAsNamespace:
+    """Namespaced API for managing SLA policies. Access via ``fox.slas.set(...)``."""
+
+    def __init__(self, endpoint: str, api_key: str, timeout: float) -> None:
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+    async def set(
+        self,
+        *,
+        agent_id: str,
+        max_duration_ms: int | None = None,
+        min_success_rate: float | None = None,
+        evaluation_window_ms: int = 86400000,
+        min_sample_size: int = 10,
+    ) -> dict[str, Any]:
+        """Create or update an SLA policy for an agent.
+
+        Usage::
+
+            await fox.slas.set(
+                agent_id="my-agent",
+                max_duration_ms=5000,
+                min_success_rate=0.99,
+            )
+        """
+        body: dict[str, Any] = {
+            "evaluationWindowMs": evaluation_window_ms,
+            "minSampleSize": min_sample_size,
+        }
+        if max_duration_ms is not None:
+            body["maxDurationMs"] = max_duration_ms
+        if min_success_rate is not None:
+            body["minSuccessRate"] = min_success_rate
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.put(
+                f"{self._endpoint}/v1/slas/{agent_id}",
+                json=body,
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Foxhound: failed to set SLA: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def get(self, *, agent_id: str) -> dict[str, Any]:
+        """Get the SLA policy for an agent.
+
+        Usage::
+
+            sla = await fox.slas.get(agent_id="my-agent")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/slas/{agent_id}",
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to get SLA: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def list(self) -> dict[str, Any]:
+        """List all SLA policies.
+
+        Usage::
+
+            slas = await fox.slas.list()
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/slas",
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to list SLAs: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def delete(self, *, agent_id: str) -> dict[str, Any]:
+        """Delete the SLA policy for an agent.
+
+        Usage::
+
+            await fox.slas.delete(agent_id="my-agent")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.delete(
+                f"{self._endpoint}/v1/slas/{agent_id}",
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 204):
+            raise RuntimeError(
+                f"Foxhound: failed to delete SLA: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json() if response.content else {}
+
+
+class RegressionsNamespace:
+    """Namespaced API for regression detection. Access via ``fox.regressions.compare(...)``."""
+
+    def __init__(self, endpoint: str, api_key: str, timeout: float) -> None:
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+    async def compare(
+        self,
+        *,
+        agent_id: str,
+        version_a: str,
+        version_b: str,
+    ) -> dict[str, Any]:
+        """Compare two versions of an agent for regressions.
+
+        Usage::
+
+            result = await fox.regressions.compare(
+                agent_id="my-agent",
+                version_a="v1.0",
+                version_b="v1.1",
+            )
+        """
+        body: dict[str, Any] = {
+            "versionA": version_a,
+            "versionB": version_b,
+        }
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._endpoint}/v1/regressions/{agent_id}/compare",
+                json=body,
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 201, 202):
+            raise RuntimeError(
+                f"Foxhound: failed to compare regressions: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def baselines(self, *, agent_id: str) -> dict[str, Any]:
+        """Get baselines for an agent.
+
+        Usage::
+
+            baselines = await fox.regressions.baselines(agent_id="my-agent")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/regressions/{agent_id}/baselines",
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to get baselines: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()
+
+    async def delete_baseline(self, *, agent_id: str, version: str) -> dict[str, Any]:
+        """Delete a specific baseline version for an agent.
+
+        Usage::
+
+            await fox.regressions.delete_baseline(agent_id="my-agent", version="v1.0")
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.delete(
+                f"{self._endpoint}/v1/regressions/{agent_id}/baselines",
+                params={"version": version},
+                headers=self._headers(),
+            )
+        if response.status_code not in (200, 204):
+            raise RuntimeError(
+                f"Foxhound: failed to delete baseline: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json() if response.content else {}
+
+
 class FoxhoundClient:
     """
     Client for the Foxhound observability platform.
@@ -355,6 +660,9 @@ class FoxhoundClient:
         self.scores = ScoresNamespace(self._endpoint, self._api_key, self._timeout)
         self.datasets = DatasetsNamespace(self._endpoint, self._api_key, self._timeout)
         self.experiments = ExperimentsNamespace(self._endpoint, self._api_key, self._timeout)
+        self.budgets = BudgetsNamespace(self._endpoint, self._api_key, self._timeout)
+        self.slas = SLAsNamespace(self._endpoint, self._api_key, self._timeout)
+        self.regressions = RegressionsNamespace(self._endpoint, self._api_key, self._timeout)
 
     # ------------------------------------------------------------------
     # Tracer factory
@@ -365,14 +673,46 @@ class FoxhoundClient:
         agent_id: str,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        parent_agent_id: str | None = None,
+        correlation_id: str | None = None,
     ) -> Tracer:
-        """Create a new Tracer for a single agent invocation."""
+        """Create a new Tracer for a single agent invocation.
+
+        Pass ``parent_agent_id`` and ``correlation_id`` when this agent was
+        invoked by another agent so that cross-agent traces can be linked.
+        """
+        self._parent_agent_id = parent_agent_id
+        self._correlation_id = correlation_id
+
+        merged_metadata: dict[str, Any] = dict(metadata) if metadata else {}
+        if parent_agent_id is not None:
+            merged_metadata["parentAgentId"] = parent_agent_id
+        if correlation_id is not None:
+            merged_metadata["correlationId"] = correlation_id
+
         return Tracer(
             agent_id=agent_id,
             session_id=session_id,
-            metadata=metadata,
+            metadata=merged_metadata if merged_metadata else None,
             on_flush=self._send_trace,
         )
+
+    def get_propagation_headers(self) -> dict[str, str]:
+        """Return HTTP headers for propagating trace context to child agents.
+
+        Usage::
+
+            headers = fox.get_propagation_headers()
+            # Pass headers to downstream HTTP calls so child agents can link traces.
+        """
+        headers: dict[str, str] = {}
+        correlation_id = getattr(self, "_correlation_id", None)
+        parent_agent_id = getattr(self, "_parent_agent_id", None)
+        if correlation_id is not None:
+            headers["X-Foxhound-Correlation-Id"] = correlation_id
+        if parent_agent_id is not None:
+            headers["X-Foxhound-Parent-Agent-Id"] = parent_agent_id
+        return headers
 
     # ------------------------------------------------------------------
     # HTTP transport

@@ -14,8 +14,14 @@ import { requireEntitlement } from "../middleware/entitlements.js";
 import { checkSpanLimit } from "@foxhound/billing";
 import { persistTraceWithRetry } from "../persistence.js";
 import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 import type { Trace } from "@foxhound/types";
+import { getBudgetPeriodKey } from "@foxhound/types";
+import { updateSpanCosts } from "@foxhound/db";
+import { lookupPricing } from "../lib/pricing-cache.js";
+import { getRedis } from "../lib/redis.js";
+import { getConfigFromCache } from "../lib/config-cache.js";
+import { getCostMonitorQueue, getRegressionDetectorQueue } from "../queue.js";
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -65,7 +71,9 @@ async function maybeFireAlerts(
       occurredAt: new Date(),
     };
 
-    const matchingRules = rules.filter((r) => r.eventType === "agent_failure");
+    const matchingRules = rules.filter(
+      (r) => r.eventType === "agent_failure",
+    ) as unknown as AlertRule[];
 
     await dispatchAlert(event, matchingRules, channelMap, fastify.log);
 
@@ -115,6 +123,8 @@ const IngestTraceSchema = z.object({
   id: z.string().min(1),
   agentId: z.string().min(1),
   sessionId: z.string().optional(),
+  parentAgentId: z.string().optional(),
+  correlationId: z.string().optional(),
   spans: z.array(SpanSchema),
   startTimeMs: z.number(),
   endTimeMs: z.number().optional(),
@@ -134,6 +144,122 @@ const QueryTracesSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
+
+async function handlePhase4Ingestion(
+  fastify: FastifyInstance,
+  trace: z.infer<typeof IngestTraceSchema>,
+  orgId: string,
+): Promise<void> {
+  try {
+    const redis = getRedis();
+    const config = await getConfigFromCache(orgId, trace.agentId);
+
+    // 1. Cost extraction for LLM spans
+    let traceCost = 0;
+    const spanCosts: Array<{ traceId: string; spanId: string; costUsd: number }> = [];
+    for (const span of trace.spans) {
+      if (span.kind !== "llm_call") continue;
+
+      let cost: number | null = null;
+      const attrs = span.attributes;
+
+      // Prefer SDK-reported cost
+      if (typeof attrs["cost_usd"] === "number") {
+        cost = attrs["cost_usd"];
+      } else if (typeof attrs["model"] === "string") {
+        const model = attrs["model"];
+        const inputTokens =
+          typeof attrs["token_count_input"] === "number" ? attrs["token_count_input"] : 0;
+        const outputTokens =
+          typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
+        if (inputTokens > 0 || outputTokens > 0) {
+          const pricing = await lookupPricing(orgId, model);
+          if (pricing) {
+            cost =
+              inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
+          }
+        }
+      }
+
+      if (cost !== null) {
+        traceCost += cost;
+        spanCosts.push({ traceId: trace.id, spanId: span.spanId, costUsd: cost });
+      }
+    }
+
+    // Persist computed costs to spans.cost_usd
+    if (spanCosts.length > 0) {
+      await updateSpanCosts(spanCosts);
+    }
+
+    // 2. Update Redis running cost total
+    if (redis && traceCost > 0 && config?.costBudgetUsd) {
+      const periodKey = getBudgetPeriodKey(config.budgetPeriod ?? "monthly", trace.startTimeMs);
+      const redisKey = `cost:${orgId}:${trace.agentId}:${periodKey}`;
+      const newTotal = parseFloat(await redis.incrbyfloat(redisKey, traceCost));
+      // Set TTL to 35 days (covers monthly periods)
+      await redis.expire(redisKey, 35 * 24 * 3600);
+
+      // Check if threshold crossed
+      const budget = config.costBudgetUsd;
+      const threshold = (config.costAlertThresholdPct ?? 80) / 100;
+      if (newTotal >= budget) {
+        const queue = getCostMonitorQueue();
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "critical" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:critical`,
+          },
+        );
+      } else if (newTotal >= budget * threshold) {
+        const queue = getCostMonitorQueue();
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "high" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:high`,
+          },
+        );
+      }
+    }
+
+    // 3. Update Redis SLA counters
+    if (redis && (config?.maxDurationMs || config?.minSuccessRate)) {
+      const minuteBucket = Math.floor(trace.startTimeMs / 60000);
+      const tracesKey = `sla:traces:${orgId}:${trace.agentId}:${minuteBucket}`;
+      await redis.incr(tracesKey);
+      await redis.expire(tracesKey, 90000); // 25 hours
+
+      const hasError = trace.spans.some((s) => s.status === "error");
+      if (hasError) {
+        const errorsKey = `sla:errors:${orgId}:${trace.agentId}:${minuteBucket}`;
+        await redis.incr(errorsKey);
+        await redis.expire(errorsKey, 90000);
+      }
+
+      if (trace.endTimeMs) {
+        const duration = trace.endTimeMs - trace.startTimeMs;
+        const durKey = `sla:duration:${orgId}:${trace.agentId}:${minuteBucket}`;
+        await redis.zadd(durKey, duration, trace.id);
+        await redis.expire(durKey, 90000);
+      }
+    }
+
+    // 4. Enqueue regression detection if agent_version is set
+    const agentVersion = trace.metadata?.["agent_version"];
+    if (typeof agentVersion === "string") {
+      const queue = getRegressionDetectorQueue();
+      await queue?.add(
+        "regression-check",
+        { orgId, agentId: trace.agentId, agentVersion },
+        { jobId: `regression:${orgId}:${trace.agentId}:${agentVersion}` },
+      );
+    }
+  } catch (err) {
+    fastify.log.error({ err }, "Phase 4 ingestion processing failed");
+  }
+}
 
 export function tracesRoutes(fastify: FastifyInstance): void {
   /**
@@ -181,6 +307,7 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       setImmediate(() => {
         persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch(() => {});
         void maybeFireAlerts(fastify, trace as unknown as Trace, orgId);
+        void handlePhase4Ingestion(fastify, trace, orgId);
       });
     },
   );

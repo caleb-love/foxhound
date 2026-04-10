@@ -19,6 +19,10 @@ const EVENT_LABELS: Record<string, string> = {
   anomaly_detected: "Anomaly Detected",
   cost_spike: "Cost Spike",
   compliance_violation: "Compliance Violation",
+  cost_budget_exceeded: "Cost Budget Exceeded",
+  sla_duration_breach: "SLA Duration Breach",
+  sla_success_rate_breach: "SLA Success Rate Breach",
+  behavior_regression: "Behavior Regression Detected",
 };
 
 export class SlackProvider implements NotificationProvider {

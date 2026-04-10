@@ -6,7 +6,11 @@ export type AlertEventType =
   | "agent_failure"
   | "anomaly_detected"
   | "cost_spike"
-  | "compliance_violation";
+  | "compliance_violation"
+  | "cost_budget_exceeded"
+  | "sla_duration_breach"
+  | "sla_success_rate_breach"
+  | "behavior_regression";
 
 export type AlertSeverity = "critical" | "high" | "medium" | "low";
 

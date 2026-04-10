@@ -61,3 +61,57 @@ export function getExperimentQueue(): Queue | null {
 
   return experimentQueue;
 }
+
+const COST_MONITOR_QUEUE = "cost-monitor";
+
+let costMonitorQueue: Queue | null = null;
+let costMonitorInitialized = false;
+
+export function getCostMonitorQueue(): Queue | null {
+  if (costMonitorInitialized) return costMonitorQueue;
+  costMonitorInitialized = true;
+  const redisUrl = process.env["REDIS_URL"];
+  if (!redisUrl) return null;
+  try {
+    costMonitorQueue = new Queue(COST_MONITOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
+  } catch {
+    // Redis not available — queue stays null
+  }
+  return costMonitorQueue;
+}
+
+const SLA_SCHEDULER_QUEUE = "sla-scheduler";
+
+let slaSchedulerQueue: Queue | null = null;
+let slaSchedulerInitialized = false;
+
+export function getSlaSchedulerQueue(): Queue | null {
+  if (slaSchedulerInitialized) return slaSchedulerQueue;
+  slaSchedulerInitialized = true;
+  const redisUrl = process.env["REDIS_URL"];
+  if (!redisUrl) return null;
+  try {
+    slaSchedulerQueue = new Queue(SLA_SCHEDULER_QUEUE, { connection: parseRedisUrl(redisUrl) });
+  } catch {
+    // Redis not available — queue stays null
+  }
+  return slaSchedulerQueue;
+}
+
+const REGRESSION_DETECTOR_QUEUE = "regression-detector";
+
+let regressionQueue: Queue | null = null;
+let regressionInitialized = false;
+
+export function getRegressionDetectorQueue(): Queue | null {
+  if (regressionInitialized) return regressionQueue;
+  regressionInitialized = true;
+  const redisUrl = process.env["REDIS_URL"];
+  if (!redisUrl) return null;
+  try {
+    regressionQueue = new Queue(REGRESSION_DETECTOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
+  } catch {
+    // Redis not available — queue stays null
+  }
+  return regressionQueue;
+}

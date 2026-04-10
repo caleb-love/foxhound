@@ -99,6 +99,9 @@ importers:
       '@foxhound/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@foxhound/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@foxhound/types':
         specifier: workspace:*
         version: link:../../packages/types

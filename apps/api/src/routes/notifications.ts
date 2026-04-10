@@ -11,7 +11,7 @@ import {
   createNotificationLogEntry,
 } from "@foxhound/db";
 import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Validation schemas
@@ -171,7 +171,12 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
     let errorMsg: string | undefined;
 
     try {
-      await dispatchAlert(event, [testRule, ...rules], channelMap, fastify.log);
+      await dispatchAlert(
+        event,
+        [testRule, ...rules] as unknown as AlertRule[],
+        channelMap,
+        fastify.log,
+      );
     } catch (err) {
       status = "failed";
       errorMsg = err instanceof Error ? err.message : "Unknown error";

@@ -1,0 +1,80 @@
+[
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4o",
+    "inputCostPerToken": 0.0000025,
+    "outputCostPerToken": 0.00001
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4o-mini",
+    "inputCostPerToken": 0.00000015,
+    "outputCostPerToken": 0.0000006
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4-turbo",
+    "inputCostPerToken": 0.00001,
+    "outputCostPerToken": 0.00003
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-3.5-turbo",
+    "inputCostPerToken": 0.0000005,
+    "outputCostPerToken": 0.0000015
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "o1",
+    "inputCostPerToken": 0.000015,
+    "outputCostPerToken": 0.00006
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "o3-mini",
+    "inputCostPerToken": 0.0000011,
+    "outputCostPerToken": 0.0000044
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-opus-4",
+    "inputCostPerToken": 0.000015,
+    "outputCostPerToken": 0.000075
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-sonnet-4",
+    "inputCostPerToken": 0.000003,
+    "outputCostPerToken": 0.000015
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-haiku-4",
+    "inputCostPerToken": 0.0000008,
+    "outputCostPerToken": 0.000004
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-3.5-sonnet",
+    "inputCostPerToken": 0.000003,
+    "outputCostPerToken": 0.000015
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.5-pro",
+    "inputCostPerToken": 0.00000125,
+    "outputCostPerToken": 0.00001
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.5-flash",
+    "inputCostPerToken": 0.00000015,
+    "outputCostPerToken": 0.0000006
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.0-flash",
+    "inputCostPerToken": 0.0000001,
+    "outputCostPerToken": 0.0000004
+  }
+]

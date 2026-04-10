@@ -11,6 +11,7 @@ import {
   bigint,
   real,
   doublePrecision,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -105,10 +106,12 @@ export const traces = pgTable(
     orgId: text("org_id").references(() => organizations.id),
     agentId: text("agent_id").notNull(),
     sessionId: text("session_id"),
-    startTimeMs: text("start_time_ms").notNull(),
-    endTimeMs: text("end_time_ms"),
+    startTimeMs: bigint("start_time_ms", { mode: "number" }).notNull(),
+    endTimeMs: bigint("end_time_ms", { mode: "number" }),
     spans: jsonb("spans").notNull().$type<unknown[]>(),
     metadata: jsonb("metadata").notNull().$type<Record<string, unknown>>(),
+    parentAgentId: text("parent_agent_id"),
+    correlationId: text("correlation_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -116,6 +119,12 @@ export const traces = pgTable(
     sessionIdIdx: index("traces_session_id_idx").on(table.sessionId),
     orgIdIdx: index("traces_org_id_idx").on(table.orgId),
     orgCreatedAtIdx: index("traces_org_id_created_at_idx").on(table.orgId, table.createdAt),
+    correlationIdIdx: index("traces_correlation_id_idx").on(table.orgId, table.correlationId),
+    orgAgentStartIdx: index("traces_org_agent_start_idx").on(
+      table.orgId,
+      table.agentId,
+      table.startTimeMs,
+    ),
   }),
 );
 
@@ -150,6 +159,7 @@ export const spans = pgTable(
         attributes: Record<string, string | number | boolean | null>;
       }>
     >(),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -228,7 +238,16 @@ export const alertRules = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     eventType: text("event_type", {
-      enum: ["agent_failure", "anomaly_detected", "cost_spike", "compliance_violation"],
+      enum: [
+        "agent_failure",
+        "anomaly_detected",
+        "cost_spike",
+        "compliance_violation",
+        "cost_budget_exceeded",
+        "sla_duration_breach",
+        "sla_success_rate_breach",
+        "behavior_regression",
+      ],
     }).notNull(),
     minSeverity: text("min_severity", {
       enum: ["critical", "high", "medium", "low"],
@@ -333,6 +352,95 @@ export const ssoSessions = pgTable(
     userIdIdx: index("sso_sessions_user_id_idx").on(table.userId),
     orgIdIdx: index("sso_sessions_org_id_idx").on(table.orgId),
     expiresAtIdx: index("sso_sessions_expires_at_idx").on(table.expiresAt),
+  }),
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Agent Intelligence tables (Phase 4)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const agentConfigs = pgTable(
+  "agent_configs",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: text("agent_id").notNull(),
+
+    // Cost budget fields (nullable = not configured)
+    costBudgetUsd: numeric("cost_budget_usd", { precision: 12, scale: 6 }),
+    costAlertThresholdPct: integer("cost_alert_threshold_pct").default(80),
+    budgetPeriod: text("budget_period", { enum: ["daily", "weekly", "monthly"] }).default(
+      "monthly",
+    ),
+
+    // SLA fields (nullable = not configured)
+    maxDurationMs: bigint("max_duration_ms", { mode: "number" }),
+    minSuccessRate: numeric("min_success_rate", { precision: 5, scale: 4 }),
+    evaluationWindowMs: bigint("evaluation_window_ms", { mode: "number" }).default(86400000),
+    minSampleSize: integer("min_sample_size").default(10),
+
+    // Cached status from last worker run
+    lastCostStatus: jsonb("last_cost_status").$type<Record<string, unknown> | null>(),
+    lastSlaStatus: jsonb("last_sla_status").$type<Record<string, unknown> | null>(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgAgentUnique: unique("agent_configs_org_agent_unique").on(table.orgId, table.agentId),
+    orgIdIdx: index("agent_configs_org_id_idx").on(table.orgId),
+  }),
+);
+
+export const behaviorBaselines = pgTable(
+  "behavior_baselines",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: text("agent_id").notNull(),
+    agentVersion: text("agent_version").notNull(),
+    sampleSize: integer("sample_size").notNull(),
+    spanStructure: jsonb("span_structure").notNull().$type<Record<string, number>>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgAgentVersionUnique: unique("baselines_org_agent_version_unique").on(
+      table.orgId,
+      table.agentId,
+      table.agentVersion,
+    ),
+    orgAgentCreatedIdx: index("baselines_org_agent_created_idx").on(
+      table.orgId,
+      table.agentId,
+      table.createdAt,
+    ),
+  }),
+);
+
+export const modelPricingOverrides = pgTable(
+  "model_pricing_overrides",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    modelPattern: text("model_pattern").notNull(),
+    inputCostPerToken: numeric("input_cost_per_token", { precision: 18, scale: 12 }).notNull(),
+    outputCostPerToken: numeric("output_cost_per_token", { precision: 18, scale: 12 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgProviderModelUnique: unique("pricing_overrides_unique").on(
+      table.orgId,
+      table.provider,
+      table.modelPattern,
+    ),
+    orgIdIdx: index("pricing_overrides_org_id_idx").on(table.orgId),
   }),
 );
 
