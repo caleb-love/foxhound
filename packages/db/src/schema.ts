@@ -120,7 +120,11 @@ export const traces = pgTable(
     orgIdIdx: index("traces_org_id_idx").on(table.orgId),
     orgCreatedAtIdx: index("traces_org_id_created_at_idx").on(table.orgId, table.createdAt),
     correlationIdIdx: index("traces_correlation_id_idx").on(table.orgId, table.correlationId),
-    orgAgentStartIdx: index("traces_org_agent_start_idx").on(table.orgId, table.agentId, table.startTimeMs),
+    orgAgentStartIdx: index("traces_org_agent_start_idx").on(
+      table.orgId,
+      table.agentId,
+      table.startTimeMs,
+    ),
   }),
 );
 
@@ -367,7 +371,9 @@ export const agentConfigs = pgTable(
     // Cost budget fields (nullable = not configured)
     costBudgetUsd: numeric("cost_budget_usd", { precision: 12, scale: 6 }),
     costAlertThresholdPct: integer("cost_alert_threshold_pct").default(80),
-    budgetPeriod: text("budget_period", { enum: ["daily", "weekly", "monthly"] }).default("monthly"),
+    budgetPeriod: text("budget_period", { enum: ["daily", "weekly", "monthly"] }).default(
+      "monthly",
+    ),
 
     // SLA fields (nullable = not configured)
     maxDurationMs: bigint("max_duration_ms", { mode: "number" }),

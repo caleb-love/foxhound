@@ -26,7 +26,21 @@ import {
   behaviorBaselines,
   modelPricingOverrides,
 } from "./schema.js";
-import { eq, and, gt, gte, lte, lt, desc, asc, isNull, isNotNull, or, sql, count } from "drizzle-orm";
+import {
+  eq,
+  and,
+  gt,
+  gte,
+  lte,
+  lt,
+  desc,
+  asc,
+  isNull,
+  isNotNull,
+  or,
+  sql,
+  count,
+} from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
 
@@ -1805,16 +1819,13 @@ export async function updateAgentConfigStatus(
     .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
 }
 
-export async function getAllAgentConfigsWithSLA(): Promise<Array<typeof agentConfigs.$inferSelect>> {
+export async function getAllAgentConfigsWithSLA(): Promise<
+  Array<typeof agentConfigs.$inferSelect>
+> {
   return db
     .select()
     .from(agentConfigs)
-    .where(
-      or(
-        isNotNull(agentConfigs.maxDurationMs),
-        isNotNull(agentConfigs.minSuccessRate),
-      ),
-    );
+    .where(or(isNotNull(agentConfigs.maxDurationMs), isNotNull(agentConfigs.minSuccessRate)));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

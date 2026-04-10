@@ -24,7 +24,8 @@ interface SlaCheckJobData {
 }
 
 async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise<void> {
-  const { orgId, agentId, maxDurationMs, minSuccessRate, evaluationWindowMs, minSampleSize } = job.data;
+  const { orgId, agentId, maxDurationMs, minSuccessRate, evaluationWindowMs, minSampleSize } =
+    job.data;
   const windowMs = evaluationWindowMs ?? 86400000;
   const minSamples = minSampleSize ?? 10;
   const now = Date.now();
@@ -71,10 +72,13 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
   const successRate = totalTraces > 0 ? 1 - totalErrors / totalTraces : 1;
   durations.sort((a, b) => a - b);
   const p95Index = Math.ceil(durations.length * 0.95) - 1;
-  const durationP95 = durations.length > 0 ? durations[Math.max(0, p95Index)]! : 0;
+  const durationP95 = durations.length > 0 ? durations[Math.max(0, p95Index)] : 0;
 
   let compliant = true;
-  const alerts: Array<{ type: "sla_duration_breach" | "sla_success_rate_breach"; message: string }> = [];
+  const alerts: Array<{
+    type: "sla_duration_breach" | "sla_success_rate_breach";
+    message: string;
+  }> = [];
 
   if (maxDurationMs !== null && durationP95 > maxDurationMs) {
     compliant = false;
@@ -129,8 +133,14 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
         .filter((r) => channelMap.has(r.channelId))
         .map((rule) =>
           createNotificationLogEntry({
-            id: randomUUID(), orgId, ruleId: rule.id, channelId: rule.channelId,
-            eventType: alert.type, severity: "high", agentId, status: "sent",
+            id: randomUUID(),
+            orgId,
+            ruleId: rule.id,
+            channelId: rule.channelId,
+            eventType: alert.type,
+            severity: "high",
+            agentId,
+            status: "sent",
           }),
         ),
     );
@@ -141,16 +151,22 @@ export function startSlaCheckWorker(connection: ConnectionOptions): Worker<SlaCh
   const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
   const redis = new Redis(redisUrl);
 
-  const worker = new Worker<SlaCheckJobData>(SLA_CHECK_QUEUE, async (job) => {
-    await processSlaCheck(job, redis);
-  }, {
-    connection,
-    concurrency: 10,
-    autorun: true,
-  });
+  const worker = new Worker<SlaCheckJobData>(
+    SLA_CHECK_QUEUE,
+    async (job) => {
+      await processSlaCheck(job, redis);
+    },
+    {
+      connection,
+      concurrency: 10,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[sla-check] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[sla-check] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[sla-check] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }

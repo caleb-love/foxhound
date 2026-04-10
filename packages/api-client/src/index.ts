@@ -462,8 +462,15 @@ export class FoxhoundApiClient {
 
   // ── Budgets ────────────────────────────────────────────────────────────
 
-  async setBudget(agentId: string, params: { costBudgetUsd: number; costAlertThresholdPct?: number; budgetPeriod?: string }): Promise<AgentConfigResponse> {
-    return this.request("PUT", `/v1/budgets/${encodeURIComponent(agentId)}`, params as unknown as Record<string, unknown>);
+  async setBudget(
+    agentId: string,
+    params: { costBudgetUsd: number; costAlertThresholdPct?: number; budgetPeriod?: string },
+  ): Promise<AgentConfigResponse> {
+    return this.request(
+      "PUT",
+      `/v1/budgets/${encodeURIComponent(agentId)}`,
+      params as unknown as Record<string, unknown>,
+    );
   }
 
   async getBudget(agentId: string): Promise<AgentConfigResponse> {
@@ -483,8 +490,20 @@ export class FoxhoundApiClient {
 
   // ── SLAs ───────────────────────────────────────────────────────────────
 
-  async setSla(agentId: string, params: { maxDurationMs?: number; minSuccessRate?: number; evaluationWindowMs?: number; minSampleSize?: number }): Promise<AgentConfigResponse> {
-    return this.request("PUT", `/v1/slas/${encodeURIComponent(agentId)}`, params as unknown as Record<string, unknown>);
+  async setSla(
+    agentId: string,
+    params: {
+      maxDurationMs?: number;
+      minSuccessRate?: number;
+      evaluationWindowMs?: number;
+      minSampleSize?: number;
+    },
+  ): Promise<AgentConfigResponse> {
+    return this.request(
+      "PUT",
+      `/v1/slas/${encodeURIComponent(agentId)}`,
+      params as unknown as Record<string, unknown>,
+    );
   }
 
   async getSla(agentId: string): Promise<AgentConfigResponse> {
@@ -508,8 +527,15 @@ export class FoxhoundApiClient {
     return this.get(`/v1/regressions/${encodeURIComponent(agentId)}`);
   }
 
-  async compareVersions(agentId: string, versionA: string, versionB: string): Promise<RegressionReportResponse> {
-    return this.post(`/v1/regressions/${encodeURIComponent(agentId)}/compare`, { versionA, versionB });
+  async compareVersions(
+    agentId: string,
+    versionA: string,
+    versionB: string,
+  ): Promise<RegressionReportResponse> {
+    return this.post(`/v1/regressions/${encodeURIComponent(agentId)}/compare`, {
+      versionA,
+      versionB,
+    });
   }
 
   async listBaselines(agentId: string): Promise<BaselineListResponse> {
@@ -517,7 +543,9 @@ export class FoxhoundApiClient {
   }
 
   async deleteBaseline(agentId: string, version: string): Promise<void> {
-    await this.del(`/v1/regressions/${encodeURIComponent(agentId)}/baselines?version=${encodeURIComponent(version)}`);
+    await this.del(
+      `/v1/regressions/${encodeURIComponent(agentId)}/baselines?version=${encodeURIComponent(version)}`,
+    );
   }
 
   // ── HTTP helpers ──────────────────────────────────────────────────────

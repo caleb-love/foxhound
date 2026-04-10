@@ -32,19 +32,27 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
   const periodStart = parsePeriodStart(periodKey);
   const costs = await sumSpanCosts(orgId, agentId, periodStart, now);
 
-  const status = costs.totalCost >= budget ? "exceeded"
-    : costs.totalCost >= budget * ((config.costAlertThresholdPct ?? 80) / 100) ? "warning"
-    : "under";
+  const status =
+    costs.totalCost >= budget
+      ? "exceeded"
+      : costs.totalCost >= budget * ((config.costAlertThresholdPct ?? 80) / 100)
+        ? "warning"
+        : "under";
 
   const unknownPct = costs.totalSpans > 0 ? (costs.unknownCostSpans / costs.totalSpans) * 100 : 0;
 
-  await updateAgentConfigStatus(orgId, agentId, {
-    status,
-    spend: costs.totalCost,
-    budget,
-    unknownCostPct: Math.round(unknownPct * 10) / 10,
-    checkedAt: new Date().toISOString(),
-  }, null);
+  await updateAgentConfigStatus(
+    orgId,
+    agentId,
+    {
+      status,
+      spend: costs.totalCost,
+      budget,
+      unknownCostPct: Math.round(unknownPct * 10) / 10,
+      checkedAt: new Date().toISOString(),
+    },
+    null,
+  );
 
   if (status === "under") return;
 
@@ -101,16 +109,22 @@ function parsePeriodStart(periodKey: string): number {
 }
 
 export function startCostMonitorWorker(connection: ConnectionOptions): Worker<CostAlertJobData> {
-  const worker = new Worker<CostAlertJobData>(COST_MONITOR_QUEUE, async (job) => {
-    await processCostAlert(job);
-  }, {
-    connection,
-    concurrency: 10,
-    autorun: true,
-  });
+  const worker = new Worker<CostAlertJobData>(
+    COST_MONITOR_QUEUE,
+    async (job) => {
+      await processCostAlert(job);
+    },
+    {
+      connection,
+      concurrency: 10,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[cost-monitor] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[cost-monitor] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[cost-monitor] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }

@@ -52,18 +52,26 @@ console.log("[worker] Regression detector worker started (concurrency: 3)");
 async function setupRepeatableJobs(): Promise<void> {
   // SLA scheduler: run every 60 seconds
   const slaQueue = new Queue(SLA_SCHEDULER_QUEUE, { connection });
-  await slaQueue.add("sla-schedule", {}, {
-    repeat: { every: 60_000 },
-    jobId: "sla-schedule-repeatable",
-  });
+  await slaQueue.add(
+    "sla-schedule",
+    {},
+    {
+      repeat: { every: 60_000 },
+      jobId: "sla-schedule-repeatable",
+    },
+  );
   console.log("[worker] SLA scheduler repeatable job configured (every 60s)");
 
   // Cost reconciler: run every 5 minutes
   const reconcilerQueue = new Queue(COST_RECONCILER_QUEUE, { connection });
-  await reconcilerQueue.add("reconcile", {}, {
-    repeat: { every: 300_000 },
-    jobId: "cost-reconcile-repeatable",
-  });
+  await reconcilerQueue.add(
+    "reconcile",
+    {},
+    {
+      repeat: { every: 300_000 },
+      jobId: "cost-reconcile-repeatable",
+    },
+  );
   console.log("[worker] Cost reconciler repeatable job configured (every 5m)");
 }
 

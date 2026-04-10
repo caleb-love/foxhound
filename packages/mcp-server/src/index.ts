@@ -571,7 +571,11 @@ async function main(): Promise<void> {
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching budget for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            { type: "text", text: `Error fetching budget for agent "${params.agentId}": ${msg}` },
+          ],
+        };
       }
     },
   );
@@ -586,7 +590,7 @@ async function main(): Promise<void> {
     async (params) => {
       try {
         const data = await api.getSla(params.agentId);
-        const slaStatus = data.lastSlaStatus as Record<string, unknown> | null;
+        const slaStatus = data.lastSlaStatus;
         const lines = [
           `## SLA Status: ${params.agentId}`,
           `### Targets`,
@@ -597,10 +601,10 @@ async function main(): Promise<void> {
           `### Compliance`,
           `- Status: ${slaStatus != null ? JSON.stringify(slaStatus) : "no data"}`,
           slaStatus != null && typeof slaStatus["p95DurationMs"] !== "undefined"
-            ? `- p95 duration: ${slaStatus["p95DurationMs"]}ms`
+            ? `- p95 duration: ${String(slaStatus["p95DurationMs"])}ms`
             : null,
           slaStatus != null && typeof slaStatus["successRate"] !== "undefined"
-            ? `- Success rate: ${slaStatus["successRate"]}%`
+            ? `- Success rate: ${String(slaStatus["successRate"])}%`
             : null,
         ]
           .filter(Boolean)
@@ -608,7 +612,11 @@ async function main(): Promise<void> {
         return { content: [{ type: "text", text: lines }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching SLA for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            { type: "text", text: `Error fetching SLA for agent "${params.agentId}": ${msg}` },
+          ],
+        };
       }
     },
   );
@@ -652,7 +660,14 @@ async function main(): Promise<void> {
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error comparing versions for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error comparing versions for agent "${params.agentId}": ${msg}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -685,7 +700,14 @@ async function main(): Promise<void> {
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching baselines for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching baselines for agent "${params.agentId}": ${msg}`,
+            },
+          ],
+        };
       }
     },
   );

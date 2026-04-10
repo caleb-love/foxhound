@@ -163,12 +163,15 @@ async function handlePhase4Ingestion(
         cost = attrs["cost_usd"];
       } else if (typeof attrs["model"] === "string") {
         const model = attrs["model"];
-        const inputTokens = typeof attrs["token_count_input"] === "number" ? attrs["token_count_input"] : 0;
-        const outputTokens = typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
+        const inputTokens =
+          typeof attrs["token_count_input"] === "number" ? attrs["token_count_input"] : 0;
+        const outputTokens =
+          typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
         if (inputTokens > 0 || outputTokens > 0) {
           const pricing = await lookupPricing(orgId, model);
           if (pricing) {
-            cost = inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
+            cost =
+              inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
           }
         }
       }
@@ -191,14 +194,22 @@ async function handlePhase4Ingestion(
       const threshold = (config.costAlertThresholdPct ?? 80) / 100;
       if (newTotal >= budget) {
         const queue = getCostMonitorQueue();
-        await queue?.add("cost-alert", { orgId, agentId: trace.agentId, periodKey, level: "critical" }, {
-          jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:critical`,
-        });
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "critical" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:critical`,
+          },
+        );
       } else if (newTotal >= budget * threshold) {
         const queue = getCostMonitorQueue();
-        await queue?.add("cost-alert", { orgId, agentId: trace.agentId, periodKey, level: "high" }, {
-          jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:high`,
-        });
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "high" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:high`,
+          },
+        );
       }
     }
 
@@ -252,7 +263,9 @@ function getBudgetPeriodKey(period: string, timestampMs: number): string {
       monday.setUTCDate(diff);
       const year = monday.getUTCFullYear();
       const oneJan = new Date(year, 0, 1);
-      const week = Math.ceil(((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getUTCDay() + 1) / 7);
+      const week = Math.ceil(
+        ((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getUTCDay() + 1) / 7,
+      );
       return `${year}-W${String(week).padStart(2, "0")}`;
     }
     case "monthly":

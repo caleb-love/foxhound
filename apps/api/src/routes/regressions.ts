@@ -1,6 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getRecentBaselines, deleteBaseline, getBaseline, getSpanStructureForVersion } from "@foxhound/db";
+import {
+  getRecentBaselines,
+  deleteBaseline,
+  getBaseline,
+  getSpanStructureForVersion,
+} from "@foxhound/db";
 
 const CompareSchema = z.object({
   versionA: z.string().min(1),
@@ -15,8 +20,18 @@ const ListQuerySchema = z.object({
 function detectStructuralDrift(
   baselineA: Record<string, number>,
   baselineB: Record<string, number>,
-): Array<{ type: "missing" | "new"; span: string; previousFrequency?: number; newFrequency?: number }> {
-  const regressions: Array<{ type: "missing" | "new"; span: string; previousFrequency?: number; newFrequency?: number }> = [];
+): Array<{
+  type: "missing" | "new";
+  span: string;
+  previousFrequency?: number;
+  newFrequency?: number;
+}> {
+  const regressions: Array<{
+    type: "missing" | "new";
+    span: string;
+    previousFrequency?: number;
+    newFrequency?: number;
+  }> = [];
   const THRESHOLD = 0.1; // 10% frequency threshold
 
   // Missing spans: existed in A but not in B
@@ -43,13 +58,15 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     const baselines = await getRecentBaselines(request.orgId, agentId, 2);
 
     if (baselines.length < 2) {
-      return reply.code(200).send({ agentId, regressions: [], message: "Insufficient baselines for comparison" });
+      return reply
+        .code(200)
+        .send({ agentId, regressions: [], message: "Insufficient baselines for comparison" });
     }
 
     const [newer, older] = baselines;
     const regressions = detectStructuralDrift(
-      older!.spanStructure as Record<string, number>,
-      newer!.spanStructure as Record<string, number>,
+      older!.spanStructure,
+      newer!.spanStructure,
     );
 
     return reply.code(200).send({
@@ -78,10 +95,12 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     ]);
 
     // If baselines don't exist, compute on the fly
-    const structA = baselineA?.spanStructure as Record<string, number>
-      ?? await getSpanStructureForVersion(orgId, agentId, versionA);
-    const structB = baselineB?.spanStructure as Record<string, number>
-      ?? await getSpanStructureForVersion(orgId, agentId, versionB);
+    const structA =
+      (baselineA?.spanStructure as Record<string, number>) ??
+      (await getSpanStructureForVersion(orgId, agentId, versionA));
+    const structB =
+      (baselineB?.spanStructure as Record<string, number>) ??
+      (await getSpanStructureForVersion(orgId, agentId, versionB));
 
     const regressions = detectStructuralDrift(structA, structB);
 

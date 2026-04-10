@@ -1,17 +1,24 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { upsertAgentConfig, getAgentConfig, listAgentConfigs, deleteAgentConfig } from "@foxhound/db";
+import {
+  upsertAgentConfig,
+  getAgentConfig,
+  listAgentConfigs,
+  deleteAgentConfig,
+} from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 
-const UpsertSLASchema = z.object({
-  maxDurationMs: z.number().int().positive().optional(),
-  minSuccessRate: z.number().min(0).max(1).optional(),
-  evaluationWindowMs: z.number().int().positive().default(86400000),
-  minSampleSize: z.number().int().positive().default(10),
-}).refine((data) => data.maxDurationMs !== undefined || data.minSuccessRate !== undefined, {
-  message: "At least one of maxDurationMs or minSuccessRate is required",
-});
+const UpsertSLASchema = z
+  .object({
+    maxDurationMs: z.number().int().positive().optional(),
+    minSuccessRate: z.number().min(0).max(1).optional(),
+    evaluationWindowMs: z.number().int().positive().default(86400000),
+    minSampleSize: z.number().int().positive().default(10),
+  })
+  .refine((data) => data.maxDurationMs !== undefined || data.minSuccessRate !== undefined, {
+    message: "At least one of maxDurationMs or minSuccessRate is required",
+  });
 
 const ListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -35,7 +42,8 @@ export function slasRoutes(fastify: FastifyInstance): void {
       orgId,
       agentId,
       maxDurationMs: result.data.maxDurationMs ?? null,
-      minSuccessRate: result.data.minSuccessRate !== undefined ? String(result.data.minSuccessRate) : null,
+      minSuccessRate:
+        result.data.minSuccessRate !== undefined ? String(result.data.minSuccessRate) : null,
       evaluationWindowMs: result.data.evaluationWindowMs,
       minSampleSize: result.data.minSampleSize,
       // Preserve existing budget fields

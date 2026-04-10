@@ -11,6 +11,7 @@
 Phase 4 deepens Foxhound's agent-first moat with three capabilities no competitor offers: agent cost budgets, SLA monitoring, and behavior regression detection. These features turn Foxhound from an observability tool into an agent fleet management platform.
 
 **Deferred to Phase 5:**
+
 - Multi-agent coordination (no dashboard UI in foxhound-web yet, <10% of early users have multi-agent setups; the schema columns `parent_agent_id`/`correlation_id` are additive and can ship independently)
 - ClickHouse (no production traffic data to measure)
 
@@ -20,37 +21,37 @@ Phase 4 deepens Foxhound's agent-first moat with three capabilities no competito
 
 This spec was reviewed by two independent agents (CTO, Principal Engineer). Key changes from their feedback:
 
-| Change | Source | Rationale |
-|--------|--------|-----------|
-| Defer multi-agent coordination to Phase 5 | CTO | No UI to render DAG; premature for early users |
-| Cut `onBudgetExceeded` SDK callback | CTO | Polling model is a footgun; use webhook notifications instead |
-| Cut auto HTTP header propagation | Both | Monkey-patching HTTP clients is fragile; manual helper covers 95% of cases |
-| Cut write MCP tools for configs | CTO | Read-only MCP is safe; config writes should go through API/dashboard |
-| Simplify regression to structural drift only | Both | Frequency/duration drift with fixed thresholds produces false positives |
-| Use `numeric(12,6)` for money, not `DOUBLE PRECISION` | Principal | Float accumulation errors in budget sums |
-| Add `cost_usd` column to spans table | Principal | Can't SUM efficiently inside JSONB attributes |
-| Merge `agent_configs` + `agent_slas` into one table | Principal | Same key, saves a hot-path DB lookup |
-| Model pricing as JSON file + DB overrides | CTO | DB-only table is a maintenance nightmare for price updates |
-| Redis running cost accumulator | Both | Per-trace SUM over growing dataset doesn't scale |
-| SLA worker fan-out to individual jobs | Both | Single job processing all SLAs is a timebomb |
-| Redis counters for SLA metrics | CTO | Avoid per-minute aggregate queries on traces table |
-| Increase regression sample to 100 traces | Principal | 50 traces gives ~14% confidence interval — too noisy |
-| Migrate `traces.startTimeMs` from TEXT to BIGINT | Both | Numeric operations for SLA/cost require proper types |
-| All `/status` endpoints cache from worker runs | Principal | Avoid expensive on-demand aggregate queries |
+| Change                                                | Source    | Rationale                                                                  |
+| ----------------------------------------------------- | --------- | -------------------------------------------------------------------------- |
+| Defer multi-agent coordination to Phase 5             | CTO       | No UI to render DAG; premature for early users                             |
+| Cut `onBudgetExceeded` SDK callback                   | CTO       | Polling model is a footgun; use webhook notifications instead              |
+| Cut auto HTTP header propagation                      | Both      | Monkey-patching HTTP clients is fragile; manual helper covers 95% of cases |
+| Cut write MCP tools for configs                       | CTO       | Read-only MCP is safe; config writes should go through API/dashboard       |
+| Simplify regression to structural drift only          | Both      | Frequency/duration drift with fixed thresholds produces false positives    |
+| Use `numeric(12,6)` for money, not `DOUBLE PRECISION` | Principal | Float accumulation errors in budget sums                                   |
+| Add `cost_usd` column to spans table                  | Principal | Can't SUM efficiently inside JSONB attributes                              |
+| Merge `agent_configs` + `agent_slas` into one table   | Principal | Same key, saves a hot-path DB lookup                                       |
+| Model pricing as JSON file + DB overrides             | CTO       | DB-only table is a maintenance nightmare for price updates                 |
+| Redis running cost accumulator                        | Both      | Per-trace SUM over growing dataset doesn't scale                           |
+| SLA worker fan-out to individual jobs                 | Both      | Single job processing all SLAs is a timebomb                               |
+| Redis counters for SLA metrics                        | CTO       | Avoid per-minute aggregate queries on traces table                         |
+| Increase regression sample to 100 traces              | Principal | 50 traces gives ~14% confidence interval — too noisy                       |
+| Migrate `traces.startTimeMs` from TEXT to BIGINT      | Both      | Numeric operations for SLA/cost require proper types                       |
+| All `/status` endpoints cache from worker runs        | Principal | Avoid expensive on-demand aggregate queries                                |
 
 ---
 
 ## Key Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| LLM cost source | Hybrid (SDK-reported preferred, JSON pricing file fallback, DB overrides) | SDK cost is most accurate; JSON file ships with releases; DB overrides for custom models |
-| Entitlement gating | All features on all tiers | Matches "no feature gates, volume-limited only" philosophy |
-| Regression trigger | Automatic on new version detection (structural drift only) | Most agent-native UX; structural drift has best signal-to-noise ratio |
-| Worker architecture | Dedicated BullMQ queue per feature | Matches existing pattern; independent scaling/tuning |
-| Money representation | `numeric(12,6)` in Postgres, integer microdollars in Redis | Eliminates float accumulation errors |
-| Hot-path protection | In-memory cache (60s TTL) for configs + pricing; Redis for running totals | Zero additional DB reads on trace ingestion |
-| Multi-agent coordination | Deferred to Phase 5 | No dashboard UI; schema columns are additive |
+| Decision                 | Choice                                                                    | Rationale                                                                                |
+| ------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| LLM cost source          | Hybrid (SDK-reported preferred, JSON pricing file fallback, DB overrides) | SDK cost is most accurate; JSON file ships with releases; DB overrides for custom models |
+| Entitlement gating       | All features on all tiers                                                 | Matches "no feature gates, volume-limited only" philosophy                               |
+| Regression trigger       | Automatic on new version detection (structural drift only)                | Most agent-native UX; structural drift has best signal-to-noise ratio                    |
+| Worker architecture      | Dedicated BullMQ queue per feature                                        | Matches existing pattern; independent scaling/tuning                                     |
+| Money representation     | `numeric(12,6)` in Postgres, integer microdollars in Redis                | Eliminates float accumulation errors                                                     |
+| Hot-path protection      | In-memory cache (60s TTL) for configs + pricing; Redis for running totals | Zero additional DB reads on trace ingestion                                              |
+| Multi-agent coordination | Deferred to Phase 5                                                       | No dashboard UI; schema columns are additive                                             |
 
 ---
 
@@ -133,22 +134,26 @@ Default pricing ships as a JSON file (`packages/db/src/data/model-pricing.json`)
 ### Schema Modifications
 
 **`traces` table:**
+
 - Migrate `start_time_ms` from `TEXT` to `BIGINT`
 - Migrate `end_time_ms` from `TEXT` to `BIGINT`
 - Add `parent_agent_id TEXT` (nullable, for Phase 5 multi-agent coordination — additive, no cost to add now)
 - Add `correlation_id TEXT` (nullable, same rationale)
 
 **New indexes:**
+
 - `(org_id, correlation_id) WHERE correlation_id IS NOT NULL` — partial index, only indexes traces with coordination
 - `(org_id, agent_id, start_time_ms)` — SLA duration and budget period queries
 
 **`spans` table:**
+
 - Add `cost_usd NUMERIC(12,6)` column (nullable — NULL means cost unknown, distinct from 0)
 - **Index:** `(org_id, cost_usd) WHERE kind = 'llm_call'` — partial index for budget sum queries
 
 ### Alert Event Types
 
 Extend the existing alert event type enum with three new values:
+
 - `cost_budget_exceeded` (replaces overlap with existing `cost_spike` — `cost_spike` remains for anomaly-based detection, `cost_budget_exceeded` is for explicit budget thresholds)
 - `sla_duration_breach`
 - `sla_success_rate_breach`
@@ -176,6 +181,7 @@ Ship `packages/db/src/data/model-pricing.json` with the repo:
 ### Matching Algorithm
 
 **Longest-prefix match.** When looking up pricing for model `gpt-4o-2024-08-06`:
+
 1. Check org-specific DB overrides first (exact match on `model_pattern`)
 2. Fall back to JSON file, sorted by `modelPattern` length descending
 3. `gpt-4o-2024-08-06` matches `gpt-4o` via prefix
@@ -219,12 +225,12 @@ A reconciliation job runs every 5 minutes: recalculates the true sum from `spans
 
 ### API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| PUT | `/v1/budgets/:agentId` | Create/update budget config (returns 201 on create, 200 on update) |
-| GET | `/v1/budgets` | List all budget configs for org (paginated: `page`, `limit`) |
-| GET | `/v1/budgets/:agentId` | Get config + cached spend status |
-| DELETE | `/v1/budgets/:agentId` | Remove budget config |
+| Method | Path                   | Description                                                        |
+| ------ | ---------------------- | ------------------------------------------------------------------ |
+| PUT    | `/v1/budgets/:agentId` | Create/update budget config (returns 201 on create, 200 on update) |
+| GET    | `/v1/budgets`          | List all budget configs for org (paginated: `page`, `limit`)       |
+| GET    | `/v1/budgets/:agentId` | Get config + cached spend status                                   |
+| DELETE | `/v1/budgets/:agentId` | Remove budget config                                               |
 
 The `/status` data is embedded in the GET response via `last_cost_status` — no separate endpoint needed. Status includes `{ status: "under"|"warning"|"exceeded", spend, budget, unknownCostPct, checkedAt }`.
 
@@ -242,10 +248,15 @@ fox.budgets.delete(agent_id="support-bot")
 
 ```typescript
 // TypeScript
-fox.budgets.set({ agentId: "support-bot", costBudgetUsd: 50, alertThresholdPct: 80, period: "monthly" })
-fox.budgets.get("support-bot")
-fox.budgets.list()
-fox.budgets.delete("support-bot")
+fox.budgets.set({
+  agentId: "support-bot",
+  costBudgetUsd: 50,
+  alertThresholdPct: 80,
+  period: "monthly",
+});
+fox.budgets.get("support-bot");
+fox.budgets.list();
+fox.budgets.delete("support-bot");
 ```
 
 Budget-exceeded notifications go through the existing notification system (Slack, webhook, etc.). Users who want programmatic reaction use a webhook endpoint — no SDK polling callback needed.
@@ -269,6 +280,7 @@ Budget-exceeded notifications go through the existing notification system (Slack
 ### SLA Metrics Collection (Redis Counters)
 
 On trace ingestion (inside `setImmediate()`), if the agent has an SLA config (checked via in-memory cache):
+
 - Increment `sla:traces:{orgId}:{agentId}:{minuteBucket}` (total trace count)
 - If any span has `status = 'error'`, increment `sla:errors:{orgId}:{agentId}:{minuteBucket}`
 - Set `sla:duration:{orgId}:{agentId}:{minuteBucket}` via sorted set (ZADD with trace duration as score) for p95 computation
@@ -292,12 +304,12 @@ Before firing, the worker checks `notification_log` for an existing entry with t
 
 ### API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| PUT | `/v1/slas/:agentId` | Create/update SLA config (returns 201/200) |
-| GET | `/v1/slas` | List all SLA configs for org (paginated) |
-| GET | `/v1/slas/:agentId` | Get SLA config + cached compliance status |
-| DELETE | `/v1/slas/:agentId` | Remove SLA config |
+| Method | Path                | Description                                |
+| ------ | ------------------- | ------------------------------------------ |
+| PUT    | `/v1/slas/:agentId` | Create/update SLA config (returns 201/200) |
+| GET    | `/v1/slas`          | List all SLA configs for org (paginated)   |
+| GET    | `/v1/slas/:agentId` | Get SLA config + cached compliance status  |
+| DELETE | `/v1/slas/:agentId` | Remove SLA config                          |
 
 Status is embedded via `last_sla_status`: `{ compliant: bool, durationP95Ms, successRate, sampleSize, status: "compliant"|"breach"|"insufficient_data", checkedAt }`.
 
@@ -316,11 +328,16 @@ fox.slas.delete(agent_id="support-bot")
 
 ```typescript
 // TypeScript
-fox.slas.set({ agentId: "support-bot", maxDurationMs: 30000, minSuccessRate: 0.95,
-               evaluationWindowMs: 3600000, minSampleSize: 20 })
-fox.slas.get("support-bot")
-fox.slas.list()
-fox.slas.delete("support-bot")
+fox.slas.set({
+  agentId: "support-bot",
+  maxDurationMs: 30000,
+  minSuccessRate: 0.95,
+  evaluationWindowMs: 3600000,
+  minSampleSize: 20,
+});
+fox.slas.get("support-bot");
+fox.slas.list();
+fox.slas.delete("support-bot");
 ```
 
 ### MCP Tool
@@ -347,6 +364,7 @@ Traces use `metadata.agent_version` to identify versions. SDKs encourage setting
 ### Baseline Creation
 
 When the worker sees 100 traces (configurable, default: 100) for an agent version without a baseline:
+
 1. Compute span structure: frequency of each `(span_kind, span_name)` pair across traces
 2. Store as `behavior_baselines` row with `span_structure` JSONB
 3. Only structural data (presence/frequency of span types) — duration/frequency drift deferred to Phase 5 after real-world false positive data
@@ -354,6 +372,7 @@ When the worker sees 100 traces (configurable, default: 100) for an agent versio
 ### Regression Detection (Structural Drift Only)
 
 Once a new version has a baseline, compare against the previous version's baseline (by `created_at`):
+
 - **New span types:** A `(kind, name)` pair appearing in >10% of new-version traces that didn't exist in the previous baseline
 - **Missing span types:** A `(kind, name)` pair that existed in >10% of previous-version traces but is absent from the new baseline
 
@@ -370,7 +389,7 @@ If any structural drift detected → `behavior_regression` alert.
   "newVersion": "1.3.0",
   "regressions": [
     { "type": "missing", "span": "tool_call:search_kb", "previousFrequency": 0.85 },
-    { "type": "new", "span": "tool_call:escalate_human", "newFrequency": 0.30 }
+    { "type": "new", "span": "tool_call:escalate_human", "newFrequency": 0.3 }
   ],
   "sampleSize": { "before": 142, "after": 100 }
 }
@@ -389,11 +408,11 @@ This forces the new version to become the baseline with no comparison target.
 
 ### API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/v1/regressions/:agentId` | Latest regression report (if any) |
-| POST | `/v1/regressions/:agentId/compare` | On-demand comparison: `{ versionA, versionB }` |
-| GET | `/v1/regressions/:agentId/baselines` | List stored baselines per version (paginated) |
+| Method | Path                                 | Description                                                                           |
+| ------ | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| GET    | `/v1/regressions/:agentId`           | Latest regression report (if any)                                                     |
+| POST   | `/v1/regressions/:agentId/compare`   | On-demand comparison: `{ versionA, versionB }`                                        |
+| GET    | `/v1/regressions/:agentId/baselines` | List stored baselines per version (paginated)                                         |
 | DELETE | `/v1/regressions/:agentId/baselines` | Delete baseline by `?version=` query param (handles special chars in version strings) |
 
 ### SDK Surface
@@ -411,9 +430,9 @@ fox.regressions.delete_baseline(agent_id="support-bot", version="1.2.0")
 
 ```typescript
 // TypeScript
-fox.regressions.compare({ agentId: "support-bot", versionA: "1.2.0", versionB: "1.3.0" })
-fox.regressions.baselines("support-bot")
-fox.regressions.deleteBaseline({ agentId: "support-bot", version: "1.2.0" })
+fox.regressions.compare({ agentId: "support-bot", versionA: "1.2.0", versionB: "1.3.0" });
+fox.regressions.baselines("support-bot");
+fox.regressions.deleteBaseline({ agentId: "support-bot", version: "1.2.0" });
 ```
 
 ### MCP Tools
@@ -449,6 +468,7 @@ Request → Zod validate → sampling check → span limit check → return 202
 ```
 
 **Zero additional DB reads on the hot path.** All lookups use in-memory caches:
+
 - `agent_configs` cache: Map<`${orgId}:${agentId}`, config>, refreshed every 60s
 - Model pricing cache: Map<prefix, pricing>, loaded from JSON file + DB overrides, refreshed every 60s
 
@@ -456,13 +476,13 @@ Request → Zod validate → sampling check → span limit check → return 202
 
 ## Worker Architecture Summary
 
-| Queue | Concurrency | Trigger | Retry |
-|-------|------------|---------|-------|
-| `cost-monitor` | 10 | Enqueued when Redis total crosses threshold | 3 attempts, exponential backoff |
-| `sla-scheduler` | 1 | Recurring every 60s | 3 attempts |
-| `sla-check` | 10 | Fan-out from sla-scheduler | 3 attempts, exponential backoff |
-| `regression-detector` | 3 | On trace ingestion (if version set) | 3 attempts, exponential backoff |
-| `cost-reconciler` | 1 | Recurring every 5 minutes | 3 attempts |
+| Queue                 | Concurrency | Trigger                                     | Retry                           |
+| --------------------- | ----------- | ------------------------------------------- | ------------------------------- |
+| `cost-monitor`        | 10          | Enqueued when Redis total crosses threshold | 3 attempts, exponential backoff |
+| `sla-scheduler`       | 1           | Recurring every 60s                         | 3 attempts                      |
+| `sla-check`           | 10          | Fan-out from sla-scheduler                  | 3 attempts, exponential backoff |
+| `regression-detector` | 3           | On trace ingestion (if version set)         | 3 attempts, exponential backoff |
+| `cost-reconciler`     | 1           | Recurring every 5 minutes                   | 3 attempts                      |
 
 All queues use the existing Redis connection. Worker shutdown handler in `apps/worker/src/index.ts` must be updated to gracefully close all new workers.
 
@@ -470,21 +490,21 @@ All queues use the existing Redis connection. Worker shutdown handler in `apps/w
 
 ## MCP Tools Summary (All Read-Only)
 
-| Tool | Description |
-|------|-------------|
-| `foxhound_get_agent_budget` | Budget config + cached spend + status |
-| `foxhound_check_sla_status` | Cached compliance status + metrics |
+| Tool                         | Description                             |
+| ---------------------------- | --------------------------------------- |
+| `foxhound_get_agent_budget`  | Budget config + cached spend + status   |
+| `foxhound_check_sla_status`  | Cached compliance status + metrics      |
 | `foxhound_detect_regression` | Compare two agent versions (structural) |
-| `foxhound_list_baselines` | List baselined versions for an agent |
+| `foxhound_list_baselines`    | List baselined versions for an agent    |
 
 ---
 
 ## SDK Namespaces Summary
 
-| Namespace | Methods |
-|-----------|---------|
-| `fox.budgets` | `set()`, `get()`, `list()`, `delete()` |
-| `fox.slas` | `set()`, `get()`, `list()`, `delete()` |
+| Namespace         | Methods                                         |
+| ----------------- | ----------------------------------------------- |
+| `fox.budgets`     | `set()`, `get()`, `list()`, `delete()`          |
+| `fox.slas`        | `set()`, `get()`, `list()`, `delete()`          |
 | `fox.regressions` | `compare()`, `baselines()`, `delete_baseline()` |
 
 Multi-agent coordination namespace (`fox.coordination`) deferred to Phase 5. `startTrace()` accepts optional `parentAgentId` and `correlationId` params now (schema columns are additive), but SDK helper for header propagation deferred.
@@ -497,8 +517,8 @@ requests.get("http://other-agent/...", headers={**headers, **my_headers})
 ```
 
 ```typescript
-const headers = fox.getPropagationHeaders()
-fetch("http://other-agent/...", { headers: { ...headers, ...myHeaders } })
+const headers = fox.getPropagationHeaders();
+fetch("http://other-agent/...", { headers: { ...headers, ...myHeaders } });
 ```
 
 ---
@@ -506,6 +526,7 @@ fetch("http://other-agent/...", { headers: { ...headers, ...myHeaders } })
 ## Files to Create/Modify
 
 ### New Files
+
 - `packages/db/src/data/model-pricing.json` — default LLM pricing data
 - `apps/api/src/routes/budgets.ts` — cost budget CRUD
 - `apps/api/src/routes/slas.ts` — SLA CRUD
@@ -519,6 +540,7 @@ fetch("http://other-agent/...", { headers: { ...headers, ...myHeaders } })
 - `apps/worker/src/queues/regression-detector.ts` — baseline creation + structural drift detection
 
 ### Modified Files
+
 - `packages/db/src/schema.ts` — new tables, spans.cost_usd column, traces columns + type migrations
 - `packages/db/src/queries.ts` — queries for agent_configs, behavior_baselines, model_pricing_overrides
 - `packages/types/src/index.ts` — AgentConfig, BehaviorBaseline, RegressionReport, SLAStatus types; update Trace to include parentAgentId/correlationId; update IngestTrace schema

@@ -37,7 +37,12 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
   if (count < BASELINE_SAMPLE_SIZE) return; // Not enough data yet
 
   // Compute span structure
-  const structure = await getSpanStructureForVersion(orgId, agentId, agentVersion, BASELINE_SAMPLE_SIZE);
+  const structure = await getSpanStructureForVersion(
+    orgId,
+    agentId,
+    agentVersion,
+    BASELINE_SAMPLE_SIZE,
+  );
 
   // Save baseline
   await upsertBaseline({
@@ -57,8 +62,8 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
 
   const [newer, older] = baselines;
   const regressions = detectStructuralDrift(
-    older!.spanStructure as Record<string, number>,
-    newer!.spanStructure as Record<string, number>,
+    older.spanStructure,
+    newer.spanStructure,
   );
 
   if (regressions.length === 0) return; // No regressions
@@ -69,12 +74,12 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
     severity: "high",
     orgId,
     agentId,
-    message: `Agent "${agentId}" behavior changed between ${older!.agentVersion} and ${newer!.agentVersion}: ${regressions.length} structural change(s) detected.`,
+    message: `Agent "${agentId}" behavior changed between ${older.agentVersion} and ${newer.agentVersion}: ${regressions.length} structural change(s) detected.`,
     metadata: {
-      previousVersion: older!.agentVersion,
-      newVersion: newer!.agentVersion,
+      previousVersion: older.agentVersion,
+      newVersion: newer.agentVersion,
       regressions,
-      sampleSize: { before: older!.sampleSize, after: newer!.sampleSize },
+      sampleSize: { before: older.sampleSize, after: newer.sampleSize },
     },
     occurredAt: new Date(),
   };
@@ -95,8 +100,14 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
       .filter((r) => channelMap.has(r.channelId))
       .map((rule) =>
         createNotificationLogEntry({
-          id: randomUUID(), orgId, ruleId: rule.id, channelId: rule.channelId,
-          eventType: "behavior_regression", severity: "high", agentId, status: "sent",
+          id: randomUUID(),
+          orgId,
+          ruleId: rule.id,
+          channelId: rule.channelId,
+          eventType: "behavior_regression",
+          severity: "high",
+          agentId,
+          status: "sent",
         }),
       ),
   );
@@ -106,16 +117,27 @@ function detectStructuralDrift(
   baseA: Record<string, number>,
   baseB: Record<string, number>,
 ): Array<{ type: string; span: string; previousFrequency?: number; newFrequency?: number }> {
-  const drifts: Array<{ type: string; span: string; previousFrequency?: number; newFrequency?: number }> = [];
+  const drifts: Array<{
+    type: string;
+    span: string;
+    previousFrequency?: number;
+    newFrequency?: number;
+  }> = [];
 
   for (const [span, freq] of Object.entries(baseA)) {
-    if (freq >= STRUCTURAL_THRESHOLD && (baseB[span] === undefined || baseB[span]! < STRUCTURAL_THRESHOLD)) {
+    if (
+      freq >= STRUCTURAL_THRESHOLD &&
+      (baseB[span] === undefined || baseB[span] < STRUCTURAL_THRESHOLD)
+    ) {
       drifts.push({ type: "missing", span, previousFrequency: freq });
     }
   }
 
   for (const [span, freq] of Object.entries(baseB)) {
-    if (freq >= STRUCTURAL_THRESHOLD && (baseA[span] === undefined || baseA[span]! < STRUCTURAL_THRESHOLD)) {
+    if (
+      freq >= STRUCTURAL_THRESHOLD &&
+      (baseA[span] === undefined || baseA[span] < STRUCTURAL_THRESHOLD)
+    ) {
       drifts.push({ type: "new", span, newFrequency: freq });
     }
   }
@@ -123,17 +145,25 @@ function detectStructuralDrift(
   return drifts;
 }
 
-export function startRegressionDetectorWorker(connection: ConnectionOptions): Worker<RegressionJobData> {
-  const worker = new Worker<RegressionJobData>(REGRESSION_DETECTOR_QUEUE, async (job) => {
-    await processRegressionCheck(job);
-  }, {
-    connection,
-    concurrency: 3,
-    autorun: true,
-  });
+export function startRegressionDetectorWorker(
+  connection: ConnectionOptions,
+): Worker<RegressionJobData> {
+  const worker = new Worker<RegressionJobData>(
+    REGRESSION_DETECTOR_QUEUE,
+    async (job) => {
+      await processRegressionCheck(job);
+    },
+    {
+      connection,
+      concurrency: 3,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[regression] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[regression] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[regression] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }

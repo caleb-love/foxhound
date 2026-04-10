@@ -74,7 +74,9 @@ export function getCostMonitorQueue(): Queue | null {
   if (!redisUrl) return null;
   try {
     costMonitorQueue = new Queue(COST_MONITOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {}
+  } catch {
+    // Redis not available — queue stays null
+  }
   return costMonitorQueue;
 }
 
@@ -90,7 +92,9 @@ export function getSlaSchedulerQueue(): Queue | null {
   if (!redisUrl) return null;
   try {
     slaSchedulerQueue = new Queue(SLA_SCHEDULER_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {}
+  } catch {
+    // Redis not available — queue stays null
+  }
   return slaSchedulerQueue;
 }
 
@@ -106,6 +110,8 @@ export function getRegressionDetectorQueue(): Queue | null {
   if (!redisUrl) return null;
   try {
     regressionQueue = new Queue(REGRESSION_DETECTOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {}
+  } catch {
+    // Redis not available — queue stays null
+  }
   return regressionQueue;
 }

@@ -70,14 +70,20 @@ export async function lookupPricing(
   if (overrides) {
     const exactMatch = overrides.find((e) => model === e.modelPattern);
     if (exactMatch) {
-      return { inputCostPerToken: exactMatch.inputCostPerToken, outputCostPerToken: exactMatch.outputCostPerToken };
+      return {
+        inputCostPerToken: exactMatch.inputCostPerToken,
+        outputCostPerToken: exactMatch.outputCostPerToken,
+      };
     }
   }
 
   // Longest-prefix match on default pricing (already sorted by length desc)
   for (const entry of defaultPricing) {
     if (model.startsWith(entry.modelPattern)) {
-      return { inputCostPerToken: entry.inputCostPerToken, outputCostPerToken: entry.outputCostPerToken };
+      return {
+        inputCostPerToken: entry.inputCostPerToken,
+        outputCostPerToken: entry.outputCostPerToken,
+      };
     }
   }
 

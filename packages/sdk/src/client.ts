@@ -275,7 +275,9 @@ class RegressionsNamespace {
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      throw new Error(`Failed to compare regressions: ${response.status} ${text || response.statusText}`);
+      throw new Error(
+        `Failed to compare regressions: ${response.status} ${text || response.statusText}`,
+      );
     }
     return response.json();
   }
@@ -304,7 +306,9 @@ class RegressionsNamespace {
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      throw new Error(`Failed to delete baseline: ${response.status} ${text || response.statusText}`);
+      throw new Error(
+        `Failed to delete baseline: ${response.status} ${text || response.statusText}`,
+      );
     }
   }
 }
@@ -348,7 +352,7 @@ export class FoxhoundClient {
       agentId: params.agentId,
       sessionId: params.sessionId,
       metadata: {
-        ...params.metadata ?? {},
+        ...(params.metadata ?? {}),
         ...(params.parentAgentId ? { parentAgentId: params.parentAgentId } : {}),
         ...(params.correlationId ? { correlationId: params.correlationId } : {}),
       },

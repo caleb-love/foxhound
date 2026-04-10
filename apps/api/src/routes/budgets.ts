@@ -1,7 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { upsertAgentConfig, getAgentConfig, listAgentConfigs, deleteAgentConfig } from "@foxhound/db";
+import {
+  upsertAgentConfig,
+  getAgentConfig,
+  listAgentConfigs,
+  deleteAgentConfig,
+} from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 
 const UpsertBudgetSchema = z.object({

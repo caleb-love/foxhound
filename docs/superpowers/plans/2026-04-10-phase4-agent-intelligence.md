@@ -15,49 +15,53 @@
 ## File Map
 
 ### New Files
-| File | Responsibility |
-|------|---------------|
-| `packages/db/src/data/model-pricing.json` | Default LLM pricing data shipped with repo |
-| `apps/api/src/lib/pricing-cache.ts` | In-memory model pricing cache (60s TTL) |
-| `apps/api/src/lib/config-cache.ts` | In-memory agent_configs cache (60s TTL) |
-| `apps/api/src/lib/redis.ts` | Shared Redis client (ioredis) for counters |
-| `apps/api/src/routes/budgets.ts` | Cost budget CRUD endpoints |
-| `apps/api/src/routes/slas.ts` | SLA CRUD endpoints |
-| `apps/api/src/routes/regressions.ts` | Regression reports + baselines endpoints |
-| `apps/worker/src/queues/cost-monitor.ts` | Cost alert worker |
-| `apps/worker/src/queues/cost-reconciler.ts` | Redis↔Postgres cost reconciliation |
-| `apps/worker/src/queues/sla-scheduler.ts` | SLA fan-out scheduler |
-| `apps/worker/src/queues/sla-check.ts` | Individual SLA evaluation worker |
+
+| File                                            | Responsibility                                 |
+| ----------------------------------------------- | ---------------------------------------------- |
+| `packages/db/src/data/model-pricing.json`       | Default LLM pricing data shipped with repo     |
+| `apps/api/src/lib/pricing-cache.ts`             | In-memory model pricing cache (60s TTL)        |
+| `apps/api/src/lib/config-cache.ts`              | In-memory agent_configs cache (60s TTL)        |
+| `apps/api/src/lib/redis.ts`                     | Shared Redis client (ioredis) for counters     |
+| `apps/api/src/routes/budgets.ts`                | Cost budget CRUD endpoints                     |
+| `apps/api/src/routes/slas.ts`                   | SLA CRUD endpoints                             |
+| `apps/api/src/routes/regressions.ts`            | Regression reports + baselines endpoints       |
+| `apps/worker/src/queues/cost-monitor.ts`        | Cost alert worker                              |
+| `apps/worker/src/queues/cost-reconciler.ts`     | Redis↔Postgres cost reconciliation             |
+| `apps/worker/src/queues/sla-scheduler.ts`       | SLA fan-out scheduler                          |
+| `apps/worker/src/queues/sla-check.ts`           | Individual SLA evaluation worker               |
 | `apps/worker/src/queues/regression-detector.ts` | Baseline creation + structural drift detection |
 
 ### Modified Files
-| File | Changes |
-|------|---------|
-| `packages/db/src/schema.ts` | Add `agentConfigs`, `behaviorBaselines`, `modelPricingOverrides` tables; add `costUsd` to spans; add `parentAgentId`/`correlationId` to traces; migrate `startTimeMs`/`endTimeMs` to bigint; extend alert event types |
-| `packages/db/src/queries.ts` | Add queries for agent configs, baselines, pricing overrides, cost sums, SLA metrics |
-| `packages/types/src/index.ts` | Add `AgentConfig`, `BehaviorBaseline`, `RegressionReport`, `BudgetStatus`, `SLAStatus` types; update `Trace` with `parentAgentId`/`correlationId` |
-| `packages/notifications/src/types.ts` | Add 4 new `AlertEventType` values |
-| `packages/notifications/src/providers/slack.ts` | Add event labels for new alert types |
-| `packages/api-client/src/index.ts` | Add budget, SLA, regression methods |
-| `packages/api-client/src/types.ts` | Add request/response types |
-| `packages/sdk/src/client.ts` | Add `budgets`, `slas`, `regressions` namespaces; update `startTrace` params; add `getPropagationHeaders()` |
-| `packages/sdk-py/foxhound/client.py` | Same namespaces; update `start_trace` params; add `get_propagation_headers()` |
-| `packages/mcp-server/src/index.ts` | Add 4 read-only tools |
-| `apps/api/src/index.ts` | Register budget, SLA, regression routes |
-| `apps/api/src/routes/traces.ts` | Add cost extraction, Redis counter updates, job enqueuing inside `setImmediate` |
-| `apps/api/src/queue.ts` | Add queue getters for cost-monitor, sla-scheduler, regression-detector |
-| `apps/worker/src/index.ts` | Start new workers, update graceful shutdown |
+
+| File                                            | Changes                                                                                                                                                                                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/db/src/schema.ts`                     | Add `agentConfigs`, `behaviorBaselines`, `modelPricingOverrides` tables; add `costUsd` to spans; add `parentAgentId`/`correlationId` to traces; migrate `startTimeMs`/`endTimeMs` to bigint; extend alert event types |
+| `packages/db/src/queries.ts`                    | Add queries for agent configs, baselines, pricing overrides, cost sums, SLA metrics                                                                                                                                   |
+| `packages/types/src/index.ts`                   | Add `AgentConfig`, `BehaviorBaseline`, `RegressionReport`, `BudgetStatus`, `SLAStatus` types; update `Trace` with `parentAgentId`/`correlationId`                                                                     |
+| `packages/notifications/src/types.ts`           | Add 4 new `AlertEventType` values                                                                                                                                                                                     |
+| `packages/notifications/src/providers/slack.ts` | Add event labels for new alert types                                                                                                                                                                                  |
+| `packages/api-client/src/index.ts`              | Add budget, SLA, regression methods                                                                                                                                                                                   |
+| `packages/api-client/src/types.ts`              | Add request/response types                                                                                                                                                                                            |
+| `packages/sdk/src/client.ts`                    | Add `budgets`, `slas`, `regressions` namespaces; update `startTrace` params; add `getPropagationHeaders()`                                                                                                            |
+| `packages/sdk-py/foxhound/client.py`            | Same namespaces; update `start_trace` params; add `get_propagation_headers()`                                                                                                                                         |
+| `packages/mcp-server/src/index.ts`              | Add 4 read-only tools                                                                                                                                                                                                 |
+| `apps/api/src/index.ts`                         | Register budget, SLA, regression routes                                                                                                                                                                               |
+| `apps/api/src/routes/traces.ts`                 | Add cost extraction, Redis counter updates, job enqueuing inside `setImmediate`                                                                                                                                       |
+| `apps/api/src/queue.ts`                         | Add queue getters for cost-monitor, sla-scheduler, regression-detector                                                                                                                                                |
+| `apps/worker/src/index.ts`                      | Start new workers, update graceful shutdown                                                                                                                                                                           |
 
 ---
 
 ## Task 1: Schema — New Tables + Column Migrations
 
 **Files:**
+
 - Modify: `packages/db/src/schema.ts`
 
 - [ ] **Step 1: Add `numeric` import and `agentConfigs` table after the SSO section (~line 337)**
 
 Add to the imports at the top of the file:
+
 ```typescript
 import {
   pgTable,
@@ -95,7 +99,9 @@ export const agentConfigs = pgTable(
     // Cost budget fields (nullable = not configured)
     costBudgetUsd: numeric("cost_budget_usd", { precision: 12, scale: 6 }),
     costAlertThresholdPct: integer("cost_alert_threshold_pct").default(80),
-    budgetPeriod: text("budget_period", { enum: ["daily", "weekly", "monthly"] }).default("monthly"),
+    budgetPeriod: text("budget_period", { enum: ["daily", "weekly", "monthly"] }).default(
+      "monthly",
+    ),
 
     // SLA fields (nullable = not configured)
     maxDurationMs: bigint("max_duration_ms", { mode: "number" }),
@@ -236,6 +242,7 @@ git commit -m "feat(db): add Phase 4 agent intelligence schema — configs, base
 ## Task 2: Types — New Interfaces
 
 **Files:**
+
 - Modify: `packages/types/src/index.ts`
 
 - [ ] **Step 1: Update `Trace` interface**
@@ -340,6 +347,7 @@ git commit -m "feat(types): add Phase 4 agent intelligence type definitions"
 ## Task 3: Notification Types — New Alert Event Types
 
 **Files:**
+
 - Modify: `packages/notifications/src/types.ts`
 - Modify: `packages/notifications/src/providers/slack.ts`
 
@@ -389,6 +397,7 @@ git commit -m "feat(notifications): add Phase 4 alert event types — cost, SLA,
 ## Task 4: Model Pricing JSON + Pricing Cache
 
 **Files:**
+
 - Create: `packages/db/src/data/model-pricing.json`
 - Create: `apps/api/src/lib/pricing-cache.ts`
 
@@ -396,19 +405,84 @@ git commit -m "feat(notifications): add Phase 4 alert event types — cost, SLA,
 
 ```json
 [
-  { "provider": "openai", "modelPattern": "gpt-4o", "inputCostPerToken": 0.0000025, "outputCostPerToken": 0.00001 },
-  { "provider": "openai", "modelPattern": "gpt-4o-mini", "inputCostPerToken": 0.00000015, "outputCostPerToken": 0.0000006 },
-  { "provider": "openai", "modelPattern": "gpt-4-turbo", "inputCostPerToken": 0.00001, "outputCostPerToken": 0.00003 },
-  { "provider": "openai", "modelPattern": "gpt-3.5-turbo", "inputCostPerToken": 0.0000005, "outputCostPerToken": 0.0000015 },
-  { "provider": "openai", "modelPattern": "o1", "inputCostPerToken": 0.000015, "outputCostPerToken": 0.00006 },
-  { "provider": "openai", "modelPattern": "o3-mini", "inputCostPerToken": 0.0000011, "outputCostPerToken": 0.0000044 },
-  { "provider": "anthropic", "modelPattern": "claude-opus-4", "inputCostPerToken": 0.000015, "outputCostPerToken": 0.000075 },
-  { "provider": "anthropic", "modelPattern": "claude-sonnet-4", "inputCostPerToken": 0.000003, "outputCostPerToken": 0.000015 },
-  { "provider": "anthropic", "modelPattern": "claude-haiku-4", "inputCostPerToken": 0.0000008, "outputCostPerToken": 0.000004 },
-  { "provider": "anthropic", "modelPattern": "claude-3.5-sonnet", "inputCostPerToken": 0.000003, "outputCostPerToken": 0.000015 },
-  { "provider": "google", "modelPattern": "gemini-2.5-pro", "inputCostPerToken": 0.00000125, "outputCostPerToken": 0.00001 },
-  { "provider": "google", "modelPattern": "gemini-2.5-flash", "inputCostPerToken": 0.00000015, "outputCostPerToken": 0.0000006 },
-  { "provider": "google", "modelPattern": "gemini-2.0-flash", "inputCostPerToken": 0.0000001, "outputCostPerToken": 0.0000004 }
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4o",
+    "inputCostPerToken": 0.0000025,
+    "outputCostPerToken": 0.00001
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4o-mini",
+    "inputCostPerToken": 0.00000015,
+    "outputCostPerToken": 0.0000006
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-4-turbo",
+    "inputCostPerToken": 0.00001,
+    "outputCostPerToken": 0.00003
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "gpt-3.5-turbo",
+    "inputCostPerToken": 0.0000005,
+    "outputCostPerToken": 0.0000015
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "o1",
+    "inputCostPerToken": 0.000015,
+    "outputCostPerToken": 0.00006
+  },
+  {
+    "provider": "openai",
+    "modelPattern": "o3-mini",
+    "inputCostPerToken": 0.0000011,
+    "outputCostPerToken": 0.0000044
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-opus-4",
+    "inputCostPerToken": 0.000015,
+    "outputCostPerToken": 0.000075
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-sonnet-4",
+    "inputCostPerToken": 0.000003,
+    "outputCostPerToken": 0.000015
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-haiku-4",
+    "inputCostPerToken": 0.0000008,
+    "outputCostPerToken": 0.000004
+  },
+  {
+    "provider": "anthropic",
+    "modelPattern": "claude-3.5-sonnet",
+    "inputCostPerToken": 0.000003,
+    "outputCostPerToken": 0.000015
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.5-pro",
+    "inputCostPerToken": 0.00000125,
+    "outputCostPerToken": 0.00001
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.5-flash",
+    "inputCostPerToken": 0.00000015,
+    "outputCostPerToken": 0.0000006
+  },
+  {
+    "provider": "google",
+    "modelPattern": "gemini-2.0-flash",
+    "inputCostPerToken": 0.0000001,
+    "outputCostPerToken": 0.0000004
+  }
 ]
 ```
 
@@ -489,14 +563,20 @@ export async function lookupPricing(
   if (overrides) {
     const exactMatch = overrides.find((e) => model === e.modelPattern);
     if (exactMatch) {
-      return { inputCostPerToken: exactMatch.inputCostPerToken, outputCostPerToken: exactMatch.outputCostPerToken };
+      return {
+        inputCostPerToken: exactMatch.inputCostPerToken,
+        outputCostPerToken: exactMatch.outputCostPerToken,
+      };
     }
   }
 
   // Longest-prefix match on default pricing (already sorted by length desc)
   for (const entry of defaultPricing) {
     if (model.startsWith(entry.modelPattern)) {
-      return { inputCostPerToken: entry.inputCostPerToken, outputCostPerToken: entry.outputCostPerToken };
+      return {
+        inputCostPerToken: entry.inputCostPerToken,
+        outputCostPerToken: entry.outputCostPerToken,
+      };
     }
   }
 
@@ -521,6 +601,7 @@ git commit -m "feat: add model pricing JSON + in-memory pricing cache with longe
 ## Task 5: Database Queries — Agent Configs, Baselines, Pricing Overrides
 
 **Files:**
+
 - Modify: `packages/db/src/queries.ts`
 
 - [ ] **Step 1: Add agent config queries at the end of queries.ts**
@@ -609,16 +690,13 @@ export async function updateAgentConfigStatus(
     .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
 }
 
-export async function getAllAgentConfigsWithSLA(): Promise<Array<typeof agentConfigs.$inferSelect>> {
+export async function getAllAgentConfigsWithSLA(): Promise<
+  Array<typeof agentConfigs.$inferSelect>
+> {
   return db
     .select()
     .from(agentConfigs)
-    .where(
-      or(
-        isNotNull(agentConfigs.maxDurationMs),
-        isNotNull(agentConfigs.minSuccessRate),
-      ),
-    );
+    .where(or(isNotNull(agentConfigs.maxDurationMs), isNotNull(agentConfigs.minSuccessRate)));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -815,6 +893,7 @@ git commit -m "feat(db): add Phase 4 queries — agent configs, baselines, cost 
 ## Task 6: Redis Client + Config Cache
 
 **Files:**
+
 - Create: `apps/api/src/lib/redis.ts`
 - Create: `apps/api/src/lib/config-cache.ts`
 
@@ -901,6 +980,7 @@ git commit -m "feat: add shared Redis client + agent config in-memory cache"
 ## Task 7: API Routes — Budgets
 
 **Files:**
+
 - Create: `apps/api/src/routes/budgets.ts`
 - Modify: `apps/api/src/index.ts`
 
@@ -912,7 +992,12 @@ Create `apps/api/src/routes/budgets.ts`:
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { upsertAgentConfig, getAgentConfig, listAgentConfigs, deleteAgentConfig } from "@foxhound/db";
+import {
+  upsertAgentConfig,
+  getAgentConfig,
+  listAgentConfigs,
+  deleteAgentConfig,
+} from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 
 const UpsertBudgetSchema = z.object({
@@ -1035,6 +1120,7 @@ git commit -m "feat(api): add /v1/budgets CRUD endpoints for agent cost budgets"
 ## Task 8: API Routes — SLAs
 
 **Files:**
+
 - Create: `apps/api/src/routes/slas.ts`
 - Modify: `apps/api/src/index.ts`
 
@@ -1046,17 +1132,24 @@ Create `apps/api/src/routes/slas.ts` following the identical pattern as budgets.
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { upsertAgentConfig, getAgentConfig, listAgentConfigs, deleteAgentConfig } from "@foxhound/db";
+import {
+  upsertAgentConfig,
+  getAgentConfig,
+  listAgentConfigs,
+  deleteAgentConfig,
+} from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 
-const UpsertSLASchema = z.object({
-  maxDurationMs: z.number().int().positive().optional(),
-  minSuccessRate: z.number().min(0).max(1).optional(),
-  evaluationWindowMs: z.number().int().positive().default(86400000),
-  minSampleSize: z.number().int().positive().default(10),
-}).refine((data) => data.maxDurationMs !== undefined || data.minSuccessRate !== undefined, {
-  message: "At least one of maxDurationMs or minSuccessRate is required",
-});
+const UpsertSLASchema = z
+  .object({
+    maxDurationMs: z.number().int().positive().optional(),
+    minSuccessRate: z.number().min(0).max(1).optional(),
+    evaluationWindowMs: z.number().int().positive().default(86400000),
+    minSampleSize: z.number().int().positive().default(10),
+  })
+  .refine((data) => data.maxDurationMs !== undefined || data.minSuccessRate !== undefined, {
+    message: "At least one of maxDurationMs or minSuccessRate is required",
+  });
 
 const ListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -1080,7 +1173,8 @@ export function slasRoutes(fastify: FastifyInstance): void {
       orgId,
       agentId,
       maxDurationMs: result.data.maxDurationMs ?? null,
-      minSuccessRate: result.data.minSuccessRate !== undefined ? String(result.data.minSuccessRate) : null,
+      minSuccessRate:
+        result.data.minSuccessRate !== undefined ? String(result.data.minSuccessRate) : null,
       evaluationWindowMs: result.data.evaluationWindowMs,
       minSampleSize: result.data.minSampleSize,
       // Preserve existing budget fields
@@ -1165,6 +1259,7 @@ git commit -m "feat(api): add /v1/slas CRUD endpoints for agent SLA monitoring"
 ## Task 9: API Routes — Regressions
 
 **Files:**
+
 - Create: `apps/api/src/routes/regressions.ts`
 - Modify: `apps/api/src/index.ts`
 
@@ -1175,7 +1270,12 @@ Create `apps/api/src/routes/regressions.ts`:
 ```typescript
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getRecentBaselines, deleteBaseline, getBaseline, getSpanStructureForVersion } from "@foxhound/db";
+import {
+  getRecentBaselines,
+  deleteBaseline,
+  getBaseline,
+  getSpanStructureForVersion,
+} from "@foxhound/db";
 
 const CompareSchema = z.object({
   versionA: z.string().min(1),
@@ -1190,8 +1290,18 @@ const ListQuerySchema = z.object({
 function detectStructuralDrift(
   baselineA: Record<string, number>,
   baselineB: Record<string, number>,
-): Array<{ type: "missing" | "new"; span: string; previousFrequency?: number; newFrequency?: number }> {
-  const regressions: Array<{ type: "missing" | "new"; span: string; previousFrequency?: number; newFrequency?: number }> = [];
+): Array<{
+  type: "missing" | "new";
+  span: string;
+  previousFrequency?: number;
+  newFrequency?: number;
+}> {
+  const regressions: Array<{
+    type: "missing" | "new";
+    span: string;
+    previousFrequency?: number;
+    newFrequency?: number;
+  }> = [];
   const THRESHOLD = 0.1; // 10% frequency threshold
 
   // Missing spans: existed in A but not in B
@@ -1218,7 +1328,9 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     const baselines = await getRecentBaselines(request.orgId, agentId, 2);
 
     if (baselines.length < 2) {
-      return reply.code(200).send({ agentId, regressions: [], message: "Insufficient baselines for comparison" });
+      return reply
+        .code(200)
+        .send({ agentId, regressions: [], message: "Insufficient baselines for comparison" });
     }
 
     const [newer, older] = baselines;
@@ -1253,10 +1365,12 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     ]);
 
     // If baselines don't exist, compute on the fly
-    const structA = baselineA?.spanStructure as Record<string, number>
-      ?? await getSpanStructureForVersion(orgId, agentId, versionA);
-    const structB = baselineB?.spanStructure as Record<string, number>
-      ?? await getSpanStructureForVersion(orgId, agentId, versionB);
+    const structA =
+      (baselineA?.spanStructure as Record<string, number>) ??
+      (await getSpanStructureForVersion(orgId, agentId, versionA));
+    const structB =
+      (baselineB?.spanStructure as Record<string, number>) ??
+      (await getSpanStructureForVersion(orgId, agentId, versionB));
 
     const regressions = detectStructuralDrift(structA, structB);
 
@@ -1316,6 +1430,7 @@ git commit -m "feat(api): add /v1/regressions endpoints for behavior regression 
 ## Task 10: Queue Infrastructure — API Side
 
 **Files:**
+
 - Modify: `apps/api/src/queue.ts`
 
 - [ ] **Step 1: Add queue getters for Phase 4 workers**
@@ -1383,6 +1498,7 @@ git commit -m "feat(api): add BullMQ queue getters for cost-monitor, sla-schedul
 ## Task 11: Trace Ingestion — Cost Extraction + Redis Counters + Job Enqueuing
 
 **Files:**
+
 - Modify: `apps/api/src/routes/traces.ts`
 
 - [ ] **Step 1: Add Phase 4 ingestion logic inside the existing `setImmediate` block**
@@ -1415,11 +1531,11 @@ const IngestTraceSchema = z.object({
 Replace the `setImmediate` block (~line 181-184) with:
 
 ```typescript
-      setImmediate(() => {
-        persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch(() => {});
-        void maybeFireAlerts(fastify, trace as unknown as Trace, orgId);
-        void handlePhase4Ingestion(fastify, trace, orgId);
-      });
+setImmediate(() => {
+  persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch(() => {});
+  void maybeFireAlerts(fastify, trace as unknown as Trace, orgId);
+  void handlePhase4Ingestion(fastify, trace, orgId);
+});
 ```
 
 Add the new function before `tracesRoutes`:
@@ -1447,12 +1563,15 @@ async function handlePhase4Ingestion(
         cost = attrs["cost_usd"];
       } else if (typeof attrs["model"] === "string") {
         const model = attrs["model"];
-        const inputTokens = typeof attrs["token_count_input"] === "number" ? attrs["token_count_input"] : 0;
-        const outputTokens = typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
+        const inputTokens =
+          typeof attrs["token_count_input"] === "number" ? attrs["token_count_input"] : 0;
+        const outputTokens =
+          typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
         if (inputTokens > 0 || outputTokens > 0) {
           const pricing = await lookupPricing(orgId, model);
           if (pricing) {
-            cost = inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
+            cost =
+              inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
           }
         }
       }
@@ -1476,14 +1595,22 @@ async function handlePhase4Ingestion(
       const threshold = (config.costAlertThresholdPct ?? 80) / 100;
       if (newTotal >= budget) {
         const queue = getCostMonitorQueue();
-        await queue?.add("cost-alert", { orgId, agentId: trace.agentId, periodKey, level: "critical" }, {
-          jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:critical`,
-        });
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "critical" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:critical`,
+          },
+        );
       } else if (newTotal >= budget * threshold) {
         const queue = getCostMonitorQueue();
-        await queue?.add("cost-alert", { orgId, agentId: trace.agentId, periodKey, level: "high" }, {
-          jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:high`,
-        });
+        await queue?.add(
+          "cost-alert",
+          { orgId, agentId: trace.agentId, periodKey, level: "high" },
+          {
+            jobId: `cost-alert:${orgId}:${trace.agentId}:${periodKey}:high`,
+          },
+        );
       }
     }
 
@@ -1537,7 +1664,9 @@ function getBudgetPeriodKey(period: string, timestampMs: number): string {
       monday.setUTCDate(diff);
       const year = monday.getUTCFullYear();
       const oneJan = new Date(year, 0, 1);
-      const week = Math.ceil(((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getUTCDay() + 1) / 7);
+      const week = Math.ceil(
+        ((monday.getTime() - oneJan.getTime()) / 86400000 + oneJan.getUTCDay() + 1) / 7,
+      );
       return `${year}-W${String(week).padStart(2, "0")}`;
     }
     case "monthly":
@@ -1564,6 +1693,7 @@ git commit -m "feat(traces): add Phase 4 ingestion — cost extraction, Redis co
 ## Task 12: Worker — Cost Monitor + Cost Reconciler
 
 **Files:**
+
 - Create: `apps/worker/src/queues/cost-monitor.ts`
 - Create: `apps/worker/src/queues/cost-reconciler.ts`
 
@@ -1607,20 +1737,28 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
   const periodStart = parsePeriodStart(periodKey);
   const costs = await sumSpanCosts(orgId, agentId, periodStart, now);
 
-  const status = costs.totalCost >= budget ? "exceeded"
-    : costs.totalCost >= budget * ((config.costAlertThresholdPct ?? 80) / 100) ? "warning"
-    : "under";
+  const status =
+    costs.totalCost >= budget
+      ? "exceeded"
+      : costs.totalCost >= budget * ((config.costAlertThresholdPct ?? 80) / 100)
+        ? "warning"
+        : "under";
 
   const unknownPct = costs.totalSpans > 0 ? (costs.unknownCostSpans / costs.totalSpans) * 100 : 0;
 
   // Update cached status
-  await updateAgentConfigStatus(orgId, agentId, {
-    status,
-    spend: costs.totalCost,
-    budget,
-    unknownCostPct: Math.round(unknownPct * 10) / 10,
-    checkedAt: new Date().toISOString(),
-  }, null);
+  await updateAgentConfigStatus(
+    orgId,
+    agentId,
+    {
+      status,
+      spend: costs.totalCost,
+      budget,
+      unknownCostPct: Math.round(unknownPct * 10) / 10,
+      checkedAt: new Date().toISOString(),
+    },
+    null,
+  );
 
   if (status === "under") return; // No alert needed
 
@@ -1680,16 +1818,22 @@ function parsePeriodStart(periodKey: string): number {
 }
 
 export function startCostMonitorWorker(connection: ConnectionOptions): Worker<CostAlertJobData> {
-  const worker = new Worker<CostAlertJobData>(COST_MONITOR_QUEUE, async (job) => {
-    await processCostAlert(job);
-  }, {
-    connection,
-    concurrency: 10,
-    autorun: true,
-  });
+  const worker = new Worker<CostAlertJobData>(
+    COST_MONITOR_QUEUE,
+    async (job) => {
+      await processCostAlert(job);
+    },
+    {
+      connection,
+      concurrency: 10,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[cost-monitor] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[cost-monitor] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[cost-monitor] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }
@@ -1722,30 +1866,37 @@ export function startCostReconcilerWorker(connection: ConnectionOptions): Worker
   const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
   const redis = new Redis(redisUrl);
 
-  const worker = new Worker(COST_RECONCILER_QUEUE, async () => {
-    // This is a repeatable job — reconcile all cost counters
-    const configs = await getAllAgentConfigsWithSLA();
-    const now = Date.now();
+  const worker = new Worker(
+    COST_RECONCILER_QUEUE,
+    async () => {
+      // This is a repeatable job — reconcile all cost counters
+      const configs = await getAllAgentConfigsWithSLA();
+      const now = Date.now();
 
-    for (const config of configs) {
-      if (!config.costBudgetUsd) continue;
-      const period = config.budgetPeriod ?? "monthly";
-      const d = new Date(now);
-      const periodKey = period === "daily" ? d.toISOString().slice(0, 10)
-        : period === "weekly" ? `${d.getUTCFullYear()}-W${String(Math.ceil((d.getTime() - new Date(d.getUTCFullYear(), 0, 1).getTime()) / 604800000)).padStart(2, "0")}`
-        : d.toISOString().slice(0, 7);
+      for (const config of configs) {
+        if (!config.costBudgetUsd) continue;
+        const period = config.budgetPeriod ?? "monthly";
+        const d = new Date(now);
+        const periodKey =
+          period === "daily"
+            ? d.toISOString().slice(0, 10)
+            : period === "weekly"
+              ? `${d.getUTCFullYear()}-W${String(Math.ceil((d.getTime() - new Date(d.getUTCFullYear(), 0, 1).getTime()) / 604800000)).padStart(2, "0")}`
+              : d.toISOString().slice(0, 7);
 
-      const redisKey = `cost:${config.orgId}:${config.agentId}:${periodKey}`;
-      const periodStart = parsePeriodStart(periodKey);
-      const costs = await sumSpanCosts(config.orgId, config.agentId, periodStart, now);
-      await redis.set(redisKey, String(costs.totalCost));
-      await redis.expire(redisKey, 35 * 24 * 3600);
-    }
-  }, {
-    connection,
-    concurrency: 1,
-    autorun: true,
-  });
+        const redisKey = `cost:${config.orgId}:${config.agentId}:${periodKey}`;
+        const periodStart = parsePeriodStart(periodKey);
+        const costs = await sumSpanCosts(config.orgId, config.agentId, periodStart, now);
+        await redis.set(redisKey, String(costs.totalCost));
+        await redis.expire(redisKey, 35 * 24 * 3600);
+      }
+    },
+    {
+      connection,
+      concurrency: 1,
+      autorun: true,
+    },
+  );
 
   worker.on("failed", (job, err) => console.error(`[cost-reconciler] Failed:`, err.message));
 
@@ -1765,6 +1916,7 @@ git commit -m "feat(worker): add cost-monitor and cost-reconciler workers"
 ## Task 13: Worker — SLA Scheduler + SLA Check
 
 **Files:**
+
 - Create: `apps/worker/src/queues/sla-scheduler.ts`
 - Create: `apps/worker/src/queues/sla-check.ts`
 
@@ -1783,32 +1935,40 @@ export const SLA_CHECK_QUEUE = "sla-check";
 export function startSlaSchedulerWorker(connection: ConnectionOptions): Worker {
   const checkQueue = new Queue(SLA_CHECK_QUEUE, { connection });
 
-  const worker = new Worker(SLA_SCHEDULER_QUEUE, async () => {
-    const configs = await getAllAgentConfigsWithSLA();
-    const minute = Math.floor(Date.now() / 60000);
+  const worker = new Worker(
+    SLA_SCHEDULER_QUEUE,
+    async () => {
+      const configs = await getAllAgentConfigsWithSLA();
+      const minute = Math.floor(Date.now() / 60000);
 
-    await Promise.all(
-      configs.map((config) =>
-        checkQueue.add("sla-check", {
-          configId: config.id,
-          orgId: config.orgId,
-          agentId: config.agentId,
-          maxDurationMs: config.maxDurationMs,
-          minSuccessRate: config.minSuccessRate ? Number(config.minSuccessRate) : null,
-          evaluationWindowMs: config.evaluationWindowMs,
-          minSampleSize: config.minSampleSize,
-        }, {
-          jobId: `sla-check:${config.id}:${minute}`,
-          attempts: 3,
-          backoff: { type: "exponential", delay: 1000 },
-        }),
-      ),
-    );
-  }, {
-    connection,
-    concurrency: 1,
-    autorun: true,
-  });
+      await Promise.all(
+        configs.map((config) =>
+          checkQueue.add(
+            "sla-check",
+            {
+              configId: config.id,
+              orgId: config.orgId,
+              agentId: config.agentId,
+              maxDurationMs: config.maxDurationMs,
+              minSuccessRate: config.minSuccessRate ? Number(config.minSuccessRate) : null,
+              evaluationWindowMs: config.evaluationWindowMs,
+              minSampleSize: config.minSampleSize,
+            },
+            {
+              jobId: `sla-check:${config.id}:${minute}`,
+              attempts: 3,
+              backoff: { type: "exponential", delay: 1000 },
+            },
+          ),
+        ),
+      );
+    },
+    {
+      connection,
+      concurrency: 1,
+      autorun: true,
+    },
+  );
 
   worker.on("failed", (job, err) => console.error(`[sla-scheduler] Failed:`, err.message));
 
@@ -1847,7 +2007,8 @@ interface SlaCheckJobData {
 }
 
 async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise<void> {
-  const { orgId, agentId, maxDurationMs, minSuccessRate, evaluationWindowMs, minSampleSize } = job.data;
+  const { orgId, agentId, maxDurationMs, minSuccessRate, evaluationWindowMs, minSampleSize } =
+    job.data;
   const windowMs = evaluationWindowMs ?? 86400000;
   const minSamples = minSampleSize ?? 10;
   const now = Date.now();
@@ -1897,7 +2058,10 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
   const durationP95 = durations.length > 0 ? durations[Math.max(0, p95Index)]! : 0;
 
   let compliant = true;
-  const alerts: Array<{ type: "sla_duration_breach" | "sla_success_rate_breach"; message: string }> = [];
+  const alerts: Array<{
+    type: "sla_duration_breach" | "sla_success_rate_breach";
+    message: string;
+  }> = [];
 
   if (maxDurationMs !== null && durationP95 > maxDurationMs) {
     compliant = false;
@@ -1953,8 +2117,14 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
         .filter((r) => channelMap.has(r.channelId))
         .map((rule) =>
           createNotificationLogEntry({
-            id: randomUUID(), orgId, ruleId: rule.id, channelId: rule.channelId,
-            eventType: alert.type, severity: "high", agentId, status: "sent",
+            id: randomUUID(),
+            orgId,
+            ruleId: rule.id,
+            channelId: rule.channelId,
+            eventType: alert.type,
+            severity: "high",
+            agentId,
+            status: "sent",
           }),
         ),
     );
@@ -1965,16 +2135,22 @@ export function startSlaCheckWorker(connection: ConnectionOptions): Worker<SlaCh
   const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
   const redis = new Redis(redisUrl);
 
-  const worker = new Worker<SlaCheckJobData>(SLA_CHECK_QUEUE, async (job) => {
-    await processSlaCheck(job, redis);
-  }, {
-    connection,
-    concurrency: 10,
-    autorun: true,
-  });
+  const worker = new Worker<SlaCheckJobData>(
+    SLA_CHECK_QUEUE,
+    async (job) => {
+      await processSlaCheck(job, redis);
+    },
+    {
+      connection,
+      concurrency: 10,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[sla-check] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[sla-check] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[sla-check] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }
@@ -1992,6 +2168,7 @@ git commit -m "feat(worker): add SLA scheduler (fan-out) and SLA check workers"
 ## Task 14: Worker — Regression Detector
 
 **Files:**
+
 - Create: `apps/worker/src/queues/regression-detector.ts`
 
 - [ ] **Step 1: Create regression detector worker**
@@ -2038,7 +2215,12 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
   if (count < BASELINE_SAMPLE_SIZE) return; // Not enough data yet
 
   // Compute span structure
-  const structure = await getSpanStructureForVersion(orgId, agentId, agentVersion, BASELINE_SAMPLE_SIZE);
+  const structure = await getSpanStructureForVersion(
+    orgId,
+    agentId,
+    agentVersion,
+    BASELINE_SAMPLE_SIZE,
+  );
 
   // Save baseline
   await upsertBaseline({
@@ -2096,8 +2278,14 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
       .filter((r) => channelMap.has(r.channelId))
       .map((rule) =>
         createNotificationLogEntry({
-          id: randomUUID(), orgId, ruleId: rule.id, channelId: rule.channelId,
-          eventType: "behavior_regression", severity: "high", agentId, status: "sent",
+          id: randomUUID(),
+          orgId,
+          ruleId: rule.id,
+          channelId: rule.channelId,
+          eventType: "behavior_regression",
+          severity: "high",
+          agentId,
+          status: "sent",
         }),
       ),
   );
@@ -2107,16 +2295,27 @@ function detectStructuralDrift(
   baseA: Record<string, number>,
   baseB: Record<string, number>,
 ): Array<{ type: string; span: string; previousFrequency?: number; newFrequency?: number }> {
-  const drifts: Array<{ type: string; span: string; previousFrequency?: number; newFrequency?: number }> = [];
+  const drifts: Array<{
+    type: string;
+    span: string;
+    previousFrequency?: number;
+    newFrequency?: number;
+  }> = [];
 
   for (const [span, freq] of Object.entries(baseA)) {
-    if (freq >= STRUCTURAL_THRESHOLD && (baseB[span] === undefined || baseB[span]! < STRUCTURAL_THRESHOLD)) {
+    if (
+      freq >= STRUCTURAL_THRESHOLD &&
+      (baseB[span] === undefined || baseB[span]! < STRUCTURAL_THRESHOLD)
+    ) {
       drifts.push({ type: "missing", span, previousFrequency: freq });
     }
   }
 
   for (const [span, freq] of Object.entries(baseB)) {
-    if (freq >= STRUCTURAL_THRESHOLD && (baseA[span] === undefined || baseA[span]! < STRUCTURAL_THRESHOLD)) {
+    if (
+      freq >= STRUCTURAL_THRESHOLD &&
+      (baseA[span] === undefined || baseA[span]! < STRUCTURAL_THRESHOLD)
+    ) {
       drifts.push({ type: "new", span, newFrequency: freq });
     }
   }
@@ -2124,17 +2323,25 @@ function detectStructuralDrift(
   return drifts;
 }
 
-export function startRegressionDetectorWorker(connection: ConnectionOptions): Worker<RegressionJobData> {
-  const worker = new Worker<RegressionJobData>(REGRESSION_DETECTOR_QUEUE, async (job) => {
-    await processRegressionCheck(job);
-  }, {
-    connection,
-    concurrency: 3,
-    autorun: true,
-  });
+export function startRegressionDetectorWorker(
+  connection: ConnectionOptions,
+): Worker<RegressionJobData> {
+  const worker = new Worker<RegressionJobData>(
+    REGRESSION_DETECTOR_QUEUE,
+    async (job) => {
+      await processRegressionCheck(job);
+    },
+    {
+      connection,
+      concurrency: 3,
+      autorun: true,
+    },
+  );
 
   worker.on("completed", (job) => console.log(`[regression] Job ${job.id} completed`));
-  worker.on("failed", (job, err) => console.error(`[regression] Job ${job?.id} failed:`, err.message));
+  worker.on("failed", (job, err) =>
+    console.error(`[regression] Job ${job?.id} failed:`, err.message),
+  );
 
   return worker;
 }
@@ -2152,6 +2359,7 @@ git commit -m "feat(worker): add regression detector — auto-baseline + structu
 ## Task 15: Worker Entry Point — Register All New Workers
 
 **Files:**
+
 - Modify: `apps/worker/src/index.ts`
 
 - [ ] **Step 1: Update worker entry to start all Phase 4 workers + repeatable jobs**
@@ -2213,18 +2421,26 @@ console.log("[worker] Regression detector worker started (concurrency: 3)");
 async function setupRepeatableJobs(): Promise<void> {
   // SLA scheduler: run every 60 seconds
   const slaQueue = new Queue(SLA_SCHEDULER_QUEUE, { connection });
-  await slaQueue.add("sla-schedule", {}, {
-    repeat: { every: 60_000 },
-    jobId: "sla-schedule-repeatable",
-  });
+  await slaQueue.add(
+    "sla-schedule",
+    {},
+    {
+      repeat: { every: 60_000 },
+      jobId: "sla-schedule-repeatable",
+    },
+  );
   console.log("[worker] SLA scheduler repeatable job configured (every 60s)");
 
   // Cost reconciler: run every 5 minutes
   const reconcilerQueue = new Queue(COST_RECONCILER_QUEUE, { connection });
-  await reconcilerQueue.add("reconcile", {}, {
-    repeat: { every: 300_000 },
-    jobId: "cost-reconcile-repeatable",
-  });
+  await reconcilerQueue.add(
+    "reconcile",
+    {},
+    {
+      repeat: { every: 300_000 },
+      jobId: "cost-reconcile-repeatable",
+    },
+  );
   console.log("[worker] Cost reconciler repeatable job configured (every 5m)");
 }
 
@@ -2271,6 +2487,7 @@ git commit -m "feat(worker): register all Phase 4 workers + repeatable jobs for 
 ## Task 16: API Client — New Methods + Types
 
 **Files:**
+
 - Modify: `packages/api-client/src/types.ts`
 - Modify: `packages/api-client/src/index.ts`
 
@@ -2414,6 +2631,7 @@ git commit -m "feat(api-client): add typed methods for budgets, SLAs, and regres
 ## Task 17: TypeScript SDK — New Namespaces
 
 **Files:**
+
 - Modify: `packages/sdk/src/client.ts`
 
 - [ ] **Step 1: Add `BudgetsNamespace`, `SLAsNamespace`, `RegressionsNamespace` + update `startTrace` + add `getPropagationHeaders`**
@@ -2434,10 +2652,20 @@ class BudgetsNamespace {
     return { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` };
   }
 
-  async set(params: { agentId: string; costBudgetUsd: number; alertThresholdPct?: number; period?: string }): Promise<unknown> {
+  async set(params: {
+    agentId: string;
+    costBudgetUsd: number;
+    alertThresholdPct?: number;
+    period?: string;
+  }): Promise<unknown> {
     const res = await fetch(`${this.endpoint}/v1/budgets/${params.agentId}`, {
-      method: "PUT", headers: this.headers(),
-      body: JSON.stringify({ costBudgetUsd: params.costBudgetUsd, costAlertThresholdPct: params.alertThresholdPct ?? 80, budgetPeriod: params.period ?? "monthly" }),
+      method: "PUT",
+      headers: this.headers(),
+      body: JSON.stringify({
+        costBudgetUsd: params.costBudgetUsd,
+        costAlertThresholdPct: params.alertThresholdPct ?? 80,
+        budgetPeriod: params.period ?? "monthly",
+      }),
     });
     if (!res.ok) throw new Error(`Failed to set budget: ${res.status}`);
     return res.json();
@@ -2456,7 +2684,10 @@ class BudgetsNamespace {
   }
 
   async delete(agentId: string): Promise<void> {
-    const res = await fetch(`${this.endpoint}/v1/budgets/${agentId}`, { method: "DELETE", headers: this.headers() });
+    const res = await fetch(`${this.endpoint}/v1/budgets/${agentId}`, {
+      method: "DELETE",
+      headers: this.headers(),
+    });
     if (!res.ok) throw new Error(`Failed to delete budget: ${res.status}`);
   }
 }
@@ -2474,10 +2705,22 @@ class SLAsNamespace {
     return { "Content-Type": "application/json", Authorization: `Bearer ${this.apiKey}` };
   }
 
-  async set(params: { agentId: string; maxDurationMs?: number; minSuccessRate?: number; evaluationWindowMs?: number; minSampleSize?: number }): Promise<unknown> {
+  async set(params: {
+    agentId: string;
+    maxDurationMs?: number;
+    minSuccessRate?: number;
+    evaluationWindowMs?: number;
+    minSampleSize?: number;
+  }): Promise<unknown> {
     const res = await fetch(`${this.endpoint}/v1/slas/${params.agentId}`, {
-      method: "PUT", headers: this.headers(),
-      body: JSON.stringify({ maxDurationMs: params.maxDurationMs, minSuccessRate: params.minSuccessRate, evaluationWindowMs: params.evaluationWindowMs, minSampleSize: params.minSampleSize }),
+      method: "PUT",
+      headers: this.headers(),
+      body: JSON.stringify({
+        maxDurationMs: params.maxDurationMs,
+        minSuccessRate: params.minSuccessRate,
+        evaluationWindowMs: params.evaluationWindowMs,
+        minSampleSize: params.minSampleSize,
+      }),
     });
     if (!res.ok) throw new Error(`Failed to set SLA: ${res.status}`);
     return res.json();
@@ -2496,7 +2739,10 @@ class SLAsNamespace {
   }
 
   async delete(agentId: string): Promise<void> {
-    const res = await fetch(`${this.endpoint}/v1/slas/${agentId}`, { method: "DELETE", headers: this.headers() });
+    const res = await fetch(`${this.endpoint}/v1/slas/${agentId}`, {
+      method: "DELETE",
+      headers: this.headers(),
+    });
     if (!res.ok) throw new Error(`Failed to delete SLA: ${res.status}`);
   }
 }
@@ -2516,7 +2762,8 @@ class RegressionsNamespace {
 
   async compare(params: { agentId: string; versionA: string; versionB: string }): Promise<unknown> {
     const res = await fetch(`${this.endpoint}/v1/regressions/${params.agentId}/compare`, {
-      method: "POST", headers: this.headers(),
+      method: "POST",
+      headers: this.headers(),
       body: JSON.stringify({ versionA: params.versionA, versionB: params.versionB }),
     });
     if (!res.ok) throw new Error(`Failed to compare versions: ${res.status}`);
@@ -2524,13 +2771,18 @@ class RegressionsNamespace {
   }
 
   async baselines(agentId: string): Promise<unknown> {
-    const res = await fetch(`${this.endpoint}/v1/regressions/${agentId}/baselines`, { headers: this.headers() });
+    const res = await fetch(`${this.endpoint}/v1/regressions/${agentId}/baselines`, {
+      headers: this.headers(),
+    });
     if (!res.ok) throw new Error(`Failed to list baselines: ${res.status}`);
     return res.json();
   }
 
   async deleteBaseline(params: { agentId: string; version: string }): Promise<void> {
-    const res = await fetch(`${this.endpoint}/v1/regressions/${params.agentId}/baselines?version=${encodeURIComponent(params.version)}`, { method: "DELETE", headers: this.headers() });
+    const res = await fetch(
+      `${this.endpoint}/v1/regressions/${params.agentId}/baselines?version=${encodeURIComponent(params.version)}`,
+      { method: "DELETE", headers: this.headers() },
+    );
     if (!res.ok) throw new Error(`Failed to delete baseline: ${res.status}`);
   }
 }
@@ -2605,6 +2857,7 @@ git commit -m "feat(sdk): add budgets, slas, regressions namespaces + propagatio
 ## Task 18: Python SDK — New Namespaces
 
 **Files:**
+
 - Modify: `packages/sdk-py/foxhound/client.py`
 
 - [ ] **Step 1: Add `BudgetsNamespace`, `SLAsNamespace`, `RegressionsNamespace` classes**
@@ -2785,6 +3038,7 @@ git commit -m "feat(sdk-py): add budgets, slas, regressions namespaces + propaga
 ## Task 19: MCP Server — 4 New Read-Only Tools
 
 **Files:**
+
 - Modify: `packages/mcp-server/src/index.ts`
 
 - [ ] **Step 1: Add 4 new tools after existing tool definitions**
@@ -2842,6 +3096,7 @@ git commit -m "chore: fix lint/format issues from Phase 4 implementation"
 ## Task 21: Integration Tests
 
 **Files:**
+
 - Create: `apps/api/src/routes/budgets.test.ts`
 - Create: `apps/api/src/routes/slas.test.ts`
 - Create: `apps/api/src/routes/regressions.test.ts`
@@ -2849,6 +3104,7 @@ git commit -m "chore: fix lint/format issues from Phase 4 implementation"
 - [ ] **Step 1: Write budget endpoint tests**
 
 Follow the pattern from existing test files (e.g., `scores.test.ts`). Test:
+
 - PUT creates a new budget (201)
 - PUT updates an existing budget (200)
 - GET returns budget with status
@@ -2859,6 +3115,7 @@ Follow the pattern from existing test files (e.g., `scores.test.ts`). Test:
 - [ ] **Step 2: Write SLA endpoint tests**
 
 Same pattern. Test:
+
 - PUT creates SLA (201)
 - Validation: at least one of maxDurationMs or minSuccessRate required
 - GET returns SLA with cached status
@@ -2867,6 +3124,7 @@ Same pattern. Test:
 - [ ] **Step 3: Write regression endpoint tests**
 
 Test:
+
 - GET with no baselines returns empty regressions
 - POST compare with two versions
 - DELETE baseline by version query param
