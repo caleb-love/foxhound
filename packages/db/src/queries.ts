@@ -1838,9 +1838,7 @@ export async function updateAgentConfigStatus(
     .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
 }
 
-export async function getAllAgentConfigs(): Promise<
-  Array<typeof agentConfigs.$inferSelect>
-> {
+export async function getAllAgentConfigs(): Promise<Array<typeof agentConfigs.$inferSelect>> {
   return db
     .select()
     .from(agentConfigs)

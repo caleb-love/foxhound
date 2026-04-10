@@ -171,7 +171,12 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
     let errorMsg: string | undefined;
 
     try {
-      await dispatchAlert(event, [testRule, ...rules] as unknown as AlertRule[], channelMap, fastify.log);
+      await dispatchAlert(
+        event,
+        [testRule, ...rules] as unknown as AlertRule[],
+        channelMap,
+        fastify.log,
+      );
     } catch (err) {
       status = "failed";
       errorMsg = err instanceof Error ? err.message : "Unknown error";

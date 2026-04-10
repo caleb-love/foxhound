@@ -61,10 +61,7 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
   if (baselines.length < 2) return; // First version, nothing to compare
 
   const [newer, older] = baselines;
-  const regressions = detectStructuralDrift(
-    older.spanStructure,
-    newer.spanStructure,
-  );
+  const regressions = detectStructuralDrift(older.spanStructure, newer.spanStructure);
 
   if (regressions.length === 0) return; // No regressions
 

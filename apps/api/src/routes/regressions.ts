@@ -64,10 +64,7 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     }
 
     const [newer, older] = baselines;
-    const regressions = detectStructuralDrift(
-      older!.spanStructure,
-      newer!.spanStructure,
-    );
+    const regressions = detectStructuralDrift(older!.spanStructure, newer!.spanStructure);
 
     return reply.code(200).send({
       agentId,

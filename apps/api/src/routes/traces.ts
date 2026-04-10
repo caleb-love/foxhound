@@ -71,7 +71,9 @@ async function maybeFireAlerts(
       occurredAt: new Date(),
     };
 
-    const matchingRules = rules.filter((r) => r.eventType === "agent_failure") as unknown as AlertRule[];
+    const matchingRules = rules.filter(
+      (r) => r.eventType === "agent_failure",
+    ) as unknown as AlertRule[];
 
     await dispatchAlert(event, matchingRules, channelMap, fastify.log);
 
