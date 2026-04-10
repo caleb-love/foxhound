@@ -14,7 +14,7 @@ import { requireEntitlement } from "../middleware/entitlements.js";
 import { checkSpanLimit } from "@foxhound/billing";
 import { persistTraceWithRetry } from "../persistence.js";
 import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 import type { Trace } from "@foxhound/types";
 import { getBudgetPeriodKey } from "@foxhound/types";
 import { updateSpanCosts } from "@foxhound/db";
@@ -71,7 +71,7 @@ async function maybeFireAlerts(
       occurredAt: new Date(),
     };
 
-    const matchingRules = rules.filter((r) => r.eventType === "agent_failure") as unknown as import("@foxhound/notifications").AlertRule[];
+    const matchingRules = rules.filter((r) => r.eventType === "agent_failure") as unknown as AlertRule[];
 
     await dispatchAlert(event, matchingRules, channelMap, fastify.log);
 

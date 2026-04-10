@@ -166,7 +166,7 @@ describe("GET /v1/budgets", () => {
 
   it("returns paginated list", async () => {
     mockApiKey();
-    vi.mocked(db.listAgentConfigs).mockResolvedValue([baseBudgetConfig as any]);
+    vi.mocked(db.listAgentConfigs).mockResolvedValue([baseBudgetConfig]);
 
     const app = buildApp();
     const res = await app.inject({
