@@ -30,6 +30,8 @@ export interface Trace {
   id: string;
   agentId: string;
   sessionId?: string;
+  parentAgentId?: string;
+  correlationId?: string;
   spans: Span[];
   startTimeMs: number;
   endTimeMs?: number;
@@ -164,4 +166,67 @@ export interface ExperimentRun {
   tokenCount?: number;
   cost?: number;
   createdAt: string;
+}
+
+// ── Agent Intelligence types (Phase 4) ──────────────────────────────────
+
+export type BudgetPeriod = "daily" | "weekly" | "monthly";
+export type BudgetStatusLevel = "under" | "warning" | "exceeded";
+export type SLAComplianceStatus = "compliant" | "breach" | "insufficient_data" | "no_data";
+
+export interface AgentConfig {
+  id: string;
+  orgId: string;
+  agentId: string;
+  costBudgetUsd?: string | null;
+  costAlertThresholdPct?: number | null;
+  budgetPeriod?: BudgetPeriod | null;
+  maxDurationMs?: number | null;
+  minSuccessRate?: string | null;
+  evaluationWindowMs?: number | null;
+  minSampleSize?: number | null;
+  lastCostStatus?: BudgetStatus | null;
+  lastSlaStatus?: SLAStatus | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BudgetStatus {
+  status: BudgetStatusLevel;
+  spend: number;
+  budget: number;
+  unknownCostPct: number;
+  checkedAt: string;
+}
+
+export interface SLAStatus {
+  status: SLAComplianceStatus;
+  compliant: boolean;
+  durationP95Ms?: number;
+  successRate?: number;
+  sampleSize: number;
+  checkedAt: string;
+}
+
+export interface BehaviorBaseline {
+  id: string;
+  orgId: string;
+  agentId: string;
+  agentVersion: string;
+  sampleSize: number;
+  spanStructure: Record<string, number>;
+  createdAt: string;
+}
+
+export interface RegressionReport {
+  agentId: string;
+  previousVersion: string;
+  newVersion: string;
+  regressions: Array<{
+    type: "missing" | "new";
+    span: string;
+    previousFrequency?: number;
+    newFrequency?: number;
+  }>;
+  sampleSize: { before: number; after: number };
 }
