@@ -39,3 +39,25 @@ export function getEvaluatorQueue(): Queue | null {
 
   return evaluatorQueue;
 }
+
+const EXPERIMENT_QUEUE_NAME = "experiment-runs";
+
+let experimentQueue: Queue | null = null;
+let experimentInitialized = false;
+
+export function getExperimentQueue(): Queue | null {
+  if (experimentInitialized) return experimentQueue;
+  experimentInitialized = true;
+
+  const redisUrl = process.env["REDIS_URL"];
+  if (!redisUrl) return null;
+
+  try {
+    const connection = parseRedisUrl(redisUrl);
+    experimentQueue = new Queue(EXPERIMENT_QUEUE_NAME, { connection });
+  } catch {
+    // Redis not available — experiment runs will stay in "pending" state
+  }
+
+  return experimentQueue;
+}
