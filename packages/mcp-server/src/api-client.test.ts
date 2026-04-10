@@ -608,6 +608,328 @@ describe("failure analysis", () => {
   });
 });
 
+describe("evaluator tools", () => {
+  const mockFetch = vi.fn();
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    globalThis.fetch = mockFetch;
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function makeClient(): FoxhoundApiClient {
+    return new FoxhoundApiClient({
+      endpoint: "https://api.foxhound.dev",
+      apiKey: "fox_test_key",
+    });
+  }
+
+  function mockOk(body: unknown): void {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+  }
+
+  describe("listEvaluators", () => {
+    it("fetches all evaluators", async () => {
+      const client = makeClient();
+      mockOk({
+        data: [
+          {
+            id: "eval-1",
+            orgId: "org-1",
+            name: "Quality Judge",
+            promptTemplate: "Rate the quality...",
+            model: "gpt-4",
+            scoringType: "numeric",
+            labels: [],
+            enabled: true,
+            createdAt: "2024-01-01T00:00:00Z",
+          },
+          {
+            id: "eval-2",
+            orgId: "org-1",
+            name: "Sentiment Classifier",
+            promptTemplate: "Classify sentiment...",
+            model: "claude-3-sonnet",
+            scoringType: "categorical",
+            labels: ["positive", "negative", "neutral"],
+            enabled: false,
+            createdAt: "2024-01-02T00:00:00Z",
+          },
+        ],
+      });
+
+      const response = await client.listEvaluators();
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toBe("https://api.foxhound.dev/v1/evaluators");
+
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0]).toMatchObject({
+        id: "eval-1",
+        name: "Quality Judge",
+        model: "gpt-4",
+        scoringType: "numeric",
+        enabled: true,
+      });
+      expect(response.data[1]).toMatchObject({
+        id: "eval-2",
+        name: "Sentiment Classifier",
+        model: "claude-3-sonnet",
+        scoringType: "categorical",
+        enabled: false,
+      });
+    });
+
+    it("handles empty evaluator list", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      const response = await client.listEvaluators();
+
+      expect(response.data).toHaveLength(0);
+    });
+
+    it("includes auth header", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listEvaluators();
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(opts.headers).toMatchObject({
+        Authorization: "Bearer fox_test_key",
+      });
+    });
+  });
+
+  describe("triggerEvaluatorRuns", () => {
+    it("sends correct payload for single trace", async () => {
+      const client = makeClient();
+      mockOk({
+        message: "1 evaluator run(s) queued",
+        runs: [
+          {
+            id: "run-1",
+            traceId: "trace-1",
+            status: "pending",
+          },
+        ],
+      });
+
+      await client.triggerEvaluatorRuns({
+        evaluatorId: "eval-1",
+        traceIds: ["trace-1"],
+      });
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://api.foxhound.dev/v1/evaluator-runs");
+      expect(opts.method).toBe("POST");
+
+      const body = JSON.parse(opts.body as string);
+      expect(body).toMatchObject({
+        evaluatorId: "eval-1",
+        traceIds: ["trace-1"],
+      });
+    });
+
+    it("sends correct payload for multiple traces", async () => {
+      const client = makeClient();
+      mockOk({
+        message: "3 evaluator run(s) queued",
+        runs: [
+          { id: "run-1", traceId: "trace-1", status: "pending" },
+          { id: "run-2", traceId: "trace-2", status: "pending" },
+          { id: "run-3", traceId: "trace-3", status: "pending" },
+        ],
+      });
+
+      const response = await client.triggerEvaluatorRuns({
+        evaluatorId: "eval-1",
+        traceIds: ["trace-1", "trace-2", "trace-3"],
+      });
+
+      expect(response.runs).toHaveLength(3);
+      expect(response.runs[0]).toMatchObject({
+        id: "run-1",
+        traceId: "trace-1",
+        status: "pending",
+      });
+    });
+
+    it("includes auth header", async () => {
+      const client = makeClient();
+      mockOk({ message: "1 run queued", runs: [{ id: "run-1", traceId: "trace-1", status: "pending" }] });
+
+      await client.triggerEvaluatorRuns({
+        evaluatorId: "eval-1",
+        traceIds: ["trace-1"],
+      });
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(opts.headers).toMatchObject({
+        Authorization: "Bearer fox_test_key",
+        "Content-Type": "application/json",
+      });
+    });
+  });
+
+  describe("getEvaluatorRun", () => {
+    it("fetches pending run", async () => {
+      const client = makeClient();
+      mockOk({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "pending",
+        createdAt: "2024-01-01T00:00:00Z",
+      });
+
+      const run = await client.getEvaluatorRun("run-1");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toBe("https://api.foxhound.dev/v1/evaluator-runs/run-1");
+
+      expect(run).toMatchObject({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "pending",
+      });
+      expect(run.scoreId).toBeUndefined();
+      expect(run.error).toBeUndefined();
+      expect(run.completedAt).toBeUndefined();
+    });
+
+    it("fetches running run", async () => {
+      const client = makeClient();
+      mockOk({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "running",
+        createdAt: "2024-01-01T00:00:00Z",
+      });
+
+      const run = await client.getEvaluatorRun("run-1");
+
+      expect(run.status).toBe("running");
+      expect(run.scoreId).toBeUndefined();
+      expect(run.completedAt).toBeUndefined();
+    });
+
+    it("fetches completed run with score", async () => {
+      const client = makeClient();
+      mockOk({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "completed",
+        scoreId: "score-123",
+        createdAt: "2024-01-01T00:00:00Z",
+        completedAt: "2024-01-01T00:01:00Z",
+      });
+
+      const run = await client.getEvaluatorRun("run-1");
+
+      expect(run.status).toBe("completed");
+      expect(run.scoreId).toBe("score-123");
+      expect(run.completedAt).toBe("2024-01-01T00:01:00Z");
+      expect(run.error).toBeUndefined();
+    });
+
+    it("fetches failed run with error", async () => {
+      const client = makeClient();
+      mockOk({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "failed",
+        error: "LLM request timeout",
+        createdAt: "2024-01-01T00:00:00Z",
+        completedAt: "2024-01-01T00:01:00Z",
+      });
+
+      const run = await client.getEvaluatorRun("run-1");
+
+      expect(run.status).toBe("failed");
+      expect(run.error).toBe("LLM request timeout");
+      expect(run.completedAt).toBe("2024-01-01T00:01:00Z");
+      expect(run.scoreId).toBeUndefined();
+    });
+
+    it("includes auth header", async () => {
+      const client = makeClient();
+      mockOk({
+        id: "run-1",
+        evaluatorId: "eval-1",
+        traceId: "trace-1",
+        status: "pending",
+        createdAt: "2024-01-01T00:00:00Z",
+      });
+
+      await client.getEvaluatorRun("run-1");
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(opts.headers).toMatchObject({
+        Authorization: "Bearer fox_test_key",
+      });
+    });
+  });
+
+  describe("error handling", () => {
+    it("throws on 404 for missing evaluator", async () => {
+      const client = makeClient();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+        text: () => Promise.resolve("Evaluator not found"),
+      });
+
+      await expect(
+        client.triggerEvaluatorRuns({
+          evaluatorId: "missing-eval",
+          traceIds: ["trace-1"],
+        }),
+      ).rejects.toThrow("Foxhound API 404");
+    });
+
+    it("throws on 404 for missing run", async () => {
+      const client = makeClient();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+        text: () => Promise.resolve("Run not found"),
+      });
+
+      await expect(client.getEvaluatorRun("missing-run")).rejects.toThrow("Foxhound API 404");
+    });
+
+    it("throws on 401 for auth failure", async () => {
+      const client = makeClient();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+        text: () => Promise.resolve("Invalid API key"),
+      });
+
+      await expect(client.listEvaluators()).rejects.toThrow("Foxhound API 401");
+    });
+  });
+});
+
 describe("scoring tools", () => {
   const mockFetch = vi.fn();
   const originalFetch = globalThis.fetch;

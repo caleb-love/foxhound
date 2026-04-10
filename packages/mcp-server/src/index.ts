@@ -1294,6 +1294,169 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Tool: list evaluators ---
+  server.tool(
+    "foxhound_list_evaluators",
+    "List all configured LLM-as-a-Judge evaluators with their settings.",
+    {},
+    async () => {
+      try {
+        const response = await api.listEvaluators();
+
+        if (!response.data.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No evaluators configured.",
+              },
+            ],
+          };
+        }
+
+        const lines: string[] = [
+          `## Evaluators (${response.data.length})`,
+          "",
+          "| ID | Name | Model | Scoring Type | Enabled |",
+          "|-----|------|-------|--------------|---------|",
+        ];
+
+        for (const evaluator of response.data) {
+          const enabled = evaluator.enabled ? "✅" : "❌";
+          lines.push(
+            `| ${evaluator.id} | ${evaluator.name} | ${evaluator.model} | ${evaluator.scoringType} | ${enabled} |`,
+          );
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing evaluators: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: run evaluator ---
+  server.tool(
+    "foxhound_run_evaluator",
+    "Trigger async evaluator runs for one or more traces. Evaluator runs are async — use foxhound_get_evaluator_run to check status and results.",
+    {
+      evaluator_id: z.string().describe("The evaluator ID to run"),
+      trace_ids: z
+        .array(z.string())
+        .min(1)
+        .max(50)
+        .describe("Array of trace IDs to evaluate (1-50)"),
+    },
+    async (params) => {
+      try {
+        const response = await api.triggerEvaluatorRuns({
+          evaluatorId: params.evaluator_id,
+          traceIds: params.trace_ids,
+        });
+
+        const lines: string[] = [
+          `## Evaluator Runs Queued`,
+          "",
+          `✅ ${response.runs.length} evaluator run(s) started for evaluator **${params.evaluator_id}**`,
+          "",
+          "**⏳ Evaluator runs are async.** Use `foxhound_get_evaluator_run` with a run ID to check status and results.",
+          "",
+          "### Runs:",
+        ];
+
+        for (const run of response.runs) {
+          lines.push(`- **${run.id}** → trace: ${run.traceId} | status: ${run.status}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error triggering evaluator runs: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: get evaluator run ---
+  server.tool(
+    "foxhound_get_evaluator_run",
+    "Check the status and results of an async evaluator run.",
+    {
+      run_id: z.string().describe("The evaluator run ID to retrieve"),
+    },
+    async (params) => {
+      try {
+        const run = await api.getEvaluatorRun(params.run_id);
+
+        const lines: string[] = [
+          `## Evaluator Run: ${run.id}`,
+          "",
+          `- **Evaluator ID**: ${run.evaluatorId}`,
+          `- **Trace ID**: ${run.traceId}`,
+        ];
+
+        // Format status with emoji
+        let statusLine = "- **Status**: ";
+        if (run.status === "pending" || run.status === "running") {
+          statusLine += `⏳ ${run.status}`;
+        } else if (run.status === "completed") {
+          statusLine += "✅ completed";
+        } else if (run.status === "failed") {
+          statusLine += "❌ failed";
+        } else {
+          statusLine += run.status;
+        }
+        lines.push(statusLine);
+
+        if (run.scoreId) {
+          lines.push(`- **Score ID**: ${run.scoreId}`);
+        }
+
+        if (run.error) {
+          lines.push(`- **Error**: ${run.error}`);
+        }
+
+        lines.push(`- **Created At**: ${run.createdAt}`);
+
+        if (run.completedAt) {
+          lines.push(`- **Completed At**: ${run.completedAt}`);
+        }
+
+        // Add score details if completed
+        if (run.status === "completed" && run.scoreId) {
+          lines.push("");
+          lines.push("ℹ️ Use `foxhound_get_trace_scores` to view the score details.");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching evaluator run "${params.run_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);
