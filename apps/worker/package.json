@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@foxhound/db": "workspace:*",
+    "@foxhound/notifications": "workspace:*",
     "@foxhound/types": "workspace:*",
     "bullmq": "^5.0.0",
     "ioredis": "^5.4.0"
