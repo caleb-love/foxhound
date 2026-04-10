@@ -607,3 +607,215 @@ describe("failure analysis", () => {
     });
   });
 });
+
+describe("scoring tools", () => {
+  const mockFetch = vi.fn();
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    globalThis.fetch = mockFetch;
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function makeClient(): FoxhoundApiClient {
+    return new FoxhoundApiClient({
+      endpoint: "https://api.foxhound.dev",
+      apiKey: "fox_test_key",
+    });
+  }
+
+  function mockOk(body: unknown): void {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+  }
+
+  describe("createScore", () => {
+    it("sends correct URL and payload for trace-level score", async () => {
+      const client = makeClient();
+      mockOk({ id: "score-123", traceId: "trace-1", name: "quality", value: 0.95 });
+
+      await client.createScore({
+        traceId: "trace-1",
+        name: "quality",
+        value: 0.95,
+        source: "manual",
+      });
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://api.foxhound.dev/v1/scores");
+      expect(opts.method).toBe("POST");
+      expect(opts.headers).toMatchObject({
+        Authorization: "Bearer fox_test_key",
+        "Content-Type": "application/json",
+      });
+
+      const body = JSON.parse(opts.body as string);
+      expect(body).toMatchObject({
+        traceId: "trace-1",
+        name: "quality",
+        value: 0.95,
+        source: "manual",
+      });
+    });
+
+    it("sends correct payload for span-level score", async () => {
+      const client = makeClient();
+      mockOk({ id: "score-456", traceId: "trace-1", spanId: "span-2", name: "latency" });
+
+      await client.createScore({
+        traceId: "trace-1",
+        spanId: "span-2",
+        name: "latency",
+        label: "slow",
+        source: "manual",
+        comment: "Needs optimization",
+      });
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(opts.body as string);
+      expect(body).toMatchObject({
+        traceId: "trace-1",
+        spanId: "span-2",
+        name: "latency",
+        label: "slow",
+        source: "manual",
+        comment: "Needs optimization",
+      });
+    });
+
+    it("handles value and label scores separately", async () => {
+      const client = makeClient();
+
+      // Value score
+      mockOk({ id: "score-1", name: "accuracy", value: 0.87 });
+      await client.createScore({
+        traceId: "trace-1",
+        name: "accuracy",
+        value: 0.87,
+        source: "manual",
+      });
+
+      const [, opts1] = mockFetch.mock.calls[0] as [string, RequestInit];
+      const body1 = JSON.parse(opts1.body as string);
+      expect(body1.value).toBe(0.87);
+      expect(body1.label).toBeUndefined();
+
+      // Label score
+      mockOk({ id: "score-2", name: "quality", label: "excellent" });
+      await client.createScore({
+        traceId: "trace-1",
+        name: "quality",
+        label: "excellent",
+        source: "manual",
+      });
+
+      const [, opts2] = mockFetch.mock.calls[1] as [string, RequestInit];
+      const body2 = JSON.parse(opts2.body as string);
+      expect(body2.label).toBe("excellent");
+      expect(body2.value).toBeUndefined();
+    });
+  });
+
+  describe("getTraceScores", () => {
+    it("fetches scores for a trace", async () => {
+      const client = makeClient();
+      mockOk({
+        data: [
+          {
+            id: "score-1",
+            traceId: "trace-1",
+            name: "quality",
+            value: 0.95,
+            source: "manual",
+          },
+          {
+            id: "score-2",
+            traceId: "trace-1",
+            spanId: "span-2",
+            name: "performance",
+            label: "good",
+            source: "evaluator",
+            comment: "Meets SLA",
+          },
+        ],
+      });
+
+      const response = await client.getTraceScores("trace-1");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toBe("https://api.foxhound.dev/v1/traces/trace-1/scores");
+
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0]).toMatchObject({
+        id: "score-1",
+        name: "quality",
+        value: 0.95,
+      });
+      expect(response.data[1]).toMatchObject({
+        id: "score-2",
+        name: "performance",
+        label: "good",
+      });
+    });
+
+    it("handles empty score list", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      const response = await client.getTraceScores("trace-1");
+
+      expect(response.data).toHaveLength(0);
+    });
+
+    it("includes auth header", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.getTraceScores("trace-1");
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(opts.headers).toMatchObject({
+        Authorization: "Bearer fox_test_key",
+      });
+    });
+  });
+
+  describe("error handling", () => {
+    it("throws on 404 for missing trace", async () => {
+      const client = makeClient();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+        text: () => Promise.resolve("Trace not found"),
+      });
+
+      await expect(client.createScore({
+        traceId: "missing-trace",
+        name: "quality",
+        value: 0.8,
+        source: "manual",
+      })).rejects.toThrow("Foxhound API 404");
+    });
+
+    it("throws on 401 for auth failure", async () => {
+      const client = makeClient();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+        text: () => Promise.resolve("Invalid API key"),
+      });
+
+      await expect(client.getTraceScores("trace-1")).rejects.toThrow("Foxhound API 401");
+    });
+  });
+});

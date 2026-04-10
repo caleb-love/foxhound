@@ -1142,6 +1142,158 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Tool: score trace ---
+  server.tool(
+    "foxhound_score_trace",
+    "Create a score for a trace or specific span. Scores can be numeric values (0-1) or categorical labels. Preview mode shows what will be created; set confirm=true to execute.",
+    {
+      trace_id: z.string().describe("The trace ID to score"),
+      span_id: z.string().optional().describe("Optional span ID to score (if omitted, scores the entire trace)"),
+      name: z.string().describe("Score name (e.g., 'quality', 'accuracy', 'latency')"),
+      value: z.number().min(0).max(1).optional().describe("Numeric score value between 0 and 1 (mutually exclusive with label)"),
+      label: z.string().optional().describe("Categorical label (e.g., 'good', 'bad', 'excellent') (mutually exclusive with value)"),
+      comment: z.string().optional().describe("Optional comment explaining the score"),
+      confirm: z.boolean().optional().describe("Set to true to execute the score creation; omit or set to false for preview"),
+    },
+    async (params) => {
+      try {
+        // Preview mode
+        if (params.confirm !== true) {
+          const lines: string[] = [
+            `# Score Preview`,
+            "",
+            `**This will create the following score:**`,
+            "",
+            `- Trace ID: ${params.trace_id}`,
+          ];
+
+          if (params.span_id) {
+            lines.push(`- Span ID: ${params.span_id}`);
+          }
+
+          lines.push(`- Name: ${params.name}`);
+
+          if (params.value !== undefined) {
+            lines.push(`- Value: ${params.value}`);
+          }
+
+          if (params.label !== undefined) {
+            lines.push(`- Label: ${params.label}`);
+          }
+
+          if (params.comment) {
+            lines.push(`- Comment: ${params.comment}`);
+          }
+
+          lines.push(`- Source: manual`);
+          lines.push("");
+          lines.push("**To execute, re-run with `confirm: true`**");
+
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+
+        // Execute mode
+        const score = await api.createScore({
+          traceId: params.trace_id,
+          spanId: params.span_id,
+          name: params.name,
+          value: params.value,
+          label: params.label,
+          source: "manual",
+          comment: params.comment,
+        });
+
+        const lines: string[] = [
+          `# Score Created`,
+          "",
+          `✅ Successfully created score **${score.id}**`,
+          "",
+          `- Trace: ${score.traceId}`,
+        ];
+
+        if (score.spanId) {
+          lines.push(`- Span: ${score.spanId}`);
+        }
+
+        lines.push(`- Name: ${score.name}`);
+
+        if (score.value !== undefined) {
+          lines.push(`- Value: ${score.value}`);
+        }
+
+        if (score.label !== undefined) {
+          lines.push(`- Label: ${score.label}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating score for trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: get trace scores ---
+  server.tool(
+    "foxhound_get_trace_scores",
+    "Retrieve all scores attached to a trace, including both trace-level and span-level scores.",
+    {
+      trace_id: z.string().describe("The trace ID to fetch scores for"),
+    },
+    async (params) => {
+      try {
+        const response = await api.getTraceScores(params.trace_id);
+
+        if (!response.data.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Scores for ${params.trace_id}\n\nNo scores found for this trace.`,
+              },
+            ],
+          };
+        }
+
+        const lines: string[] = [
+          `# Scores for ${params.trace_id}`,
+          "",
+          `Found ${response.data.length} score(s):`,
+          "",
+          "| Score Name | Value/Label | Source | Comment |",
+          "|------------|-------------|--------|---------|",
+        ];
+
+        for (const score of response.data) {
+          const valueLabel = score.value !== undefined ? score.value.toString() : (score.label ?? "—");
+          const source = score.source ?? "—";
+          const comment = score.comment ?? "—";
+          const spanIndicator = score.spanId ? ` (span: ${score.spanId})` : "";
+          lines.push(`| ${score.name}${spanIndicator} | ${valueLabel} | ${source} | ${comment} |`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching scores for trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);
