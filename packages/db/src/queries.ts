@@ -284,8 +284,8 @@ export async function insertTrace(trace: Trace, orgId: string): Promise<void> {
       orgId,
       agentId: trace.agentId,
       sessionId: trace.sessionId ?? null,
-      startTimeMs: String(trace.startTimeMs),
-      endTimeMs: trace.endTimeMs != null ? String(trace.endTimeMs) : null,
+      startTimeMs: trace.startTimeMs,
+      endTimeMs: trace.endTimeMs ?? null,
       spans: trace.spans as unknown[],
       metadata: trace.metadata as Record<string, unknown>,
     })
@@ -569,8 +569,8 @@ export async function queryTraces(filters: TraceFilters) {
   const conditions = [eq(traces.orgId, orgId)];
   if (agentId) conditions.push(eq(traces.agentId, agentId));
   if (sessionId) conditions.push(eq(traces.sessionId, sessionId));
-  if (from != null) conditions.push(gte(traces.startTimeMs, String(from)));
-  if (to != null) conditions.push(lte(traces.startTimeMs, String(to)));
+  if (from != null) conditions.push(gte(traces.startTimeMs, from));
+  if (to != null) conditions.push(lte(traces.startTimeMs, to));
 
   return db
     .select()
