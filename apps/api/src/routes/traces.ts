@@ -71,7 +71,7 @@ async function maybeFireAlerts(
       occurredAt: new Date(),
     };
 
-    const matchingRules = rules.filter((r) => r.eventType === "agent_failure");
+    const matchingRules = rules.filter((r) => r.eventType === "agent_failure") as unknown as import("@foxhound/notifications").AlertRule[];
 
     await dispatchAlert(event, matchingRules, channelMap, fastify.log);
 

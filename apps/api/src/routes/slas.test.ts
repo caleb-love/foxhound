@@ -64,6 +64,8 @@ const baseSlaConfig = {
   minSuccessRate: "0.95",
   evaluationWindowMs: 86400000,
   minSampleSize: 10,
+  lastCostStatus: null,
+  lastSlaStatus: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -74,7 +76,7 @@ describe("PUT /v1/slas/:agentId", () => {
   it("creates SLA (201)", async () => {
     mockApiKey();
     vi.mocked(db.getAgentConfig).mockResolvedValue(undefined);
-    vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseSlaConfig as any);
+    vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseSlaConfig);
 
     const app = buildApp();
     const res = await app.inject({
@@ -108,7 +110,7 @@ describe("GET /v1/slas/:agentId", () => {
 
   it("returns SLA config", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(baseSlaConfig as any);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(baseSlaConfig);
 
     const app = buildApp();
     const res = await app.inject({
@@ -131,16 +133,16 @@ describe("DELETE /v1/slas/:agentId", () => {
       ...baseSlaConfig,
       costBudgetUsd: "100.00",
       costAlertThresholdPct: 80,
-      budgetPeriod: "monthly",
+      budgetPeriod: "monthly" as const,
     };
-    vi.mocked(db.getAgentConfig).mockResolvedValue(configWithBudget as any);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(configWithBudget);
     vi.mocked(db.upsertAgentConfig).mockResolvedValue({
       ...configWithBudget,
       maxDurationMs: null,
       minSuccessRate: null,
       evaluationWindowMs: null,
       minSampleSize: null,
-    } as any);
+    });
 
     const app = buildApp();
     const res = await app.inject({

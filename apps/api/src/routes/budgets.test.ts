@@ -59,11 +59,13 @@ const baseBudgetConfig = {
   agentId: "agent_1",
   costBudgetUsd: "100.00",
   costAlertThresholdPct: 80,
-  budgetPeriod: "monthly",
+  budgetPeriod: "monthly" as const,
   maxDurationMs: null,
   minSuccessRate: null,
   evaluationWindowMs: null,
   minSampleSize: null,
+  lastCostStatus: null,
+  lastSlaStatus: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -74,7 +76,7 @@ describe("PUT /v1/budgets/:agentId", () => {
   it("creates a new budget (201)", async () => {
     mockApiKey();
     vi.mocked(db.getAgentConfig).mockResolvedValue(undefined);
-    vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseBudgetConfig as any);
+    vi.mocked(db.upsertAgentConfig).mockResolvedValue(baseBudgetConfig);
 
     const app = buildApp();
     const res = await app.inject({
@@ -90,9 +92,9 @@ describe("PUT /v1/budgets/:agentId", () => {
 
   it("updates existing budget (200)", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig as any);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig);
     const updated = { ...baseBudgetConfig, costBudgetUsd: "200.00" };
-    vi.mocked(db.upsertAgentConfig).mockResolvedValue(updated as any);
+    vi.mocked(db.upsertAgentConfig).mockResolvedValue(updated);
 
     const app = buildApp();
     const res = await app.inject({
@@ -112,7 +114,7 @@ describe("GET /v1/budgets/:agentId", () => {
 
   it("returns budget config", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig as any);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig);
 
     const app = buildApp();
     const res = await app.inject({
@@ -145,8 +147,8 @@ describe("DELETE /v1/budgets/:agentId", () => {
 
   it("removes budget (204)", async () => {
     mockApiKey();
-    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig as any);
-    vi.mocked(db.deleteAgentConfig).mockResolvedValue(undefined as any);
+    vi.mocked(db.getAgentConfig).mockResolvedValue(baseBudgetConfig);
+    vi.mocked(db.deleteAgentConfig).mockResolvedValue(true);
 
     const app = buildApp();
     const res = await app.inject({

@@ -82,7 +82,7 @@ describe("POST /v1/regressions/:agentId/compare", () => {
       spanStructure: { "llm.call": 0.9, "tool.search": 0.8 },
       sampleSize: 50,
       createdAt: new Date(),
-    } as any);
+    });
     vi.mocked(db.getBaseline).mockResolvedValueOnce({
       id: "bl_2",
       orgId: "org_1",
@@ -90,7 +90,8 @@ describe("POST /v1/regressions/:agentId/compare", () => {
       agentVersion: "v2",
       spanStructure: { "llm.call": 0.9, "tool.search": 0.05, "tool.newTool": 0.7 },
       sampleSize: 60,
-    } as any);
+      createdAt: new Date(),
+    });
 
     const app = buildApp();
     const res = await app.inject({
@@ -122,7 +123,7 @@ describe("GET /v1/regressions/:agentId/baselines", () => {
         spanStructure: { "llm.call": 0.9 },
         sampleSize: 50,
         createdAt: new Date(),
-      } as any,
+      },
     ]);
 
     const app = buildApp();
