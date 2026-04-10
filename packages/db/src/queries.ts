@@ -18,6 +18,10 @@ import {
   evaluatorRuns,
   annotationQueues,
   annotationQueueItems,
+  datasets,
+  datasetItems,
+  experiments,
+  experimentRuns,
 } from "./schema.js";
 import { eq, and, gte, lte, lt, desc, asc, isNull, sql, count } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
@@ -1349,4 +1353,197 @@ export async function getAnnotationQueueItem(itemId: string) {
     .where(eq(annotationQueueItems.id, itemId))
     .limit(1);
   return rows[0] ?? null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dataset queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateDatasetInput {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+}
+
+export async function createDataset(input: CreateDatasetInput) {
+  const rows = await db
+    .insert(datasets)
+    .values({
+      id: input.id,
+      orgId: input.orgId,
+      name: input.name,
+      description: input.description ?? null,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function listDatasets(orgId: string) {
+  return db
+    .select()
+    .from(datasets)
+    .where(eq(datasets.orgId, orgId))
+    .orderBy(desc(datasets.createdAt));
+}
+
+export async function getDataset(id: string, orgId: string) {
+  const rows = await db
+    .select()
+    .from(datasets)
+    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function deleteDataset(id: string, orgId: string): Promise<boolean> {
+  const result = await db
+    .delete(datasets)
+    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dataset item queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateDatasetItemInput {
+  id: string;
+  datasetId: string;
+  input: Record<string, unknown>;
+  expectedOutput?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  sourceTraceId?: string;
+}
+
+export async function createDatasetItem(input: CreateDatasetItemInput) {
+  const rows = await db
+    .insert(datasetItems)
+    .values({
+      id: input.id,
+      datasetId: input.datasetId,
+      input: input.input,
+      expectedOutput: input.expectedOutput ?? null,
+      metadata: input.metadata ?? {},
+      sourceTraceId: input.sourceTraceId ?? null,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function createDatasetItems(inputs: CreateDatasetItemInput[]) {
+  if (inputs.length === 0) return [];
+  const rows = await db
+    .insert(datasetItems)
+    .values(
+      inputs.map((input) => ({
+        id: input.id,
+        datasetId: input.datasetId,
+        input: input.input,
+        expectedOutput: input.expectedOutput ?? null,
+        metadata: input.metadata ?? {},
+        sourceTraceId: input.sourceTraceId ?? null,
+      })),
+    )
+    .returning();
+  return rows;
+}
+
+export interface DatasetItemFilters {
+  datasetId: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function listDatasetItems(filters: DatasetItemFilters) {
+  const { datasetId, page = 1, limit = 50 } = filters;
+  const offset = (page - 1) * limit;
+  return db
+    .select()
+    .from(datasetItems)
+    .where(eq(datasetItems.datasetId, datasetId))
+    .orderBy(desc(datasetItems.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getDatasetItem(id: string) {
+  const rows = await db
+    .select()
+    .from(datasetItems)
+    .where(eq(datasetItems.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function deleteDatasetItem(id: string): Promise<boolean> {
+  const result = await db.delete(datasetItems).where(eq(datasetItems.id, id));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+export async function countDatasetItems(datasetId: string): Promise<number> {
+  const rows = await db
+    .select({ count: count() })
+    .from(datasetItems)
+    .where(eq(datasetItems.datasetId, datasetId));
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * Auto-curate dataset items from production traces filtered by score.
+ * This is the "killer feature" — traces matching score filters become test cases.
+ */
+export async function getTracesForDatasetCuration(filters: {
+  orgId: string;
+  scoreName: string;
+  scoreOperator: "lt" | "gt" | "lte" | "gte";
+  scoreThreshold: number;
+  since?: Date;
+  limit?: number;
+}) {
+  const { orgId, scoreName, scoreOperator, scoreThreshold, since, limit: maxResults = 100 } = filters;
+
+  const conditions = [
+    eq(scores.orgId, orgId),
+    eq(scores.name, scoreName),
+  ];
+
+  if (scoreOperator === "lt") conditions.push(lt(scores.value, scoreThreshold));
+  else if (scoreOperator === "gt") conditions.push(gte(scores.value, scoreThreshold + 0.0001));
+  else if (scoreOperator === "lte") conditions.push(lte(scores.value, scoreThreshold));
+  else if (scoreOperator === "gte") conditions.push(gte(scores.value, scoreThreshold));
+
+  if (since) conditions.push(gte(scores.createdAt, since));
+
+  const matchingScores = await db
+    .select({ traceId: scores.traceId })
+    .from(scores)
+    .where(and(...conditions))
+    .groupBy(scores.traceId)
+    .limit(maxResults);
+
+  if (matchingScores.length === 0) return [];
+
+  const traceIds = matchingScores.map((s) => s.traceId);
+
+  const results = [];
+  for (const traceId of traceIds) {
+    const trace = await db
+      .select()
+      .from(traces)
+      .where(and(eq(traces.id, traceId), eq(traces.orgId, orgId)))
+      .limit(1);
+
+    if (trace[0]) {
+      const traceSpans = await db
+        .select()
+        .from(spans)
+        .where(eq(spans.traceId, traceId))
+        .orderBy(asc(spans.startTimeMs));
+
+      results.push({ trace: trace[0], spans: traceSpans });
+    }
+  }
+
+  return results;
 }
