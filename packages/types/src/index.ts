@@ -121,3 +121,47 @@ export interface AnnotationQueueItem {
   completedAt?: string;
   createdAt: string;
 }
+
+// ── Dataset & Experiment types ────────────────────────────────────────────
+
+export interface Dataset {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface DatasetItem {
+  id: string;
+  datasetId: string;
+  input: Record<string, unknown>;
+  expectedOutput?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  sourceTraceId?: string;
+  createdAt: string;
+}
+
+export type ExperimentStatus = "pending" | "running" | "completed" | "failed";
+
+export interface Experiment {
+  id: string;
+  orgId: string;
+  datasetId: string;
+  name: string;
+  config: Record<string, unknown>;
+  status: ExperimentStatus;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface ExperimentRun {
+  id: string;
+  experimentId: string;
+  datasetItemId: string;
+  output?: Record<string, unknown>;
+  latencyMs?: number;
+  tokenCount?: number;
+  cost?: number;
+  createdAt: string;
+}
