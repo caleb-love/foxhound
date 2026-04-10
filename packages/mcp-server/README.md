@@ -4,13 +4,21 @@ MCP server for querying Foxhound traces from Claude Code, Cursor, Windsurf, or a
 
 ## Setup
 
-### Claude Code
+### Install from MCP Registry (Recommended)
+
+Once published to the MCP Registry, the Foxhound server can be installed directly:
+
+#### Claude Code
 
 ```bash
-claude mcp add foxhound -e FOXHOUND_API_KEY=fox_your_key -e FOXHOUND_ENDPOINT=https://api.foxhound.dev -- npx @foxhound/mcp-server
+# Install from registry (when published)
+claude mcp add io.github.caleb-love/foxhound
+
+# Or install from npm package directly
+claude mcp add foxhound -e FOXHOUND_API_KEY=fox_your_key -e FOXHOUND_ENDPOINT=https://api.foxhound.dev -- npx @foxhound-ai/mcp-server
 ```
 
-### Cursor / Windsurf
+#### Cursor / Windsurf
 
 Add to your MCP config (`.cursor/mcp.json` or equivalent):
 
@@ -19,7 +27,7 @@ Add to your MCP config (`.cursor/mcp.json` or equivalent):
   "mcpServers": {
     "foxhound": {
       "command": "npx",
-      "args": ["@foxhound/mcp-server"],
+      "args": ["@foxhound-ai/mcp-server"],
       "env": {
         "FOXHOUND_API_KEY": "fox_your_key",
         "FOXHOUND_ENDPOINT": "https://api.foxhound.dev"
@@ -27,6 +35,14 @@ Add to your MCP config (`.cursor/mcp.json` or equivalent):
     }
   }
 }
+```
+
+### Install from npm (Alternative)
+
+You can also install directly from npm without using the registry:
+
+```bash
+npx @foxhound-ai/mcp-server
 ```
 
 ### Environment Variables
