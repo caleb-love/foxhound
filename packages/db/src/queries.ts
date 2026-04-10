@@ -1547,3 +1547,193 @@ export async function getTracesForDatasetCuration(filters: {
 
   return results;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Experiment queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateExperimentInput {
+  id: string;
+  orgId: string;
+  datasetId: string;
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export async function createExperiment(input: CreateExperimentInput) {
+  const rows = await db
+    .insert(experiments)
+    .values({
+      id: input.id,
+      orgId: input.orgId,
+      datasetId: input.datasetId,
+      name: input.name,
+      config: input.config,
+      status: "pending",
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function listExperiments(orgId: string, datasetId?: string) {
+  const conditions = [eq(experiments.orgId, orgId)];
+  if (datasetId) conditions.push(eq(experiments.datasetId, datasetId));
+
+  return db
+    .select()
+    .from(experiments)
+    .where(and(...conditions))
+    .orderBy(desc(experiments.createdAt));
+}
+
+export async function getExperiment(id: string, orgId: string) {
+  const rows = await db
+    .select()
+    .from(experiments)
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateExperimentStatus(
+  id: string,
+  status: "running" | "completed" | "failed",
+) {
+  const set: Record<string, unknown> = { status };
+  if (status === "completed" || status === "failed") set.completedAt = new Date();
+
+  const rows = await db
+    .update(experiments)
+    .set(set)
+    .where(eq(experiments.id, id))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function deleteExperiment(id: string, orgId: string): Promise<boolean> {
+  const result = await db
+    .delete(experiments)
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)));
+  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Experiment run queries
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface CreateExperimentRunInput {
+  id: string;
+  experimentId: string;
+  datasetItemId: string;
+}
+
+export async function createExperimentRun(input: CreateExperimentRunInput) {
+  const rows = await db
+    .insert(experimentRuns)
+    .values({
+      id: input.id,
+      experimentId: input.experimentId,
+      datasetItemId: input.datasetItemId,
+    })
+    .returning();
+  return rows[0]!;
+}
+
+export async function createExperimentRuns(inputs: CreateExperimentRunInput[]) {
+  if (inputs.length === 0) return [];
+  const rows = await db
+    .insert(experimentRuns)
+    .values(
+      inputs.map((input) => ({
+        id: input.id,
+        experimentId: input.experimentId,
+        datasetItemId: input.datasetItemId,
+      })),
+    )
+    .returning();
+  return rows;
+}
+
+export async function getExperimentRun(id: string) {
+  const rows = await db
+    .select()
+    .from(experimentRuns)
+    .where(eq(experimentRuns.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export interface UpdateExperimentRunInput {
+  output?: Record<string, unknown>;
+  latencyMs?: number;
+  tokenCount?: number;
+  cost?: number;
+}
+
+export async function updateExperimentRun(id: string, input: UpdateExperimentRunInput) {
+  const rows = await db
+    .update(experimentRuns)
+    .set({
+      output: input.output ?? null,
+      latencyMs: input.latencyMs ?? null,
+      tokenCount: input.tokenCount ?? null,
+      cost: input.cost ?? null,
+    })
+    .where(eq(experimentRuns.id, id))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function listExperimentRuns(experimentId: string) {
+  return db
+    .select()
+    .from(experimentRuns)
+    .where(eq(experimentRuns.experimentId, experimentId))
+    .orderBy(asc(experimentRuns.createdAt));
+}
+
+/**
+ * Get side-by-side comparison data for multiple experiments.
+ * Returns experiment runs grouped by dataset item for easy comparison.
+ */
+export async function getExperimentComparison(experimentIds: string[], orgId: string) {
+  // Verify all experiments belong to this org
+  const exps = await db
+    .select()
+    .from(experiments)
+    .where(and(
+      eq(experiments.orgId, orgId),
+      sql`${experiments.id} = ANY(${experimentIds})`,
+    ));
+
+  if (exps.length !== experimentIds.length) return null;
+
+  // Fetch all runs for these experiments
+  const runs = await db
+    .select()
+    .from(experimentRuns)
+    .where(sql`${experimentRuns.experimentId} = ANY(${experimentIds})`)
+    .orderBy(asc(experimentRuns.datasetItemId));
+
+  // Fetch the dataset items referenced by these runs
+  const itemIds = [...new Set(runs.map((r) => r.datasetItemId))];
+  const items =
+    itemIds.length > 0
+      ? await db
+          .select()
+          .from(datasetItems)
+          .where(sql`${datasetItems.id} = ANY(${itemIds})`)
+      : [];
+
+  // Fetch scores for experiment runs
+  const runIds = runs.map((r) => r.id);
+  const runScores =
+    runIds.length > 0
+      ? await db
+          .select()
+          .from(scores)
+          .where(sql`${scores.comment} = ANY(${runIds})`)
+      : [];
+
+  return { experiments: exps, runs, items, scores: runScores };
+}
