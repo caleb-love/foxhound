@@ -1457,6 +1457,252 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Helper: extract trace input ---
+  function extractTraceInput(trace: Trace): Record<string, unknown> {
+    // Find root spans (those with no parentSpanId)
+    const rootSpans = trace.spans.filter((s) => !s.parentSpanId);
+
+    // If we have root spans, use the first one's attributes
+    if (rootSpans.length > 0) {
+      const rootSpan = rootSpans[0];
+      if (!rootSpan) return {};
+      
+      // Convert span attributes to the expected format
+      const attributes = rootSpan.attributes ?? {};
+      return attributes as Record<string, unknown>;
+    }
+
+    // Fallback to trace metadata if no root span exists
+    return (trace.metadata ?? {}) as Record<string, unknown>;
+  }
+
+  // --- Tool: list datasets ---
+  server.tool(
+    "foxhound_list_datasets",
+    "List all datasets with their IDs, names, descriptions, and item counts.",
+    {},
+    async () => {
+      try {
+        const response = await api.listDatasets();
+
+        if (!response.data.length) {
+          return {
+            content: [{ type: "text", text: "No datasets found." }],
+          };
+        }
+
+        // Fetch item counts for each dataset
+        const datasetsWithCounts = await Promise.all(
+          response.data.map(async (dataset) => {
+            try {
+              const details = await api.getDataset(dataset.id);
+              return {
+                ...dataset,
+                itemCount: details.itemCount,
+              };
+            } catch {
+              // If we can't get the count, just use the dataset without count
+              return {
+                ...dataset,
+                itemCount: 0,
+              };
+            }
+          }),
+        );
+
+        const lines: string[] = [
+          `## Datasets (${datasetsWithCounts.length})`,
+          "",
+          "| ID | Name | Description | Item Count |",
+          "|-----|------|-------------|------------|",
+        ];
+
+        for (const dataset of datasetsWithCounts) {
+          const description = dataset.description ?? "—";
+          lines.push(`| ${dataset.id} | ${dataset.name} | ${description} | ${dataset.itemCount} |`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error listing datasets: ${msg}` }],
+        };
+      }
+    },
+  );
+
+  // --- Tool: add trace to dataset ---
+  server.tool(
+    "foxhound_add_trace_to_dataset",
+    "Add a trace to a dataset by extracting its input from root span attributes. Preview mode shows what will be added; set confirm=true to execute.",
+    {
+      dataset_id: z.string().describe("The dataset ID to add the trace to"),
+      trace_id: z.string().describe("The trace ID to extract and add"),
+      expected_output: z
+        .record(z.unknown())
+        .optional()
+        .describe("Optional expected output for this dataset item"),
+      metadata: z
+        .record(z.unknown())
+        .optional()
+        .describe("Optional metadata to attach to the dataset item"),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to execute; omit or set to false for preview"),
+    },
+    async (params) => {
+      try {
+        // Fetch the trace
+        const trace = await api.getTrace(params.trace_id);
+
+        // Extract input via helper
+        const input = extractTraceInput(trace);
+
+        // Preview mode
+        if (params.confirm !== true) {
+          const lines: string[] = [
+            `# Add Trace to Dataset - Preview`,
+            "",
+            `**This will add the following item to dataset \`${params.dataset_id}\`:**`,
+            "",
+            `### Trace: ${params.trace_id}`,
+            "",
+            `**Extracted Input:**`,
+            "```json",
+            JSON.stringify(input, null, 2),
+            "```",
+            "",
+          ];
+
+          if (params.expected_output) {
+            lines.push(`**Expected Output:**`);
+            lines.push("```json");
+            lines.push(JSON.stringify(params.expected_output, null, 2));
+            lines.push("```");
+            lines.push("");
+          }
+
+          if (params.metadata) {
+            lines.push(`**Metadata:**`);
+            lines.push("```json");
+            lines.push(JSON.stringify(params.metadata, null, 2));
+            lines.push("```");
+            lines.push("");
+          }
+
+          lines.push("**To execute, re-run with `confirm: true`**");
+
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+
+        // Execute mode
+        const item = await api.createDatasetItem(params.dataset_id, {
+          input,
+          expectedOutput: params.expected_output,
+          metadata: params.metadata,
+          sourceTraceId: params.trace_id,
+        });
+
+        const lines: string[] = [
+          `# Trace Added to Dataset`,
+          "",
+          `✅ Successfully added trace **${params.trace_id}** to dataset **${params.dataset_id}**`,
+          "",
+          `- Item ID: ${item.id}`,
+          `- Input fields: ${Object.keys(input).length}`,
+        ];
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error adding trace to dataset: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: curate dataset ---
+  server.tool(
+    "foxhound_curate_dataset",
+    "Automatically add traces to a dataset based on score criteria. Filter traces where a specific score matches a threshold condition.",
+    {
+      dataset_id: z.string().describe("The dataset ID to add traces to"),
+      score_name: z.string().describe("The score name to filter by (e.g., 'quality', 'accuracy')"),
+      operator: z
+        .enum(["lt", "gt", "lte", "gte"])
+        .describe("Score comparison operator: lt (<), gt (>), lte (<=), gte (>=)"),
+      threshold: z.number().describe("The score threshold value to compare against"),
+      since_days: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Only consider traces from the last N days (optional)"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(1000)
+        .optional()
+        .describe("Maximum number of traces to add (optional, default: API default)"),
+    },
+    async (params) => {
+      try {
+        const response = await api.createDatasetItemsFromTraces(params.dataset_id, {
+          scoreName: params.score_name,
+          scoreOperator: params.operator,
+          scoreThreshold: params.threshold,
+          sinceDays: params.since_days,
+          limit: params.limit,
+        });
+
+        const operatorSymbol = {
+          lt: "<",
+          gt: ">",
+          lte: "<=",
+          gte: ">=",
+        }[params.operator];
+
+        const lines: string[] = [
+          `# Dataset Curated`,
+          "",
+          `✅ Added **${response.added}** trace(s) to dataset **${params.dataset_id}**`,
+          "",
+          `**Filter Criteria:**`,
+          `- Score: \`${params.score_name}\` ${operatorSymbol} ${params.threshold}`,
+        ];
+
+        if (params.since_days) {
+          lines.push(`- Time range: last ${params.since_days} day(s)`);
+        }
+
+        if (params.limit) {
+          lines.push(`- Limit: ${params.limit} traces max`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error curating dataset: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);

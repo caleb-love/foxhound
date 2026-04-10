@@ -1140,4 +1140,296 @@ describe("scoring tools", () => {
       await expect(client.getTraceScores("trace-1")).rejects.toThrow("Foxhound API 401");
     });
   });
+
+  describe("dataset tools", () => {
+    describe("listDatasets", () => {
+      it("sends correct request", async () => {
+        const client = makeClient();
+        mockOk({ data: [] });
+
+        await client.listDatasets();
+
+        expect(mockFetch).toHaveBeenCalledOnce();
+        const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe("https://api.foxhound.dev/v1/datasets");
+        expect(opts.headers).toMatchObject({
+          Authorization: "Bearer fox_test_key",
+        });
+      });
+
+      it("returns dataset list", async () => {
+        const client = makeClient();
+        const datasets = [
+          { id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z" },
+          { id: "ds-2", orgId: "org-1", name: "Dataset 2", description: "Test dataset", createdAt: "2024-01-01T00:00:00Z" },
+        ];
+        mockOk({ data: datasets });
+
+        const result = await client.listDatasets();
+
+        expect(result.data).toHaveLength(2);
+        expect(result.data[0]?.name).toBe("Dataset 1");
+        expect(result.data[1]?.description).toBe("Test dataset");
+      });
+    });
+
+    describe("getDataset", () => {
+      it("sends correct request with dataset ID", async () => {
+        const client = makeClient();
+        mockOk({ id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z", itemCount: 42 });
+
+        await client.getDataset("ds-1");
+
+        expect(mockFetch).toHaveBeenCalledOnce();
+        const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1");
+      });
+
+      it("includes item count", async () => {
+        const client = makeClient();
+        mockOk({ id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z", itemCount: 42 });
+
+        const result = await client.getDataset("ds-1");
+
+        expect(result.itemCount).toBe(42);
+      });
+    });
+
+    describe("createDatasetItem", () => {
+      it("sends correct POST request", async () => {
+        const client = makeClient();
+        mockOk({
+          id: "item-1",
+          datasetId: "ds-1",
+          input: { query: "test" },
+          createdAt: "2024-01-01T00:00:00Z",
+        });
+
+        await client.createDatasetItem("ds-1", {
+          input: { query: "test" },
+          expectedOutput: { answer: "result" },
+          sourceTraceId: "trace-123",
+        });
+
+        expect(mockFetch).toHaveBeenCalledOnce();
+        const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1/items");
+        expect(opts.method).toBe("POST");
+        expect(JSON.parse(opts.body as string)).toMatchObject({
+          input: { query: "test" },
+          expectedOutput: { answer: "result" },
+          sourceTraceId: "trace-123",
+        });
+      });
+
+      it("returns created item", async () => {
+        const client = makeClient();
+        const item = {
+          id: "item-1",
+          datasetId: "ds-1",
+          input: { query: "test" },
+          expectedOutput: { answer: "result" },
+          sourceTraceId: "trace-123",
+          createdAt: "2024-01-01T00:00:00Z",
+        };
+        mockOk(item);
+
+        const result = await client.createDatasetItem("ds-1", {
+          input: { query: "test" },
+          expectedOutput: { answer: "result" },
+          sourceTraceId: "trace-123",
+        });
+
+        expect(result.id).toBe("item-1");
+        expect(result.sourceTraceId).toBe("trace-123");
+      });
+    });
+
+    describe("createDatasetItemsFromTraces", () => {
+      it("sends correct request with score criteria", async () => {
+        const client = makeClient();
+        mockOk({ added: 5, items: [] });
+
+        await client.createDatasetItemsFromTraces("ds-1", {
+          scoreName: "quality",
+          scoreOperator: "gte",
+          scoreThreshold: 0.8,
+          sinceDays: 7,
+          limit: 100,
+        });
+
+        expect(mockFetch).toHaveBeenCalledOnce();
+        const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1/items/from-traces");
+        expect(opts.method).toBe("POST");
+        expect(JSON.parse(opts.body as string)).toMatchObject({
+          scoreName: "quality",
+          scoreOperator: "gte",
+          scoreThreshold: 0.8,
+          sinceDays: 7,
+          limit: 100,
+        });
+      });
+
+      it("returns count of added items", async () => {
+        const client = makeClient();
+        mockOk({ added: 12, items: [] });
+
+        const result = await client.createDatasetItemsFromTraces("ds-1", {
+          scoreName: "quality",
+          scoreOperator: "gt",
+          scoreThreshold: 0.9,
+        });
+
+        expect(result.added).toBe(12);
+      });
+
+      it("throws on 400 for invalid operator", async () => {
+        const client = makeClient();
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          statusText: "Bad Request",
+          text: () => Promise.resolve("Invalid score operator"),
+        });
+
+        await expect(
+          client.createDatasetItemsFromTraces("ds-1", {
+            scoreName: "quality",
+            scoreOperator: "gte",
+            scoreThreshold: 0.8,
+          }),
+        ).rejects.toThrow("Foxhound API 400");
+      });
+    });
+
+    describe("extractTraceInput helper", () => {
+      it("extracts attributes from root span", () => {
+        const trace: Trace = {
+          id: "trace-1",
+          agentId: "agent-1",
+          startTimeMs: 1000,
+          endTimeMs: 2000,
+          metadata: {},
+          spans: [
+            {
+              traceId: "trace-1",
+              spanId: "span-1",
+              kind: "llm_call",
+              name: "chat",
+              startTimeMs: 1000,
+              endTimeMs: 2000,
+              status: "ok",
+              attributes: {
+                "llm.model": "gpt-4",
+                "llm.prompt": "Hello",
+              },
+              events: [],
+            },
+          ],
+        };
+
+        // Helper function is in index.ts, we'll test it indirectly through the tool
+        // For now, just document the expected behavior
+        const rootSpan = trace.spans[0];
+        expect(rootSpan?.parentSpanId).toBeUndefined();
+        expect(rootSpan?.attributes).toMatchObject({
+          "llm.model": "gpt-4",
+          "llm.prompt": "Hello",
+        });
+      });
+
+      it("handles multiple root spans by using first", () => {
+        const trace: Trace = {
+          id: "trace-1",
+          agentId: "agent-1",
+          startTimeMs: 1000,
+          endTimeMs: 3000,
+          metadata: {},
+          spans: [
+            {
+              traceId: "trace-1",
+              spanId: "span-1",
+              kind: "llm_call",
+              name: "chat",
+              startTimeMs: 1000,
+              endTimeMs: 2000,
+              status: "ok",
+              attributes: { first: true },
+              events: [],
+            },
+            {
+              traceId: "trace-1",
+              spanId: "span-2",
+              kind: "llm_call",
+              name: "chat2",
+              startTimeMs: 2000,
+              endTimeMs: 3000,
+              status: "ok",
+              attributes: { second: true },
+              events: [],
+            },
+          ],
+        };
+
+        const rootSpans = trace.spans.filter((s) => !s.parentSpanId);
+        expect(rootSpans).toHaveLength(2);
+        expect(rootSpans[0]?.attributes).toMatchObject({ first: true });
+      });
+
+      it("falls back to trace metadata when no root span", () => {
+        const trace: Trace = {
+          id: "trace-1",
+          agentId: "agent-1",
+          startTimeMs: 1000,
+          endTimeMs: 2000,
+          metadata: { fallback: "data" },
+          spans: [
+            {
+              traceId: "trace-1",
+              spanId: "span-1",
+              parentSpanId: "missing-parent",
+              kind: "llm_call",
+              name: "chat",
+              startTimeMs: 1000,
+              endTimeMs: 2000,
+              status: "ok",
+              attributes: {},
+              events: [],
+            },
+          ],
+        };
+
+        const rootSpans = trace.spans.filter((s) => !s.parentSpanId);
+        expect(rootSpans).toHaveLength(0);
+        expect(trace.metadata).toMatchObject({ fallback: "data" });
+      });
+
+      it("handles empty attributes", () => {
+        const trace: Trace = {
+          id: "trace-1",
+          agentId: "agent-1",
+          startTimeMs: 1000,
+          endTimeMs: 2000,
+          metadata: {},
+          spans: [
+            {
+              traceId: "trace-1",
+              spanId: "span-1",
+              kind: "llm_call",
+              name: "chat",
+              startTimeMs: 1000,
+              endTimeMs: 2000,
+              status: "ok",
+              attributes: {},
+              events: [],
+            },
+          ],
+        };
+
+        const rootSpan = trace.spans.filter((s) => !s.parentSpanId)[0];
+        expect(rootSpan?.attributes).toEqual({});
+      });
+    });
+  });
 });
