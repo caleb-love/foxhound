@@ -34,3 +34,6 @@ target/
 vendor/
 .cache/
 tmp/
+
+# Internal docs — never commit
+docs/
