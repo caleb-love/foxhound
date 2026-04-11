@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="88" fill="#0D1117"/>
+
+  <!-- ===== FLOPPY EARS (drawn behind head) ===== -->
+  <!-- Each ear is a tall pill shape, partially overlapping the head sides, hanging down below chin -->
+  <!-- Left ear: centered at x=152, extends from y=168 to y=390 -->
+  <rect x="112" y="168" width="80" height="222" rx="40" fill="#B85C1A"/>
+  <!-- Left ear inner -->
+  <rect x="126" y="182" width="52" height="194" rx="26" fill="#CC6C28"/>
+
+  <!-- Right ear: centered at x=360, extends from y=168 to y=390 -->
+  <rect x="320" y="168" width="80" height="222" rx="40" fill="#B85C1A"/>
+  <!-- Right ear inner -->
+  <rect x="334" y="182" width="52" height="194" rx="26" fill="#CC6C28"/>
+
+  <!-- ===== MAIN HEAD (narrower, drawn on top of ears) ===== -->
+  <!-- Head center (256, 210), extends x: 156–356, y: 115–305 -->
+  <ellipse cx="256" cy="210" rx="100" ry="95" fill="#E07838"/>
+
+  <!-- Forehead lighter patch -->
+  <ellipse cx="256" cy="158" rx="64" ry="42" fill="#EE9050"/>
+
+  <!-- ===== MUZZLE ===== -->
+  <ellipse cx="256" cy="265" rx="62" ry="46" fill="#ECA060"/>
+
+  <!-- ===== EYES ===== -->
+  <!-- Left eye socket/shadow -->
+  <ellipse cx="212" cy="202" rx="24" ry="23" fill="#1C0E06"/>
+  <!-- Left iris -->
+  <ellipse cx="212" cy="203" rx="17" ry="17" fill="#A86828"/>
+  <!-- Left pupil -->
+  <ellipse cx="213" cy="204" rx="11" ry="11" fill="#0D0604"/>
+  <!-- Left shine -->
+  <ellipse cx="206" cy="197" rx="5" ry="4" fill="white" opacity="0.9"/>
+  <circle cx="218" cy="209" r="2.5" fill="white" opacity="0.3"/>
+
+  <!-- Right eye socket -->
+  <ellipse cx="300" cy="202" rx="24" ry="23" fill="#1C0E06"/>
+  <!-- Right iris -->
+  <ellipse cx="300" cy="203" rx="17" ry="17" fill="#A86828"/>
+  <!-- Right pupil -->
+  <ellipse cx="301" cy="204" rx="11" ry="11" fill="#0D0604"/>
+  <!-- Right shine -->
+  <ellipse cx="294" cy="197" rx="5" ry="4" fill="white" opacity="0.9"/>
+  <circle cx="306" cy="209" r="2.5" fill="white" opacity="0.3"/>
+
+  <!-- ===== EYEBROW MARKINGS (tan dots above eyes - classic hound marking) ===== -->
+  <ellipse cx="212" cy="181" rx="9" ry="5" fill="#F0C070" opacity="0.6"/>
+  <ellipse cx="300" cy="181" rx="9" ry="5" fill="#F0C070" opacity="0.6"/>
+
+  <!-- ===== NOSE ===== -->
+  <ellipse cx="256" cy="257" rx="20" ry="15" fill="#1A0A04"/>
+  <!-- Nose gloss -->
+  <ellipse cx="249" cy="252" rx="5.5" ry="3.5" fill="#4A2510" opacity="0.5"/>
+
+  <!-- ===== MOUTH ===== -->
+  <line x1="256" y1="272" x2="256" y2="282" stroke="#B05820" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 238 284 C 245 290 267 290 274 284" stroke="#B05820" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.65"/>
+
+  <!-- ===== TECH CORNER ACCENTS ===== -->
+  <g stroke="#3D8EF0" stroke-width="2.5" fill="none" opacity="0.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 412 432 L 432 432 L 432 412"/>
+    <path d="M 80 432 L 100 432 L 100 412"/>
+    <path d="M 80 80 L 100 80 L 100 100"/>
+    <path d="M 432 80 L 412 80 L 412 100"/>
+  </g>
+</svg>

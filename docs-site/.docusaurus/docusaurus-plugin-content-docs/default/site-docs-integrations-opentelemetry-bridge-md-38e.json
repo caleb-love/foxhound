@@ -1,0 +1,23 @@
+{
+  "id": "integrations/opentelemetry-bridge",
+  "title": "OpenTelemetry Bridge",
+  "description": "The Foxhound OTel bridge lets any framework that emits OpenTelemetry GenAI semantic convention spans send traces to Foxhound — one import, zero framework code changes.",
+  "source": "@site/docs/integrations/opentelemetry-bridge.md",
+  "sourceDirName": "integrations",
+  "slug": "/integrations/opentelemetry-bridge",
+  "permalink": "/integrations/opentelemetry-bridge",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/integrations/opentelemetry-bridge.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "OpenTelemetry Bridge",
+    "sidebar_label": "OpenTelemetry Bridge"
+  },
+  "sidebar": "integrationsSidebar",
+  "previous": {
+    "title": "Google ADK",
+    "permalink": "/integrations/google-adk"
+  }
+}

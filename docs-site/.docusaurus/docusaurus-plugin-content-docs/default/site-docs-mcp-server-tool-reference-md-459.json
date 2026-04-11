@@ -1,0 +1,23 @@
+{
+  "id": "mcp-server/tool-reference",
+  "title": "MCP Tool Reference",
+  "description": "The Foxhound MCP server exposes 30 tools, grouped by capability.",
+  "source": "@site/docs/mcp-server/tool-reference.md",
+  "sourceDirName": "mcp-server",
+  "slug": "/mcp-server/tool-reference",
+  "permalink": "/mcp-server/tool-reference",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/mcp-server/tool-reference.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "MCP Tool Reference",
+    "sidebar_label": "Tool Reference"
+  },
+  "sidebar": "mcpServerSidebar",
+  "previous": {
+    "title": "Setup",
+    "permalink": "/mcp-server/setup"
+  }
+}

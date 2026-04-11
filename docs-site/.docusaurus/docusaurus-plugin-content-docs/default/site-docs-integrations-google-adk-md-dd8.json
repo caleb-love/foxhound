@@ -1,0 +1,27 @@
+{
+  "id": "integrations/google-adk",
+  "title": "Google ADK",
+  "description": "Foxhound integrates with Google Agent Development Kit (ADK) via the OpenTelemetry bridge. Google ADK emits OTel spans when tracing is enabled on AdkApp.",
+  "source": "@site/docs/integrations/google-adk.md",
+  "sourceDirName": "integrations",
+  "slug": "/integrations/google-adk",
+  "permalink": "/integrations/google-adk",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/integrations/google-adk.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Google ADK",
+    "sidebar_label": "Google ADK"
+  },
+  "sidebar": "integrationsSidebar",
+  "previous": {
+    "title": "Bedrock AgentCore",
+    "permalink": "/integrations/bedrock-agentcore"
+  },
+  "next": {
+    "title": "OpenTelemetry Bridge",
+    "permalink": "/integrations/opentelemetry-bridge"
+  }
+}
