@@ -733,6 +733,976 @@ async function main(): Promise<void> {
     },
   );
 
+  // --- Tool: explain failure ---
+  server.tool(
+    "foxhound_explain_failure",
+    "Analyze a failed trace and provide a detailed explanation of what went wrong, including the error chain, affected spans, and timing information.",
+    {
+      trace_id: z.string().describe("The trace ID to analyze"),
+    },
+    async (params) => {
+      try {
+        const trace = await api.getTrace(params.trace_id);
+
+        // Find all error spans
+        const errorSpans = trace.spans.filter((s) => s.status === "error");
+
+        if (!errorSpans.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Trace ${trace.id}\n\nNo errors detected in this trace. All ${trace.spans.length} spans completed successfully.`,
+              },
+            ],
+          };
+        }
+
+        // Build span lookup maps
+        const spanMap = new Map<string, Span>();
+        for (const span of trace.spans) {
+          spanMap.set(span.spanId, span);
+        }
+
+        // Build parent chains for each error span
+        function getParentChain(span: Span): Span[] {
+          const chain: Span[] = [span];
+          let current = span;
+          while (current.parentSpanId) {
+            const parent = spanMap.get(current.parentSpanId);
+            if (!parent) break;
+            chain.unshift(parent);
+            current = parent;
+          }
+          return chain;
+        }
+
+        // Find the first error (earliest start time)
+        const firstError = errorSpans.reduce((earliest, current) =>
+          current.startTimeMs < earliest.startTimeMs ? current : earliest,
+        );
+
+        // Extract error details from events
+        const errorEvents = firstError.events.filter((e) => e.name === "error");
+        const errorMessage =
+          errorEvents.length > 0
+            ? String(errorEvents[0]?.attributes["error.message"] ?? errorEvents[0]?.attributes["message"] ?? "Unknown error")
+            : "Unknown error";
+
+        const parentChain = getParentChain(firstError);
+
+        // Format output
+        const lines: string[] = [
+          `# Failure Analysis: ${trace.id}`,
+          "",
+          `## Summary`,
+          `- **Error**: ${errorMessage}`,
+          `- **Failed Span**: ${firstError.name} (${firstError.kind})`,
+          `- **Error Count**: ${errorSpans.length} span(s) with errors`,
+          `- **Trace Duration**: ${trace.endTimeMs && trace.startTimeMs ? `${((trace.endTimeMs - trace.startTimeMs) / 1000).toFixed(2)}s` : "incomplete"}`,
+          "",
+          `## Error Chain`,
+          "",
+        ];
+
+        // Render parent chain
+        for (let i = 0; i < parentChain.length; i++) {
+          const span = parentChain[i];
+          if (!span) continue;
+
+          const isError = span.spanId === firstError.spanId;
+          const prefix = "  ".repeat(i);
+          const status = isError ? " ❌ **ERROR**" : "";
+          const duration =
+            span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+
+          lines.push(`${prefix}${i + 1}. [${span.kind}] **${span.name}** (${duration})${status}`);
+
+          if (isError && errorEvents.length > 0) {
+            const event = errorEvents[0];
+            if (event) {
+              lines.push(`${prefix}   **Error Details**:`);
+              for (const [key, value] of Object.entries(event.attributes ?? {})) {
+                if (value !== null && value !== undefined) {
+                  lines.push(`${prefix}   - ${key}: ${JSON.stringify(value)}`);
+                }
+              }
+            }
+          }
+
+          // Show key attributes
+          const attrs = Object.entries(span.attributes ?? {}).filter(
+            ([, v]) => v !== null && v !== undefined && v !== "",
+          );
+          if (attrs.length > 0 && i < 3) {
+            // Only show attributes for top 3 levels to keep output compact
+            const attrStr = attrs
+              .slice(0, 3)
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(", ");
+            lines.push(`${prefix}   Attributes: ${attrStr}${attrs.length > 3 ? ", ..." : ""}`);
+          }
+        }
+
+        // List other error spans if any
+        if (errorSpans.length > 1) {
+          lines.push("", `## Other Errors (${errorSpans.length - 1})`);
+          for (const span of errorSpans.slice(1)) {
+            const duration = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+            const events = span.events.filter((e) => e.name === "error");
+            const msg =
+              events.length > 0
+                ? String(events[0]?.attributes["error.message"] ?? events[0]?.attributes["message"] ?? "Unknown")
+                : "Unknown";
+            lines.push(`- [${span.kind}] **${span.name}** (${duration}): ${msg}`);
+          }
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: suggest fix ---
+  server.tool(
+    "foxhound_suggest_fix",
+    "Analyze a failed trace and suggest specific fixes based on error patterns, including timeout issues, auth failures, rate limits, and more.",
+    {
+      trace_id: z.string().describe("The trace ID to analyze"),
+    },
+    async (params) => {
+      try {
+        const trace = await api.getTrace(params.trace_id);
+
+        // Find all error spans
+        const errorSpans = trace.spans.filter((s) => s.status === "error");
+
+        if (!errorSpans.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Fix Suggestions: ${trace.id}\n\nNo errors detected in this trace. No fixes needed.`,
+              },
+            ],
+          };
+        }
+
+        // Classify errors and collect suggestions
+        type ErrorCategory =
+          | "timeout"
+          | "auth"
+          | "rate_limit"
+          | "tool_error"
+          | "llm_error"
+          | "validation"
+          | "unknown";
+
+        interface CategorizedError {
+          category: ErrorCategory;
+          span: Span;
+          message: string;
+        }
+
+        const categorized: CategorizedError[] = [];
+
+        for (const span of errorSpans) {
+          // Extract error message
+          const errorEvents = span.events.filter((e) => e.name === "error");
+          const errorMsg =
+            errorEvents.length > 0
+              ? String(
+                  errorEvents[0]?.attributes["error.message"] ??
+                    errorEvents[0]?.attributes["message"] ??
+                    "",
+                ).toLowerCase()
+              : "";
+
+          // Classify by pattern matching
+          let category: ErrorCategory = "unknown";
+
+          // Check for timeout
+          const duration = span.endTimeMs && span.startTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+          if (
+            duration > 30000 ||
+            errorMsg.includes("timeout") ||
+            errorMsg.includes("timed out") ||
+            errorMsg.includes("deadline")
+          ) {
+            category = "timeout";
+          }
+          // Check for auth
+          else if (
+            errorMsg.includes("unauthorized") ||
+            errorMsg.includes("forbidden") ||
+            errorMsg.includes("401") ||
+            errorMsg.includes("403") ||
+            errorMsg.includes("api key") ||
+            errorMsg.includes("authentication")
+          ) {
+            category = "auth";
+          }
+          // Check for rate limit
+          else if (
+            errorMsg.includes("rate limit") ||
+            errorMsg.includes("429") ||
+            errorMsg.includes("too many requests") ||
+            errorMsg.includes("quota")
+          ) {
+            category = "rate_limit";
+          }
+          // Check for tool error
+          else if (span.kind === "tool_call") {
+            category = "tool_error";
+          }
+          // Check for LLM error
+          else if (
+            span.kind === "llm_call" ||
+            errorMsg.includes("model") ||
+            errorMsg.includes("openai") ||
+            errorMsg.includes("anthropic")
+          ) {
+            category = "llm_error";
+          }
+          // Check for validation
+          else if (
+            errorMsg.includes("validation") ||
+            errorMsg.includes("invalid") ||
+            errorMsg.includes("required") ||
+            errorMsg.includes("schema")
+          ) {
+            category = "validation";
+          }
+
+          categorized.push({ category, span, message: errorMsg });
+        }
+
+        // Group by category
+        const byCategory = new Map<ErrorCategory, CategorizedError[]>();
+        for (const item of categorized) {
+          const existing = byCategory.get(item.category) ?? [];
+          existing.push(item);
+          byCategory.set(item.category, existing);
+        }
+
+        // Generate suggestions
+        const lines: string[] = [`# Fix Suggestions: ${trace.id}`, ""];
+
+        // Timeout
+        if (byCategory.has("timeout")) {
+          const errors = byCategory.get("timeout")!;
+          lines.push(`## Timeout Issues (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            const duration =
+              e.span.endTimeMs && e.span.startTimeMs ? e.span.endTimeMs - e.span.startTimeMs : 0;
+            lines.push(`**${e.span.name}** (${duration}ms)`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Increase timeout threshold in your client configuration");
+          lines.push("- Optimize the underlying query or operation to reduce latency");
+          lines.push("- Add retry logic with exponential backoff");
+          lines.push("- Consider breaking the operation into smaller chunks");
+          lines.push("");
+        }
+
+        // Auth
+        if (byCategory.has("auth")) {
+          const errors = byCategory.get("auth")!;
+          lines.push(`## Authentication Failures (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Verify API key is set correctly in environment variables");
+          lines.push("- Check that credentials haven't expired or been revoked");
+          lines.push("- Ensure you have the necessary permissions for this operation");
+          lines.push("- Confirm the API endpoint is correct for your key");
+          lines.push("");
+        }
+
+        // Rate limit
+        if (byCategory.has("rate_limit")) {
+          const errors = byCategory.get("rate_limit")!;
+          lines.push(`## Rate Limit Exceeded (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Implement exponential backoff with jitter");
+          lines.push("- Reduce request rate or batch operations");
+          lines.push("- Upgrade your API plan for higher rate limits");
+          lines.push("- Add request queuing to smooth traffic");
+          lines.push("");
+        }
+
+        // Tool error
+        if (byCategory.has("tool_error")) {
+          const errors = byCategory.get("tool_error")!;
+          lines.push(`## Tool Execution Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Verify tool configuration and parameters are correct");
+          lines.push("- Check that the tool service is available and responsive");
+          lines.push("- Inspect tool-specific logs for detailed error messages");
+          lines.push("- Validate tool input schema and required fields");
+          lines.push("");
+        }
+
+        // LLM error
+        if (byCategory.has("llm_error")) {
+          const errors = byCategory.get("llm_error")!;
+          lines.push(`## LLM Call Failures (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Check prompt length against model context window limits");
+          lines.push("- Verify model name/identifier is correct and available");
+          lines.push("- Confirm API quota hasn't been exceeded");
+          lines.push("- Review model-specific error codes in LLM provider docs");
+          lines.push("");
+        }
+
+        // Validation
+        if (byCategory.has("validation")) {
+          const errors = byCategory.get("validation")!;
+          lines.push(`## Validation Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            lines.push(`**${e.span.name}**`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Review input schema and ensure all required fields are provided");
+          lines.push("- Verify data types match the expected schema");
+          lines.push("- Check for null/undefined values in required fields");
+          lines.push("- Inspect detailed error messages for specific validation failures");
+          lines.push("");
+        }
+
+        // Unknown
+        if (byCategory.has("unknown")) {
+          const errors = byCategory.get("unknown")!;
+          lines.push(`## Other Errors (${errors.length})`);
+          lines.push("");
+          for (const e of errors) {
+            const errorEvents = e.span.events.filter((ev) => ev.name === "error");
+            const msg =
+              errorEvents.length > 0
+                ? String(
+                    errorEvents[0]?.attributes["error.message"] ??
+                      errorEvents[0]?.attributes["message"] ??
+                      "Unknown error",
+                  )
+                : "Unknown error";
+            lines.push(`**${e.span.name}**: ${msg}`);
+          }
+          lines.push("");
+          lines.push("**Suggested Fixes:**");
+          lines.push("- Inspect error events and attributes for more context");
+          lines.push("- Check application logs for additional error details");
+          lines.push("- Use `foxhound_explain_failure` for detailed error chain analysis");
+          lines.push("");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: score trace ---
+  server.tool(
+    "foxhound_score_trace",
+    "Create a score for a trace or specific span. Scores can be numeric values (0-1) or categorical labels. Preview mode shows what will be created; set confirm=true to execute.",
+    {
+      trace_id: z.string().describe("The trace ID to score"),
+      span_id: z.string().optional().describe("Optional span ID to score (if omitted, scores the entire trace)"),
+      name: z.string().describe("Score name (e.g., 'quality', 'accuracy', 'latency')"),
+      value: z.number().min(0).max(1).optional().describe("Numeric score value between 0 and 1 (mutually exclusive with label)"),
+      label: z.string().optional().describe("Categorical label (e.g., 'good', 'bad', 'excellent') (mutually exclusive with value)"),
+      comment: z.string().optional().describe("Optional comment explaining the score"),
+      confirm: z.boolean().optional().describe("Set to true to execute the score creation; omit or set to false for preview"),
+    },
+    async (params) => {
+      try {
+        // Preview mode
+        if (params.confirm !== true) {
+          const lines: string[] = [
+            `# Score Preview`,
+            "",
+            `**This will create the following score:**`,
+            "",
+            `- Trace ID: ${params.trace_id}`,
+          ];
+
+          if (params.span_id) {
+            lines.push(`- Span ID: ${params.span_id}`);
+          }
+
+          lines.push(`- Name: ${params.name}`);
+
+          if (params.value !== undefined) {
+            lines.push(`- Value: ${params.value}`);
+          }
+
+          if (params.label !== undefined) {
+            lines.push(`- Label: ${params.label}`);
+          }
+
+          if (params.comment) {
+            lines.push(`- Comment: ${params.comment}`);
+          }
+
+          lines.push(`- Source: manual`);
+          lines.push("");
+          lines.push("**To execute, re-run with `confirm: true`**");
+
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+
+        // Execute mode
+        const score = await api.createScore({
+          traceId: params.trace_id,
+          spanId: params.span_id,
+          name: params.name,
+          value: params.value,
+          label: params.label,
+          source: "manual",
+          comment: params.comment,
+        });
+
+        const lines: string[] = [
+          `# Score Created`,
+          "",
+          `✅ Successfully created score **${score.id}**`,
+          "",
+          `- Trace: ${score.traceId}`,
+        ];
+
+        if (score.spanId) {
+          lines.push(`- Span: ${score.spanId}`);
+        }
+
+        lines.push(`- Name: ${score.name}`);
+
+        if (score.value !== undefined) {
+          lines.push(`- Value: ${score.value}`);
+        }
+
+        if (score.label !== undefined) {
+          lines.push(`- Label: ${score.label}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating score for trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: get trace scores ---
+  server.tool(
+    "foxhound_get_trace_scores",
+    "Retrieve all scores attached to a trace, including both trace-level and span-level scores.",
+    {
+      trace_id: z.string().describe("The trace ID to fetch scores for"),
+    },
+    async (params) => {
+      try {
+        const response = await api.getTraceScores(params.trace_id);
+
+        if (!response.data.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Scores for ${params.trace_id}\n\nNo scores found for this trace.`,
+              },
+            ],
+          };
+        }
+
+        const lines: string[] = [
+          `# Scores for ${params.trace_id}`,
+          "",
+          `Found ${response.data.length} score(s):`,
+          "",
+          "| Score Name | Value/Label | Source | Comment |",
+          "|------------|-------------|--------|---------|",
+        ];
+
+        for (const score of response.data) {
+          const valueLabel = score.value !== undefined ? score.value.toString() : (score.label ?? "—");
+          const source = score.source ?? "—";
+          const comment = score.comment ?? "—";
+          const spanIndicator = score.spanId ? ` (span: ${score.spanId})` : "";
+          lines.push(`| ${score.name}${spanIndicator} | ${valueLabel} | ${source} | ${comment} |`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching scores for trace "${params.trace_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: list evaluators ---
+  server.tool(
+    "foxhound_list_evaluators",
+    "List all configured LLM-as-a-Judge evaluators with their settings.",
+    {},
+    async () => {
+      try {
+        const response = await api.listEvaluators();
+
+        if (!response.data.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No evaluators configured.",
+              },
+            ],
+          };
+        }
+
+        const lines: string[] = [
+          `## Evaluators (${response.data.length})`,
+          "",
+          "| ID | Name | Model | Scoring Type | Enabled |",
+          "|-----|------|-------|--------------|---------|",
+        ];
+
+        for (const evaluator of response.data) {
+          const enabled = evaluator.enabled ? "✅" : "❌";
+          lines.push(
+            `| ${evaluator.id} | ${evaluator.name} | ${evaluator.model} | ${evaluator.scoringType} | ${enabled} |`,
+          );
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing evaluators: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: run evaluator ---
+  server.tool(
+    "foxhound_run_evaluator",
+    "Trigger async evaluator runs for one or more traces. Evaluator runs are async — use foxhound_get_evaluator_run to check status and results.",
+    {
+      evaluator_id: z.string().describe("The evaluator ID to run"),
+      trace_ids: z
+        .array(z.string())
+        .min(1)
+        .max(50)
+        .describe("Array of trace IDs to evaluate (1-50)"),
+    },
+    async (params) => {
+      try {
+        const response = await api.triggerEvaluatorRuns({
+          evaluatorId: params.evaluator_id,
+          traceIds: params.trace_ids,
+        });
+
+        const lines: string[] = [
+          `## Evaluator Runs Queued`,
+          "",
+          `✅ ${response.runs.length} evaluator run(s) started for evaluator **${params.evaluator_id}**`,
+          "",
+          "**⏳ Evaluator runs are async.** Use `foxhound_get_evaluator_run` with a run ID to check status and results.",
+          "",
+          "### Runs:",
+        ];
+
+        for (const run of response.runs) {
+          lines.push(`- **${run.id}** → trace: ${run.traceId} | status: ${run.status}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error triggering evaluator runs: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: get evaluator run ---
+  server.tool(
+    "foxhound_get_evaluator_run",
+    "Check the status and results of an async evaluator run.",
+    {
+      run_id: z.string().describe("The evaluator run ID to retrieve"),
+    },
+    async (params) => {
+      try {
+        const run = await api.getEvaluatorRun(params.run_id);
+
+        const lines: string[] = [
+          `## Evaluator Run: ${run.id}`,
+          "",
+          `- **Evaluator ID**: ${run.evaluatorId}`,
+          `- **Trace ID**: ${run.traceId}`,
+        ];
+
+        // Format status with emoji
+        let statusLine = "- **Status**: ";
+        if (run.status === "pending" || run.status === "running") {
+          statusLine += `⏳ ${run.status}`;
+        } else if (run.status === "completed") {
+          statusLine += "✅ completed";
+        } else if (run.status === "failed") {
+          statusLine += "❌ failed";
+        } else {
+          statusLine += run.status;
+        }
+        lines.push(statusLine);
+
+        if (run.scoreId) {
+          lines.push(`- **Score ID**: ${run.scoreId}`);
+        }
+
+        if (run.error) {
+          lines.push(`- **Error**: ${run.error}`);
+        }
+
+        lines.push(`- **Created At**: ${run.createdAt}`);
+
+        if (run.completedAt) {
+          lines.push(`- **Completed At**: ${run.completedAt}`);
+        }
+
+        // Add score details if completed
+        if (run.status === "completed" && run.scoreId) {
+          lines.push("");
+          lines.push("ℹ️ Use `foxhound_get_trace_scores` to view the score details.");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching evaluator run "${params.run_id}": ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Helper: extract trace input ---
+  function extractTraceInput(trace: Trace): Record<string, unknown> {
+    // Find root spans (those with no parentSpanId)
+    const rootSpans = trace.spans.filter((s) => !s.parentSpanId);
+
+    // If we have root spans, use the first one's attributes
+    if (rootSpans.length > 0) {
+      const rootSpan = rootSpans[0];
+      if (!rootSpan) return {};
+      
+      // Convert span attributes to the expected format
+      const attributes = rootSpan.attributes ?? {};
+      return attributes as Record<string, unknown>;
+    }
+
+    // Fallback to trace metadata if no root span exists
+    return (trace.metadata ?? {}) as Record<string, unknown>;
+  }
+
+  // --- Tool: list datasets ---
+  server.tool(
+    "foxhound_list_datasets",
+    "List all datasets with their IDs, names, descriptions, and item counts.",
+    {},
+    async () => {
+      try {
+        const response = await api.listDatasets();
+
+        if (!response.data.length) {
+          return {
+            content: [{ type: "text", text: "No datasets found." }],
+          };
+        }
+
+        // Fetch item counts for each dataset
+        const datasetsWithCounts = await Promise.all(
+          response.data.map(async (dataset) => {
+            try {
+              const details = await api.getDataset(dataset.id);
+              return {
+                ...dataset,
+                itemCount: details.itemCount,
+              };
+            } catch {
+              // If we can't get the count, just use the dataset without count
+              return {
+                ...dataset,
+                itemCount: 0,
+              };
+            }
+          }),
+        );
+
+        const lines: string[] = [
+          `## Datasets (${datasetsWithCounts.length})`,
+          "",
+          "| ID | Name | Description | Item Count |",
+          "|-----|------|-------------|------------|",
+        ];
+
+        for (const dataset of datasetsWithCounts) {
+          const description = dataset.description ?? "—";
+          lines.push(`| ${dataset.id} | ${dataset.name} | ${description} | ${dataset.itemCount} |`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error listing datasets: ${msg}` }],
+        };
+      }
+    },
+  );
+
+  // --- Tool: add trace to dataset ---
+  server.tool(
+    "foxhound_add_trace_to_dataset",
+    "Add a trace to a dataset by extracting its input from root span attributes. Preview mode shows what will be added; set confirm=true to execute.",
+    {
+      dataset_id: z.string().describe("The dataset ID to add the trace to"),
+      trace_id: z.string().describe("The trace ID to extract and add"),
+      expected_output: z
+        .record(z.unknown())
+        .optional()
+        .describe("Optional expected output for this dataset item"),
+      metadata: z
+        .record(z.unknown())
+        .optional()
+        .describe("Optional metadata to attach to the dataset item"),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to execute; omit or set to false for preview"),
+    },
+    async (params) => {
+      try {
+        // Fetch the trace
+        const trace = await api.getTrace(params.trace_id);
+
+        // Extract input via helper
+        const input = extractTraceInput(trace);
+
+        // Preview mode
+        if (params.confirm !== true) {
+          const lines: string[] = [
+            `# Add Trace to Dataset - Preview`,
+            "",
+            `**This will add the following item to dataset \`${params.dataset_id}\`:**`,
+            "",
+            `### Trace: ${params.trace_id}`,
+            "",
+            `**Extracted Input:**`,
+            "```json",
+            JSON.stringify(input, null, 2),
+            "```",
+            "",
+          ];
+
+          if (params.expected_output) {
+            lines.push(`**Expected Output:**`);
+            lines.push("```json");
+            lines.push(JSON.stringify(params.expected_output, null, 2));
+            lines.push("```");
+            lines.push("");
+          }
+
+          if (params.metadata) {
+            lines.push(`**Metadata:**`);
+            lines.push("```json");
+            lines.push(JSON.stringify(params.metadata, null, 2));
+            lines.push("```");
+            lines.push("");
+          }
+
+          lines.push("**To execute, re-run with `confirm: true`**");
+
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+
+        // Execute mode
+        const item = await api.createDatasetItem(params.dataset_id, {
+          input,
+          expectedOutput: params.expected_output,
+          metadata: params.metadata,
+          sourceTraceId: params.trace_id,
+        });
+
+        const lines: string[] = [
+          `# Trace Added to Dataset`,
+          "",
+          `✅ Successfully added trace **${params.trace_id}** to dataset **${params.dataset_id}**`,
+          "",
+          `- Item ID: ${item.id}`,
+          `- Input fields: ${Object.keys(input).length}`,
+        ];
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error adding trace to dataset: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: curate dataset ---
+  server.tool(
+    "foxhound_curate_dataset",
+    "Automatically add traces to a dataset based on score criteria. Filter traces where a specific score matches a threshold condition.",
+    {
+      dataset_id: z.string().describe("The dataset ID to add traces to"),
+      score_name: z.string().describe("The score name to filter by (e.g., 'quality', 'accuracy')"),
+      operator: z
+        .enum(["lt", "gt", "lte", "gte"])
+        .describe("Score comparison operator: lt (<), gt (>), lte (<=), gte (>=)"),
+      threshold: z.number().describe("The score threshold value to compare against"),
+      since_days: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Only consider traces from the last N days (optional)"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(1000)
+        .optional()
+        .describe("Maximum number of traces to add (optional, default: API default)"),
+    },
+    async (params) => {
+      try {
+        const response = await api.createDatasetItemsFromTraces(params.dataset_id, {
+          scoreName: params.score_name,
+          scoreOperator: params.operator,
+          scoreThreshold: params.threshold,
+          sinceDays: params.since_days,
+          limit: params.limit,
+        });
+
+        const operatorSymbol = {
+          lt: "<",
+          gt: ">",
+          lte: "<=",
+          gte: ">=",
+        }[params.operator];
+
+        const lines: string[] = [
+          `# Dataset Curated`,
+          "",
+          `✅ Added **${response.added}** trace(s) to dataset **${params.dataset_id}**`,
+          "",
+          `**Filter Criteria:**`,
+          `- Score: \`${params.score_name}\` ${operatorSymbol} ${params.threshold}`,
+        ];
+
+        if (params.since_days) {
+          lines.push(`- Time range: last ${params.since_days} day(s)`);
+        }
+
+        if (params.limit) {
+          lines.push(`- Limit: ${params.limit} traces max`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error curating dataset: ${msg}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);

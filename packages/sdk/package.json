@@ -26,6 +26,18 @@
     "./integrations/claude-agent": {
       "import": "./dist/integrations/claude-agent.js",
       "types": "./dist/integrations/claude-agent.d.ts"
+    },
+    "./integrations/opentelemetry": {
+      "import": "./dist/integrations/opentelemetry.js",
+      "types": "./dist/integrations/opentelemetry.d.ts"
+    }
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
     }
   },
   "publishConfig": {

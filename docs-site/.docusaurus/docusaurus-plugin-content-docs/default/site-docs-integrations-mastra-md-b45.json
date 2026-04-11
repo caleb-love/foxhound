@@ -1,0 +1,27 @@
+{
+  "id": "integrations/mastra",
+  "title": "Mastra",
+  "description": "Foxhound integrates with Mastra via the OpenTelemetry span processor bridge. Mastra emits OTel GenAI semantic convention spans natively, so no framework-specific hooks are needed.",
+  "source": "@site/docs/integrations/mastra.md",
+  "sourceDirName": "integrations",
+  "slug": "/integrations/mastra",
+  "permalink": "/integrations/mastra",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/integrations/mastra.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Mastra",
+    "sidebar_label": "Mastra"
+  },
+  "sidebar": "integrationsSidebar",
+  "previous": {
+    "title": "CrewAI",
+    "permalink": "/integrations/crewai"
+  },
+  "next": {
+    "title": "Pydantic AI",
+    "permalink": "/integrations/pydantic-ai"
+  }
+}

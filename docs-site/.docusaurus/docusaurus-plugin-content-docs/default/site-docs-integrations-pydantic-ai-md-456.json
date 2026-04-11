@@ -1,0 +1,27 @@
+{
+  "id": "integrations/pydantic-ai",
+  "title": "Pydantic AI",
+  "description": "Foxhound integrates with Pydantic AI via the OpenTelemetry span processor bridge. Pydantic AI emits OTel GenAI spans when instrument=True is set on the agent.",
+  "source": "@site/docs/integrations/pydantic-ai.md",
+  "sourceDirName": "integrations",
+  "slug": "/integrations/pydantic-ai",
+  "permalink": "/integrations/pydantic-ai",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/integrations/pydantic-ai.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Pydantic AI",
+    "sidebar_label": "Pydantic AI"
+  },
+  "sidebar": "integrationsSidebar",
+  "previous": {
+    "title": "Mastra",
+    "permalink": "/integrations/mastra"
+  },
+  "next": {
+    "title": "Bedrock AgentCore",
+    "permalink": "/integrations/bedrock-agentcore"
+  }
+}

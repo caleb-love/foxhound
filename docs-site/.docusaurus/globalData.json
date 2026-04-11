@@ -1,0 +1,162 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/",
+          "mainDocId": "index",
+          "docs": [
+            {
+              "id": "ci-cd/quality-gate-action",
+              "path": "/ci-cd/quality-gate-action",
+              "sidebar": "cicdSidebar"
+            },
+            {
+              "id": "evaluation-cookbook/ci-quality-gates",
+              "path": "/evaluation-cookbook/ci-quality-gates",
+              "sidebar": "cookbookSidebar"
+            },
+            {
+              "id": "evaluation-cookbook/dataset-curation",
+              "path": "/evaluation-cookbook/dataset-curation",
+              "sidebar": "cookbookSidebar"
+            },
+            {
+              "id": "evaluation-cookbook/index",
+              "path": "/evaluation-cookbook",
+              "sidebar": "cookbookSidebar"
+            },
+            {
+              "id": "evaluation-cookbook/llm-as-a-judge",
+              "path": "/evaluation-cookbook/llm-as-a-judge",
+              "sidebar": "cookbookSidebar"
+            },
+            {
+              "id": "evaluation-cookbook/manual-scoring",
+              "path": "/evaluation-cookbook/manual-scoring",
+              "sidebar": "cookbookSidebar"
+            },
+            {
+              "id": "getting-started/first-trace",
+              "path": "/getting-started/first-trace",
+              "sidebar": "gettingStartedSidebar"
+            },
+            {
+              "id": "getting-started/installation",
+              "path": "/getting-started/installation",
+              "sidebar": "gettingStartedSidebar"
+            },
+            {
+              "id": "getting-started/quickstart",
+              "path": "/getting-started/quickstart",
+              "sidebar": "gettingStartedSidebar"
+            },
+            {
+              "id": "index",
+              "path": "/"
+            },
+            {
+              "id": "integrations/bedrock-agentcore",
+              "path": "/integrations/bedrock-agentcore",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/crewai",
+              "path": "/integrations/crewai",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/google-adk",
+              "path": "/integrations/google-adk",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/langgraph",
+              "path": "/integrations/langgraph",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/mastra",
+              "path": "/integrations/mastra",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/opentelemetry-bridge",
+              "path": "/integrations/opentelemetry-bridge",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "integrations/pydantic-ai",
+              "path": "/integrations/pydantic-ai",
+              "sidebar": "integrationsSidebar"
+            },
+            {
+              "id": "mcp-server/setup",
+              "path": "/mcp-server/setup",
+              "sidebar": "mcpServerSidebar"
+            },
+            {
+              "id": "mcp-server/tool-reference",
+              "path": "/mcp-server/tool-reference",
+              "sidebar": "mcpServerSidebar"
+            },
+            {
+              "id": "sdk/python",
+              "path": "/sdk/python",
+              "sidebar": "sdkSidebar"
+            },
+            {
+              "id": "sdk/typescript",
+              "path": "/sdk/typescript",
+              "sidebar": "sdkSidebar"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "gettingStartedSidebar": {
+              "link": {
+                "path": "/getting-started/installation",
+                "label": "getting-started/installation"
+              }
+            },
+            "sdkSidebar": {
+              "link": {
+                "path": "/sdk/typescript",
+                "label": "sdk/typescript"
+              }
+            },
+            "integrationsSidebar": {
+              "link": {
+                "path": "/integrations/langgraph",
+                "label": "integrations/langgraph"
+              }
+            },
+            "mcpServerSidebar": {
+              "link": {
+                "path": "/mcp-server/setup",
+                "label": "mcp-server/setup"
+              }
+            },
+            "cicdSidebar": {
+              "link": {
+                "path": "/ci-cd/quality-gate-action",
+                "label": "ci-cd/quality-gate-action"
+              }
+            },
+            "cookbookSidebar": {
+              "link": {
+                "path": "/evaluation-cookbook",
+                "label": "evaluation-cookbook/index"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

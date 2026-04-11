@@ -1,0 +1,23 @@
+{
+  "id": "evaluation-cookbook/ci-quality-gates",
+  "title": "CI Quality Gates",
+  "description": "Quality gates enforce evaluation score thresholds on every pull request. When scores drop below your configured threshold, the gate fails the check and posts a detailed comment to the PR. This prevents regressions from merging undetected.",
+  "source": "@site/docs/evaluation-cookbook/ci-quality-gates.md",
+  "sourceDirName": "evaluation-cookbook",
+  "slug": "/evaluation-cookbook/ci-quality-gates",
+  "permalink": "/evaluation-cookbook/ci-quality-gates",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/evaluation-cookbook/ci-quality-gates.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "CI Quality Gates",
+    "sidebar_label": "CI Quality Gates"
+  },
+  "sidebar": "cookbookSidebar",
+  "previous": {
+    "title": "Dataset Curation",
+    "permalink": "/evaluation-cookbook/dataset-curation"
+  }
+}

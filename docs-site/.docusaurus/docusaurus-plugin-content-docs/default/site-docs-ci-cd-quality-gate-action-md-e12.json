@@ -1,0 +1,19 @@
+{
+  "id": "ci-cd/quality-gate-action",
+  "title": "Quality Gate Action",
+  "description": "The Foxhound quality gate GitHub Actions composite action enforces evaluation score thresholds on every pull request. When scores fall below your configured threshold, the action fails the check and posts a summary comment to the PR.",
+  "source": "@site/docs/ci-cd/quality-gate-action.md",
+  "sourceDirName": "ci-cd",
+  "slug": "/ci-cd/quality-gate-action",
+  "permalink": "/ci-cd/quality-gate-action",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/ci-cd/quality-gate-action.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Quality Gate Action",
+    "sidebar_label": "Quality Gate Action"
+  },
+  "sidebar": "cicdSidebar"
+}

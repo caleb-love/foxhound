@@ -1,4 +1,9 @@
-# foxhound-ai
+---
+title: Python SDK
+sidebar_label: Python SDK
+---
+
+# Python SDK Reference
 
 Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.
 
@@ -8,6 +13,7 @@ Compliance-grade observability for AI agent fleets — trace, replay, and audit 
 pip install foxhound-ai                   # core only
 pip install foxhound-ai[langgraph]        # + LangGraph / LangChain support
 pip install foxhound-ai[crewai]           # + CrewAI support
+pip install foxhound-ai[opentelemetry]    # + OTel bridge (Pydantic AI, Bedrock, Google ADK)
 ```
 
 ## Quickstart
@@ -123,8 +129,7 @@ await processor.flush()
 
 ### Amazon Bedrock AgentCore
 
-Use the `configure_adot_for_foxhound()` convenience helper — it wires up the
-TracerProvider and sets it as the global OTel provider in one call:
+Use the `configure_adot_for_foxhound()` convenience helper — it wires up the TracerProvider and sets it as the global OTel provider in one call:
 
 ```python
 from foxhound.integrations.opentelemetry import configure_adot_for_foxhound
@@ -149,8 +154,7 @@ response = client.invoke_agent(
 await processor.flush()
 ```
 
-You can also supply credentials via environment variables and skip the
-`api_key` parameter if your Foxhound instance is configured to accept them:
+You can also supply credentials via environment variables:
 
 ```bash
 export FOXHOUND_API_KEY="fox_..."
@@ -182,14 +186,9 @@ await processor.flush()
 
 ### Coverage note
 
-The OTel bridge captures spans emitted by frameworks as OpenTelemetry GenAI
-semantic convention attributes.  Framework-specific metadata that is not yet
-encoded in those conventions (e.g. per-turn tool call arguments from CrewAI or
-LangGraph) is available only via the native callback-based integrations
-(`foxhound.integrations.langgraph`, `foxhound.integrations.crewai`), which
-have direct access to the raw framework event payloads.
+The OTel bridge captures spans emitted by frameworks as OpenTelemetry GenAI semantic convention attributes. Framework-specific metadata not yet encoded in those conventions (e.g. per-turn tool call arguments from CrewAI or LangGraph) is available only via the native callback-based integrations (`foxhound.integrations.langgraph`, `foxhound.integrations.crewai`), which have direct access to the raw framework event payloads.
 
-## Viewer
+## Local Viewer
 
 Start the local OSS trace viewer:
 
@@ -197,6 +196,11 @@ Start the local OSS trace viewer:
 foxhound ui
 ```
 
-## License
+## Related
 
-MIT
+- [LangGraph integration guide →](../integrations/langgraph)
+- [CrewAI integration guide →](../integrations/crewai)
+- [Pydantic AI integration guide →](../integrations/pydantic-ai)
+- [Bedrock AgentCore integration guide →](../integrations/bedrock-agentcore)
+- [Google ADK integration guide →](../integrations/google-adk)
+- [OpenTelemetry bridge overview →](../integrations/opentelemetry-bridge)

@@ -1,0 +1,23 @@
+{
+  "id": "sdk/python",
+  "title": "Python SDK",
+  "description": "Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.",
+  "source": "@site/docs/sdk/python.md",
+  "sourceDirName": "sdk",
+  "slug": "/sdk/python",
+  "permalink": "/sdk/python",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/sdk/python.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Python SDK",
+    "sidebar_label": "Python SDK"
+  },
+  "sidebar": "sdkSidebar",
+  "previous": {
+    "title": "TypeScript SDK",
+    "permalink": "/sdk/typescript"
+  }
+}

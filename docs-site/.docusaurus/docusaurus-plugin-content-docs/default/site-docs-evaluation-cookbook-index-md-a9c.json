@@ -1,0 +1,24 @@
+{
+  "id": "evaluation-cookbook/index",
+  "title": "Evaluation Cookbook",
+  "description": "Foxhound provides a layered evaluation system that lets you move from quick manual feedback all the way to automated regression prevention in CI. This cookbook covers each layer with practical how-to guides.",
+  "source": "@site/docs/evaluation-cookbook/index.md",
+  "sourceDirName": "evaluation-cookbook",
+  "slug": "/evaluation-cookbook",
+  "permalink": "/evaluation-cookbook",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/evaluation-cookbook/index.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Evaluation Cookbook",
+    "sidebar_label": "Overview",
+    "slug": "/evaluation-cookbook"
+  },
+  "sidebar": "cookbookSidebar",
+  "next": {
+    "title": "Manual Scoring",
+    "permalink": "/evaluation-cookbook/manual-scoring"
+  }
+}

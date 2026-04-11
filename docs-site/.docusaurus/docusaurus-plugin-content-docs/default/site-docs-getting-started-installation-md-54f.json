@@ -1,0 +1,23 @@
+{
+  "id": "getting-started/installation",
+  "title": "Installation",
+  "description": "Foxhound provides SDKs for Python and TypeScript, plus an MCP server for IDE integration.",
+  "source": "@site/docs/getting-started/installation.md",
+  "sourceDirName": "getting-started",
+  "slug": "/getting-started/installation",
+  "permalink": "/getting-started/installation",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/caleb-love/foxhound/tree/main/docs-site/docs/getting-started/installation.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Installation",
+    "sidebar_label": "Installation"
+  },
+  "sidebar": "gettingStartedSidebar",
+  "next": {
+    "title": "Quickstart",
+    "permalink": "/getting-started/quickstart"
+  }
+}
