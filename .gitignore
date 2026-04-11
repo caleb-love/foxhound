@@ -37,3 +37,13 @@ tmp/
 
 # Internal docs — never commit
 docs/
+
+# Claude Code local config
+.claude/
+
+# Docusaurus build cache
+docs-site/.docusaurus/
+
+# Python coverage
+.coverage
+*.coverage
