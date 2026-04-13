@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mock external dependencies BEFORE importing the module under test
@@ -109,7 +109,11 @@ function stubHappyPath() {
       {
         name: "root",
         kind: "SERVER",
-        attributes: { input: "Hello", output: "Hi there", api_key: "secret-val" },
+        attributes: {
+          input: "Hello",
+          output: [{ role: "assistant", content: "Hi there" }],
+          api_key: "secret-val",
+        },
         events: [],
       },
     ],
@@ -153,7 +157,7 @@ describe("startEvaluatorWorker", () => {
     );
     expect(mainWorkerCall).toBeDefined();
 
-    const opts = mainWorkerCall![2] as Record<string, unknown>;
+    const opts = mainWorkerCall![2] as unknown as Record<string, unknown>;
     expect(opts.concurrency).toBe(10);
     expect(opts.limiter).toEqual({ max: 20, duration: 60_000 });
     expect(opts.connection).toEqual(conn);
@@ -170,7 +174,7 @@ describe("startEvaluatorWorker", () => {
       ([name]) => name === EVALUATOR_DLQ_NAME,
     );
     expect(dlqWorkerCall).toBeDefined();
-    const dlqOpts = dlqWorkerCall![2] as Record<string, unknown>;
+    const dlqOpts = dlqWorkerCall![2] as unknown as Record<string, unknown>;
     expect(dlqOpts.concurrency).toBe(5);
   });
 
@@ -180,7 +184,7 @@ describe("startEvaluatorWorker", () => {
     // Worker.on is called for completed, failed on the main worker
     // and failed on the DLQ worker — at minimum 3 calls across both mocked workers
     // Since all mock Workers share the same `on` mock, count total calls
-    const eventNames = mockWorkerOn.mock.calls.map(([name]: [string]) => name);
+    const eventNames = mockWorkerOn.mock.calls.map(([eventName]) => eventName as string);
     expect(eventNames).toContain("completed");
     expect(eventNames).toContain("failed");
   });
@@ -188,7 +192,7 @@ describe("startEvaluatorWorker", () => {
   it("returns the main worker instance", () => {
     const worker = startEvaluatorWorker(conn);
     expect(worker).toBeDefined();
-    expect(worker.on).toBeDefined();
+    expect("on" in worker).toBe(true);
   });
 });
 
@@ -363,9 +367,9 @@ describe("processEvaluatorJob (via processor)", () => {
     // Verify the body sent to the LLM contains [REDACTED] for api_key
     const [, fetchOpts] = mockFetch.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(fetchOpts.body as string) as {
-      messages: Array<{ content: string }>;
+      messages: Array<{ role?: string; content: string }>;
     };
-    const userContent = body.messages.find((m) => (m as { role: string }).role !== undefined);
+    body.messages.find((m) => m.role !== undefined);
     const allContent = body.messages.map((m) => m.content).join(" ");
 
     expect(allContent).toContain("[REDACTED]");
@@ -614,7 +618,8 @@ describe("sanitizeErrorForStorage (via LLM error path)", () => {
       await processor(fakeJob({ runId: RUN_ID }));
     } catch (err: unknown) {
       const msg = (err as Error).message;
-      expect(msg).not.toMatch(/[\x00-\x1F]/);
+      expect(msg.includes(String.fromCharCode(0))).toBe(false);
+      expect(msg.includes(String.fromCharCode(31))).toBe(false);
       expect(msg).toContain("Errorwithcontrolchars");
     }
 

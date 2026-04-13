@@ -32,20 +32,20 @@ const mockListNotificationChannels = vi.fn();
 const mockCreateNotificationLogEntry = vi.fn();
 
 vi.mock("@foxhound/db", () => ({
-  countTracesForVersion: (...args: unknown[]) => mockCountTracesForVersion(...args),
-  getBaseline: (...args: unknown[]) => mockGetBaseline(...args),
-  getRecentBaselines: (...args: unknown[]) => mockGetRecentBaselines(...args),
-  getSpanStructureForVersion: (...args: unknown[]) => mockGetSpanStructureForVersion(...args),
-  upsertBaseline: (...args: unknown[]) => mockUpsertBaseline(...args),
-  getAlertRulesForOrg: (...args: unknown[]) => mockGetAlertRulesForOrg(...args),
-  listNotificationChannels: (...args: unknown[]) => mockListNotificationChannels(...args),
-  createNotificationLogEntry: (...args: unknown[]) => mockCreateNotificationLogEntry(...args),
+  countTracesForVersion: mockCountTracesForVersion,
+  getBaseline: mockGetBaseline,
+  getRecentBaselines: mockGetRecentBaselines,
+  getSpanStructureForVersion: mockGetSpanStructureForVersion,
+  upsertBaseline: mockUpsertBaseline,
+  getAlertRulesForOrg: mockGetAlertRulesForOrg,
+  listNotificationChannels: mockListNotificationChannels,
+  createNotificationLogEntry: mockCreateNotificationLogEntry,
 }));
 
 const mockDispatchAlert = vi.fn();
 
 vi.mock("@foxhound/notifications", () => ({
-  dispatchAlert: (...args: unknown[]) => mockDispatchAlert(...args),
+  dispatchAlert: mockDispatchAlert,
 }));
 
 import { Worker } from "bullmq";
@@ -59,7 +59,7 @@ describe("regression-detector", () => {
     vi.mocked(Worker).mockImplementation(
       (_name: string, processor: unknown, _opts: unknown) => {
         capturedProcessor = processor as (job: unknown) => Promise<void>;
-        return { on: vi.fn(), close: vi.fn() } as unknown as ReturnType<typeof Worker>;
+        return { on: vi.fn(), close: vi.fn() } as never;
       },
     );
   });
