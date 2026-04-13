@@ -24,12 +24,7 @@ Thank you for your interest in contributing to Foxhound! This document provides 
 
 ## Development Workflow
 
-See [CLAUDE.md](./CLAUDE.md) for detailed workflow, including:
-- Skills-first development
-- Planning requirements
-- Multi-persona review process
-- Security requirements
-- Documentation standards
+Keep changes small, verifiable, and easy to review. Run the relevant checks locally before opening a PR, and prefer incremental improvements over broad speculative refactors.
 
 ## Code Conventions
 
@@ -228,7 +223,7 @@ refactor(db): normalize span attributes schema
 5. **Push and create PR:**
    - Fill out PR template
    - Link related issues
-   - Request review from appropriate personas (see CLAUDE.md)
+   - Request review from the appropriate maintainers
 
 6. **Address review feedback**
 
@@ -269,8 +264,6 @@ export function processTrace(
 
 ## Security Guidelines
 
-See [CLAUDE.md Section 4](./CLAUDE.md#4-security-is-non-negotiable) for full security requirements.
-
 **Critical rules:**
 - Every DB query MUST be scoped by `org_id`
 - Never log sensitive data (API keys, user data)
@@ -292,8 +285,7 @@ Before requesting review:
 
 ## Questions?
 
-- Check [CLAUDE.md](./CLAUDE.md) for project context
-- Review [docs/](./docs/) for architecture and decisions
+- Open an issue or discussion with the relevant context
 - Ask in GitHub Discussions or Discord
 
 ## License
