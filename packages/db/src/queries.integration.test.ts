@@ -34,8 +34,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
   beforeAll(async () => {
     // Ensure the module-level singleton in client.ts picks up our test URL
     if (!process.env["DATABASE_URL"]) {
-      process.env["DATABASE_URL"] =
-        "postgres://foxhound:foxhound@localhost:5432/foxhound_dev";
+      process.env["DATABASE_URL"] = "postgres://foxhound:foxhound@localhost:5432/foxhound_dev";
     }
 
     await runMigrations();
@@ -623,9 +622,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       const afterSecond = await queries.resolveApiKey(key.rawKey);
       if ("rejected" in afterSecond) throw new Error("unexpected rejection");
       // Timestamp should be unchanged since the debounce prevents writing
-      expect(afterSecond.apiKey.lastUsedAt!.getTime()).toBe(
-        firstTimestamp!.getTime(),
-      );
+      expect(afterSecond.apiKey.lastUsedAt!.getTime()).toBe(firstTimestamp!.getTime());
     });
   });
 
@@ -635,9 +632,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       // Create an old trace (45 days ago)
       const oldDate = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
-      await testDb.insert(
-        (await import("./schema.js")).traces,
-      ).values({
+      await testDb.insert((await import("./schema.js")).traces).values({
         id: "old-trace",
         orgId: org.id,
         agentId: "agent",
@@ -802,9 +797,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       expect(result.org.id).toBe("signup-org");
       expect(result.user.id).toBe("signup-user");
 
-      const membershipsResult = await queries.getMembershipsByUser(
-        "signup-user",
-      );
+      const membershipsResult = await queries.getMembershipsByUser("signup-user");
       expect(membershipsResult).toHaveLength(1);
       expect(membershipsResult[0]!.role).toBe("owner");
     });

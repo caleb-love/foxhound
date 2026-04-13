@@ -2,18 +2,18 @@
  * NextAuth configuration for Foxhound dashboard
  */
 
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -22,8 +22,8 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const res = await fetch(`${API_URL}/v1/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
@@ -42,14 +42,14 @@ export const authOptions: NextAuthOptions = {
               email: data.user.email,
               name: data.user.name,
               token: data.token,
-              orgId: data.user.orgId || data.user.organizations?.[0]?.id || '',
+              orgId: data.user.orgId || data.user.organizations?.[0]?.id || "",
             };
           }
 
           return null;
         } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Auth error:', error);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Auth error:", error);
           }
           return null;
         }
@@ -79,10 +79,10 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

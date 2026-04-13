@@ -13,6 +13,7 @@ npm install @foxhound-ai/sdk
 ## What this package is for
 
 Use the SDK when you want to:
+
 - instrument TypeScript or Node.js agent runtimes
 - record traces and spans for LLM calls, tool calls, and workflow steps
 - fetch managed prompts by name and label
@@ -173,9 +174,11 @@ Use those headers when one agent invokes another so traces remain linked across 
 - `endpoint`: the Foxhound API base URL
 
 Typical local endpoint:
+
 - `http://localhost:3000`
 
 Typical hosted endpoint:
+
 - your deployed Foxhound API URL
 
 ## Related packages

@@ -46,7 +46,9 @@ export function startSlaSchedulerWorker(connection: ConnectionOptions): Worker {
     },
   );
 
-  worker.on("failed", (job, err) => log.error("Job failed", { jobId: job?.id, error: err.message }));
+  worker.on("failed", (job, err) =>
+    log.error("Job failed", { jobId: job?.id, error: err.message }),
+  );
 
   return worker;
 }

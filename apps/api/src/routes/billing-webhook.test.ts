@@ -36,11 +36,7 @@ vi.mock("stripe", () => {
   };
 });
 
-import {
-  getOrganizationByStripeCustomerId,
-  updateOrgPlan,
-  writeAuditLog,
-} from "@foxhound/db";
+import { getOrganizationByStripeCustomerId, updateOrgPlan, writeAuditLog } from "@foxhound/db";
 import { invalidateEntitlements } from "@foxhound/billing";
 import { invalidateBillingStatusCache } from "./billing.js";
 import { registerAuth } from "../plugins/auth.js";

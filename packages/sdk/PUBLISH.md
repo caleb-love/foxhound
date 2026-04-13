@@ -18,13 +18,15 @@
 **Files:** 23
 
 **Includes:**
+
 - ✅ README.md (world-class documentation)
 - ✅ CHANGELOG.md
 - ✅ dist/ (compiled TypeScript + type definitions + source maps)
 - ✅ package.json
 
 **Excludes:**
-- ✅ Test files (*.test.js)
+
+- ✅ Test files (\*.test.js)
 - ✅ .turbo cache
 - ✅ coverage/
 - ✅ src/ (source TypeScript files)

@@ -79,7 +79,9 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
     channels.map((c) => [c.id, c as unknown as NotificationChannel]),
   );
   const matchingRules = rules.filter((r) => r.eventType === "cost_budget_exceeded");
-  const alertLogger = { error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>) };
+  const alertLogger = {
+    error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
+  };
   await dispatchAlert(event, matchingRules, channelMap, alertLogger);
 
   await Promise.allSettled(

@@ -28,8 +28,7 @@ const config: Config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
-          editUrl:
-            "https://github.com/caleb-love/foxhound/tree/main/docs-site/",
+          editUrl: "https://github.com/caleb-love/foxhound/tree/main/docs-site/",
         },
         blog: false,
         theme: {

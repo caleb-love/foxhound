@@ -38,12 +38,10 @@ describe("sla-scheduler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(Worker).mockImplementation(
-      (_name: string, processor: unknown, _opts: unknown) => {
-        capturedProcessor = processor as (job: unknown) => Promise<void>;
-        return { on: vi.fn(), close: vi.fn() } as never;
-      },
-    );
+    vi.mocked(Worker).mockImplementation((_name: string, processor: unknown, _opts: unknown) => {
+      capturedProcessor = processor as (job: unknown) => Promise<void>;
+      return { on: vi.fn(), close: vi.fn() } as never;
+    });
   });
 
   it("starts the worker with concurrency 1", async () => {

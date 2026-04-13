@@ -177,7 +177,11 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
       const item = await getDatasetItem(run.datasetItemId, orgId);
       if (!item) {
         failedCount++;
-        log.error("Dataset item not found or inaccessible", { runId: run.id, datasetItemId: run.datasetItemId, orgId });
+        log.error("Dataset item not found or inaccessible", {
+          runId: run.id,
+          datasetItemId: run.datasetItemId,
+          orgId,
+        });
         await updateExperimentRun(run.id, orgId, {
           output: { error: "dataset_item_not_found" },
         });
@@ -208,7 +212,10 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
     const active = enabledEvaluators.filter((e) => e.enabled);
 
     if (active.length > 0) {
-      log.info("Auto-scoring experiment runs", { runCount: runs.length, evaluatorCount: active.length });
+      log.info("Auto-scoring experiment runs", {
+        runCount: runs.length,
+        evaluatorCount: active.length,
+      });
       for (const run of runs) {
         const updatedRun = await getExperimentRun(run.id, orgId);
         if (!updatedRun?.output || updatedRun.output.error) continue;
@@ -231,7 +238,11 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
               comment: `experiment:${experiment.id} run:${run.id}`,
             });
           } catch (err) {
-            log.warn("Evaluator scoring failed", { runId: run.id, evaluator: evaluator.name, error: (err as Error).message });
+            log.warn("Evaluator scoring failed", {
+              runId: run.id,
+              evaluator: evaluator.name,
+              error: (err as Error).message,
+            });
           }
         }
       }
@@ -240,7 +251,11 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
     log.error("Auto-scoring failed", { error: (err as Error).message });
   }
 
-  await updateExperimentStatus(experimentId, orgId, runs.length > 0 && failedCount === runs.length ? "failed" : "completed");
+  await updateExperimentStatus(
+    experimentId,
+    orgId,
+    runs.length > 0 && failedCount === runs.length ? "failed" : "completed",
+  );
 }
 
 /**
@@ -278,9 +293,14 @@ export function startExperimentWorker(connection: ConnectionOptions): Worker<Exp
     log.error("Job failed", { jobId: job?.id, experimentId, error: err.message });
 
     if (job?.data?.experimentId && job?.data?.orgId) {
-      updateExperimentStatus(job.data.experimentId, job.data.orgId, "failed").catch((e: unknown) => {
-        log.error("Failed to update experiment status", { experimentId: job?.data?.experimentId, error: String(e) });
-      });
+      updateExperimentStatus(job.data.experimentId, job.data.orgId, "failed").catch(
+        (e: unknown) => {
+          log.error("Failed to update experiment status", {
+            experimentId: job?.data?.experimentId,
+            error: String(e),
+          });
+        },
+      );
     }
   });
 

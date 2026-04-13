@@ -12,4 +12,9 @@
 
 export { FoxhoundClient } from "./client.js";
 export { Tracer } from "./tracer.js";
-export type { BudgetExceededInfo, FoxhoundClientOptions, ResolvedPrompt, PromptGetParams } from "./client.js";
+export type {
+  BudgetExceededInfo,
+  FoxhoundClientOptions,
+  ResolvedPrompt,
+  PromptGetParams,
+} from "./client.js";

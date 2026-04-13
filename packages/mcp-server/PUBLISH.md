@@ -18,6 +18,7 @@ cd packages/mcp-server
 ```
 
 This will:
+
 - Display a URL: https://github.com/login/device
 - Display a device code (e.g., BB16-AC43)
 - Wait for authorization
@@ -33,6 +34,7 @@ Once authenticated:
 ```
 
 This will:
+
 - Validate that `mcpName` in package.json matches `name` in server.json
 - Verify the npm package exists at the declared version
 - Submit metadata to the MCP Registry
@@ -46,6 +48,7 @@ curl -s 'https://registry.modelcontextprotocol.io/v0/servers?search=foxhound' | 
 ```
 
 Expected output:
+
 ```json
 {
   "name": "io.github.caleb-love/foxhound",
@@ -72,6 +75,7 @@ claude mcp add foxhound -- npx @foxhound-ai/mcp-server
 ### Authentication Timeout
 
 If `mcp-publisher login github` times out, ensure:
+
 - GitHub is accessible
 - You complete the OAuth flow within 120 seconds
 - You have a GitHub account and are logged in
@@ -79,6 +83,7 @@ If `mcp-publisher login github` times out, ensure:
 ### Validation Errors
 
 If `mcp-publisher publish` fails validation:
+
 - Ensure `mcpName` in package.json matches `name` in server.json (both should be `io.github.caleb-love/foxhound`)
 - Verify npm package exists: `npm view @foxhound-ai/mcp-server version`
 - Check server.json schema: `cat server.json | jq .`
@@ -86,6 +91,7 @@ If `mcp-publisher publish` fails validation:
 ### Server Not Found in Registry
 
 If the registry search returns empty:
+
 - Wait a few minutes for indexing
 - Check registry status: https://registry.modelcontextprotocol.io/status
 - Verify publish succeeded without errors
@@ -95,6 +101,7 @@ If the registry search returns empty:
 ### Publishing Updates
 
 When publishing a new version:
+
 1. Bump version in `package.json` and `server.json`
 2. Publish to npm: `npm publish`
 3. Publish to registry: `./mcp-publisher publish`

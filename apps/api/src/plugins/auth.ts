@@ -153,9 +153,7 @@ export function registerAuth(fastify: FastifyInstance): void {
         revoked: "API key has been revoked",
         expired: "API key has expired",
       };
-      return reply
-        .code(401)
-        .send({ error: "Unauthorized", message: messages[resolved.rejected] });
+      return reply.code(401).send({ error: "Unauthorized", message: messages[resolved.rejected] });
     }
 
     request.orgId = resolved.org.id;

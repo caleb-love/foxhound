@@ -212,9 +212,7 @@ export class FoxhoundSpanProcessor implements SpanProcessor {
     try {
       const ctx = span.spanContext();
       if (!ctx || !ctx.traceId) {
-        console.warn(
-          `FoxhoundSpanProcessor: span '${span.name}' has no traceId — skipping`,
-        );
+        console.warn(`FoxhoundSpanProcessor: span '${span.name}' has no traceId — skipping`);
         return;
       }
 
@@ -233,10 +231,7 @@ export class FoxhoundSpanProcessor implements SpanProcessor {
       });
       this.spanMap.set(otelSpanId, foxSpan);
     } catch (err) {
-      console.error(
-        `FoxhoundSpanProcessor: error in onStart for span '${span.name}':`,
-        err,
-      );
+      console.error(`FoxhoundSpanProcessor: error in onStart for span '${span.name}':`, err);
     }
   }
 
@@ -267,10 +262,7 @@ export class FoxhoundSpanProcessor implements SpanProcessor {
       );
       foxSpan.end(status);
     } catch (err) {
-      console.error(
-        `FoxhoundSpanProcessor: error in onEnd for span '${span.name}':`,
-        err,
-      );
+      console.error(`FoxhoundSpanProcessor: error in onEnd for span '${span.name}':`, err);
     }
   }
 

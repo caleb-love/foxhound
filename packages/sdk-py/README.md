@@ -183,7 +183,7 @@ await processor.flush()
 ### Coverage note
 
 The OTel bridge captures spans emitted by frameworks as OpenTelemetry GenAI
-semantic convention attributes.  Framework-specific metadata that is not yet
+semantic convention attributes. Framework-specific metadata that is not yet
 encoded in those conventions (e.g. per-turn tool call arguments from CrewAI or
 LangGraph) is available only via the native callback-based integrations
 (`foxhound.integrations.langgraph`, `foxhound.integrations.crewai`), which

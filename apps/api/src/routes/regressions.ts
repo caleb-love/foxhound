@@ -80,41 +80,41 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     "/v1/regressions/:agentId/compare",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const { agentId } = request.params as { agentId: string };
-    const result = CompareSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+      const { agentId } = request.params as { agentId: string };
+      const result = CompareSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { versionA, versionB } = result.data;
-    const orgId = request.orgId;
+      const { versionA, versionB } = result.data;
+      const orgId = request.orgId;
 
-    const [baselineA, baselineB] = await Promise.all([
-      getBaseline(orgId, agentId, versionA),
-      getBaseline(orgId, agentId, versionB),
-    ]);
+      const [baselineA, baselineB] = await Promise.all([
+        getBaseline(orgId, agentId, versionA),
+        getBaseline(orgId, agentId, versionB),
+      ]);
 
-    // If baselines don't exist, compute on the fly
-    const structA =
-      (baselineA?.spanStructure as Record<string, number>) ??
-      (await getSpanStructureForVersion(orgId, agentId, versionA));
-    const structB =
-      (baselineB?.spanStructure as Record<string, number>) ??
-      (await getSpanStructureForVersion(orgId, agentId, versionB));
+      // If baselines don't exist, compute on the fly
+      const structA =
+        (baselineA?.spanStructure as Record<string, number>) ??
+        (await getSpanStructureForVersion(orgId, agentId, versionA));
+      const structB =
+        (baselineB?.spanStructure as Record<string, number>) ??
+        (await getSpanStructureForVersion(orgId, agentId, versionB));
 
-    const regressions = detectStructuralDrift(structA, structB);
+      const regressions = detectStructuralDrift(structA, structB);
 
-    return reply.code(200).send({
-      agentId,
-      previousVersion: versionA,
-      newVersion: versionB,
-      regressions,
-      sampleSize: {
-        before: baselineA?.sampleSize ?? 0,
-        after: baselineB?.sampleSize ?? 0,
-      },
-    });
-  },
+      return reply.code(200).send({
+        agentId,
+        previousVersion: versionA,
+        newVersion: versionB,
+        regressions,
+        sampleSize: {
+          before: baselineA?.sampleSize ?? 0,
+          after: baselineB?.sampleSize ?? 0,
+        },
+      });
+    },
   );
 
   // List baselines

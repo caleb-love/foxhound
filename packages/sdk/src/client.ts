@@ -373,7 +373,11 @@ class DatasetsNamespace {
 
   async addItems(
     datasetId: string,
-    items: Array<{ input: Record<string, unknown>; expectedOutput?: Record<string, unknown>; metadata?: Record<string, unknown> }>,
+    items: Array<{
+      input: Record<string, unknown>;
+      expectedOutput?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
+    }>,
   ): Promise<unknown> {
     return this.request("POST", `/v1/datasets/${encodeURIComponent(datasetId)}/items`, { items });
   }
@@ -530,7 +534,9 @@ class PromptsNamespace {
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      throw new Error(`Failed to resolve prompt: ${response.status} ${text || response.statusText}`);
+      throw new Error(
+        `Failed to resolve prompt: ${response.status} ${text || response.statusText}`,
+      );
     }
 
     const prompt = (await response.json()) as ResolvedPrompt;
@@ -550,7 +556,10 @@ class PromptsNamespace {
 }
 
 export class FoxhoundClient {
-  private readonly options: Required<Pick<FoxhoundClientOptions, "apiKey" | "endpoint" | "flushIntervalMs" | "maxBatchSize">> & Pick<FoxhoundClientOptions, "onBudgetExceeded">;
+  private readonly options: Required<
+    Pick<FoxhoundClientOptions, "apiKey" | "endpoint" | "flushIntervalMs" | "maxBatchSize">
+  > &
+    Pick<FoxhoundClientOptions, "onBudgetExceeded">;
   private readonly tracers: Map<string, Tracer> = new Map();
 
   /** Namespaced API for scores. */

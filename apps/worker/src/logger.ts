@@ -34,9 +34,13 @@ export const logger = {
 
   /** Create a child logger with preset context fields */
   child: (defaults: Record<string, unknown>) => ({
-    info: (msg: string, ctx?: Record<string, unknown>) => write("info", msg, { ...defaults, ...ctx }),
-    warn: (msg: string, ctx?: Record<string, unknown>) => write("warn", msg, { ...defaults, ...ctx }),
-    error: (msg: string, ctx?: Record<string, unknown>) => write("error", msg, { ...defaults, ...ctx }),
-    debug: (msg: string, ctx?: Record<string, unknown>) => write("debug", msg, { ...defaults, ...ctx }),
+    info: (msg: string, ctx?: Record<string, unknown>) =>
+      write("info", msg, { ...defaults, ...ctx }),
+    warn: (msg: string, ctx?: Record<string, unknown>) =>
+      write("warn", msg, { ...defaults, ...ctx }),
+    error: (msg: string, ctx?: Record<string, unknown>) =>
+      write("error", msg, { ...defaults, ...ctx }),
+    debug: (msg: string, ctx?: Record<string, unknown>) =>
+      write("debug", msg, { ...defaults, ...ctx }),
   }),
 };

@@ -111,9 +111,7 @@ describe("FoxhoundApiClient", () => {
 });
 
 describe("failure analysis", () => {
-  function makeSpan(
-    overrides: Partial<Span> & Pick<Span, "spanId" | "name">,
-  ): Span {
+  function makeSpan(overrides: Partial<Span> & Pick<Span, "spanId" | "name">): Span {
     return {
       traceId: "trace-1",
       kind: "custom",
@@ -767,7 +765,10 @@ describe("evaluator tools", () => {
 
     it("includes auth header", async () => {
       const client = makeClient();
-      mockOk({ message: "1 run queued", runs: [{ id: "run-1", traceId: "trace-1", status: "pending" }] });
+      mockOk({
+        message: "1 run queued",
+        runs: [{ id: "run-1", traceId: "trace-1", status: "pending" }],
+      });
 
       await client.triggerEvaluatorRuns({
         evaluatorId: "eval-1",
@@ -1120,12 +1121,14 @@ describe("scoring tools", () => {
         text: () => Promise.resolve("Trace not found"),
       });
 
-      await expect(client.createScore({
-        traceId: "missing-trace",
-        name: "quality",
-        value: 0.8,
-        source: "manual",
-      })).rejects.toThrow("Foxhound API 404");
+      await expect(
+        client.createScore({
+          traceId: "missing-trace",
+          name: "quality",
+          value: 0.8,
+          source: "manual",
+        }),
+      ).rejects.toThrow("Foxhound API 404");
     });
 
     it("throws on 401 for auth failure", async () => {
@@ -1161,7 +1164,13 @@ describe("scoring tools", () => {
         const client = makeClient();
         const datasets = [
           { id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z" },
-          { id: "ds-2", orgId: "org-1", name: "Dataset 2", description: "Test dataset", createdAt: "2024-01-01T00:00:00Z" },
+          {
+            id: "ds-2",
+            orgId: "org-1",
+            name: "Dataset 2",
+            description: "Test dataset",
+            createdAt: "2024-01-01T00:00:00Z",
+          },
         ];
         mockOk({ data: datasets });
 
@@ -1176,7 +1185,13 @@ describe("scoring tools", () => {
     describe("getDataset", () => {
       it("sends correct request with dataset ID", async () => {
         const client = makeClient();
-        mockOk({ id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z", itemCount: 42 });
+        mockOk({
+          id: "ds-1",
+          orgId: "org-1",
+          name: "Dataset 1",
+          createdAt: "2024-01-01T00:00:00Z",
+          itemCount: 42,
+        });
 
         await client.getDataset("ds-1");
 
@@ -1187,7 +1202,13 @@ describe("scoring tools", () => {
 
       it("includes item count", async () => {
         const client = makeClient();
-        mockOk({ id: "ds-1", orgId: "org-1", name: "Dataset 1", createdAt: "2024-01-01T00:00:00Z", itemCount: 42 });
+        mockOk({
+          id: "ds-1",
+          orgId: "org-1",
+          name: "Dataset 1",
+          createdAt: "2024-01-01T00:00:00Z",
+          itemCount: 42,
+        });
 
         const result = await client.getDataset("ds-1");
 

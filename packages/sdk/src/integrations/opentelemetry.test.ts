@@ -87,7 +87,9 @@ describe("FoxhoundSpanProcessor", () => {
         attributes: { "gen_ai.operation.name": "chat" },
       });
       processor.onStart(span, null);
-      processor.onEnd(makeReadableSpan({ name: "llm-call", attributes: { "gen_ai.operation.name": "chat" } }));
+      processor.onEnd(
+        makeReadableSpan({ name: "llm-call", attributes: { "gen_ai.operation.name": "chat" } }),
+      );
       await processor.forceFlush();
 
       const spans = spansByName(flushed);
@@ -118,18 +120,60 @@ describe("FoxhoundSpanProcessor", () => {
       name?: string;
       expectedKind: string;
     }> = [
-      { desc: "chat → llm_call", attrs: { "gen_ai.operation.name": "chat" }, expectedKind: "llm_call" },
-      { desc: "text_completion → llm_call", attrs: { "gen_ai.operation.name": "text_completion" }, expectedKind: "llm_call" },
-      { desc: "embeddings → tool_call", attrs: { "gen_ai.operation.name": "embeddings" }, expectedKind: "tool_call" },
-      { desc: "agent → agent_step", attrs: { "gen_ai.operation.name": "agent" }, expectedKind: "agent_step" },
-      { desc: "invoke → agent_step", attrs: { "gen_ai.operation.name": "invoke" }, expectedKind: "agent_step" },
-      { desc: "tool → tool_call", attrs: { "gen_ai.operation.name": "tool" }, expectedKind: "tool_call" },
-      { desc: "execute → tool_call", attrs: { "gen_ai.operation.name": "execute" }, expectedKind: "tool_call" },
-      { desc: "unknown op → workflow", attrs: { "gen_ai.operation.name": "unknown" }, expectedKind: "workflow" },
+      {
+        desc: "chat → llm_call",
+        attrs: { "gen_ai.operation.name": "chat" },
+        expectedKind: "llm_call",
+      },
+      {
+        desc: "text_completion → llm_call",
+        attrs: { "gen_ai.operation.name": "text_completion" },
+        expectedKind: "llm_call",
+      },
+      {
+        desc: "embeddings → tool_call",
+        attrs: { "gen_ai.operation.name": "embeddings" },
+        expectedKind: "tool_call",
+      },
+      {
+        desc: "agent → agent_step",
+        attrs: { "gen_ai.operation.name": "agent" },
+        expectedKind: "agent_step",
+      },
+      {
+        desc: "invoke → agent_step",
+        attrs: { "gen_ai.operation.name": "invoke" },
+        expectedKind: "agent_step",
+      },
+      {
+        desc: "tool → tool_call",
+        attrs: { "gen_ai.operation.name": "tool" },
+        expectedKind: "tool_call",
+      },
+      {
+        desc: "execute → tool_call",
+        attrs: { "gen_ai.operation.name": "execute" },
+        expectedKind: "tool_call",
+      },
+      {
+        desc: "unknown op → workflow",
+        attrs: { "gen_ai.operation.name": "unknown" },
+        expectedKind: "workflow",
+      },
       { desc: "no op attr → workflow", attrs: {}, expectedKind: "workflow" },
       // Name-based heuristics
-      { desc: "name starts with agent → agent_step", attrs: {}, name: "agent.run", expectedKind: "agent_step" },
-      { desc: "name starts with tool → tool_call", attrs: {}, name: "tool.bash", expectedKind: "tool_call" },
+      {
+        desc: "name starts with agent → agent_step",
+        attrs: {},
+        name: "agent.run",
+        expectedKind: "agent_step",
+      },
+      {
+        desc: "name starts with tool → tool_call",
+        attrs: {},
+        name: "tool.bash",
+        expectedKind: "tool_call",
+      },
       { desc: "other name → workflow", attrs: {}, name: "my-span", expectedKind: "workflow" },
     ];
 
@@ -264,7 +308,7 @@ describe("FoxhoundSpanProcessor", () => {
       const { processor, flushed } = makeTracer();
 
       const parentOtelId = "parent0000000001";
-      const childOtelId =  "child00000000001";
+      const childOtelId = "child00000000001";
 
       const parentSpan = makeOtelSpan({ name: "parent", spanId: parentOtelId });
       const childSpan = makeOtelSpan({
@@ -275,7 +319,9 @@ describe("FoxhoundSpanProcessor", () => {
 
       processor.onStart(parentSpan, null);
       processor.onStart(childSpan, null);
-      processor.onEnd(makeReadableSpan({ name: "child", spanId: childOtelId, parentSpanId: parentOtelId }));
+      processor.onEnd(
+        makeReadableSpan({ name: "child", spanId: childOtelId, parentSpanId: parentOtelId }),
+      );
       processor.onEnd(makeReadableSpan({ name: "parent", spanId: parentOtelId }));
       await processor.forceFlush();
 
@@ -332,7 +378,9 @@ describe("FoxhoundSpanProcessor", () => {
       const { processor, flushed } = makeTracer();
       const span = makeOtelSpan({ name: "s", attributes: { "gen_ai.operation.name": "chat" } });
       processor.onStart(span, null);
-      processor.onEnd(makeReadableSpan({ name: "s", attributes: { "gen_ai.operation.name": "chat" } }));
+      processor.onEnd(
+        makeReadableSpan({ name: "s", attributes: { "gen_ai.operation.name": "chat" } }),
+      );
       await processor.shutdown();
       expect(flushed).toHaveLength(1);
     });

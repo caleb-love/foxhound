@@ -2,9 +2,9 @@
  * Global filter state for trace list
  */
 
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type StatusFilter = 'all' | 'success' | 'error';
+export type StatusFilter = "all" | "success" | "error";
 
 interface FilterState {
   // Filters
@@ -29,13 +29,13 @@ const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
 export const useFilterStore = create<FilterState>((set) => ({
   // Initial state
-  status: 'all',
+  status: "all",
   agentIds: [],
   dateRange: {
     start: last24h,
     end: now,
   },
-  searchQuery: '',
+  searchQuery: "",
 
   // Actions
   setStatus: (status) => set({ status }),
@@ -44,9 +44,9 @@ export const useFilterStore = create<FilterState>((set) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   clearFilters: () =>
     set({
-      status: 'all',
+      status: "all",
       agentIds: [],
       dateRange: { start: last24h, end: now },
-      searchQuery: '',
+      searchQuery: "",
     }),
 }));

@@ -189,7 +189,9 @@ function parseModelSpec(modelSpec: string): { provider: LlmProvider; model: stri
     const model = modelSpec.slice(colonIdx + 1);
     const provider = PROVIDERS[providerName];
     if (!provider) {
-      throw new Error(`Unknown LLM provider: ${providerName}. Supported: ${Object.keys(PROVIDERS).join(", ")}`);
+      throw new Error(
+        `Unknown LLM provider: ${providerName}. Supported: ${Object.keys(PROVIDERS).join(", ")}`,
+      );
     }
     return { provider, model };
   }
@@ -241,8 +243,15 @@ async function callLlmJudge(
   if (!response.ok) {
     const rawText = await response.text().catch(() => "");
     // Log sanitized error — don't include raw LLM provider response bodies
-    log.error("LLM API error", { provider: provider.name, model, status: response.status, body: sanitizeErrorForStorage(rawText) });
-    throw new Error(`LLM API error (${provider.name}): ${response.status} ${sanitizeErrorForStorage(rawText)}`);
+    log.error("LLM API error", {
+      provider: provider.name,
+      model,
+      status: response.status,
+      body: sanitizeErrorForStorage(rawText),
+    });
+    throw new Error(
+      `LLM API error (${provider.name}): ${response.status} ${sanitizeErrorForStorage(rawText)}`,
+    );
   }
 
   const data: unknown = await response.json();
@@ -352,7 +361,9 @@ export function createEvaluatorQueue(connection: ConnectionOptions): Queue<Evalu
 /**
  * Process a dead-letter job — mark the run as permanently failed and fire an alert.
  */
-async function processDlqJob(job: Job<EvaluatorJobData & { originalError?: string }>): Promise<void> {
+async function processDlqJob(
+  job: Job<EvaluatorJobData & { originalError?: string }>,
+): Promise<void> {
   const { runId, originalError } = job.data;
   log.warn("DLQ: permanently failed evaluator run", { runId, originalError });
 
@@ -379,15 +390,23 @@ async function processDlqJob(job: Job<EvaluatorJobData & { originalError?: strin
  */
 export function startEvaluatorWorker(connection: ConnectionOptions): Worker<EvaluatorJobData> {
   // Create DLQ for permanently failed jobs
-  const dlq = new Queue<EvaluatorJobData & { originalError?: string }>(EVALUATOR_DLQ_NAME, { connection });
+  const dlq = new Queue<EvaluatorJobData & { originalError?: string }>(EVALUATOR_DLQ_NAME, {
+    connection,
+  });
 
   const dlqWorker = new Worker<EvaluatorJobData & { originalError?: string }>(
     EVALUATOR_DLQ_NAME,
-    async (job) => { await processDlqJob(job); },
+    async (job) => {
+      await processDlqJob(job);
+    },
     { connection, concurrency: 5 },
   );
   dlqWorker.on("failed", (job, err) => {
-    log.error("DLQ processing failed", { jobId: job?.id, runId: job?.data?.runId, error: err.message });
+    log.error("DLQ processing failed", {
+      jobId: job?.id,
+      runId: job?.data?.runId,
+      error: err.message,
+    });
   });
 
   const worker = new Worker<EvaluatorJobData>(
@@ -412,23 +431,37 @@ export function startEvaluatorWorker(connection: ConnectionOptions): Worker<Eval
   worker.on("failed", (job, err) => {
     const runId = job?.data?.runId ?? "unknown";
     const attempts = job?.attemptsMade ?? 0;
-    log.error("Job failed", { jobId: job?.id, runId, error: err.message, attempt: attempts, maxAttempts: MAX_ATTEMPTS });
+    log.error("Job failed", {
+      jobId: job?.id,
+      runId,
+      error: err.message,
+      attempt: attempts,
+      maxAttempts: MAX_ATTEMPTS,
+    });
 
     if (attempts >= MAX_ATTEMPTS && job?.data?.runId) {
       // Move to DLQ after exhausting all retries
-      dlq.add("dlq", { runId: job.data.runId, originalError: err.message }, {
-        removeOnComplete: 100,
-        removeOnFail: 500,
-      }).catch((e) => {
-        log.error("Failed to enqueue DLQ job", { runId: job?.data?.runId, error: String(e) });
-      });
+      dlq
+        .add(
+          "dlq",
+          { runId: job.data.runId, originalError: err.message },
+          {
+            removeOnComplete: 100,
+            removeOnFail: 500,
+          },
+        )
+        .catch((e) => {
+          log.error("Failed to enqueue DLQ job", { runId: job?.data?.runId, error: String(e) });
+        });
     } else if (job?.data?.runId) {
       // Intermediate failure — resolve orgId and update status to allow retry
       (async () => {
         const failedRun = await getEvaluatorRun(job.data.runId);
         const failedEval = failedRun ? await getEvaluatorById(failedRun.evaluatorId) : null;
         if (failedEval?.orgId) {
-          await updateEvaluatorRunStatus(job.data.runId, failedEval.orgId, "failed", { error: sanitizeErrorForStorage(err.message) });
+          await updateEvaluatorRunStatus(job.data.runId, failedEval.orgId, "failed", {
+            error: sanitizeErrorForStorage(err.message),
+          });
         }
       })().catch((e) => {
         log.error("Failed to update run status", { runId: job?.data?.runId, error: String(e) });
