@@ -19,6 +19,7 @@ This is a workspace package - install via pnpm workspaces:
 ### Core Observability Types
 
 #### Trace
+
 Top-level trace object representing a single agent execution.
 
 ```typescript
@@ -34,6 +35,7 @@ interface Trace {
 ```
 
 #### Span
+
 Individual operation within a trace (LLM call, tool call, agent step, etc.)
 
 ```typescript
@@ -54,13 +56,15 @@ interface Span {
 ### Enums
 
 #### SpanKind
+
 ```typescript
-type SpanKind = 'llm_call' | 'tool_call' | 'agent_step' | 'workflow' | 'custom';
+type SpanKind = "llm_call" | "tool_call" | "agent_step" | "workflow" | "custom";
 ```
 
 #### SpanStatus
+
 ```typescript
-type SpanStatus = 'ok' | 'error' | 'unset';
+type SpanStatus = "ok" | "error" | "unset";
 ```
 
 ## Important Contracts
@@ -70,10 +74,11 @@ type SpanStatus = 'ok' | 'error' | 'unset';
 **CRITICAL:** Both `Span.attributes` and `Trace.metadata` use the same type:
 
 ```typescript
-Record<string, string | number | boolean | null>
+Record<string, string | number | boolean | null>;
 ```
 
 **This means:**
+
 - ✅ You can use: strings, numbers, booleans, null
 - ❌ You cannot use: undefined, objects, arrays, functions
 
@@ -87,7 +92,7 @@ const span: Span = {
     tokens: 1234,
     cost: 0.05,
     cached: true,
-  }
+  },
 };
 
 // ❌ WRONG
@@ -95,17 +100,18 @@ const span: Span = {
   attributes: {
     model: "gpt-4",
     tokens: 1234,
-    cached: undefined,  // ❌ undefined not allowed
-    metadata: { key: "value" },  // ❌ nested objects not allowed
-  }
+    cached: undefined, // ❌ undefined not allowed
+    metadata: { key: "value" }, // ❌ nested objects not allowed
+  },
 };
 ```
 
 ## Usage Examples
 
 ### Basic Import
+
 ```typescript
-import type { Trace, Span, SpanKind } from '@foxhound/types';
+import type { Trace, Span, SpanKind } from "@foxhound/types";
 
 function processTrace(trace: Trace) {
   // TypeScript knows the structure
@@ -113,33 +119,35 @@ function processTrace(trace: Trace) {
 ```
 
 ### Creating Test Data
+
 ```typescript
-import type { Trace, Span } from '@foxhound/types';
+import type { Trace, Span } from "@foxhound/types";
 
 const mockTrace: Trace = {
-  id: 'trace-123',
-  agentId: 'test-agent',
+  id: "trace-123",
+  agentId: "test-agent",
   startTimeMs: Date.now(),
   spans: [],
   metadata: {
-    environment: 'test',
-    version: '1.0.0',
+    environment: "test",
+    version: "1.0.0",
   },
 };
 ```
 
 ### Filtering by Span Kind
+
 ```typescript
 const llmCalls = trace.spans.filter(
-  (span): span is Span & { kind: 'llm_call' } => 
-    span.kind === 'llm_call'
+  (span): span is Span & { kind: "llm_call" } => span.kind === "llm_call",
 );
 ```
 
 ### Type Guards
+
 ```typescript
-function isLLMCall(span: Span): span is Span & { kind: 'llm_call' } {
-  return span.kind === 'llm_call';
+function isLLMCall(span: Span): span is Span & { kind: "llm_call" } {
+  return span.kind === "llm_call";
 }
 
 const llmSpans = trace.spans.filter(isLLMCall);
@@ -159,18 +167,21 @@ When adding types to this package:
 ## Type Evolution Guidelines
 
 ### When to Add a New Type
+
 - Shared across 2+ packages/apps
 - Part of the core domain model
 - API contract types
 - Configuration types used by multiple consumers
 
 ### When NOT to Add Here
+
 - Component-specific props (keep in component file)
 - Single-app utility types
 - Temporary/experimental types
 - Implementation details (internal types)
 
 ### Breaking Changes
+
 - Never remove exported types
 - Never change existing type definitions
 - Add new types or properties instead

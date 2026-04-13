@@ -1,14 +1,23 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { createApiKey, listApiKeys, revokeApiKey, generateApiKey, writeAuditLog } from "@foxhound/db";
+import {
+  createApiKey,
+  listApiKeys,
+  revokeApiKey,
+  generateApiKey,
+  writeAuditLog,
+} from "@foxhound/db";
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
   /** Optional expiration date (ISO 8601). Keys past this date are rejected at auth time. */
-  expiresAt: z.coerce.date().refine((d) => d > new Date(), {
-    message: "expiresAt must be in the future",
-  }).optional(),
+  expiresAt: z.coerce
+    .date()
+    .refine((d) => d > new Date(), {
+      message: "expiresAt must be in the future",
+    })
+    .optional(),
   // NOTE: scopes column exists in DB but is NOT user-settable until scope enforcement
   // is implemented in Sprint H4. Accepting scopes here without enforcement creates
   // a false sense of security. See hardening plan H4 / security review.

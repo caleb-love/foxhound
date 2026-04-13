@@ -239,8 +239,14 @@ export async function signup(input: SignupInput) {
 // API key queries
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type ApiKeyRejection = { rejected: "expired" } | { rejected: "revoked" } | { rejected: "not_found" };
-export type ResolvedApiKey = { apiKey: typeof apiKeys.$inferSelect; org: typeof organizations.$inferSelect };
+export type ApiKeyRejection =
+  | { rejected: "expired" }
+  | { rejected: "revoked" }
+  | { rejected: "not_found" };
+export type ResolvedApiKey = {
+  apiKey: typeof apiKeys.$inferSelect;
+  org: typeof organizations.$inferSelect;
+};
 
 export async function resolveApiKey(key: string): Promise<ResolvedApiKey | ApiKeyRejection> {
   const keyHash = hashApiKey(key);
@@ -1249,11 +1255,7 @@ export async function getEvaluator(id: string, orgId: string) {
  * ONLY for trusted internal code paths (worker jobs) — never expose to API routes.
  */
 export async function getEvaluatorById(id: string) {
-  const rows = await db
-    .select()
-    .from(evaluators)
-    .where(eq(evaluators.id, id))
-    .limit(1);
+  const rows = await db.select().from(evaluators).where(eq(evaluators.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -1931,7 +1933,11 @@ export interface UpdateExperimentRunInput {
   cost?: number;
 }
 
-export async function updateExperimentRun(id: string, orgId: string, input: UpdateExperimentRunInput) {
+export async function updateExperimentRun(
+  id: string,
+  orgId: string,
+  input: UpdateExperimentRunInput,
+) {
   // Atomic org-scoped update via subquery — no TOCTOU race
   const rows = await db
     .update(experimentRuns)
@@ -2298,11 +2304,7 @@ export async function createPrompt(input: CreatePromptInput) {
   return row;
 }
 
-export async function listPrompts(
-  orgId: string,
-  page = 1,
-  limit = 50,
-) {
+export async function listPrompts(orgId: string, page = 1, limit = 50) {
   const offset = (page - 1) * limit;
   return db
     .select()
@@ -2363,15 +2365,18 @@ export async function createPromptVersion(input: CreatePromptVersionInput) {
 
     const nextVersion = (latest?.version ?? 0) + 1;
 
-    const [row] = await tx.insert(promptVersions).values({
-      id: input.id,
-      promptId: input.promptId,
-      version: nextVersion,
-      content: input.content,
-      model: input.model,
-      config: input.config ?? {},
-      createdBy: input.createdBy,
-    }).returning();
+    const [row] = await tx
+      .insert(promptVersions)
+      .values({
+        id: input.id,
+        promptId: input.promptId,
+        version: nextVersion,
+        content: input.content,
+        model: input.model,
+        config: input.config ?? {},
+        createdBy: input.createdBy,
+      })
+      .returning();
 
     // Touch parent prompt's updatedAt — scoped by orgId
     await tx
@@ -2423,11 +2428,7 @@ export async function getPromptVersionByNumber(promptId: string, orgId: string, 
  * Resolve a prompt by name + label. Used by SDKs: `fox.prompts.get(name, label)`.
  * Returns the prompt version with the matching label, or null if not found.
  */
-export async function getPromptVersionByLabel(
-  orgId: string,
-  promptName: string,
-  label: string,
-) {
+export async function getPromptVersionByLabel(orgId: string, promptName: string, label: string) {
   const rows = await db
     .select({
       version: promptVersions,
@@ -2437,11 +2438,7 @@ export async function getPromptVersionByLabel(
     .innerJoin(promptVersions, eq(promptLabels.promptVersionId, promptVersions.id))
     .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
     .where(
-      and(
-        eq(prompts.orgId, orgId),
-        eq(prompts.name, promptName),
-        eq(promptLabels.label, label),
-      ),
+      and(eq(prompts.orgId, orgId), eq(prompts.name, promptName), eq(promptLabels.label, label)),
     )
     .limit(1);
 
@@ -2466,17 +2463,15 @@ export async function setPromptLabel(input: SetPromptLabelInput) {
       .select({ id: promptLabels.id })
       .from(promptLabels)
       .innerJoin(promptVersions, eq(promptLabels.promptVersionId, promptVersions.id))
-      .where(
-        and(
-          eq(promptVersions.promptId, input.promptId),
-          eq(promptLabels.label, input.label),
-        ),
-      );
+      .where(and(eq(promptVersions.promptId, input.promptId), eq(promptLabels.label, input.label)));
 
     if (existingLabels.length > 0) {
-      await tx
-        .delete(promptLabels)
-        .where(inArray(promptLabels.id, existingLabels.map((l) => l.id)));
+      await tx.delete(promptLabels).where(
+        inArray(
+          promptLabels.id,
+          existingLabels.map((l) => l.id),
+        ),
+      );
     }
 
     // Create the new label assignment
@@ -2493,10 +2488,7 @@ export async function setPromptLabel(input: SetPromptLabelInput) {
 }
 
 export async function getLabelsForVersion(promptVersionId: string) {
-  return db
-    .select()
-    .from(promptLabels)
-    .where(eq(promptLabels.promptVersionId, promptVersionId));
+  return db.select().from(promptLabels).where(eq(promptLabels.promptVersionId, promptVersionId));
 }
 
 /** Batch fetch labels for multiple version IDs in a single query. */
@@ -2508,18 +2500,10 @@ export async function getLabelsForVersions(promptVersionIds: string[]) {
     .where(inArray(promptLabels.promptVersionId, promptVersionIds));
 }
 
-export async function deletePromptLabel(
-  promptVersionId: string,
-  label: string,
-): Promise<boolean> {
+export async function deletePromptLabel(promptVersionId: string, label: string): Promise<boolean> {
   const [deleted] = await db
     .delete(promptLabels)
-    .where(
-      and(
-        eq(promptLabels.promptVersionId, promptVersionId),
-        eq(promptLabels.label, label),
-      ),
-    )
+    .where(and(eq(promptLabels.promptVersionId, promptVersionId), eq(promptLabels.label, label)))
     .returning({ id: promptLabels.id });
   return !!deleted;
 }

@@ -94,7 +94,9 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
   );
   const matchingRules = rules.filter((r) => r.eventType === "behavior_regression");
   // Adapt to pino-style (obj, msg) signature expected by dispatchAlert
-  const alertLogger = { error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>) };
+  const alertLogger = {
+    error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
+  };
   await dispatchAlert(event, matchingRules, channelMap, alertLogger);
 
   await Promise.allSettled(

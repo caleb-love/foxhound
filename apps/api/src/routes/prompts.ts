@@ -26,7 +26,11 @@ import {
 import { requireEntitlement } from "../middleware/entitlements.js";
 
 const CreatePromptSchema = z.object({
-  name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with hyphens/underscores"),
+  name: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Name must be alphanumeric with hyphens/underscores"),
 });
 
 const CreateVersionSchema = z.object({
@@ -36,7 +40,11 @@ const CreateVersionSchema = z.object({
 });
 
 const SetLabelSchema = z.object({
-  label: z.string().min(1).max(50).regex(/^[a-zA-Z0-9_-]+$/, "Label must be alphanumeric with hyphens/underscores"),
+  label: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Label must be alphanumeric with hyphens/underscores"),
   versionNumber: z.number().int().positive(),
 });
 
@@ -86,7 +94,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       // Check for duplicate name within org
       const existing = await getPromptByName(name, orgId);
       if (existing) {
-        return reply.code(409).send({ error: "Conflict", message: `Prompt "${name}" already exists` });
+        return reply
+          .code(409)
+          .send({ error: "Conflict", message: `Prompt "${name}" already exists` });
       }
 
       let prompt;
@@ -98,13 +108,17 @@ export function promptsRoutes(fastify: FastifyInstance): void {
         });
       } catch (error) {
         if (isUniqueViolation(error, "prompts_org_name_unique")) {
-          return reply.code(409).send({ error: "Conflict", message: `Prompt "${name}" already exists` });
+          return reply
+            .code(409)
+            .send({ error: "Conflict", message: `Prompt "${name}" already exists` });
         }
         throw error;
       }
 
       if (!prompt) {
-        return reply.code(500).send({ error: "Internal Server Error", message: "Failed to create prompt" });
+        return reply
+          .code(500)
+          .send({ error: "Internal Server Error", message: "Failed to create prompt" });
       }
 
       writeAuditLog({
@@ -225,7 +239,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       });
 
       if (!version) {
-        return reply.code(500).send({ error: "Internal Server Error", message: "Failed to create version" });
+        return reply
+          .code(500)
+          .send({ error: "Internal Server Error", message: "Failed to create version" });
       }
 
       writeAuditLog({
@@ -397,57 +413,59 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     "/v1/prompts/resolve",
     { config: { rateLimit: { max: 600, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const { name, label } = request.query as { name?: string; label?: string };
+      const { name, label } = request.query as { name?: string; label?: string };
 
-    if (!name) {
-      return reply.code(400).send({ error: "Bad Request", message: "name query param is required" });
-    }
+      if (!name) {
+        return reply
+          .code(400)
+          .send({ error: "Bad Request", message: "name query param is required" });
+      }
 
-    const resolvedLabel = label ?? "production";
-    const cacheKey = `${request.orgId}:${name}:${resolvedLabel}`;
-    const cached = resolvePromptCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return reply.code(200).send(cached.payload);
-    }
+      const resolvedLabel = label ?? "production";
+      const cacheKey = `${request.orgId}:${name}:${resolvedLabel}`;
+      const cached = resolvePromptCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return reply.code(200).send(cached.payload);
+      }
 
-    const version = await getPromptVersionByLabel(request.orgId, name, resolvedLabel);
-    if (!version) {
-      return reply.code(404).send({
-        error: "Not Found",
-        message: `No prompt "${name}" with label "${resolvedLabel}" found`,
+      const version = await getPromptVersionByLabel(request.orgId, name, resolvedLabel);
+      if (!version) {
+        return reply.code(404).send({
+          error: "Not Found",
+          message: `No prompt "${name}" with label "${resolvedLabel}" found`,
+        });
+      }
+
+      writeAuditLog({
+        orgId: request.orgId,
+        action: "prompt.resolve",
+        targetType: "prompt_version",
+        targetId: version.id,
+        metadata: {
+          name,
+          label: resolvedLabel,
+          version: version.version,
+        },
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "prompt.resolve" }, "Audit log write failed");
       });
-    }
 
-    writeAuditLog({
-      orgId: request.orgId,
-      action: "prompt.resolve",
-      targetType: "prompt_version",
-      targetId: version.id,
-      metadata: {
+      const payload = {
         name,
         label: resolvedLabel,
         version: version.version,
-      },
-      ipAddress: request.ip,
-    }).catch((err) => {
-      request.log.error({ err, action: "prompt.resolve" }, "Audit log write failed");
-    });
+        content: version.content,
+        model: version.model,
+        config: version.config,
+      };
 
-    const payload = {
-      name,
-      label: resolvedLabel,
-      version: version.version,
-      content: version.content,
-      model: version.model,
-      config: version.config,
-    };
+      resolvePromptCache.set(cacheKey, {
+        expiresAt: Date.now() + RESOLVE_CACHE_TTL_MS,
+        payload,
+      });
 
-    resolvePromptCache.set(cacheKey, {
-      expiresAt: Date.now() + RESOLVE_CACHE_TTL_MS,
-      payload,
-    });
-
-    return reply.code(200).send(payload);
-  },
+      return reply.code(200).send(payload);
+    },
   );
 }

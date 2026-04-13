@@ -8,18 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-04-13
 
 ### Added
+
 - Prompt management APIs with label-based prompt resolution and client-side caching
 - Budget, SLA, and regression detection APIs
 - Dataset and experiment management APIs
 - Distributed trace propagation helpers
 
 ### Changed
+
 - Consolidated recent feature additions into the next minor release
 - Kept documentation URL and metadata corrections as part of the 0.3.0 release cut
 
 ## [0.2.1] - 2026-04-13
 
 ### Fixed
+
 - Updated all documentation URLs to correct domains:
   - Documentation: https://docs.foxhound.caleb-love.com
   - Homepage: https://foxhound.caleb-love.com
@@ -31,12 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Prompt Management
+
 - **`fox.prompts.get({ name, label })`** - Resolve prompts by name and label with automatic client-side caching
 - Support for production/staging/custom labels
 - Configurable 5-minute TTL cache (default)
 - Cache invalidation API via `fox.prompts.invalidate()`
 
 #### Agent Intelligence APIs
+
 - **Cost Budgets** - Set spending limits per agent with alert thresholds
   - `fox.budgets.set({ agentId, costBudgetUsd, costAlertThresholdPct, budgetPeriod })`
   - `fox.budgets.get(agentId)` - Get current budget configuration
@@ -56,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Receives `{ agentId, currentCost, budgetLimit }` on budget breach
 
 #### Datasets & Experiments
+
 - **Datasets** - Create golden test sets for agent evaluation
   - `fox.datasets.create({ name, description })`
   - `fox.datasets.addItems(datasetId, items)` - Add test cases manually
@@ -67,15 +73,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `fox.experiments.list({ datasetId })`, `fox.experiments.get(id)`, `fox.experiments.delete(id)`
 
 #### Trace Propagation
+
 - **`fox.getPropagationHeaders({ correlationId, parentAgentId })`** - Generate headers for distributed tracing across agent boundaries
 
 ### Changed
+
 - Improved type exports for `BudgetExceededInfo` and `ResolvedPrompt`
 - Enhanced client initialization with new optional configuration
 
 ## [0.1.0] - 2026-04-08
 
 ### Added
+
 - Initial SDK release
 - Core trace collection and span recording
 - OpenTelemetry bridge via `FoxhoundSpanProcessor`
@@ -85,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Session replay support via trace metadata
 
 ### Features
+
 - TypeScript-first with full type safety
 - Auto-batching and flush management
 - Flexible span attributes and metadata
@@ -93,5 +103,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2026-04-08
 
 ### Added
+
 - Initial package scaffold
 - Basic client structure

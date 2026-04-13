@@ -22,8 +22,7 @@ const MIGRATIONS_DIR = join(__dirname, "../drizzle");
 // ──────────────────────────────────────────────────────────────────────────────
 
 const TEST_DATABASE_URL =
-  process.env["DATABASE_URL"] ??
-  "postgres://foxhound:foxhound@localhost:5432/foxhound_dev";
+  process.env["DATABASE_URL"] ?? "postgres://foxhound:foxhound@localhost:5432/foxhound_dev";
 
 /** Whether a test database is configured and available. */
 export const hasDatabase = !!process.env["DATABASE_URL"];
@@ -41,9 +40,7 @@ export const testDb = drizzle(client, { schema });
  */
 export async function runMigrations(): Promise<void> {
   const files = await readdir(MIGRATIONS_DIR);
-  const sqlFiles = files
-    .filter((f) => f.endsWith(".sql"))
-    .sort((a, b) => a.localeCompare(b));
+  const sqlFiles = files.filter((f) => f.endsWith(".sql")).sort((a, b) => a.localeCompare(b));
 
   for (const file of sqlFiles) {
     const content = await readFile(join(MIGRATIONS_DIR, file), "utf-8");

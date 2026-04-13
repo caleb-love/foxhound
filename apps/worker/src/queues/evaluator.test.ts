@@ -152,9 +152,9 @@ describe("startEvaluatorWorker", () => {
   it("creates main Worker with correct concurrency and rate limiter", () => {
     startEvaluatorWorker(conn);
 
-    const mainWorkerCall = vi.mocked(Worker).mock.calls.find(
-      ([name]) => name === EVALUATOR_QUEUE_NAME,
-    );
+    const mainWorkerCall = vi
+      .mocked(Worker)
+      .mock.calls.find(([name]) => name === EVALUATOR_QUEUE_NAME);
     expect(mainWorkerCall).toBeDefined();
 
     const opts = mainWorkerCall![2] as unknown as Record<string, unknown>;
@@ -170,9 +170,9 @@ describe("startEvaluatorWorker", () => {
     expect(Queue).toHaveBeenCalledWith(EVALUATOR_DLQ_NAME, { connection: conn });
 
     // DLQ worker created with concurrency 5
-    const dlqWorkerCall = vi.mocked(Worker).mock.calls.find(
-      ([name]) => name === EVALUATOR_DLQ_NAME,
-    );
+    const dlqWorkerCall = vi
+      .mocked(Worker)
+      .mock.calls.find(([name]) => name === EVALUATOR_DLQ_NAME);
     expect(dlqWorkerCall).toBeDefined();
     const dlqOpts = dlqWorkerCall![2] as unknown as Record<string, unknown>;
     expect(dlqOpts.concurrency).toBe(5);
@@ -473,9 +473,7 @@ describe("processEvaluatorJob (via processor)", () => {
     const [url] = mockFetch.mock.calls[0] as [string];
     expect(url).toBe("https://api.anthropic.com/v1/messages");
 
-    expect(db.createScore).toHaveBeenCalledWith(
-      expect.objectContaining({ value: 0.75 }),
-    );
+    expect(db.createScore).toHaveBeenCalledWith(expect.objectContaining({ value: 0.75 }));
 
     delete process.env["ANTHROPIC_API_KEY"];
     vi.unstubAllGlobals();

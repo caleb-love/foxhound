@@ -26,6 +26,7 @@ The root `package.json` version is the canonical version for the overall Foxhoun
 - Current release target: `0.1.0`
 
 Use this version for:
+
 - repo-level release notes
 - product milestones and platform releases
 - the API health/version surface when reporting platform version
@@ -36,6 +37,7 @@ Use this version for:
 Each independently consumed package owns its own SemVer in its local `package.json`.
 
 Current public-package candidates include:
+
 - `packages/sdk` → `@foxhound-ai/sdk`
 - `packages/mcp-server` → `@foxhound-ai/mcp-server`
 - `packages/cli` → `@foxhound-ai/cli`
@@ -47,6 +49,7 @@ Current public-package candidates include:
 Internal-only workspace packages do **not** need carefully curated public release cadence.
 
 Examples:
+
 - `@foxhound/db`
 - `@foxhound/billing`
 - `@foxhound/notifications`
@@ -63,6 +66,7 @@ These should still keep valid SemVer values in `package.json`, but they are trea
 Use for backwards-compatible bug fixes and non-breaking improvements.
 
 Examples:
+
 - bug fix with same API/CLI behavior contract
 - docs-only correction for a published package
 - perf improvement with no public API change
@@ -74,6 +78,7 @@ Examples:
 Use for backwards-compatible new features.
 
 Examples:
+
 - new SDK method
 - new CLI command or flag that does not break old usage
 - new MCP tools added without breaking existing tools
@@ -85,6 +90,7 @@ Examples:
 Use for breaking changes.
 
 Examples:
+
 - renamed or removed exported SDK APIs
 - changed CLI flags or output contract in a breaking way
 - removed MCP tools or changed required tool parameters incompatibly
@@ -96,6 +102,7 @@ Examples:
 Foxhound is currently in `0.x` for several artifacts.
 
 While pre-1.0, treat bumps with this discipline:
+
 - `0.x.patch` = safe, non-breaking fix
 - `0.x.minor` = potentially breaking or meaningfully expanded release
 
@@ -106,6 +113,7 @@ In other words: while below `1.0.0`, do **not** hide meaningful breaking changes
 ### Version independently
 
 These should version independently because users install them separately:
+
 - TypeScript SDK
 - MCP server
 - CLI
@@ -117,6 +125,7 @@ These should version independently because users install them separately:
 Do **not** require every package in the monorepo to share one version.
 
 Why:
+
 - the SDK may ship multiple times without a platform release
 - the MCP server may ship registry fixes without SDK changes
 - internal packages change frequently and should not force noisy public bumps
@@ -134,6 +143,7 @@ To prevent drift, any user-facing runtime version should come from package metad
 Do **not** hardcode versions in runtime code when the artifact already has a package version.
 
 Prefer:
+
 - reading from local `package.json` at build/runtime when practical
 - injecting the version at build time
 - maintaining one source of truth per artifact
@@ -153,11 +163,13 @@ Prefer:
 A platform release updates the root repo/product version and may include multiple apps/packages.
 
 Trigger this when:
+
 - the hosted product meaningfully changes
 - multiple subsystems ship together as one notable release
 - you want a canonical product release identifier
 
 Update:
+
 - root `package.json`
 - root/platform changelog or release notes
 - any platform version surfaces derived from root version
@@ -167,10 +179,12 @@ Update:
 A package release updates only the affected package version(s).
 
 Trigger this when:
+
 - publishing SDK/CLI/MCP/package updates to npm or registry
 - shipping consumer-facing changes without a broader platform release
 
 Update:
+
 - the package’s `package.json`
 - package-specific changelog if present
 - package-specific manifests (for example `server.json` for MCP)
@@ -181,6 +195,7 @@ Update:
 If no public artifact is being released, do not bump versions just because code changed.
 
 Examples:
+
 - internal refactor
 - tests only
 - docs only for internal workflow
@@ -193,6 +208,7 @@ When bumping a version, update all matching surfaces in the same change.
 ### TypeScript SDK
 
 When `packages/sdk/package.json` changes, also review:
+
 - `packages/sdk/CHANGELOG.md`
 - docs-site install/version references
 - README badges/examples if version-specific
@@ -200,12 +216,14 @@ When `packages/sdk/package.json` changes, also review:
 ### CLI
 
 When `packages/cli/package.json` changes, also update:
+
 - `packages/cli/src/index.ts` if version is manually declared
 - docs referencing install/version
 
 ### MCP Server
 
 When `packages/mcp-server/package.json` changes, also update:
+
 - `packages/mcp-server/server.json`
 - `packages/mcp-server/PUBLISH.md`
 - runtime server version in `packages/mcp-server/src/index.ts` if manually declared
@@ -213,6 +231,7 @@ When `packages/mcp-server/package.json` changes, also update:
 ### API / Platform
 
 When root `package.json` changes for a platform release, also update:
+
 - API-reported version surfaces
 - product release docs/changelog if applicable
 

@@ -300,7 +300,11 @@ describe("E2E: Full lifecycle flows", () => {
             endTimeMs: base.startTimeMs + 2000,
             status: "ok" as const,
             attributes: { model: "gpt-4o" } as Record<string, string | number | boolean | null>,
-            events: [] as Array<{ timeMs: number; name: string; attributes: Record<string, string | number | boolean | null> }>,
+            events: [] as Array<{
+              timeMs: number;
+              name: string;
+              attributes: Record<string, string | number | boolean | null>;
+            }>,
           },
         ],
       };

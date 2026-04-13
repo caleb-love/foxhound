@@ -19,6 +19,7 @@ pnpm dev
 ```
 
 **Demo mode features:**
+
 - 25 realistic traces with mixed success/error states
 - Multiple agent types (customer-support, code-review, data-analysis, etc.)
 - LLM calls, tool calls, and agent steps
@@ -75,6 +76,7 @@ For production, update to your deployed API URL and generate a secure secret.
 ## Architecture
 
 ### Tech Stack
+
 - **Framework:** Next.js 16 (App Router, React Server Components)
 - **Styling:** Tailwind CSS 4
 - **Components:** shadcn/ui (Base UI)
@@ -84,6 +86,7 @@ For production, update to your deployed API URL and generate a secure secret.
 - **Data Fetching:** TanStack Query (future)
 
 ### File Structure
+
 ```
 apps/web/
 ├── app/
@@ -111,6 +114,7 @@ apps/web/
 ## Features
 
 ### ✅ Implemented (Day 1)
+
 - [x] Authentication (login, logout, protected routes)
 - [x] Trace list view
 - [x] Trace detail view with visual timeline
@@ -119,6 +123,7 @@ apps/web/
 - [x] Color-coded span types (LLM, Tool, Agent, Workflow)
 
 ### 🚧 In Progress (Week 1-2)
+
 - [ ] Trace filters (status, agent, date range)
 - [ ] Global search
 - [ ] Session Replay viewer
@@ -127,6 +132,7 @@ apps/web/
 - [ ] API key management
 
 ### 📅 Planned (Week 3-8)
+
 - [ ] Experiments & evaluations UI
 - [ ] Dataset management
 - [ ] Cost budget dashboard
@@ -143,12 +149,14 @@ apps/web/
 ### Adding a New Page
 
 1. Create route file:
+
    ```bash
    mkdir -p app/(dashboard)/my-feature
    touch app/(dashboard)/my-feature/page.tsx
    ```
 
 2. Add to sidebar (`components/layout/sidebar.tsx`):
+
    ```typescript
    { href: '/my-feature', label: 'My Feature', icon: Icon }
    ```
@@ -172,7 +180,7 @@ Available: button, card, table, dialog, dropdown-menu, input, label, tabs, badge
 All API responses are typed via `@foxhound/types`. Import from workspace package:
 
 ```typescript
-import type { Trace, Span } from '@foxhound/types';
+import type { Trace, Span } from "@foxhound/types";
 ```
 
 ---
@@ -182,12 +190,14 @@ import type { Trace, Span } from '@foxhound/types';
 ### Manual Testing
 
 1. Start API server:
+
    ```bash
    cd apps/api
    pnpm dev
    ```
 
 2. Start dashboard:
+
    ```bash
    cd apps/web
    pnpm dev
@@ -215,18 +225,22 @@ pnpm build
 ## Troubleshooting
 
 ### "No traces yet" message
+
 **Cause:** API not running or no traces in database  
 **Fix:** Start API, send test trace via SDK
 
 ### Login fails
+
 **Cause:** API server not responding  
 **Fix:** Verify API is running on port 3000
 
 ### TypeScript errors
+
 **Cause:** Missing types or wrong API usage  
 **Fix:** Run `pnpm typecheck` to see details
 
 ### Build fails
+
 **Cause:** Import errors or missing dependencies  
 **Fix:** Check `pnpm install` completed, verify workspace packages are built
 
@@ -247,11 +261,13 @@ pnpm build
 ### Custom Server
 
 1. Build:
+
    ```bash
    pnpm build
    ```
 
 2. Start:
+
    ```bash
    pnpm start
    ```
@@ -268,18 +284,22 @@ pnpm build
 ## Contributing
 
 ### Code Style
+
 - Use TypeScript strict mode
 - Follow Next.js App Router conventions
 - Use Server Components by default, Client Components only when needed
 - Tailwind classes for styling (no CSS modules)
 
 ### Component Patterns
+
 - **Server Component:** Data fetching, static rendering
 - **Client Component:** Interactivity, state, event handlers
 - Mark client components with `'use client'`
 
 ### Commit Messages
+
 Follow Conventional Commits:
+
 ```
 feat(traces): add filter by agent
 fix(auth): handle expired sessions
@@ -291,11 +311,13 @@ docs(readme): add deployment guide
 ## Performance
 
 ### Bundle Size Targets
+
 - Initial JS: <500KB
 - Total size: <2MB
 - First Contentful Paint: <1.5s
 
 ### Optimization Tips
+
 - Use `next/image` for images
 - Lazy load heavy components
 - Server Components for data fetching
@@ -320,6 +342,7 @@ See [`docs/plans/2026-04-13-dashboard-ui-comprehensive-plan.md`](../../docs/plan
 ## Support
 
 For questions or issues:
+
 1. Check documentation in `docs/plans/`
 2. Review `docs/gsd/KNOWLEDGE.md` for patterns
 3. Open GitHub issue

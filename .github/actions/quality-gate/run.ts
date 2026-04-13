@@ -105,7 +105,9 @@ function parseExperimentConfig(): { config: Record<string, unknown>; timeout: nu
   try {
     config = JSON.parse(experimentConfigRaw);
   } catch (err) {
-    throw new Error(`Invalid experiment-config JSON: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `Invalid experiment-config JSON: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   return { config, timeout };
@@ -238,7 +240,9 @@ async function main(): Promise<void> {
         // The API returns experimentRunId on comparison scores but the shared
         // Score type does not declare it, so we cast through unknown.
         const scoreWithRun = score as unknown as { experimentRunId?: string };
-        const run = comparison.runs.find((r: { id: string }) => r.id === scoreWithRun.experimentRunId);
+        const run = comparison.runs.find(
+          (r: { id: string }) => r.id === scoreWithRun.experimentRunId,
+        );
         if (!run) continue;
 
         const isBaseline = run.experimentId === baselineExperimentId;
@@ -257,12 +261,14 @@ async function main(): Promise<void> {
 
       // Compute mean scores per evaluator
       for (const [name, buckets] of scoresByEvaluator.entries()) {
-        const baselineMean = buckets.baseline.length > 0
-          ? buckets.baseline.reduce((a, b) => a + b, 0) / buckets.baseline.length
-          : 0;
-        const currentMean = buckets.current.length > 0
-          ? buckets.current.reduce((a, b) => a + b, 0) / buckets.current.length
-          : 0;
+        const baselineMean =
+          buckets.baseline.length > 0
+            ? buckets.baseline.reduce((a, b) => a + b, 0) / buckets.baseline.length
+            : 0;
+        const currentMean =
+          buckets.current.length > 0
+            ? buckets.current.reduce((a, b) => a + b, 0) / buckets.current.length
+            : 0;
         const delta = currentMean - baselineMean;
 
         evaluatorScores.push({ name, baseline: baselineMean, current: currentMean, delta });
@@ -315,7 +321,9 @@ async function main(): Promise<void> {
       );
       console.log(`Posted quality gate comment to PR #${prNumber}`);
     } catch (err: unknown) {
-      console.error(`Failed to post PR comment: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        `Failed to post PR comment: ${err instanceof Error ? err.message : String(err)}`,
+      );
       console.log("Quality gate results written to step summary only");
     }
   } else {
@@ -330,7 +338,9 @@ async function main(): Promise<void> {
   // Enforce threshold
   if (violations.length > 0) {
     const names = violations.map((v) => `${v.name} (${v.score.toFixed(3)})`).join(", ");
-    console.error(`Quality gate failed: ${violations.length} evaluator(s) below threshold ${threshold}: ${names}`);
+    console.error(
+      `Quality gate failed: ${violations.length} evaluator(s) below threshold ${threshold}: ${names}`,
+    );
     process.exit(1);
   }
 
@@ -431,7 +441,10 @@ function formatQualityGateComment(params: QualityGateCommentParams): string {
   const statusIcon = passed ? "\u2705" : "\u274C";
   const statusText = passed ? "Passed" : "Failed";
   const commitSha = process.env.GITHUB_SHA?.slice(0, 7) || "unknown";
-  const timestamp = new Date().toISOString().replace("T", " ").replace(/\.\d+Z/, " UTC");
+  const timestamp = new Date()
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d+Z/, " UTC");
 
   const lines: string[] = [marker, ""];
   lines.push(`## ${statusIcon} Foxhound Quality Gate \u2014 ${statusText}`);
@@ -462,15 +475,21 @@ function formatQualityGateComment(params: QualityGateCommentParams): string {
       } else {
         status = "\u2705 stable";
       }
-      lines.push(`| ${name} | ${baseline.toFixed(3)} | ${current.toFixed(3)} | ${deltaStr} | ${status} |`);
+      lines.push(
+        `| ${name} | ${baseline.toFixed(3)} | ${current.toFixed(3)} | ${deltaStr} | ${status} |`,
+      );
     }
 
     lines.push("");
   } else if (!errorMessage && baselineExperimentId) {
-    lines.push("> No evaluator scores found (all evaluators may be disabled or no LLM judge scores present)");
+    lines.push(
+      "> No evaluator scores found (all evaluators may be disabled or no LLM judge scores present)",
+    );
     lines.push("");
   } else if (!baselineExperimentId) {
-    lines.push("> No baseline experiment provided -- this is the first run. Future PRs will show score deltas.");
+    lines.push(
+      "> No baseline experiment provided -- this is the first run. Future PRs will show score deltas.",
+    );
     lines.push("");
   }
 
@@ -534,7 +553,9 @@ async function postOrUpdatePrComment(
     const listRes = await fetch(`${commentsUrl}?per_page=100&page=${page}`, { headers });
 
     if (!listRes.ok) {
-      console.warn(`Failed to list PR comments (page ${page}): ${listRes.status} ${listRes.statusText}`);
+      console.warn(
+        `Failed to list PR comments (page ${page}): ${listRes.status} ${listRes.statusText}`,
+      );
       break;
     }
 

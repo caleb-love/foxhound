@@ -787,7 +787,11 @@ async function main(): Promise<void> {
         const errorEvents = firstError.events.filter((e) => e.name === "error");
         const errorMessage =
           errorEvents.length > 0
-            ? String(errorEvents[0]?.attributes["error.message"] ?? errorEvents[0]?.attributes["message"] ?? "Unknown error")
+            ? String(
+                errorEvents[0]?.attributes["error.message"] ??
+                  errorEvents[0]?.attributes["message"] ??
+                  "Unknown error",
+              )
             : "Unknown error";
 
         const parentChain = getParentChain(firstError);
@@ -849,11 +853,16 @@ async function main(): Promise<void> {
         if (errorSpans.length > 1) {
           lines.push("", `## Other Errors (${errorSpans.length - 1})`);
           for (const span of errorSpans.slice(1)) {
-            const duration = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+            const duration =
+              span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
             const events = span.events.filter((e) => e.name === "error");
             const msg =
               events.length > 0
-                ? String(events[0]?.attributes["error.message"] ?? events[0]?.attributes["message"] ?? "Unknown")
+                ? String(
+                    events[0]?.attributes["error.message"] ??
+                      events[0]?.attributes["message"] ??
+                      "Unknown",
+                  )
                 : "Unknown";
             lines.push(`- [${span.kind}] **${span.name}** (${duration}): ${msg}`);
           }
@@ -933,7 +942,8 @@ async function main(): Promise<void> {
           let category: ErrorCategory = "unknown";
 
           // Check for timeout
-          const duration = span.endTimeMs && span.startTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+          const duration =
+            span.endTimeMs && span.startTimeMs ? span.endTimeMs - span.startTimeMs : 0;
           if (
             duration > 30000 ||
             errorMsg.includes("timeout") ||
@@ -1149,12 +1159,28 @@ async function main(): Promise<void> {
     "Create a score for a trace or specific span. Scores can be numeric values (0-1) or categorical labels. Preview mode shows what will be created; set confirm=true to execute.",
     {
       trace_id: z.string().describe("The trace ID to score"),
-      span_id: z.string().optional().describe("Optional span ID to score (if omitted, scores the entire trace)"),
+      span_id: z
+        .string()
+        .optional()
+        .describe("Optional span ID to score (if omitted, scores the entire trace)"),
       name: z.string().describe("Score name (e.g., 'quality', 'accuracy', 'latency')"),
-      value: z.number().min(0).max(1).optional().describe("Numeric score value between 0 and 1 (mutually exclusive with label)"),
-      label: z.string().optional().describe("Categorical label (e.g., 'good', 'bad', 'excellent') (mutually exclusive with value)"),
+      value: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe("Numeric score value between 0 and 1 (mutually exclusive with label)"),
+      label: z
+        .string()
+        .optional()
+        .describe(
+          "Categorical label (e.g., 'good', 'bad', 'excellent') (mutually exclusive with value)",
+        ),
       comment: z.string().optional().describe("Optional comment explaining the score"),
-      confirm: z.boolean().optional().describe("Set to true to execute the score creation; omit or set to false for preview"),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to execute the score creation; omit or set to false for preview"),
     },
     async (params) => {
       try {
@@ -1273,7 +1299,8 @@ async function main(): Promise<void> {
         ];
 
         for (const score of response.data) {
-          const valueLabel = score.value !== undefined ? score.value.toString() : (score.label ?? "—");
+          const valueLabel =
+            score.value !== undefined ? score.value.toString() : (score.label ?? "—");
           const source = score.source ?? "—";
           const comment = score.comment ?? "—";
           const spanIndicator = score.spanId ? ` (span: ${score.spanId})` : "";
@@ -1467,7 +1494,7 @@ async function main(): Promise<void> {
     if (rootSpans.length > 0) {
       const rootSpan = rootSpans[0];
       if (!rootSpan) return {};
-      
+
       // Convert span attributes to the expected format
       const attributes = rootSpan.attributes ?? {};
       return attributes as Record<string, unknown>;
@@ -1715,7 +1742,9 @@ async function main(): Promise<void> {
         const prompts = data.data;
         if (!prompts.length) {
           return {
-            content: [{ type: "text", text: "No prompts found. Create one with `foxhound_create_prompt`." }],
+            content: [
+              { type: "text", text: "No prompts found. Create one with `foxhound_create_prompt`." },
+            ],
           };
         }
 
@@ -1723,8 +1752,7 @@ async function main(): Promise<void> {
           `## Prompts (${prompts.length})`,
           "",
           ...prompts.map(
-            (p) =>
-              `- **${p.name}** (${p.id}) | updated ${new Date(p.updatedAt).toISOString()}`,
+            (p) => `- **${p.name}** (${p.id}) | updated ${new Date(p.updatedAt).toISOString()}`,
           ),
         ];
 
@@ -1745,7 +1773,9 @@ async function main(): Promise<void> {
       label: z
         .string()
         .optional()
-        .describe("The label to resolve (default: 'production'). Common labels: production, staging, canary"),
+        .describe(
+          "The label to resolve (default: 'production'). Common labels: production, staging, canary",
+        ),
     },
     async (params) => {
       try {
@@ -1771,9 +1801,7 @@ async function main(): Promise<void> {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return {
-          content: [
-            { type: "text", text: `Error resolving prompt "${params.name}": ${msg}` },
-          ],
+          content: [{ type: "text", text: `Error resolving prompt "${params.name}": ${msg}` }],
         };
       }
     },
@@ -1852,7 +1880,10 @@ async function main(): Promise<void> {
     {
       prompt_id: z.string().describe("The prompt ID (e.g. 'pmt_...')"),
       content: z.string().describe("The prompt template content"),
-      model: z.string().optional().describe("Optional model recommendation (e.g. 'gpt-4o', 'claude-sonnet-4-20250514')"),
+      model: z
+        .string()
+        .optional()
+        .describe("Optional model recommendation (e.g. 'gpt-4o', 'claude-sonnet-4-20250514')"),
     },
     async (params) => {
       try {

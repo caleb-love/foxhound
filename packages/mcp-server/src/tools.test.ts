@@ -7,7 +7,15 @@
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
-import type { Trace, Span, Score, Evaluator, EvaluatorRun, Dataset, DatasetItem } from "@foxhound/types";
+import type {
+  Trace,
+  Span,
+  Score,
+  Evaluator,
+  EvaluatorRun,
+  Dataset,
+  DatasetItem,
+} from "@foxhound/types";
 
 // ---------------------------------------------------------------------------
 // Mock infrastructure
@@ -140,7 +148,9 @@ beforeEach(() => {
 function getHandler(name: string): ToolHandler {
   const handler = toolHandlers.get(name);
   if (!handler) {
-    throw new Error(`Tool "${name}" was not registered. Available: ${[...toolHandlers.keys()].join(", ")}`);
+    throw new Error(
+      `Tool "${name}" was not registered. Available: ${[...toolHandlers.keys()].join(", ")}`,
+    );
   }
   return handler;
 }
@@ -732,7 +742,13 @@ describe("foxhound_list_datasets", () => {
   it("formats datasets with item counts", async () => {
     const handler = getHandler("foxhound_list_datasets");
     const datasets: Dataset[] = [
-      { id: "ds-1", orgId: "org-1", name: "Training Set", description: "Main training data", createdAt: "2026-04-11T00:00:00Z" },
+      {
+        id: "ds-1",
+        orgId: "org-1",
+        name: "Training Set",
+        description: "Main training data",
+        createdAt: "2026-04-11T00:00:00Z",
+      },
       { id: "ds-2", orgId: "org-1", name: "Eval Set", createdAt: "2026-04-11T00:00:00Z" },
     ];
     mockApi["listDatasets"].mockResolvedValue({ data: datasets });
@@ -993,7 +1009,11 @@ describe("foxhound_suggest_fix", () => {
           name: "llm-request",
           status: "error",
           events: [
-            { timeMs: 1500, name: "error", attributes: { "error.message": "429 Too Many Requests" } },
+            {
+              timeMs: 1500,
+              name: "error",
+              attributes: { "error.message": "429 Too Many Requests" },
+            },
           ],
         }),
       ],
@@ -1043,7 +1063,11 @@ describe("foxhound_suggest_fix", () => {
           kind: "llm_call",
           status: "error",
           events: [
-            { timeMs: 1500, name: "error", attributes: { "error.message": "context window exceeded" } },
+            {
+              timeMs: 1500,
+              name: "error",
+              attributes: { "error.message": "context window exceeded" },
+            },
           ],
         }),
       ],
@@ -1137,9 +1161,27 @@ describe("foxhound_get_anomalies", () => {
 
   it("detects error spans and slow outliers", async () => {
     const handler = getHandler("foxhound_get_anomalies");
-    const fastSpan = makeSpan({ spanId: "s1", name: "fast-op", kind: "llm_call", startTimeMs: 1000, endTimeMs: 1100 });
-    const fastSpan2 = makeSpan({ spanId: "s2", name: "fast-op-2", kind: "llm_call", startTimeMs: 2000, endTimeMs: 2100 });
-    const slowSpan = makeSpan({ spanId: "s3", name: "slow-op", kind: "llm_call", startTimeMs: 3000, endTimeMs: 4000 });
+    const fastSpan = makeSpan({
+      spanId: "s1",
+      name: "fast-op",
+      kind: "llm_call",
+      startTimeMs: 1000,
+      endTimeMs: 1100,
+    });
+    const fastSpan2 = makeSpan({
+      spanId: "s2",
+      name: "fast-op-2",
+      kind: "llm_call",
+      startTimeMs: 2000,
+      endTimeMs: 2100,
+    });
+    const slowSpan = makeSpan({
+      spanId: "s3",
+      name: "slow-op",
+      kind: "llm_call",
+      startTimeMs: 3000,
+      endTimeMs: 4000,
+    });
     const errorSpan = makeSpan({
       spanId: "s4",
       name: "broken-op",
@@ -1382,7 +1424,7 @@ describe("foxhound_get_agent_budget", () => {
       costBudgetUsd: "100.00",
       budgetPeriod: "monthly",
       costAlertThresholdPct: 80,
-      lastCostStatus: { status: "under", spend: 45.50, budget: 100 },
+      lastCostStatus: { status: "under", spend: 45.5, budget: 100 },
     });
 
     const result = await handler({ agentId: "agent-1" });
@@ -1522,9 +1564,7 @@ describe("foxhound_list_channels", () => {
   it("formats channel list", async () => {
     const handler = getHandler("foxhound_list_channels");
     mockApi["listChannels"].mockResolvedValue({
-      data: [
-        { id: "ch-1", kind: "slack", name: "Alerts", createdAt: "2026-04-11" },
-      ],
+      data: [{ id: "ch-1", kind: "slack", name: "Alerts", createdAt: "2026-04-11" }],
     });
 
     const result = await handler({});
@@ -1551,9 +1591,7 @@ describe("foxhound_list_api_keys", () => {
   it("formats API key list with masked prefixes", async () => {
     const handler = getHandler("foxhound_list_api_keys");
     mockApi["listApiKeys"].mockResolvedValue({
-      data: [
-        { id: "key-1", name: "Production", prefix: "fox_prod", createdAt: "2026-04-11" },
-      ],
+      data: [{ id: "key-1", name: "Production", prefix: "fox_prod", createdAt: "2026-04-11" }],
     });
 
     const result = await handler({});

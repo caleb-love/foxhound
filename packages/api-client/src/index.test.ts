@@ -9,9 +9,7 @@ const API_KEY = "fox_test_key_abc123";
 const mockFetch = vi.fn();
 const originalFetch = globalThis.fetch;
 
-function makeClient(
-  overrides?: Partial<{ endpoint: string; apiKey: string }>,
-): FoxhoundApiClient {
+function makeClient(overrides?: Partial<{ endpoint: string; apiKey: string }>): FoxhoundApiClient {
   return new FoxhoundApiClient({
     endpoint: overrides?.endpoint ?? BASE_URL,
     apiKey: overrides?.apiKey ?? API_KEY,
@@ -827,9 +825,7 @@ describe("FoxhoundApiClient", () => {
 
       await client.deleteBaseline("agent-1", "v1.0");
 
-      expect(lastCallUrl()).toBe(
-        `${BASE_URL}/v1/regressions/agent-1/baselines?version=v1.0`,
-      );
+      expect(lastCallUrl()).toBe(`${BASE_URL}/v1/regressions/agent-1/baselines?version=v1.0`);
       expect(lastCallOpts().method).toBe("DELETE");
     });
   });
@@ -908,9 +904,7 @@ describe("FoxhoundApiClient", () => {
       const client = makeClient();
       mockOk({ item: {}, scores: [] });
 
-      await client.submitAnnotationItem("item-1", [
-        { name: "quality", value: 4, comment: "Good" },
-      ]);
+      await client.submitAnnotationItem("item-1", [{ name: "quality", value: 4, comment: "Good" }]);
 
       expect(lastCallUrl()).toBe(`${BASE_URL}/v1/annotation-queue-items/item-1/submit`);
       const body = JSON.parse(lastCallOpts().body as string);

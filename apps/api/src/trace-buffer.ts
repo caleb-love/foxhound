@@ -83,7 +83,10 @@ export function bufferTrace(trace: Trace, orgId: string): void {
 
   if (buffer.length >= MAX_BUFFER_SIZE) {
     // Backpressure: persist immediately instead of dropping
-    logger.warn({ traceId: trace.id, bufferSize: buffer.length }, "Trace buffer full, persisting immediately");
+    logger.warn(
+      { traceId: trace.id, bufferSize: buffer.length },
+      "Trace buffer full, persisting immediately",
+    );
     persistTraceWithRetry(logger, trace, orgId).catch((err) => {
       logger?.error({ err, traceId: trace.id, orgId }, "Trace persistence failed (overflow)");
     });

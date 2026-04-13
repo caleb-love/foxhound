@@ -7,13 +7,7 @@ import { SEVERITY_RANK } from "./types.js";
 // hoisted vi.mock factory runs and before dispatcher.ts calls `new XxxProvider()`.
 // ---------------------------------------------------------------------------
 
-const {
-  slackSend,
-  pagerdutySend,
-  githubSend,
-  linearSend,
-  webhookSend,
-} = vi.hoisted(() => ({
+const { slackSend, pagerdutySend, githubSend, linearSend, webhookSend } = vi.hoisted(() => ({
   slackSend: vi.fn().mockResolvedValue(undefined),
   pagerdutySend: vi.fn().mockResolvedValue(undefined),
   githubSend: vi.fn().mockResolvedValue(undefined),

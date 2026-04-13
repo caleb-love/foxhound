@@ -63,10 +63,11 @@ function mockFetchSuccess(content = "Hello from LLM", totalTokens = 100): void {
     "fetch",
     vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content } }],
-        usage: { total_tokens: totalTokens },
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content } }],
+          usage: { total_tokens: totalTokens },
+        }),
     }),
   );
 }
@@ -176,11 +177,19 @@ describe("processExperimentJob (via processor)", () => {
       updatedAt: new Date(),
     } as Awaited<ReturnType<typeof db.getDatasetItem>>);
 
-    vi.mocked(db.updateExperimentRun).mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof db.updateExperimentRun>>);
-    vi.mocked(db.updateExperimentStatus).mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof db.updateExperimentStatus>>);
+    vi.mocked(db.updateExperimentRun).mockResolvedValue(
+      undefined as unknown as Awaited<ReturnType<typeof db.updateExperimentRun>>,
+    );
+    vi.mocked(db.updateExperimentStatus).mockResolvedValue(
+      undefined as unknown as Awaited<ReturnType<typeof db.updateExperimentStatus>>,
+    );
     vi.mocked(db.listEvaluators).mockResolvedValue([]);
-    vi.mocked(db.getExperimentRun).mockResolvedValue(null as unknown as Awaited<ReturnType<typeof db.getExperimentRun>>);
-    vi.mocked(db.createScore).mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof db.createScore>>);
+    vi.mocked(db.getExperimentRun).mockResolvedValue(
+      null as unknown as Awaited<ReturnType<typeof db.getExperimentRun>>,
+    );
+    vi.mocked(db.createScore).mockResolvedValue(
+      undefined as unknown as Awaited<ReturnType<typeof db.createScore>>,
+    );
   });
 
   // 1. Status lifecycle: running -> completed
@@ -197,7 +206,9 @@ describe("processExperimentJob (via processor)", () => {
 
   // 2. Missing experiment throws
   it("throws when experiment is not found", async () => {
-    vi.mocked(db.getExperiment).mockResolvedValue(null as unknown as Awaited<ReturnType<typeof db.getExperiment>>);
+    vi.mocked(db.getExperiment).mockResolvedValue(
+      null as unknown as Awaited<ReturnType<typeof db.getExperiment>>,
+    );
     const processor = setupProcessor();
 
     await expect(processor(makeJob())).rejects.toThrow("Experiment exp_1 not found");
@@ -215,10 +226,11 @@ describe("processExperimentJob (via processor)", () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: "Result" } }],
-          usage: { total_tokens: 50 },
-        }),
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: "Result" } }],
+            usage: { total_tokens: 50 },
+          }),
       });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -226,22 +238,20 @@ describe("processExperimentJob (via processor)", () => {
     await processor(makeJob());
 
     // First run should get an error output
-    const firstRunUpdate = vi.mocked(db.updateExperimentRun).mock.calls.find(
-      (call) => call[0] === "run_1",
-    );
+    const firstRunUpdate = vi
+      .mocked(db.updateExperimentRun)
+      .mock.calls.find((call) => call[0] === "run_1");
     expect(firstRunUpdate).toBeDefined();
     expect((firstRunUpdate![2] as Record<string, unknown>).output).toEqual(
       expect.objectContaining({ error: expect.stringContaining("LLM API error: 500") }),
     );
 
     // Second run should get a successful output
-    const secondRunUpdate = vi.mocked(db.updateExperimentRun).mock.calls.find(
-      (call) => {
-        if (call[0] !== "run_2") return false;
-        const output = (call[2] as { output?: Record<string, unknown> }).output;
-        return !Object.prototype.hasOwnProperty.call(output ?? {}, "error");
-      },
-    );
+    const secondRunUpdate = vi.mocked(db.updateExperimentRun).mock.calls.find((call) => {
+      if (call[0] !== "run_2") return false;
+      const output = (call[2] as { output?: Record<string, unknown> }).output;
+      return !Object.prototype.hasOwnProperty.call(output ?? {}, "error");
+    });
     expect(secondRunUpdate).toBeDefined();
 
     // Status should still be "completed" (not all runs failed)
@@ -294,10 +304,11 @@ describe("processExperimentJob (via processor)", () => {
     // Override fetch to return a score-like response for evaluator calls.
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: "0.95" } }],
-        usage: { total_tokens: 50 },
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "0.95" } }],
+          usage: { total_tokens: 50 },
+        }),
     });
     vi.stubGlobal("fetch", fetchImpl);
 

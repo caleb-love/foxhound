@@ -34,60 +34,60 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
     "/v1/experiments",
     { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const result = CreateExperimentSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+      const result = CreateExperimentSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { datasetId, name, config } = result.data;
-    const orgId = request.orgId;
+      const { datasetId, name, config } = result.data;
+      const orgId = request.orgId;
 
-    const dataset = await getDataset(datasetId, orgId);
-    if (!dataset) {
-      return reply.code(404).send({ error: "Dataset not found" });
-    }
+      const dataset = await getDataset(datasetId, orgId);
+      if (!dataset) {
+        return reply.code(404).send({ error: "Dataset not found" });
+      }
 
-    const items = await listDatasetItems({ datasetId, orgId, limit: 10000 });
-    if (items.length === 0) {
-      return reply.code(400).send({ error: "Dataset has no items" });
-    }
+      const items = await listDatasetItems({ datasetId, orgId, limit: 10000 });
+      if (items.length === 0) {
+        return reply.code(400).send({ error: "Dataset has no items" });
+      }
 
-    const experiment = await createExperiment({
-      id: `exp_${randomUUID()}`,
-      orgId,
-      datasetId,
-      name,
-      config,
-    });
+      const experiment = await createExperiment({
+        id: `exp_${randomUUID()}`,
+        orgId,
+        datasetId,
+        name,
+        config,
+      });
 
-    const runs = await createExperimentRuns(
-      items.map((item) => ({
-        id: `exr_${randomUUID()}`,
-        experimentId: experiment.id,
-        datasetItemId: item.id,
-      })),
-    );
-
-    const queue = getExperimentQueue();
-    if (queue) {
-      await queue.add(
-        "run-experiment",
-        { experimentId: experiment.id, orgId },
-        {
-          attempts: 3,
-          backoff: { type: "exponential", delay: 5000 },
-          removeOnComplete: 100,
-          removeOnFail: 500,
-        },
+      const runs = await createExperimentRuns(
+        items.map((item) => ({
+          id: `exr_${randomUUID()}`,
+          experimentId: experiment.id,
+          datasetItemId: item.id,
+        })),
       );
-    }
 
-    return reply.code(202).send({
-      experiment,
-      runCount: runs.length,
-      message: `Experiment queued with ${runs.length} run(s)`,
-    });
-  },
+      const queue = getExperimentQueue();
+      if (queue) {
+        await queue.add(
+          "run-experiment",
+          { experimentId: experiment.id, orgId },
+          {
+            attempts: 3,
+            backoff: { type: "exponential", delay: 5000 },
+            removeOnComplete: 100,
+            removeOnFail: 500,
+          },
+        );
+      }
+
+      return reply.code(202).send({
+        experiment,
+        runCount: runs.length,
+        message: `Experiment queued with ${runs.length} run(s)`,
+      });
+    },
   );
 
   // GET /v1/experiments — List experiments

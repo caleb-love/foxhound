@@ -123,86 +123,86 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
     "/v1/notifications/test",
     { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const result = SendTestSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+      const result = SendTestSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { channelId, eventType, severity } = result.data;
+      const { channelId, eventType, severity } = result.data;
 
-    const channelRow = await getNotificationChannel(channelId, request.orgId);
-    if (!channelRow) {
-      return reply.code(404).send({ error: "Channel not found" });
-    }
+      const channelRow = await getNotificationChannel(channelId, request.orgId);
+      if (!channelRow) {
+        return reply.code(404).send({ error: "Channel not found" });
+      }
 
-    const channel: NotificationChannel = {
-      id: channelRow.id,
-      orgId: channelRow.orgId,
-      kind: channelRow.kind as "slack",
-      name: channelRow.name,
-      config: channelRow.config as unknown as NotificationChannel["config"],
-      createdAt: channelRow.createdAt,
-      updatedAt: channelRow.updatedAt,
-    };
+      const channel: NotificationChannel = {
+        id: channelRow.id,
+        orgId: channelRow.orgId,
+        kind: channelRow.kind as "slack",
+        name: channelRow.name,
+        config: channelRow.config as unknown as NotificationChannel["config"],
+        createdAt: channelRow.createdAt,
+        updatedAt: channelRow.updatedAt,
+      };
 
-    const event: AlertEvent = {
-      type: eventType,
-      severity,
-      orgId: request.orgId,
-      agentId: "test-agent",
-      message: `This is a test notification for event type "${eventType}" at severity "${severity}".`,
-      metadata: { test: true },
-      occurredAt: new Date(),
-    };
+      const event: AlertEvent = {
+        type: eventType,
+        severity,
+        orgId: request.orgId,
+        agentId: "test-agent",
+        message: `This is a test notification for event type "${eventType}" at severity "${severity}".`,
+        metadata: { test: true },
+        occurredAt: new Date(),
+      };
 
-    const rules = await getAlertRulesForOrg(request.orgId);
-    const channelMap = new Map([[channel.id, channel]]);
+      const rules = await getAlertRulesForOrg(request.orgId);
+      const channelMap = new Map([[channel.id, channel]]);
 
-    // For test, create a synthetic rule pointing at the requested channel
-    const testRule = {
-      id: "test-rule",
-      orgId: request.orgId,
-      eventType,
-      minSeverity: severity,
-      channelId,
-      enabled: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      // For test, create a synthetic rule pointing at the requested channel
+      const testRule = {
+        id: "test-rule",
+        orgId: request.orgId,
+        eventType,
+        minSeverity: severity,
+        channelId,
+        enabled: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    let status: "sent" | "failed" = "sent";
-    let errorMsg: string | undefined;
+      let status: "sent" | "failed" = "sent";
+      let errorMsg: string | undefined;
 
-    try {
-      await dispatchAlert(
-        event,
-        [testRule, ...rules] as unknown as AlertRule[],
-        channelMap,
-        fastify.log,
-      );
-    } catch (err) {
-      status = "failed";
-      errorMsg = err instanceof Error ? err.message : "Unknown error";
-      fastify.log.error({ err, channelId }, "Test notification failed");
-    }
+      try {
+        await dispatchAlert(
+          event,
+          [testRule, ...rules] as unknown as AlertRule[],
+          channelMap,
+          fastify.log,
+        );
+      } catch (err) {
+        status = "failed";
+        errorMsg = err instanceof Error ? err.message : "Unknown error";
+        fastify.log.error({ err, channelId }, "Test notification failed");
+      }
 
-    await createNotificationLogEntry({
-      id: randomUUID(),
-      orgId: request.orgId,
-      channelId,
-      eventType,
-      severity,
-      agentId: "test-agent",
-      status,
-      error: errorMsg,
-    });
+      await createNotificationLogEntry({
+        id: randomUUID(),
+        orgId: request.orgId,
+        channelId,
+        eventType,
+        severity,
+        agentId: "test-agent",
+        status,
+        error: errorMsg,
+      });
 
-    if (status === "failed") {
-      return reply.code(502).send({ error: "Notification delivery failed", message: errorMsg });
-    }
+      if (status === "failed") {
+        return reply.code(502).send({ error: "Notification delivery failed", message: errorMsg });
+      }
 
-    return reply.code(200).send({ ok: true });
-  },
+      return reply.code(200).send({ ok: true });
+    },
   );
 }
 

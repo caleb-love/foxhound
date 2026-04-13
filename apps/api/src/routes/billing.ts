@@ -252,88 +252,88 @@ export function billingRoutes(fastify: FastifyInstance): void {
     "/v1/billing/report-usage",
     { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const internalSecret = process.env["INTERNAL_CRON_SECRET"];
-    if (!internalSecret) {
-      return reply
-        .code(503)
-        .send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
-    }
-    const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
-    if (provided !== internalSecret) {
-      return reply.code(401).send({ error: "Unauthorized" });
-    }
+      const internalSecret = process.env["INTERNAL_CRON_SECRET"];
+      if (!internalSecret) {
+        return reply
+          .code(503)
+          .send({ error: "Service Unavailable", message: "Internal cron secret not configured" });
+      }
+      const provided = (request.headers["x-internal-secret"] as string | undefined) ?? "";
+      if (provided !== internalSecret) {
+        return reply.code(401).send({ error: "Unauthorized" });
+      }
 
-    const BodySchema = z.object({ orgId: z.string().min(1) });
-    const result = BodySchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+      const BodySchema = z.object({ orgId: z.string().min(1) });
+      const result = BodySchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const { orgId } = result.data;
-    const period = currentBillingPeriod();
+      const { orgId } = result.data;
+      const period = currentBillingPeriod();
 
-    const [org, entitlements, usage] = await Promise.all([
-      getOrganizationById(orgId),
-      getEntitlements(orgId),
-      getUsageForPeriod(orgId, period),
-    ]);
+      const [org, entitlements, usage] = await Promise.all([
+        getOrganizationById(orgId),
+        getEntitlements(orgId),
+        getUsageForPeriod(orgId, period),
+      ]);
 
-    if (!org) {
-      return reply.code(404).send({ error: "Not Found", message: "Organization not found" });
-    }
+      if (!org) {
+        return reply.code(404).send({ error: "Not Found", message: "Organization not found" });
+      }
 
-    const spansUsed = usage?.spanCount ?? 0;
-    const includedLimit = entitlements.maxSpans;
+      const spansUsed = usage?.spanCount ?? 0;
+      const includedLimit = entitlements.maxSpans;
 
-    // Only paid orgs (pro/team) with a Stripe subscription get metered overage billing
-    if (!["pro", "team"].includes(org.plan) || !org.stripeCustomerId || includedLimit <= 0) {
-      return reply.code(200).send({ reported: false, reason: "not_applicable" });
-    }
+      // Only paid orgs (pro/team) with a Stripe subscription get metered overage billing
+      if (!["pro", "team"].includes(org.plan) || !org.stripeCustomerId || includedLimit <= 0) {
+        return reply.code(200).send({ reported: false, reason: "not_applicable" });
+      }
 
-    const overage = Math.max(0, spansUsed - includedLimit);
-    if (overage === 0) {
-      return reply
-        .code(200)
-        .send({ reported: false, reason: "no_overage", spansUsed, includedLimit });
-    }
+      const overage = Math.max(0, spansUsed - includedLimit);
+      if (overage === 0) {
+        return reply
+          .code(200)
+          .send({ reported: false, reason: "no_overage", spansUsed, includedLimit });
+      }
 
-    let stripe: Stripe;
-    try {
-      stripe = getStripe();
-    } catch {
-      return reply
-        .code(503)
-        .send({ error: "Service Unavailable", message: "Billing not configured" });
-    }
+      let stripe: Stripe;
+      try {
+        stripe = getStripe();
+      } catch {
+        return reply
+          .code(503)
+          .send({ error: "Service Unavailable", message: "Billing not configured" });
+      }
 
-    // Find the active subscription and its first metered item
-    const subscriptions = await stripe.subscriptions.list({
-      customer: org.stripeCustomerId,
-      status: "active",
-      limit: 1,
-    });
-    const sub = subscriptions.data[0];
-    if (!sub) {
-      return reply.code(200).send({ reported: false, reason: "no_active_subscription" });
-    }
+      // Find the active subscription and its first metered item
+      const subscriptions = await stripe.subscriptions.list({
+        customer: org.stripeCustomerId,
+        status: "active",
+        limit: 1,
+      });
+      const sub = subscriptions.data[0];
+      if (!sub) {
+        return reply.code(200).send({ reported: false, reason: "no_active_subscription" });
+      }
 
-    const subItem = sub.items.data[0];
-    if (!subItem) {
-      return reply.code(200).send({ reported: false, reason: "no_subscription_item" });
-    }
+      const subItem = sub.items.data[0];
+      if (!subItem) {
+        return reply.code(200).send({ reported: false, reason: "no_subscription_item" });
+      }
 
-    await stripe.subscriptionItems.createUsageRecord(subItem.id, {
-      quantity: overage,
-      timestamp: Math.floor(Date.now() / 1000),
-      action: "set",
-    });
+      await stripe.subscriptionItems.createUsageRecord(subItem.id, {
+        quantity: overage,
+        timestamp: Math.floor(Date.now() / 1000),
+        action: "set",
+      });
 
-    fastify.log.info(
-      { orgId, period, overage, subItemId: subItem.id },
-      "Reported span overage to Stripe",
-    );
+      fastify.log.info(
+        { orgId, period, overage, subItemId: subItem.id },
+        "Reported span overage to Stripe",
+      );
 
-    return reply.code(200).send({ reported: true, overage, period });
-  },
+      return reply.code(200).send({ reported: true, overage, period });
+    },
   );
 }

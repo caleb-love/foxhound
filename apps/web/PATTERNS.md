@@ -7,15 +7,17 @@
 **Use Case:** Modal forms, wizards, multi-step flows where component needs "fresh" state
 
 ❌ **WRONG - setState in useEffect**
+
 ```tsx
 useEffect(() => {
   if (editingId) {
-    setFormData(getInitialData(editingId));  // Cascading renders!
+    setFormData(getInitialData(editingId)); // Cascading renders!
   }
 }, [editingId]);
 ```
 
 ❌ **WRONG - useRef during render**
+
 ```tsx
 const prevId = useRef(editingId);
 if (prevId.current !== editingId) {
@@ -24,20 +26,23 @@ if (prevId.current !== editingId) {
 ```
 
 ✅ **RIGHT - key prop**
+
 ```tsx
 // React unmounts and remounts with fresh state
-<Dialog key={editingId || 'new'} open={isOpen}>
+<Dialog key={editingId || "new"} open={isOpen}>
   <EditForm />
 </Dialog>
 ```
 
 ### When to Use Key Prop Reset
+
 - Modal edit forms that switch between items
 - Wizards that restart on prop change
 - Any component that needs "clean slate" on prop change
 - Alternative to complex cleanup logic
 
 ### When NOT to Use
+
 - State should persist across prop changes
 - Performance-critical lists (use stable keys)
 - Controlled components (parent manages state)
@@ -45,17 +50,19 @@ if (prevId.current !== editingId) {
 ## Server Components vs Client Components
 
 ### Default to Server Components
+
 ```tsx
 // app/(dashboard)/page.tsx
 export default async function DashboardPage() {
-  const data = await fetchData();  // Server-side only
+  const data = await fetchData(); // Server-side only
   return <ClientTable data={data} />;
 }
 ```
 
 ### Mark Client Components Explicitly
+
 ```tsx
-'use client';  // Only when needed
+"use client"; // Only when needed
 
 export function InteractiveTable({ data }) {
   const [selected, setSelected] = useState([]);
@@ -64,7 +71,9 @@ export function InteractiveTable({ data }) {
 ```
 
 ### Client Component Checklist
+
 Only use 'use client' when you need:
+
 - useState, useEffect, or other hooks
 - Event handlers (onClick, onChange, etc.)
 - Browser APIs (localStorage, window, etc.)
@@ -73,9 +82,10 @@ Only use 'use client' when you need:
 ## Error Handling
 
 ### Use Error Boundaries
+
 ```tsx
 // app/(dashboard)/error.tsx
-'use client';
+"use client";
 
 export default function DashboardError({ error, reset }) {
   return (
@@ -88,16 +98,19 @@ export default function DashboardError({ error, reset }) {
 ```
 
 ### Never JSX in try/catch
+
 ❌ WRONG
+
 ```tsx
 try {
-  return <Component />;  // Errors won't be caught!
+  return <Component />; // Errors won't be caught!
 } catch (error) {
   // ...
 }
 ```
 
 ✅ RIGHT
+
 ```tsx
 let data;
 try {
@@ -111,8 +124,9 @@ return <Component data={data} />;
 ## Type Safety
 
 ### Always Import from @foxhound/types
+
 ```tsx
-import type { Trace, Span } from '@foxhound/types';
+import type { Trace, Span } from "@foxhound/types";
 
 // ✅ RIGHT - Use package types
 function TraceViewer({ trace }: { trace: Trace }) {
@@ -129,6 +143,7 @@ interface MyTrace {
 ## Performance
 
 ### Use useMemo for Expensive Filters
+
 ```tsx
 const filtered = useMemo(() => {
   return traces.filter(/* expensive logic */);
@@ -136,17 +151,19 @@ const filtered = useMemo(() => {
 ```
 
 ### Lazy Load Heavy Components
+
 ```tsx
-const HeavyChart = lazy(() => import('./heavy-chart'));
+const HeavyChart = lazy(() => import("./heavy-chart"));
 
 <Suspense fallback={<Spinner />}>
   <HeavyChart />
-</Suspense>
+</Suspense>;
 ```
 
 ## Component Organization
 
 ### Co-locate Related Files
+
 ```
 components/
   budget-form/
@@ -157,11 +174,12 @@ components/
 ```
 
 ### Prefer Single Export per File
+
 ```tsx
 // ✅ budget-form-modal.tsx
-export function BudgetFormModal() { }
+export function BudgetFormModal() {}
 
 // ❌ components.tsx - avoid barrel files for components
-export { BudgetFormModal } from './budget-form-modal';
-export { TraceViewer } from './trace-viewer';
+export { BudgetFormModal } from "./budget-form-modal";
+export { TraceViewer } from "./trace-viewer";
 ```

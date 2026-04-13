@@ -2,23 +2,23 @@
  * Global state for cost budgets
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface Budget {
   agentId: string;
   monthlyLimit: number;
   alertThresholds: {
-    warning: number;    // 80%
-    critical: number;   // 90%
-    exceeded: number;   // 100%
+    warning: number; // 80%
+    critical: number; // 90%
+    exceeded: number; // 100%
   };
   enabled: boolean;
 }
 
 interface BudgetState {
   budgets: Budget[];
-  
+
   // Actions
   setBudget: (agentId: string, limit: number) => void;
   removeBudget: (agentId: string) => void;
@@ -31,18 +31,16 @@ export const useBudgetStore = create<BudgetState>()(
   persist(
     (set, get) => ({
       budgets: [],
-      
+
       setBudget: (agentId, limit) =>
         set((state) => {
           const existing = state.budgets.find((b) => b.agentId === agentId);
-          
+
           if (existing) {
             // Update existing
             return {
               budgets: state.budgets.map((b) =>
-                b.agentId === agentId
-                  ? { ...b, monthlyLimit: limit }
-                  : b
+                b.agentId === agentId ? { ...b, monthlyLimit: limit } : b,
               ),
             };
           } else {
@@ -64,29 +62,29 @@ export const useBudgetStore = create<BudgetState>()(
             };
           }
         }),
-      
+
       removeBudget: (agentId) =>
         set((state) => ({
           budgets: state.budgets.filter((b) => b.agentId !== agentId),
         })),
-      
+
       toggleBudget: (agentId) =>
         set((state) => ({
           budgets: state.budgets.map((b) =>
-            b.agentId === agentId ? { ...b, enabled: !b.enabled } : b
+            b.agentId === agentId ? { ...b, enabled: !b.enabled } : b,
           ),
         })),
-      
+
       getBudget: (agentId) => {
         return get().budgets.find((b) => b.agentId === agentId);
       },
-      
+
       getAllBudgets: () => {
         return get().budgets;
       },
     }),
     {
-      name: 'foxhound-budgets', // localStorage key
-    }
-  )
+      name: "foxhound-budgets", // localStorage key
+    },
+  ),
 );

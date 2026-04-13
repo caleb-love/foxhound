@@ -2,11 +2,11 @@
  * Global state for trace comparison
  */
 
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface CompareState {
   selectedTraceIds: string[];
-  
+
   // Actions
   toggleTrace: (traceId: string) => void;
   clearSelection: () => void;
@@ -15,11 +15,11 @@ interface CompareState {
 
 export const useCompareStore = create<CompareState>((set, get) => ({
   selectedTraceIds: [],
-  
+
   toggleTrace: (traceId) =>
     set((state) => {
       const isSelected = state.selectedTraceIds.includes(traceId);
-      
+
       if (isSelected) {
         // Deselect
         return {
@@ -38,8 +38,8 @@ export const useCompareStore = create<CompareState>((set, get) => ({
         };
       }
     }),
-  
+
   clearSelection: () => set({ selectedTraceIds: [] }),
-  
+
   canCompare: () => get().selectedTraceIds.length === 2,
 }));

@@ -42,15 +42,15 @@ Foxhound gives you the missing layer:
 
 ## Core capabilities
 
-| Area | What you get |
-| --- | --- |
-| **Tracing** | Structured traces and spans for every run · trace explorer · metadata and event capture |
-| **Replay & Diff** | Session replay · run diff · trace timeline inspection |
-| **Evaluation** | LLM-as-judge evaluators · dataset curation from production traces · experiment comparison |
-| **Agent intelligence** | Cost budgets · SLA monitoring · regression detection by agent version |
-| **Prompt management** | Prompt templates · label-based promotion such as `staging` → `production` |
-| **Operations** | API keys · notifications · audit logging · multi-tenant isolation |
-| **Developer tooling** | TypeScript SDK · Python SDK · CLI · MCP server · GitHub quality gate |
+| Area                   | What you get                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| **Tracing**            | Structured traces and spans for every run · trace explorer · metadata and event capture   |
+| **Replay & Diff**      | Session replay · run diff · trace timeline inspection                                     |
+| **Evaluation**         | LLM-as-judge evaluators · dataset curation from production traces · experiment comparison |
+| **Agent intelligence** | Cost budgets · SLA monitoring · regression detection by agent version                     |
+| **Prompt management**  | Prompt templates · label-based promotion such as `staging` → `production`                 |
+| **Operations**         | API keys · notifications · audit logging · multi-tenant isolation                         |
+| **Developer tooling**  | TypeScript SDK · Python SDK · CLI · MCP server · GitHub quality gate                      |
 
 ## Quickstart
 
@@ -78,6 +78,7 @@ pnpm dev:web   # dashboard in another terminal
 ```
 
 Default local endpoints:
+
 - API: `http://localhost:3000`
 - Web: `http://localhost:3001`
 
@@ -126,19 +127,19 @@ await trace.flush();
 
 ## Tooling
 
-| Artifact | Install | Purpose |
-| --- | --- | --- |
-| **Python SDK** | `pip install foxhound-ai` | Instrument Python agent systems |
-| **TypeScript SDK** | `npm install @foxhound-ai/sdk` | Instrument Node.js / TypeScript runtimes |
-| **CLI** | `npm install -g @foxhound-ai/cli` | Inspect traces and operate Foxhound from the terminal |
-| **MCP Server** | `npm install -g @foxhound-ai/mcp-server` | Query Foxhound from Claude Code, Cursor, and other MCP clients |
-| **GitHub Action** | `caleb-love/foxhound-quality-gate` | Block PRs that fail eval or quality thresholds |
+| Artifact           | Install                                  | Purpose                                                        |
+| ------------------ | ---------------------------------------- | -------------------------------------------------------------- |
+| **Python SDK**     | `pip install foxhound-ai`                | Instrument Python agent systems                                |
+| **TypeScript SDK** | `npm install @foxhound-ai/sdk`           | Instrument Node.js / TypeScript runtimes                       |
+| **CLI**            | `npm install -g @foxhound-ai/cli`        | Inspect traces and operate Foxhound from the terminal          |
+| **MCP Server**     | `npm install -g @foxhound-ai/mcp-server` | Query Foxhound from Claude Code, Cursor, and other MCP clients |
+| **GitHub Action**  | `caleb-love/foxhound-quality-gate`       | Block PRs that fail eval or quality thresholds                 |
 
 ## Architecture
 
 ```text
 SDKs / OTLP  ->  API (Fastify)  ->  PostgreSQL
-                  |                 
+                  |
                   ->  Worker (BullMQ) -> Redis
                   ->  Web dashboard (Next.js)
 ```
@@ -165,6 +166,7 @@ packages/notifications/ Notification delivery
 Foxhound is designed to run on your own infrastructure.
 
 Minimum stack:
+
 - PostgreSQL 16+
 - Redis
 - Node.js 20+
@@ -180,6 +182,7 @@ pnpm typecheck
 ```
 
 For API configuration, see:
+
 - `apps/api/.env.example`
 
 ## Security
@@ -187,6 +190,7 @@ For API configuration, see:
 Foxhound is built for security-sensitive, multi-tenant environments.
 
 Current repo expectations include:
+
 - API keys hashed at rest
 - tenant-scoped data access via `org_id`
 - JWT auth for user-facing operations

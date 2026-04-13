@@ -23,9 +23,7 @@ const OtelAnyValueSchema: z.ZodType<
   z.object({ arrayValue: z.object({ values: z.array(z.lazy(() => OtelAnyValueSchema)) }) }),
   z.object({
     kvlistValue: z.object({
-      values: z.array(
-        z.object({ key: z.string(), value: z.lazy(() => OtelAnyValueSchema) }),
-      ),
+      values: z.array(z.object({ key: z.string(), value: z.lazy(() => OtelAnyValueSchema) })),
     }),
   }),
 ]);

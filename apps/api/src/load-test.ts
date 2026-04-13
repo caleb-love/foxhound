@@ -35,14 +35,55 @@ const randomTraceId = (): string => randomHex(16);
 const randomSpanId = (): string => randomHex(8);
 
 const SPAN_TEMPLATES = [
-  { name: "llm.generate", kind: 3, attrs: { "gen_ai.system": "openai", "gen_ai.request.model": "gpt-4o", "gen_ai.usage.input_tokens": 512, "gen_ai.usage.output_tokens": 256 } },
-  { name: "llm.embed", kind: 3, attrs: { "gen_ai.system": "openai", "gen_ai.request.model": "text-embedding-3-small", "gen_ai.usage.input_tokens": 128 } },
+  {
+    name: "llm.generate",
+    kind: 3,
+    attrs: {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "gen_ai.usage.input_tokens": 512,
+      "gen_ai.usage.output_tokens": 256,
+    },
+  },
+  {
+    name: "llm.embed",
+    kind: 3,
+    attrs: {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "text-embedding-3-small",
+      "gen_ai.usage.input_tokens": 128,
+    },
+  },
   { name: "tool.search", kind: 3, attrs: { "tool.name": "vector_search", "tool.result_count": 5 } },
-  { name: "tool.sql_query", kind: 3, attrs: { "tool.name": "sql_query", "db.system": "postgresql", "db.statement": "SELECT * FROM docs WHERE ..." } },
-  { name: "agent.step", kind: 1, attrs: { "agent.step_index": 0, "agent.reasoning": "Analyzing user request" } },
-  { name: "agent.plan", kind: 1, attrs: { "agent.step_index": 1, "agent.reasoning": "Creating execution plan" } },
-  { name: "workflow.orchestrate", kind: 2, attrs: { "workflow.name": "rag_pipeline", "workflow.version": "1.2.0" } },
-  { name: "retrieval.rerank", kind: 1, attrs: { "retrieval.strategy": "cohere_rerank", "retrieval.top_k": 10 } },
+  {
+    name: "tool.sql_query",
+    kind: 3,
+    attrs: {
+      "tool.name": "sql_query",
+      "db.system": "postgresql",
+      "db.statement": "SELECT * FROM docs WHERE ...",
+    },
+  },
+  {
+    name: "agent.step",
+    kind: 1,
+    attrs: { "agent.step_index": 0, "agent.reasoning": "Analyzing user request" },
+  },
+  {
+    name: "agent.plan",
+    kind: 1,
+    attrs: { "agent.step_index": 1, "agent.reasoning": "Creating execution plan" },
+  },
+  {
+    name: "workflow.orchestrate",
+    kind: 2,
+    attrs: { "workflow.name": "rag_pipeline", "workflow.version": "1.2.0" },
+  },
+  {
+    name: "retrieval.rerank",
+    kind: 1,
+    attrs: { "retrieval.strategy": "cohere_rerank", "retrieval.top_k": 10 },
+  },
 ] as const;
 
 function nanoTimestamp(offsetMs: number): string {
@@ -78,24 +119,33 @@ function buildPayload(): string {
       endTimeUnixNano: nanoTimestamp(startOffset + durationMs),
       status: { code: Math.random() < 0.05 ? 2 : 1 },
       attributes,
-      events: i === 0
-        ? [{ timeUnixNano: nanoTimestamp(startOffset + 5), name: "request.start", attributes: [] }]
-        : [],
+      events:
+        i === 0
+          ? [
+              {
+                timeUnixNano: nanoTimestamp(startOffset + 5),
+                name: "request.start",
+                attributes: [],
+              },
+            ]
+          : [],
     });
     prevSpanId = spanId;
   }
 
   return JSON.stringify({
-    resourceSpans: [{
-      resource: {
-        attributes: [
-          { key: "service.name", value: { stringValue: "load-test-agent" } },
-          { key: "service.instance.id", value: { stringValue: `session-${randomHex(4)}` } },
-          { key: "service.version", value: { stringValue: "0.1.0" } },
-        ],
+    resourceSpans: [
+      {
+        resource: {
+          attributes: [
+            { key: "service.name", value: { stringValue: "load-test-agent" } },
+            { key: "service.instance.id", value: { stringValue: `session-${randomHex(4)}` } },
+            { key: "service.version", value: { stringValue: "0.1.0" } },
+          ],
+        },
+        scopeSpans: [{ spans }],
       },
-      scopeSpans: [{ spans }],
-    }],
+    ],
   });
 }
 
@@ -179,9 +229,7 @@ async function run(): Promise<void> {
   for (let window = 0; window < DURATION_S; window++) {
     const windowStart = performance.now();
 
-    const batch = Array.from({ length: RPS }, () =>
-      sendRequest(latencies, statusCounts, counters),
-    );
+    const batch = Array.from({ length: RPS }, () => sendRequest(latencies, statusCounts, counters));
     await Promise.all(batch);
 
     // Pad the remainder of the 1s window to enforce the target rate
@@ -199,7 +247,13 @@ async function run(): Promise<void> {
   }
 
   printReport(
-    { total: counters.total, success: counters.success, fail: counters.fail, statusCounts, latencies },
+    {
+      total: counters.total,
+      success: counters.success,
+      fail: counters.fail,
+      statusCounts,
+      latencies,
+    },
     performance.now() - globalStart,
   );
 }
