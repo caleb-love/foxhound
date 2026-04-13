@@ -1,5 +1,5 @@
 /**
- * Fox SDK — instrument your AI agents for compliance-grade observability.
+ * Fox SDK — instrument your AI agents for production-grade observability.
  *
  * Usage:
  *   import { FoxhoundClient } from "@foxhound-ai/sdk";
@@ -12,4 +12,4 @@
 
 export { FoxhoundClient } from "./client.js";
 export { Tracer } from "./tracer.js";
-export type { FoxhoundClientOptions } from "./client.js";
+export type { BudgetExceededInfo, FoxhoundClientOptions, ResolvedPrompt, PromptGetParams } from "./client.js";

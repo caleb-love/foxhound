@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { BudgetExceededInfo } from "./client.js";
 import { FoxhoundClient } from "./client.js";
 import { Tracer } from "./tracer.js";
 
@@ -152,5 +153,139 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
     const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await expect(tracer.flush()).rejects.toThrow("Network error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FoxhoundClient — onBudgetExceeded callback
+// ---------------------------------------------------------------------------
+
+describe("FoxhoundClient.onBudgetExceeded callback", () => {
+  function createMockResponse(headers: Record<string, string>): {
+    ok: boolean;
+    status: number;
+    statusText: string;
+    headers: Headers;
+  } {
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(headers),
+    };
+  }
+
+  it("invokes onBudgetExceeded when response includes exceeded status header", async () => {
+    const callback = vi.fn<(info: BudgetExceededInfo) => void>();
+
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        "X-Foxhound-Budget-Status": "exceeded",
+        "X-Foxhound-Budget-Agent-Id": "agent_42",
+        "X-Foxhound-Budget-Current-Cost": "150.75",
+        "X-Foxhound-Budget-Limit": "100.00",
+      }),
+    );
+
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      onBudgetExceeded: callback,
+    });
+
+    const tracer = client.startTrace({ agentId: "agent_42" });
+    await tracer.flush();
+
+    expect(callback).toHaveBeenCalledOnce();
+    expect(callback).toHaveBeenCalledWith({
+      agentId: "agent_42",
+      currentCost: 150.75,
+      budgetLimit: 100.0,
+    });
+  });
+
+  it("does not invoke callback when budget status header is absent", async () => {
+    const callback = vi.fn<(info: BudgetExceededInfo) => void>();
+
+    mockFetch.mockResolvedValue(createMockResponse({}));
+
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      onBudgetExceeded: callback,
+    });
+
+    const tracer = client.startTrace({ agentId: "agent_1" });
+    await tracer.flush();
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("does not invoke callback when budget status is not 'exceeded'", async () => {
+    const callback = vi.fn<(info: BudgetExceededInfo) => void>();
+
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        "X-Foxhound-Budget-Status": "ok",
+      }),
+    );
+
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      onBudgetExceeded: callback,
+    });
+
+    const tracer = client.startTrace({ agentId: "agent_1" });
+    await tracer.flush();
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("does not throw when no callback is configured and budget is exceeded", async () => {
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        "X-Foxhound-Budget-Status": "exceeded",
+        "X-Foxhound-Budget-Agent-Id": "agent_1",
+        "X-Foxhound-Budget-Current-Cost": "200",
+        "X-Foxhound-Budget-Limit": "100",
+      }),
+    );
+
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+    });
+
+    const tracer = client.startTrace({ agentId: "agent_1" });
+    // Should not throw — just silently skip the callback
+    await expect(tracer.flush()).resolves.toBeUndefined();
+  });
+
+  it("defaults agentId to empty string when header is missing", async () => {
+    const callback = vi.fn<(info: BudgetExceededInfo) => void>();
+
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        "X-Foxhound-Budget-Status": "exceeded",
+        "X-Foxhound-Budget-Current-Cost": "50",
+        "X-Foxhound-Budget-Limit": "25",
+      }),
+    );
+
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      onBudgetExceeded: callback,
+    });
+
+    const tracer = client.startTrace({ agentId: "agent_1" });
+    await tracer.flush();
+
+    expect(callback).toHaveBeenCalledWith({
+      agentId: "",
+      currentCost: 50,
+      budgetLimit: 25,
+    });
   });
 });

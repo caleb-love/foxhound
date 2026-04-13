@@ -275,6 +275,45 @@ export interface BaselineListResponse {
   data: BaselineResponse[];
 }
 
+// ── Prompts ──────────────────────────────────────────────────────────────
+
+export interface PromptResponse {
+  id: string;
+  orgId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromptListResponse {
+  data: PromptResponse[];
+}
+
+export interface PromptVersionResponse {
+  id: string;
+  promptId: string;
+  version: number;
+  content: string;
+  model: string | null;
+  config: Record<string, unknown>;
+  createdAt: string;
+  createdBy: string | null;
+  labels?: string[];
+}
+
+export interface PromptVersionListResponse {
+  data: PromptVersionResponse[];
+}
+
+export interface ResolvedPromptResponse {
+  name: string;
+  label: string;
+  version: number;
+  content: string;
+  model: string | null;
+  config: Record<string, unknown>;
+}
+
 export interface RegressionReportResponse {
   agentId: string;
   previousVersion: string;

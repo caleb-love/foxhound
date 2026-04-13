@@ -11,6 +11,14 @@ import {
   getExperimentRun,
 } from "@foxhound/db";
 import { randomUUID } from "crypto";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "experiment" });
+
+/** Truncate and sanitize LLM error text before logging or DB persistence. */
+function sanitizeErrorForStorage(text: string): string {
+  return text.slice(0, 500).replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]");
+}
 
 export const EXPERIMENT_QUEUE_NAME = "experiment-runs";
 
@@ -67,7 +75,7 @@ async function executeExperimentRun(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`LLM API error: ${response.status} ${text}`);
+    throw new Error(`LLM API error: ${response.status} ${sanitizeErrorForStorage(text)}`);
   }
 
   const data = (await response.json()) as {
@@ -128,7 +136,7 @@ async function invokeEvaluator(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Evaluator LLM error: ${response.status} ${text}`);
+    throw new Error(`Evaluator LLM error: ${response.status} ${sanitizeErrorForStorage(text)}`);
   }
 
   const data = (await response.json()) as {
@@ -154,24 +162,31 @@ async function invokeEvaluator(
 async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> {
   const { experimentId, orgId } = job.data;
 
-  await updateExperimentStatus(experimentId, "running");
+  await updateExperimentStatus(experimentId, orgId, "running");
 
   const experiment = await getExperiment(experimentId, orgId);
   if (!experiment) {
     throw new Error(`Experiment ${experimentId} not found`);
   }
 
-  const runs = await listExperimentRuns(experimentId);
+  const runs = await listExperimentRuns(experimentId, orgId);
   let failedCount = 0;
 
   for (const run of runs) {
     try {
-      const item = await getDatasetItem(run.datasetItemId);
-      if (!item) continue;
+      const item = await getDatasetItem(run.datasetItemId, orgId);
+      if (!item) {
+        failedCount++;
+        log.error("Dataset item not found or inaccessible", { runId: run.id, datasetItemId: run.datasetItemId, orgId });
+        await updateExperimentRun(run.id, orgId, {
+          output: { error: "dataset_item_not_found" },
+        });
+        continue;
+      }
 
       const result = await executeExperimentRun(experiment.config, item.input);
 
-      await updateExperimentRun(run.id, {
+      await updateExperimentRun(run.id, orgId, {
         output: result.output,
         latencyMs: result.latencyMs,
         tokenCount: result.tokenCount,
@@ -179,9 +194,10 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
       });
     } catch (err) {
       failedCount++;
-      console.error(`[experiment] Run ${run.id} failed:`, (err as Error).message);
-      await updateExperimentRun(run.id, {
-        output: { error: (err as Error).message },
+      const sanitizedError = sanitizeErrorForStorage((err as Error).message);
+      log.error("Run failed", { runId: run.id, error: sanitizedError });
+      await updateExperimentRun(run.id, orgId, {
+        output: { error: sanitizedError },
       });
     }
   }
@@ -192,14 +208,12 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
     const active = enabledEvaluators.filter((e) => e.enabled);
 
     if (active.length > 0) {
-      console.log(
-        `[experiment] Auto-scoring ${runs.length} runs with ${active.length} evaluator(s)`,
-      );
+      log.info("Auto-scoring experiment runs", { runCount: runs.length, evaluatorCount: active.length });
       for (const run of runs) {
-        const updatedRun = await getExperimentRun(run.id);
+        const updatedRun = await getExperimentRun(run.id, orgId);
         if (!updatedRun?.output || updatedRun.output.error) continue;
 
-        const item = await getDatasetItem(run.datasetItemId);
+        const item = await getDatasetItem(run.datasetItemId, orgId);
         if (!item?.sourceTraceId) continue;
 
         for (const evaluator of active) {
@@ -216,17 +230,17 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
               label: result.label,
               comment: `experiment:${experiment.id} run:${run.id}`,
             });
-          } catch {
-            // Non-fatal: scoring failure shouldn't fail the experiment
+          } catch (err) {
+            log.warn("Evaluator scoring failed", { runId: run.id, evaluator: evaluator.name, error: (err as Error).message });
           }
         }
       }
     }
   } catch (err) {
-    console.error(`[experiment] Auto-scoring failed:`, (err as Error).message);
+    log.error("Auto-scoring failed", { error: (err as Error).message });
   }
 
-  await updateExperimentStatus(experimentId, failedCount === runs.length ? "failed" : "completed");
+  await updateExperimentStatus(experimentId, orgId, runs.length > 0 && failedCount === runs.length ? "failed" : "completed");
 }
 
 /**
@@ -256,16 +270,16 @@ export function startExperimentWorker(connection: ConnectionOptions): Worker<Exp
   );
 
   worker.on("completed", (job) => {
-    console.log(`[experiment] Job ${job.id} completed (experiment: ${job.data.experimentId})`);
+    log.info("Job completed", { jobId: job.id, experimentId: job.data.experimentId });
   });
 
   worker.on("failed", (job, err) => {
     const experimentId = job?.data?.experimentId ?? "unknown";
-    console.error(`[experiment] Job ${job?.id} failed (experiment: ${experimentId}):`, err.message);
+    log.error("Job failed", { jobId: job?.id, experimentId, error: err.message });
 
-    if (job?.data?.experimentId) {
-      updateExperimentStatus(job.data.experimentId, "failed").catch((e: unknown) => {
-        console.error(`[experiment] Failed to update experiment status:`, e);
+    if (job?.data?.experimentId && job?.data?.orgId) {
+      updateExperimentStatus(job.data.experimentId, job.data.orgId, "failed").catch((e: unknown) => {
+        log.error("Failed to update experiment status", { experimentId: job?.data?.experimentId, error: String(e) });
       });
     }
   });

@@ -1,10 +1,17 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { createApiKey, listApiKeys, revokeApiKey, generateApiKey } from "@foxhound/db";
+import { createApiKey, listApiKeys, revokeApiKey, generateApiKey, writeAuditLog } from "@foxhound/db";
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
+  /** Optional expiration date (ISO 8601). Keys past this date are rejected at auth time. */
+  expiresAt: z.coerce.date().refine((d) => d > new Date(), {
+    message: "expiresAt must be in the future",
+  }).optional(),
+  // NOTE: scopes column exists in DB but is NOT user-settable until scope enforcement
+  // is implemented in Sprint H4. Accepting scopes here without enforcement creates
+  // a false sense of security. See hardening plan H4 / security review.
 });
 
 export function apiKeysRoutes(fastify: FastifyInstance): void {
@@ -19,7 +26,7 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const { name } = result.data;
+    const { name, expiresAt } = result.data;
     const { key, prefix, keyHash } = generateApiKey();
 
     const record = await createApiKey({
@@ -29,12 +36,27 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
       prefix,
       name,
       createdByUserId: request.userId!,
+      expiresAt: expiresAt ?? null,
+    });
+
+    // Audit: API key creation
+    writeAuditLog({
+      orgId: request.orgId,
+      actorUserId: request.userId,
+      action: "api_key.create",
+      targetType: "api_key",
+      targetId: record.id,
+      metadata: { keyName: name, keyPrefix: prefix },
+      ipAddress: request.ip,
+    }).catch((err) => {
+      request.log.error({ err, action: "api_key.create" }, "Audit log write failed");
     });
 
     return reply.code(201).send({
       id: record.id,
       name: record.name,
       prefix: record.prefix,
+      expiresAt: record.expiresAt,
       createdAt: record.createdAt,
       // Return the plaintext key once — store it securely, it won't be shown again
       key,
@@ -66,6 +88,19 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
           .code(404)
           .send({ error: "Not Found", message: "API key not found or already revoked" });
       }
+
+      // Audit: API key revocation
+      writeAuditLog({
+        orgId: request.orgId,
+        actorUserId: request.userId,
+        action: "api_key.revoke",
+        targetType: "api_key",
+        targetId: id,
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "api_key.revoke" }, "Audit log write failed");
+      });
+
       return reply.code(200).send({ success: true });
     },
   );

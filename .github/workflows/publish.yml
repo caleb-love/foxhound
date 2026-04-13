@@ -12,8 +12,38 @@ env:
   PNPM_VERSION: "9"
 
 jobs:
+  test:
+    name: Test before publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+        if: startsWith(github.ref_name, 'py-v')
+
+      - name: Run Python tests
+        if: startsWith(github.ref_name, 'py-v')
+        working-directory: packages/sdk-py
+        run: pip install hatch && hatch test
+
   publish-npm-sdk:
     name: Publish @foxhound-ai/sdk to npm
+    needs: [test]
     if: startsWith(github.ref_name, 'sdk-v')
     runs-on: ubuntu-latest
     permissions:
@@ -44,6 +74,7 @@ jobs:
 
   publish-npm-mcp:
     name: Publish @foxhound-ai/mcp-server to npm
+    needs: [test]
     if: startsWith(github.ref_name, 'mcp-v')
     runs-on: ubuntu-latest
     permissions:
@@ -74,6 +105,7 @@ jobs:
 
   publish-pypi:
     name: Publish foxhound-ai to PyPI
+    needs: [test]
     if: startsWith(github.ref_name, 'py-v')
     runs-on: ubuntu-latest
     permissions:

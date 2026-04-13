@@ -5,6 +5,7 @@ export interface Entitlements {
   canRunDiff: boolean;
   canAuditLog: boolean;
   canEvaluate: boolean;
+  canManagePrompts: boolean;
   maxSpans: number;
   maxProjects: number;
   maxSeats: number;
@@ -19,6 +20,7 @@ const PLAN_LIMITS: Record<Plan, Entitlements> = {
     canRunDiff: true,
     canAuditLog: false,
     canEvaluate: false,
+    canManagePrompts: false,
     maxSpans: 100_000,
     maxProjects: -1,
     maxSeats: -1,
@@ -29,6 +31,7 @@ const PLAN_LIMITS: Record<Plan, Entitlements> = {
     canRunDiff: true,
     canAuditLog: false,
     canEvaluate: true,
+    canManagePrompts: true,
     maxSpans: 1_000_000,
     maxProjects: -1,
     maxSeats: -1,
@@ -39,6 +42,7 @@ const PLAN_LIMITS: Record<Plan, Entitlements> = {
     canRunDiff: true,
     canAuditLog: true,
     canEvaluate: true,
+    canManagePrompts: true,
     maxSpans: 5_000_000,
     maxProjects: -1,
     maxSeats: -1,
@@ -49,6 +53,7 @@ const PLAN_LIMITS: Record<Plan, Entitlements> = {
     canRunDiff: true,
     canAuditLog: true,
     canEvaluate: true,
+    canManagePrompts: true,
     maxSpans: -1,
     maxProjects: -1,
     maxSeats: -1,

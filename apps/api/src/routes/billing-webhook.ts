@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import Stripe from "stripe";
-import { updateOrgPlan, getOrganizationByStripeCustomerId } from "@foxhound/db";
+import { updateOrgPlan, getOrganizationByStripeCustomerId, writeAuditLog } from "@foxhound/db";
 import { invalidateEntitlements } from "@foxhound/billing";
 import { invalidateBillingStatusCache } from "./billing.js";
 
@@ -19,6 +19,7 @@ function getWebhookSecret(): string {
 async function handleSubscriptionEvent(
   subscription: Stripe.Subscription,
   eventType: string,
+  log: { error: (obj: unknown, msg: string) => void },
 ): Promise<void> {
   const stripeCustomerId = subscription.customer as string;
   const org = await getOrganizationByStripeCustomerId(stripeCustomerId);
@@ -57,9 +58,25 @@ async function handleSubscriptionEvent(
     return;
   }
 
+  const previousPlan = org.plan;
   await updateOrgPlan(org.id, plan);
   invalidateEntitlements(org.id);
   invalidateBillingStatusCache(org.id);
+
+  // Audit: billing plan change
+  if (previousPlan !== plan) {
+    writeAuditLog({
+      orgId: org.id,
+      action: "billing.plan_change",
+      targetType: "organization",
+      targetId: org.id,
+      metadata: { previousPlan, newPlan: plan, stripeEvent: eventType },
+    }).catch((err: unknown) => {
+      // Fire-and-forget: webhook handler must not throw on audit failure.
+      // Still log so audit write failures are visible in structured logs.
+      log.error({ err }, "Audit log write failed");
+    });
+  }
 }
 
 export function billingWebhookRoutes(fastify: FastifyInstance): void {
@@ -110,7 +127,7 @@ export function billingWebhookRoutes(fastify: FastifyInstance): void {
         case "customer.subscription.updated":
         case "customer.subscription.deleted": {
           const subscription = event.data.object;
-          await handleSubscriptionEvent(subscription, event.type);
+          await handleSubscriptionEvent(subscription, event.type, fastify.log);
           break;
         }
         case "invoice.payment_failed": {

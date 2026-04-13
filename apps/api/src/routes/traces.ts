@@ -189,7 +189,7 @@ async function handlePhase4Ingestion(
 
     // Persist computed costs to spans.cost_usd
     if (spanCosts.length > 0) {
-      await updateSpanCosts(spanCosts);
+      await updateSpanCosts(spanCosts, orgId);
     }
 
     // 2. Update Redis running cost total
@@ -305,9 +305,15 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       void reply.code(202).send({ accepted: true, id: trace.id });
 
       setImmediate(() => {
-        persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch(() => {});
-        void maybeFireAlerts(fastify, trace as unknown as Trace, orgId);
-        void handlePhase4Ingestion(fastify, trace, orgId);
+        persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch((err) => {
+          fastify.log.error({ err, traceId: trace.id, orgId }, "Trace persistence failed after retries");
+        });
+        maybeFireAlerts(fastify, trace as unknown as Trace, orgId).catch((err: unknown) => {
+          fastify.log.error({ err, traceId: trace.id, orgId }, "Alert evaluation failed unexpectedly");
+        });
+        handlePhase4Ingestion(fastify, trace, orgId).catch((err: unknown) => {
+          fastify.log.error({ err, traceId: trace.id, orgId }, "Phase 4 ingestion failed unexpectedly");
+        });
       });
     },
   );
@@ -320,7 +326,7 @@ export function tracesRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const trace = await getTraceWithSpans(id, request.orgId);
     if (!trace) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Trace not found" });
     }
     return reply.code(200).send(trace);
   });
@@ -337,7 +343,7 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       const { traceId, spanId } = request.params as { traceId: string; spanId: string };
       const context = await getReplayContext(traceId, spanId, request.orgId);
       if (!context) {
-        return reply.code(404).send({ error: "Not Found" });
+        return reply.code(404).send({ error: "Not Found", message: "Replay context not found for the specified trace and span" });
       }
       return reply.code(200).send(context);
     },

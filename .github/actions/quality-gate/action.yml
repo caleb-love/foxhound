@@ -1,0 +1,64 @@
+name: 'Foxhound Quality Gate'
+description: 'Run Foxhound evaluators and compare scores against baseline threshold'
+author: 'Foxhound Team'
+
+inputs:
+  api-key:
+    description: 'Foxhound API key (secret)'
+    required: true
+  api-endpoint:
+    description: 'Foxhound API endpoint URL'
+    required: true
+  dataset-id:
+    description: 'Dataset ID to run evaluators against'
+    required: true
+  evaluator-ids:
+    description: 'Comma-separated evaluator IDs (optional, defaults to all evaluators in dataset)'
+    required: false
+  experiment-name:
+    description: 'Name for the experiment (optional, defaults to PR number + commit SHA)'
+    required: false
+  experiment-config:
+    description: 'JSON experiment configuration (model params, etc.)'
+    required: true
+  threshold:
+    description: 'Minimum acceptable score delta (-1.0 to 1.0, default: 0.0 = no regression)'
+    required: false
+    default: '0.0'
+  baseline-experiment-id:
+    description: 'Baseline experiment ID to compare against (optional, defaults to latest on main branch)'
+    required: false
+  timeout:
+    description: 'Maximum seconds to wait for experiment completion (default: 600)'
+    required: false
+    default: '600'
+  github-token:
+    description: 'GitHub token for posting PR comments (optional, falls back to GITHUB_TOKEN env var)'
+    required: false
+
+outputs:
+  experiment-id:
+    description: 'Created experiment ID'
+    value: ${{ steps.run-gate.outputs.experiment-id }}
+  comparison-url:
+    description: 'URL to comparison report'
+    value: ${{ steps.run-gate.outputs.comparison-url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Foxhound quality gate
+      id: run-gate
+      shell: bash
+      run: node ${{ github.action_path }}/dist/run.js
+      env:
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_API_ENDPOINT: ${{ inputs.api-endpoint }}
+        INPUT_DATASET_ID: ${{ inputs.dataset-id }}
+        INPUT_EVALUATOR_IDS: ${{ inputs.evaluator-ids }}
+        INPUT_EXPERIMENT_NAME: ${{ inputs.experiment-name }}
+        INPUT_EXPERIMENT_CONFIG: ${{ inputs.experiment-config }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        INPUT_BASELINE_EXPERIMENT_ID: ${{ inputs.baseline-experiment-id }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}

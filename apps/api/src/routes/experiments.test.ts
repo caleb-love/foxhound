@@ -5,6 +5,7 @@ import { experimentsRoutes } from "./experiments.js";
 
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   createExperiment: vi.fn(),
   listExperiments: vi.fn(),
   getExperiment: vi.fn(),
@@ -45,6 +46,9 @@ function mockApiKey(orgId = "org_1") {
       name: "Test Key",
       createdByUserId: null,
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -56,6 +60,7 @@ function mockApiKey(orgId = "org_1") {
       stripeCustomerId: null,
       retentionDays: 90,
       samplingRate: 1.0,
+      llmEvaluationEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     },

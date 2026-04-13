@@ -765,7 +765,7 @@ async function main(): Promise<void> {
         }
 
         // Build parent chains for each error span
-        function getParentChain(span: Span): Span[] {
+        const getParentChain = (span: Span): Span[] => {
           const chain: Span[] = [span];
           let current = span;
           while (current.parentSpanId) {
@@ -775,7 +775,7 @@ async function main(): Promise<void> {
             current = parent;
           }
           return chain;
-        }
+        };
 
         // Find the first error (earliest start time)
         const firstError = errorSpans.reduce((earliest, current) =>
@@ -1418,7 +1418,7 @@ async function main(): Promise<void> {
         } else if (run.status === "failed") {
           statusLine += "❌ failed";
         } else {
-          statusLine += run.status;
+          statusLine += String(run.status);
         }
         lines.push(statusLine);
 
@@ -1698,6 +1698,208 @@ async function main(): Promise<void> {
               text: `Error curating dataset: ${msg}`,
             },
           ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: list prompts ---
+  server.tool(
+    "foxhound_list_prompts",
+    "List all prompt templates in the registry. Shows prompt names, IDs, and timestamps. Requires Pro plan.",
+    {},
+    async () => {
+      try {
+        const data = await api.listPrompts();
+        const prompts = data.data;
+        if (!prompts.length) {
+          return {
+            content: [{ type: "text", text: "No prompts found. Create one with `foxhound_create_prompt`." }],
+          };
+        }
+
+        const lines = [
+          `## Prompts (${prompts.length})`,
+          "",
+          ...prompts.map(
+            (p) =>
+              `- **${p.name}** (${p.id}) | updated ${new Date(p.updatedAt).toISOString()}`,
+          ),
+        ];
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `Error listing prompts: ${msg}` }] };
+      }
+    },
+  );
+
+  // --- Tool: get prompt ---
+  server.tool(
+    "foxhound_get_prompt",
+    "Resolve a prompt by name and label (defaults to 'production'). Returns the prompt content, model, config, and version number. Use this to inspect what prompt version is currently active.",
+    {
+      name: z.string().describe("The prompt name (e.g. 'support-agent')"),
+      label: z
+        .string()
+        .optional()
+        .describe("The label to resolve (default: 'production'). Common labels: production, staging, canary"),
+    },
+    async (params) => {
+      try {
+        const data = await api.resolvePrompt(params.name, params.label);
+
+        const lines = [
+          `## Prompt: ${data.name}`,
+          `- Label: ${data.label}`,
+          `- Version: ${data.version}`,
+          `- Model: ${data.model ?? "not specified"}`,
+          "",
+          "### Content",
+          "```",
+          data.content,
+          "```",
+        ];
+
+        if (data.config && Object.keys(data.config).length > 0) {
+          lines.push("", "### Config", "```json", JSON.stringify(data.config, null, 2), "```");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            { type: "text", text: `Error resolving prompt "${params.name}": ${msg}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: list prompt versions ---
+  server.tool(
+    "foxhound_list_prompt_versions",
+    "List all versions of a prompt, including their labels. Use the prompt ID (not name) from `foxhound_list_prompts`.",
+    {
+      prompt_id: z.string().describe("The prompt ID (e.g. 'pmt_...')"),
+    },
+    async (params) => {
+      try {
+        const data = await api.listPromptVersions(params.prompt_id);
+        const versions = data.data;
+        if (!versions.length) {
+          return {
+            content: [{ type: "text", text: `No versions found for prompt ${params.prompt_id}.` }],
+          };
+        }
+
+        const lines = [
+          `## Versions for ${params.prompt_id} (${versions.length})`,
+          "",
+          ...versions.map((v) => {
+            const labels = v.labels?.length ? ` [${v.labels.join(", ")}]` : "";
+            const model = v.model ? ` | model: ${v.model}` : "";
+            return `- **v${v.version}**${labels}${model} | ${v.content.length} chars | ${new Date(v.createdAt).toISOString()}`;
+          }),
+        ];
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            { type: "text", text: `Error listing versions for "${params.prompt_id}": ${msg}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // --- Tool: create prompt ---
+  server.tool(
+    "foxhound_create_prompt",
+    "Create a new prompt in the registry. The name must be alphanumeric with hyphens/underscores (no spaces). Requires Pro plan. This is a write operation.",
+    {
+      name: z
+        .string()
+        .describe("Prompt name (alphanumeric, hyphens, underscores only — e.g. 'support-agent')"),
+    },
+    async (params) => {
+      try {
+        const prompt = await api.createPrompt(params.name);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Prompt created: **${prompt.name}** (${prompt.id})\n\nNext: add a version with \`foxhound_create_prompt_version\`.`,
+            },
+          ],
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `Error creating prompt: ${msg}` }] };
+      }
+    },
+  );
+
+  // --- Tool: create prompt version ---
+  server.tool(
+    "foxhound_create_prompt_version",
+    "Add a new version to an existing prompt. The version number auto-increments. Requires Pro plan. This is a write operation.",
+    {
+      prompt_id: z.string().describe("The prompt ID (e.g. 'pmt_...')"),
+      content: z.string().describe("The prompt template content"),
+      model: z.string().optional().describe("Optional model recommendation (e.g. 'gpt-4o', 'claude-sonnet-4-20250514')"),
+    },
+    async (params) => {
+      try {
+        const version = await api.createPromptVersion(params.prompt_id, {
+          content: params.content,
+          model: params.model,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Version **v${version.version}** created for prompt ${params.prompt_id} (${version.id})\n\nNext: label it with \`foxhound_set_prompt_label\` (e.g. label "staging" or "production").`,
+            },
+          ],
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error creating prompt version: ${msg}` }],
+        };
+      }
+    },
+  );
+
+  // --- Tool: set prompt label ---
+  server.tool(
+    "foxhound_set_prompt_label",
+    "Set a label (e.g. 'production', 'staging') on a specific prompt version. If the label already exists on another version of the same prompt, it is moved. This is a write operation.",
+    {
+      prompt_id: z.string().describe("The prompt ID (e.g. 'pmt_...')"),
+      version_number: z.number().int().positive().describe("The version number to label"),
+      label: z
+        .string()
+        .describe("Label name (alphanumeric, hyphens, underscores — e.g. 'production', 'staging')"),
+    },
+    async (params) => {
+      try {
+        const result = await api.setPromptLabel(params.prompt_id, {
+          label: params.label,
+          versionNumber: params.version_number,
+        });
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error setting label: ${msg}` }],
         };
       }
     },

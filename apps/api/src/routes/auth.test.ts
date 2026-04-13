@@ -13,6 +13,7 @@ vi.mock("@foxhound/db", () => ({
   hashPassword: vi.fn((p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(),
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   getSsoConfigByOrg: vi.fn().mockResolvedValue(null),
 }));
 
@@ -70,6 +71,7 @@ describe("POST /v1/auth/signup", () => {
         stripeCustomerId: null,
         retentionDays: 90,
         samplingRate: 1.0,
+        llmEvaluationEnabled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -163,6 +165,7 @@ describe("POST /v1/auth/login", () => {
           stripeCustomerId: null,
           retentionDays: 90,
           samplingRate: 1.0,
+          llmEvaluationEnabled: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -219,6 +222,7 @@ describe("GET /v1/auth/me", () => {
           stripeCustomerId: null,
           retentionDays: 90,
           samplingRate: 1.0,
+          llmEvaluationEnabled: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },

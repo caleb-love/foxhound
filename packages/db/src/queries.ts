@@ -25,6 +25,10 @@ import {
   agentConfigs,
   behaviorBaselines,
   modelPricingOverrides,
+  adminAuditLog,
+  prompts,
+  promptVersions,
+  promptLabels,
 } from "./schema.js";
 import {
   eq,
@@ -40,6 +44,7 @@ import {
   or,
   sql,
   count,
+  inArray,
 } from "drizzle-orm";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { Trace, Span } from "@foxhound/types";
@@ -113,6 +118,15 @@ export async function updateOrgPlan(orgId: string, plan: "free" | "pro" | "team"
     .where(eq(organizations.id, orgId))
     .returning();
   return rows[0] ?? null;
+}
+
+export async function isLlmEvaluationEnabled(orgId: string): Promise<boolean> {
+  const rows = await db
+    .select({ llmEvaluationEnabled: organizations.llmEvaluationEnabled })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+  return rows[0]?.llmEvaluationEnabled ?? false;
 }
 
 export async function getUsageForPeriod(orgId: string, period: string) {
@@ -225,8 +239,13 @@ export async function signup(input: SignupInput) {
 // API key queries
 // ──────────────────────────────────────────────────────────────────────────────
 
-export async function resolveApiKey(key: string) {
+export type ApiKeyRejection = { rejected: "expired" } | { rejected: "revoked" } | { rejected: "not_found" };
+export type ResolvedApiKey = { apiKey: typeof apiKeys.$inferSelect; org: typeof organizations.$inferSelect };
+
+export async function resolveApiKey(key: string): Promise<ResolvedApiKey | ApiKeyRejection> {
   const keyHash = hashApiKey(key);
+
+  // First: look up by hash only (no revoked/expiry filter) so we can distinguish rejection reasons
   const rows = await db
     .select({
       apiKey: apiKeys,
@@ -234,9 +253,35 @@ export async function resolveApiKey(key: string) {
     })
     .from(apiKeys)
     .innerJoin(organizations, eq(apiKeys.orgId, organizations.id))
-    .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
+    .where(eq(apiKeys.keyHash, keyHash))
     .limit(1);
-  return rows[0] ?? null;
+  const row = rows[0] ?? null;
+  if (!row) return { rejected: "not_found" };
+
+  if (row.apiKey.revokedAt) return { rejected: "revoked" };
+
+  if (row.apiKey.expiresAt && row.apiKey.expiresAt < new Date()) {
+    return { rejected: "expired" };
+  }
+
+  return row;
+}
+
+/**
+ * Update the lastUsedAt timestamp for an API key (fire-and-forget, no await needed by caller).
+ * Skips the write if lastUsedAt was updated within the last 60 seconds to avoid
+ * unnecessary write load on high-traffic keys.
+ */
+export async function touchApiKeyLastUsed(keyId: string): Promise<void> {
+  await db
+    .update(apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(
+      and(
+        eq(apiKeys.id, keyId),
+        sql`(${apiKeys.lastUsedAt} IS NULL OR ${apiKeys.lastUsedAt} < now() - interval '60 seconds')`,
+      ),
+    );
 }
 
 export interface CreateApiKeyInput {
@@ -246,6 +291,8 @@ export interface CreateApiKeyInput {
   prefix: string;
   name: string;
   createdByUserId: string;
+  expiresAt?: Date | null;
+  scopes?: string | null;
 }
 
 export async function createApiKey(input: CreateApiKeyInput) {
@@ -254,27 +301,77 @@ export async function createApiKey(input: CreateApiKeyInput) {
 }
 
 export async function listApiKeys(orgId: string) {
-  return db
+  const rows = await db
     .select({
       id: apiKeys.id,
       orgId: apiKeys.orgId,
       prefix: apiKeys.prefix,
       name: apiKeys.name,
       createdByUserId: apiKeys.createdByUserId,
+      expiresAt: apiKeys.expiresAt,
+      scopes: apiKeys.scopes,
+      lastUsedAt: apiKeys.lastUsedAt,
       revokedAt: apiKeys.revokedAt,
       createdAt: apiKeys.createdAt,
     })
     .from(apiKeys)
     .where(and(eq(apiKeys.orgId, orgId), isNull(apiKeys.revokedAt)))
     .orderBy(desc(apiKeys.createdAt));
+
+  const now = new Date();
+  return rows.map((k) => ({
+    ...k,
+    isExpired: k.expiresAt != null && k.expiresAt < now,
+  }));
 }
 
 export async function revokeApiKey(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .update(apiKeys)
     .set({ revokedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(apiKeys.id, id), eq(apiKeys.orgId, orgId), isNull(apiKeys.revokedAt)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(apiKeys.id, id), eq(apiKeys.orgId, orgId), isNull(apiKeys.revokedAt)))
+    .returning({ id: apiKeys.id });
+  return rows.length > 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Admin audit log
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface AuditLogEntry {
+  orgId: string;
+  actorUserId?: string;
+  action: string;
+  targetType: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+}
+
+export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
+  const id = `aud_${randomBytes(16).toString("hex")}`;
+  await db.insert(adminAuditLog).values({
+    id,
+    orgId: entry.orgId,
+    actorUserId: entry.actorUserId ?? null,
+    action: entry.action,
+    targetType: entry.targetType,
+    targetId: entry.targetId ?? null,
+    metadata: entry.metadata ?? {},
+    ipAddress: entry.ipAddress ?? null,
+  });
+}
+
+export async function getAuditLog(orgId: string, options?: { limit?: number; offset?: number }) {
+  const limit = Math.min(options?.limit ?? 50, 500);
+  const offset = options?.offset ?? 0;
+  return db
+    .select()
+    .from(adminAuditLog)
+    .where(eq(adminAuditLog.orgId, orgId))
+    .orderBy(desc(adminAuditLog.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -305,7 +402,9 @@ export async function insertTrace(trace: Trace, orgId: string): Promise<void> {
       endTimeMs: trace.endTimeMs ?? null,
       parentAgentId: trace.parentAgentId ?? null,
       correlationId: trace.correlationId ?? null,
-      spans: trace.spans as unknown[],
+      // JSONB column kept for backwards compat reads (resolveSpans fallback)
+      // but no longer written — normalized spans table is the source of truth
+      spans: [],
       metadata: trace.metadata as Record<string, unknown>,
     })
     .onConflictDoNothing();
@@ -635,6 +734,7 @@ export async function insertSpans(traceId: string, orgId: string, spanList: Span
  */
 export async function updateSpanCosts(
   costs: Array<{ traceId: string; spanId: string; costUsd: number }>,
+  orgId: string,
 ): Promise<void> {
   if (costs.length === 0) return;
   await Promise.all(
@@ -642,7 +742,7 @@ export async function updateSpanCosts(
       db
         .update(spans)
         .set({ costUsd: String(c.costUsd) })
-        .where(and(eq(spans.traceId, c.traceId), eq(spans.id, c.spanId))),
+        .where(and(eq(spans.traceId, c.traceId), eq(spans.id, c.spanId), eq(spans.orgId, orgId))),
     ),
   );
 }
@@ -677,10 +777,11 @@ async function getSpansByTraceId(traceId: string, orgId: string): Promise<Span[]
  */
 export async function deleteExpiredTraces(orgId: string, retentionDays: number): Promise<number> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  const result = await db
+  const rows = await db
     .delete(traces)
-    .where(and(eq(traces.orgId, orgId), lt(traces.createdAt, cutoff)));
-  return (result as unknown as { rowCount?: number }).rowCount ?? 0;
+    .where(and(eq(traces.orgId, orgId), lt(traces.createdAt, cutoff)))
+    .returning({ id: traces.id });
+  return rows.length;
 }
 
 /**
@@ -730,10 +831,11 @@ export async function getNotificationChannel(id: string, orgId: string) {
 }
 
 export async function deleteNotificationChannel(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(notificationChannels)
-    .where(and(eq(notificationChannels.id, id), eq(notificationChannels.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(notificationChannels.id, id), eq(notificationChannels.orgId, orgId)))
+    .returning({ id: notificationChannels.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -769,10 +871,11 @@ export async function getAlertRulesForOrg(orgId: string) {
 }
 
 export async function deleteAlertRule(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(alertRules)
-    .where(and(eq(alertRules.id, id), eq(alertRules.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(alertRules.id, id), eq(alertRules.orgId, orgId)))
+    .returning({ id: alertRules.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -852,8 +955,11 @@ export async function upsertSsoConfig(input: UpsertSsoConfigInput) {
 }
 
 export async function deleteSsoConfig(orgId: string): Promise<boolean> {
-  const result = await db.delete(ssoConfigs).where(eq(ssoConfigs.orgId, orgId));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+  const rows = await db
+    .delete(ssoConfigs)
+    .where(eq(ssoConfigs.orgId, orgId))
+    .returning({ orgId: ssoConfigs.orgId });
+  return rows.length > 0;
 }
 
 export async function updateSsoEnforcement(orgId: string, enforce: boolean) {
@@ -1084,8 +1190,11 @@ export async function getScore(id: string, orgId: string) {
 }
 
 export async function deleteScore(id: string, orgId: string): Promise<boolean> {
-  const result = await db.delete(scores).where(and(eq(scores.id, id), eq(scores.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+  const rows = await db
+    .delete(scores)
+    .where(and(eq(scores.id, id), eq(scores.orgId, orgId)))
+    .returning({ id: scores.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1135,6 +1244,19 @@ export async function getEvaluator(id: string, orgId: string) {
   return rows[0] ?? null;
 }
 
+/**
+ * Fetch an evaluator by ID without org scoping.
+ * ONLY for trusted internal code paths (worker jobs) — never expose to API routes.
+ */
+export async function getEvaluatorById(id: string) {
+  const rows = await db
+    .select()
+    .from(evaluators)
+    .where(eq(evaluators.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 export interface UpdateEvaluatorInput {
   name?: string;
   promptTemplate?: string;
@@ -1145,7 +1267,7 @@ export interface UpdateEvaluatorInput {
 }
 
 export async function updateEvaluator(id: string, orgId: string, input: UpdateEvaluatorInput) {
-  const set: Record<string, unknown> = {};
+  const set: Partial<typeof evaluators.$inferInsert> = {};
   if (input.name !== undefined) set.name = input.name;
   if (input.promptTemplate !== undefined) set.promptTemplate = input.promptTemplate;
   if (input.model !== undefined) set.model = input.model;
@@ -1164,10 +1286,11 @@ export async function updateEvaluator(id: string, orgId: string, input: UpdateEv
 }
 
 export async function deleteEvaluator(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(evaluators)
-    .where(and(eq(evaluators.id, id), eq(evaluators.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(evaluators.id, id), eq(evaluators.orgId, orgId)))
+    .returning({ id: evaluators.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1214,17 +1337,48 @@ export async function getEvaluatorRun(id: string) {
   return rows[0] ?? null;
 }
 
+/** Org-scoped evaluator run lookup — joins through evaluators to verify tenant ownership. */
+export async function getEvaluatorRunForOrg(id: string, orgId: string) {
+  const rows = await db
+    .select({
+      id: evaluatorRuns.id,
+      evaluatorId: evaluatorRuns.evaluatorId,
+      traceId: evaluatorRuns.traceId,
+      scoreId: evaluatorRuns.scoreId,
+      status: evaluatorRuns.status,
+      error: evaluatorRuns.error,
+      createdAt: evaluatorRuns.createdAt,
+      completedAt: evaluatorRuns.completedAt,
+    })
+    .from(evaluatorRuns)
+    .innerJoin(evaluators, eq(evaluatorRuns.evaluatorId, evaluators.id))
+    .where(and(eq(evaluatorRuns.id, id), eq(evaluators.orgId, orgId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 export async function updateEvaluatorRunStatus(
   id: string,
+  orgId: string,
   status: "running" | "completed" | "failed",
   extra?: { scoreId?: string; error?: string },
 ) {
-  const set: Record<string, unknown> = { status };
+  const set: Partial<typeof evaluatorRuns.$inferInsert> = { status };
   if (extra?.scoreId !== undefined) set.scoreId = extra.scoreId;
   if (extra?.error !== undefined) set.error = extra.error;
   if (status === "completed" || status === "failed") set.completedAt = new Date();
 
-  const rows = await db.update(evaluatorRuns).set(set).where(eq(evaluatorRuns.id, id)).returning();
+  // Org-scoped update via subquery on parent evaluator
+  const rows = await db
+    .update(evaluatorRuns)
+    .set(set)
+    .where(
+      and(
+        eq(evaluatorRuns.id, id),
+        sql`${evaluatorRuns.evaluatorId} IN (SELECT id FROM evaluators WHERE org_id = ${orgId})`,
+      ),
+    )
+    .returning();
   return rows[0] ?? null;
 }
 
@@ -1280,14 +1434,15 @@ export async function getAnnotationQueue(id: string, orgId: string) {
   return rows[0] ?? null;
 }
 
-export async function getAnnotationQueueStats(queueId: string) {
+export async function getAnnotationQueueStats(queueId: string, orgId: string) {
   const rows = await db
     .select({
       status: annotationQueueItems.status,
       count: count(),
     })
     .from(annotationQueueItems)
-    .where(eq(annotationQueueItems.queueId, queueId))
+    .innerJoin(annotationQueues, eq(annotationQueueItems.queueId, annotationQueues.id))
+    .where(and(eq(annotationQueueItems.queueId, queueId), eq(annotationQueues.orgId, orgId)))
     .groupBy(annotationQueueItems.status);
 
   const stats = { pending: 0, completed: 0, skipped: 0, total: 0 };
@@ -1302,10 +1457,11 @@ export async function getAnnotationQueueStats(queueId: string) {
 }
 
 export async function deleteAnnotationQueue(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(annotationQueues)
-    .where(and(eq(annotationQueues.id, id), eq(annotationQueues.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(annotationQueues.id, id), eq(annotationQueues.orgId, orgId)))
+    .returning({ id: annotationQueues.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1337,14 +1493,16 @@ export async function addAnnotationQueueItems(
   return rows;
 }
 
-export async function claimAnnotationQueueItem(queueId: string, userId: string) {
-  // Claim the oldest pending item and assign it
+export async function claimAnnotationQueueItem(queueId: string, orgId: string, userId: string) {
+  // Claim the oldest pending item — org-scoped via queue ownership
   const pending = await db
-    .select()
+    .select({ id: annotationQueueItems.id })
     .from(annotationQueueItems)
+    .innerJoin(annotationQueues, eq(annotationQueueItems.queueId, annotationQueues.id))
     .where(
       and(
         eq(annotationQueueItems.queueId, queueId),
+        eq(annotationQueues.orgId, orgId),
         eq(annotationQueueItems.status, "pending"),
         isNull(annotationQueueItems.assignedTo),
       ),
@@ -1364,29 +1522,50 @@ export async function claimAnnotationQueueItem(queueId: string, userId: string) 
   return rows[0] ?? null;
 }
 
-export async function completeAnnotationQueueItem(itemId: string) {
+export async function completeAnnotationQueueItem(itemId: string, orgId: string) {
+  // Atomic org-scoped update via subquery — no TOCTOU race
   const rows = await db
     .update(annotationQueueItems)
     .set({ status: "completed", completedAt: new Date() })
-    .where(eq(annotationQueueItems.id, itemId))
+    .where(
+      and(
+        eq(annotationQueueItems.id, itemId),
+        sql`${annotationQueueItems.queueId} IN (SELECT id FROM annotation_queues WHERE org_id = ${orgId})`,
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }
 
-export async function skipAnnotationQueueItem(itemId: string) {
+export async function skipAnnotationQueueItem(itemId: string, orgId: string) {
+  // Atomic org-scoped update via subquery — no TOCTOU race
   const rows = await db
     .update(annotationQueueItems)
     .set({ status: "skipped", completedAt: new Date() })
-    .where(eq(annotationQueueItems.id, itemId))
+    .where(
+      and(
+        eq(annotationQueueItems.id, itemId),
+        sql`${annotationQueueItems.queueId} IN (SELECT id FROM annotation_queues WHERE org_id = ${orgId})`,
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }
 
-export async function getAnnotationQueueItem(itemId: string) {
+export async function getAnnotationQueueItem(itemId: string, orgId: string) {
   const rows = await db
-    .select()
+    .select({
+      id: annotationQueueItems.id,
+      queueId: annotationQueueItems.queueId,
+      traceId: annotationQueueItems.traceId,
+      status: annotationQueueItems.status,
+      assignedTo: annotationQueueItems.assignedTo,
+      completedAt: annotationQueueItems.completedAt,
+      createdAt: annotationQueueItems.createdAt,
+    })
     .from(annotationQueueItems)
-    .where(eq(annotationQueueItems.id, itemId))
+    .innerJoin(annotationQueues, eq(annotationQueueItems.queueId, annotationQueues.id))
+    .where(and(eq(annotationQueueItems.id, itemId), eq(annotationQueues.orgId, orgId)))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -1433,10 +1612,11 @@ export async function getDataset(id: string, orgId: string) {
 }
 
 export async function deleteDataset(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(datasets)
-    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(datasets.id, id), eq(datasets.orgId, orgId)))
+    .returning({ id: datasets.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1487,37 +1667,70 @@ export async function createDatasetItems(inputs: CreateDatasetItemInput[]) {
 
 export interface DatasetItemFilters {
   datasetId: string;
+  orgId: string;
   page?: number;
   limit?: number;
 }
 
 export async function listDatasetItems(filters: DatasetItemFilters) {
-  const { datasetId, page = 1, limit = 50 } = filters;
+  const { datasetId, orgId, page = 1, limit = 50 } = filters;
   const offset = (page - 1) * limit;
   return db
-    .select()
+    .select({
+      id: datasetItems.id,
+      datasetId: datasetItems.datasetId,
+      input: datasetItems.input,
+      expectedOutput: datasetItems.expectedOutput,
+      metadata: datasetItems.metadata,
+      sourceTraceId: datasetItems.sourceTraceId,
+      createdAt: datasetItems.createdAt,
+    })
     .from(datasetItems)
-    .where(eq(datasetItems.datasetId, datasetId))
+    .innerJoin(datasets, eq(datasetItems.datasetId, datasets.id))
+    .where(and(eq(datasetItems.datasetId, datasetId), eq(datasets.orgId, orgId)))
     .orderBy(desc(datasetItems.createdAt))
     .limit(limit)
     .offset(offset);
 }
 
-export async function getDatasetItem(id: string) {
-  const rows = await db.select().from(datasetItems).where(eq(datasetItems.id, id)).limit(1);
+export async function getDatasetItem(id: string, orgId: string) {
+  const rows = await db
+    .select({
+      id: datasetItems.id,
+      datasetId: datasetItems.datasetId,
+      input: datasetItems.input,
+      expectedOutput: datasetItems.expectedOutput,
+      metadata: datasetItems.metadata,
+      sourceTraceId: datasetItems.sourceTraceId,
+      createdAt: datasetItems.createdAt,
+    })
+    .from(datasetItems)
+    .innerJoin(datasets, eq(datasetItems.datasetId, datasets.id))
+    .where(and(eq(datasetItems.id, id), eq(datasets.orgId, orgId)))
+    .limit(1);
   return rows[0] ?? null;
 }
 
-export async function deleteDatasetItem(id: string): Promise<boolean> {
-  const result = await db.delete(datasetItems).where(eq(datasetItems.id, id));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+export async function deleteDatasetItem(id: string, orgId: string): Promise<boolean> {
+  // Atomic org-scoped delete via subquery — no TOCTOU race
+  const rows = await db
+    .delete(datasetItems)
+    .where(
+      and(
+        eq(datasetItems.id, id),
+        sql`${datasetItems.datasetId} IN (SELECT id FROM datasets WHERE org_id = ${orgId})`,
+      ),
+    )
+    .returning({ id: datasetItems.id });
+  return rows.length > 0;
 }
 
-export async function countDatasetItems(datasetId: string): Promise<number> {
+export async function countDatasetItems(datasetId: string, orgId: string): Promise<number> {
   const rows = await db
     .select({ count: count() })
     .from(datasetItems)
-    .where(eq(datasetItems.datasetId, datasetId));
+    .innerJoin(datasets, eq(datasetItems.datasetId, datasets.id))
+    .where(and(eq(datasetItems.datasetId, datasetId), eq(datasets.orgId, orgId)));
   return Number(rows[0]?.count ?? 0);
 }
 
@@ -1574,7 +1787,7 @@ export async function getTracesForDatasetCuration(filters: {
       const traceSpans = await db
         .select()
         .from(spans)
-        .where(eq(spans.traceId, traceId))
+        .where(and(eq(spans.traceId, traceId), eq(spans.orgId, orgId)))
         .orderBy(asc(spans.startTimeMs));
 
       results.push({ trace: trace[0], spans: traceSpans });
@@ -1633,20 +1846,26 @@ export async function getExperiment(id: string, orgId: string) {
 
 export async function updateExperimentStatus(
   id: string,
+  orgId: string,
   status: "running" | "completed" | "failed",
 ) {
-  const set: Record<string, unknown> = { status };
+  const set: Partial<typeof experiments.$inferInsert> = { status };
   if (status === "completed" || status === "failed") set.completedAt = new Date();
 
-  const rows = await db.update(experiments).set(set).where(eq(experiments.id, id)).returning();
+  const rows = await db
+    .update(experiments)
+    .set(set)
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)))
+    .returning();
   return rows[0] ?? null;
 }
 
 export async function deleteExperiment(id: string, orgId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(experiments)
-    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(experiments.id, id), eq(experiments.orgId, orgId)))
+    .returning({ id: experiments.id });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1686,8 +1905,22 @@ export async function createExperimentRuns(inputs: CreateExperimentRunInput[]) {
   return rows;
 }
 
-export async function getExperimentRun(id: string) {
-  const rows = await db.select().from(experimentRuns).where(eq(experimentRuns.id, id)).limit(1);
+export async function getExperimentRun(id: string, orgId: string) {
+  const rows = await db
+    .select({
+      id: experimentRuns.id,
+      experimentId: experimentRuns.experimentId,
+      datasetItemId: experimentRuns.datasetItemId,
+      output: experimentRuns.output,
+      latencyMs: experimentRuns.latencyMs,
+      tokenCount: experimentRuns.tokenCount,
+      cost: experimentRuns.cost,
+      createdAt: experimentRuns.createdAt,
+    })
+    .from(experimentRuns)
+    .innerJoin(experiments, eq(experimentRuns.experimentId, experiments.id))
+    .where(and(eq(experimentRuns.id, id), eq(experiments.orgId, orgId)))
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -1698,7 +1931,8 @@ export interface UpdateExperimentRunInput {
   cost?: number;
 }
 
-export async function updateExperimentRun(id: string, input: UpdateExperimentRunInput) {
+export async function updateExperimentRun(id: string, orgId: string, input: UpdateExperimentRunInput) {
+  // Atomic org-scoped update via subquery — no TOCTOU race
   const rows = await db
     .update(experimentRuns)
     .set({
@@ -1707,16 +1941,31 @@ export async function updateExperimentRun(id: string, input: UpdateExperimentRun
       tokenCount: input.tokenCount ?? null,
       cost: input.cost ?? null,
     })
-    .where(eq(experimentRuns.id, id))
+    .where(
+      and(
+        eq(experimentRuns.id, id),
+        sql`${experimentRuns.experimentId} IN (SELECT id FROM experiments WHERE org_id = ${orgId})`,
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }
 
-export async function listExperimentRuns(experimentId: string) {
+export async function listExperimentRuns(experimentId: string, orgId: string) {
   return db
-    .select()
+    .select({
+      id: experimentRuns.id,
+      experimentId: experimentRuns.experimentId,
+      datasetItemId: experimentRuns.datasetItemId,
+      output: experimentRuns.output,
+      latencyMs: experimentRuns.latencyMs,
+      tokenCount: experimentRuns.tokenCount,
+      cost: experimentRuns.cost,
+      createdAt: experimentRuns.createdAt,
+    })
     .from(experimentRuns)
-    .where(eq(experimentRuns.experimentId, experimentId))
+    .innerJoin(experiments, eq(experimentRuns.experimentId, experiments.id))
+    .where(and(eq(experimentRuns.experimentId, experimentId), eq(experiments.orgId, orgId)))
     .orderBy(asc(experimentRuns.createdAt));
 }
 
@@ -1725,39 +1974,46 @@ export async function listExperimentRuns(experimentId: string) {
  * Returns experiment runs grouped by dataset item for easy comparison.
  */
 export async function getExperimentComparison(experimentIds: string[], orgId: string) {
+  if (experimentIds.length === 0) return null;
+
   // Verify all experiments belong to this org
   const exps = await db
     .select()
     .from(experiments)
-    .where(and(eq(experiments.orgId, orgId), sql`${experiments.id} = ANY(${experimentIds})`));
+    .where(and(eq(experiments.orgId, orgId), inArray(experiments.id, experimentIds)));
 
   if (exps.length !== experimentIds.length) return null;
 
-  // Fetch all runs for these experiments
-  const runs = await db
-    .select()
+  // Fetch all runs for these org-verified experiments (scoped via JOIN)
+  const runRows = await db
+    .select({ run: experimentRuns })
     .from(experimentRuns)
-    .where(sql`${experimentRuns.experimentId} = ANY(${experimentIds})`)
+    .innerJoin(experiments, eq(experimentRuns.experimentId, experiments.id))
+    .where(and(inArray(experimentRuns.experimentId, experimentIds), eq(experiments.orgId, orgId)))
     .orderBy(asc(experimentRuns.datasetItemId));
 
-  // Fetch the dataset items referenced by these runs
+  const runs = runRows.map((r) => r.run);
+
+  // Fetch the dataset items referenced by these runs (org-scoped via datasets JOIN)
   const itemIds = [...new Set(runs.map((r) => r.datasetItemId))];
   const items =
     itemIds.length > 0
       ? await db
-          .select()
+          .select({ item: datasetItems })
           .from(datasetItems)
-          .where(sql`${datasetItems.id} = ANY(${itemIds})`)
+          .innerJoin(datasets, eq(datasetItems.datasetId, datasets.id))
+          .where(and(inArray(datasetItems.id, itemIds), eq(datasets.orgId, orgId)))
+          .then((rows) => rows.map((r) => r.item))
       : [];
 
-  // Fetch scores for experiment runs
+  // Fetch scores for experiment runs (org-scoped)
   const runIds = runs.map((r) => r.id);
   const runScores =
     runIds.length > 0
       ? await db
           .select()
           .from(scores)
-          .where(sql`${scores.comment} = ANY(${runIds})`)
+          .where(and(inArray(scores.comment, runIds), eq(scores.orgId, orgId)))
       : [];
 
   return { experiments: exps, runs, items, scores: runScores };
@@ -1816,10 +2072,11 @@ export async function listAgentConfigs(
 }
 
 export async function deleteAgentConfig(orgId: string, agentId: string): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(agentConfigs)
-    .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)));
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    .where(and(eq(agentConfigs.orgId, orgId), eq(agentConfigs.agentId, agentId)))
+    .returning({ agentId: agentConfigs.agentId });
+  return rows.length > 0;
 }
 
 export async function updateAgentConfigStatus(
@@ -1908,7 +2165,7 @@ export async function deleteBaseline(
   agentId: string,
   agentVersion: string,
 ): Promise<boolean> {
-  const result = await db
+  const rows = await db
     .delete(behaviorBaselines)
     .where(
       and(
@@ -1916,8 +2173,9 @@ export async function deleteBaseline(
         eq(behaviorBaselines.agentId, agentId),
         eq(behaviorBaselines.agentVersion, agentVersion),
       ),
-    );
-  return (result as unknown as { rowCount?: number }).rowCount !== 0;
+    )
+    .returning({ agentId: behaviorBaselines.agentId });
+  return rows.length > 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -2018,7 +2276,243 @@ export async function getSpanStructureForVersion(
   const structure: Record<string, number> = {};
   for (const row of rows) {
     const key = `${row.kind}:${row.name}`;
-    structure[key] = row.traceCount / Math.min(totalTraces, limit);
+    // Use totalTraces as denominator — the span query scans all traces,
+    // not a limited subset, so frequency should be relative to the full population.
+    structure[key] = row.traceCount / totalTraces;
   }
   return structure;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Prompt Management queries (Phase 6)
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface CreatePromptInput {
+  id: string;
+  orgId: string;
+  name: string;
+}
+
+export async function createPrompt(input: CreatePromptInput) {
+  const [row] = await db.insert(prompts).values(input).returning();
+  return row;
+}
+
+export async function listPrompts(orgId: string) {
+  return db
+    .select()
+    .from(prompts)
+    .where(eq(prompts.orgId, orgId))
+    .orderBy(desc(prompts.updatedAt));
+}
+
+export async function getPrompt(id: string, orgId: string) {
+  const [row] = await db
+    .select()
+    .from(prompts)
+    .where(and(eq(prompts.id, id), eq(prompts.orgId, orgId)));
+  return row ?? null;
+}
+
+export async function getPromptByName(name: string, orgId: string) {
+  const [row] = await db
+    .select()
+    .from(prompts)
+    .where(and(eq(prompts.name, name), eq(prompts.orgId, orgId)));
+  return row ?? null;
+}
+
+export async function deletePrompt(id: string, orgId: string): Promise<boolean> {
+  const [deleted] = await db
+    .delete(prompts)
+    .where(and(eq(prompts.id, id), eq(prompts.orgId, orgId)))
+    .returning({ id: prompts.id });
+  return !!deleted;
+}
+
+interface CreatePromptVersionInput {
+  id: string;
+  promptId: string;
+  orgId: string;
+  content: string;
+  model?: string;
+  config?: Record<string, unknown>;
+  createdBy?: string | null;
+}
+
+/**
+ * Atomically creates a new prompt version with auto-incremented version number.
+ * Uses a transaction to prevent TOCTOU race conditions on the version counter.
+ */
+export async function createPromptVersion(input: CreatePromptVersionInput) {
+  return db.transaction(async (tx) => {
+    // Read latest version inside the transaction for atomicity
+    const [latest] = await tx
+      .select({ version: promptVersions.version })
+      .from(promptVersions)
+      .where(eq(promptVersions.promptId, input.promptId))
+      .orderBy(desc(promptVersions.version))
+      .limit(1);
+
+    const nextVersion = (latest?.version ?? 0) + 1;
+
+    const [row] = await tx.insert(promptVersions).values({
+      id: input.id,
+      promptId: input.promptId,
+      version: nextVersion,
+      content: input.content,
+      model: input.model,
+      config: input.config ?? {},
+      createdBy: input.createdBy,
+    }).returning();
+
+    // Touch parent prompt's updatedAt — scoped by orgId
+    await tx
+      .update(prompts)
+      .set({ updatedAt: new Date() })
+      .where(and(eq(prompts.id, input.promptId), eq(prompts.orgId, input.orgId)));
+
+    return row;
+  });
+}
+
+export async function getLatestPromptVersion(promptId: string, orgId: string) {
+  const [row] = await db
+    .select({ version: promptVersions })
+    .from(promptVersions)
+    .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
+    .where(and(eq(promptVersions.promptId, promptId), eq(prompts.orgId, orgId)))
+    .orderBy(desc(promptVersions.version))
+    .limit(1);
+  return row?.version ?? null;
+}
+
+export async function listPromptVersions(promptId: string, orgId: string) {
+  const rows = await db
+    .select({ version: promptVersions })
+    .from(promptVersions)
+    .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
+    .where(and(eq(promptVersions.promptId, promptId), eq(prompts.orgId, orgId)))
+    .orderBy(desc(promptVersions.version));
+  return rows.map((r) => r.version);
+}
+
+export async function getPromptVersionByNumber(promptId: string, orgId: string, version: number) {
+  const [row] = await db
+    .select({ version: promptVersions })
+    .from(promptVersions)
+    .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
+    .where(
+      and(
+        eq(promptVersions.promptId, promptId),
+        eq(prompts.orgId, orgId),
+        eq(promptVersions.version, version),
+      ),
+    );
+  return row?.version ?? null;
+}
+
+/**
+ * Resolve a prompt by name + label. Used by SDKs: `fox.prompts.get(name, label)`.
+ * Returns the prompt version with the matching label, or null if not found.
+ */
+export async function getPromptVersionByLabel(
+  orgId: string,
+  promptName: string,
+  label: string,
+) {
+  const rows = await db
+    .select({
+      version: promptVersions,
+      label: promptLabels.label,
+    })
+    .from(promptLabels)
+    .innerJoin(promptVersions, eq(promptLabels.promptVersionId, promptVersions.id))
+    .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
+    .where(
+      and(
+        eq(prompts.orgId, orgId),
+        eq(prompts.name, promptName),
+        eq(promptLabels.label, label),
+      ),
+    )
+    .limit(1);
+
+  return rows[0]?.version ?? null;
+}
+
+interface SetPromptLabelInput {
+  id: string;
+  promptVersionId: string;
+  promptId: string;
+  label: string;
+}
+
+/**
+ * Atomically set a label on a prompt version. Moves the label if it already exists
+ * on another version of the same prompt. Uses a transaction to prevent race conditions.
+ */
+export async function setPromptLabel(input: SetPromptLabelInput) {
+  return db.transaction(async (tx) => {
+    // Remove this label from any other version of the same prompt
+    const existingLabels = await tx
+      .select({ id: promptLabels.id })
+      .from(promptLabels)
+      .innerJoin(promptVersions, eq(promptLabels.promptVersionId, promptVersions.id))
+      .where(
+        and(
+          eq(promptVersions.promptId, input.promptId),
+          eq(promptLabels.label, input.label),
+        ),
+      );
+
+    if (existingLabels.length > 0) {
+      await tx
+        .delete(promptLabels)
+        .where(inArray(promptLabels.id, existingLabels.map((l) => l.id)));
+    }
+
+    // Create the new label assignment
+    const [row] = await tx
+      .insert(promptLabels)
+      .values({
+        id: input.id,
+        promptVersionId: input.promptVersionId,
+        label: input.label,
+      })
+      .returning();
+    return row;
+  });
+}
+
+export async function getLabelsForVersion(promptVersionId: string) {
+  return db
+    .select()
+    .from(promptLabels)
+    .where(eq(promptLabels.promptVersionId, promptVersionId));
+}
+
+/** Batch fetch labels for multiple version IDs in a single query. */
+export async function getLabelsForVersions(promptVersionIds: string[]) {
+  if (promptVersionIds.length === 0) return [];
+  return db
+    .select()
+    .from(promptLabels)
+    .where(inArray(promptLabels.promptVersionId, promptVersionIds));
+}
+
+export async function deletePromptLabel(
+  promptVersionId: string,
+  label: string,
+): Promise<boolean> {
+  const [deleted] = await db
+    .delete(promptLabels)
+    .where(
+      and(
+        eq(promptLabels.promptVersionId, promptVersionId),
+        eq(promptLabels.label, label),
+      ),
+    )
+    .returning({ id: promptLabels.id });
+  return !!deleted;
 }

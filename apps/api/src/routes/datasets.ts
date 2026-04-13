@@ -69,9 +69,9 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const dataset = await getDataset(id, request.orgId);
     if (!dataset) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Dataset not found" });
     }
-    const itemCount = await countDatasetItems(id);
+    const itemCount = await countDatasetItems(id, request.orgId);
     return reply.code(200).send({ ...dataset, itemCount });
   });
 
@@ -80,7 +80,7 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const deleted = await deleteDataset(id, request.orgId);
     if (!deleted) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Dataset not found" });
     }
     return reply.code(204).send();
   });
@@ -125,6 +125,7 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
 
     const rows = await listDatasetItems({
       datasetId: id,
+      orgId: request.orgId,
       page: result.data.page,
       limit: result.data.limit,
     });
@@ -144,12 +145,12 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       return reply.code(404).send({ error: "Dataset not found" });
     }
 
-    const item = await getDatasetItem(itemId);
+    const item = await getDatasetItem(itemId, request.orgId);
     if (!item || item.datasetId !== id) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Dataset item not found" });
     }
 
-    await deleteDatasetItem(itemId);
+    await deleteDatasetItem(itemId, request.orgId);
     return reply.code(204).send();
   });
 

@@ -15,6 +15,7 @@ vi.mock("@foxhound/db", () => ({
   deleteSsoSessionsByUser: vi.fn(),
   getOrganizationBySlug: vi.fn(),
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
 }));
 
 import * as db from "@foxhound/db";
@@ -42,6 +43,7 @@ const mockOrg = {
   stripeCustomerId: null,
   retentionDays: 90,
   samplingRate: 1.0,
+  llmEvaluationEnabled: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

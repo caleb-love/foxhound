@@ -1,6 +1,6 @@
 # foxhound-ai
 
-Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.
+Open-source observability for AI agent fleets — trace, replay, and audit every agent decision.
 
 ## Installation
 

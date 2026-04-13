@@ -12,6 +12,9 @@ import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
 import { parsePeriodStart } from "@foxhound/types";
 import { randomUUID } from "crypto";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "cost-monitor" });
 
 export const COST_MONITOR_QUEUE = "cost-monitor";
 
@@ -76,7 +79,8 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
     channels.map((c) => [c.id, c as unknown as NotificationChannel]),
   );
   const matchingRules = rules.filter((r) => r.eventType === "cost_budget_exceeded");
-  await dispatchAlert(event, matchingRules, channelMap, console);
+  const alertLogger = { error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>) };
+  await dispatchAlert(event, matchingRules, channelMap, alertLogger);
 
   await Promise.allSettled(
     matchingRules
@@ -109,9 +113,9 @@ export function startCostMonitorWorker(connection: ConnectionOptions): Worker<Co
     },
   );
 
-  worker.on("completed", (job) => console.log(`[cost-monitor] Job ${job.id} completed`));
+  worker.on("completed", (job) => log.info("Job completed", { jobId: job.id }));
   worker.on("failed", (job, err) =>
-    console.error(`[cost-monitor] Job ${job?.id} failed:`, err.message),
+    log.error("Job failed", { jobId: job?.id, error: err.message }),
   );
 
   return worker;

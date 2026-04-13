@@ -41,9 +41,16 @@ docs/
 # Claude Code local config
 .claude/
 
+# Pi coding agent local config
+.pi/
+
 # Docusaurus build cache
 docs-site/.docusaurus/
 
 # Python coverage
 .coverage
 *.coverage
+
+# MCP Registry tokens (secrets)
+packages/mcp-server/.mcpregistry_github_token
+packages/mcp-server/.mcpregistry_registry_token

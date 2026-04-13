@@ -5,7 +5,7 @@ sidebar_label: Python SDK
 
 # Python SDK Reference
 
-Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.
+Open-source observability for AI agent fleets — trace, replay, and audit every agent decision.
 
 ## Installation
 
@@ -187,6 +187,58 @@ await processor.flush()
 ### Coverage note
 
 The OTel bridge captures spans emitted by frameworks as OpenTelemetry GenAI semantic convention attributes. Framework-specific metadata not yet encoded in those conventions (e.g. per-turn tool call arguments from CrewAI or LangGraph) is available only via the native callback-based integrations (`foxhound.integrations.langgraph`, `foxhound.integrations.crewai`), which have direct access to the raw framework event payloads.
+
+## Prompt Management
+
+Resolve versioned prompts from the Foxhound registry with built-in client-side caching (5-minute TTL). Prompts are resolved by name and label, so you can promote versions through staging → production without changing agent code.
+
+### Resolve a prompt
+
+```python
+from foxhound import FoxhoundClient
+
+fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance.com")
+
+# Async
+prompt = await fox.prompts.get(name="support-agent", label="production")
+print(prompt["content"])   # The prompt template text
+print(prompt["version"])   # e.g. 3
+print(prompt["model"])     # e.g. "gpt-4o" or None
+
+# Sync
+prompt = fox.prompts.get_sync(name="support-agent")  # label defaults to "production"
+```
+
+### Link prompt to a trace
+
+After resolving a prompt, attach it to the trace so you can see which prompt version produced each agent run:
+
+```python
+async with fox.trace(agent_id="my-agent") as tracer:
+    prompt = await fox.prompts.get(name="support-agent")
+    tracer.set_prompt(
+        name=prompt["name"],
+        version=prompt["version"],
+        label=prompt["label"],
+    )
+
+    # Use prompt["content"] as your system prompt...
+    span = tracer.start_span(name="llm:chat", kind="llm")
+    span.set_attribute("model", prompt["model"])
+    span.end()
+```
+
+### Invalidate the cache
+
+Force a fresh fetch on the next `get()` call:
+
+```python
+# Clear a specific prompt+label
+fox.prompts.invalidate(name="support-agent", label="production")
+
+# Clear the entire prompt cache
+fox.prompts.invalidate()
+```
 
 ## Local Viewer
 

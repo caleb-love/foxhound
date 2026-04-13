@@ -82,10 +82,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const queue = await getAnnotationQueue(id, request.orgId);
     if (!queue) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });
     }
 
-    const stats = await getAnnotationQueueStats(id);
+    const stats = await getAnnotationQueueStats(id, request.orgId);
     return reply.code(200).send({ ...queue, stats });
   });
 
@@ -97,7 +97,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const deleted = await deleteAnnotationQueue(id, request.orgId);
     if (!deleted) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });
     }
     return reply.code(204).send();
   });
@@ -125,7 +125,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     if (missingTraces.length > 0) {
       return reply.code(400).send({
         error: "Some traces not found",
-        missingTraceIds: missingTraces,
+        missingCount: missingTraces.length,
       });
     }
 
@@ -154,7 +154,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       return reply.code(404).send({ error: "Queue not found" });
     }
 
-    const item = await claimAnnotationQueueItem(id, request.userId);
+    const item = await claimAnnotationQueueItem(id, request.orgId, request.userId);
     if (!item) {
       return reply.code(204).send();
     }
@@ -173,7 +173,8 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const item = await getAnnotationQueueItem(id);
+    const orgId = request.orgId;
+    const item = await getAnnotationQueueItem(id, orgId);
     if (!item) {
       return reply.code(404).send({ error: "Item not found" });
     }
@@ -181,8 +182,6 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     if (item.status !== "pending") {
       return reply.code(400).send({ error: `Item is already ${item.status}` });
     }
-
-    const orgId = request.orgId;
 
     // Create scores for each submitted score
     const createdScores = await Promise.all(
@@ -201,7 +200,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       ),
     );
 
-    await completeAnnotationQueueItem(id);
+    await completeAnnotationQueueItem(id, orgId);
 
     return reply.code(200).send({
       item: { ...item, status: "completed" },
@@ -215,7 +214,8 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post("/v1/annotation-queue-items/:id/skip", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const item = await getAnnotationQueueItem(id);
+    const orgId = request.orgId;
+    const item = await getAnnotationQueueItem(id, orgId);
     if (!item) {
       return reply.code(404).send({ error: "Item not found" });
     }
@@ -224,7 +224,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: `Item is already ${item.status}` });
     }
 
-    const updated = await skipAnnotationQueueItem(id);
+    const updated = await skipAnnotationQueueItem(id, orgId);
     return reply.code(200).send(updated);
   });
 }

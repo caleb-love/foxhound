@@ -5,7 +5,7 @@ sidebar_label: Tool Reference
 
 # MCP Tool Reference
 
-The Foxhound MCP server exposes 30 tools, grouped by capability.
+The Foxhound MCP server exposes 36 tools, grouped by capability.
 
 ## Trace Querying
 
@@ -412,6 +412,94 @@ List all stored baseline snapshots for an agent, showing version, sample size, a
 Check the health and connectivity of the Foxhound server.
 
 **Parameters:** None
+
+---
+
+## Prompt Management
+
+### `foxhound_list_prompts`
+
+List all prompt templates in the registry. Shows prompt names, IDs, and timestamps. Requires Pro plan.
+
+**Parameters:** None
+
+---
+
+### `foxhound_get_prompt`
+
+Resolve a prompt by name and label (defaults to "production"). Returns the prompt content, model, config, and version number. Use this to inspect what prompt version is currently active.
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                                                                |
+|-----------|--------|----------|----------------------------------------------------------------------------|
+| `name`    | string | Yes      | The prompt name (e.g. "support-agent")                                     |
+| `label`   | string | No       | The label to resolve (default: "production"). Common labels: production, staging, canary |
+
+**Example prompts:**
+```
+What's the current production prompt for support-agent?
+Show me the staging version of billing-classifier
+```
+
+---
+
+### `foxhound_list_prompt_versions`
+
+List all versions of a prompt, including their labels. Use the prompt ID (not name) from `foxhound_list_prompts`.
+
+**Parameters:**
+
+| Parameter   | Type   | Required | Description                     |
+|-------------|--------|----------|---------------------------------|
+| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt_...") |
+
+---
+
+### `foxhound_create_prompt`
+
+Create a new prompt in the registry. The name must be alphanumeric with hyphens/underscores (no spaces). Requires Pro plan. This is a write operation.
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                                                          |
+|-----------|--------|----------|----------------------------------------------------------------------|
+| `name`    | string | Yes      | Prompt name (alphanumeric, hyphens, underscores only)                |
+
+---
+
+### `foxhound_create_prompt_version`
+
+Add a new version to an existing prompt. The version number auto-increments. Requires Pro plan. This is a write operation.
+
+**Parameters:**
+
+| Parameter   | Type   | Required | Description                                                         |
+|-------------|--------|----------|---------------------------------------------------------------------|
+| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt_...")                                      |
+| `content`   | string | Yes      | The prompt template content                                         |
+| `model`     | string | No       | Optional model recommendation (e.g. "gpt-4o", "claude-sonnet-4-20250514") |
+
+---
+
+### `foxhound_set_prompt_label`
+
+Set a label (e.g. "production", "staging") on a specific prompt version. If the label already exists on another version of the same prompt, it is moved. This is a write operation.
+
+**Parameters:**
+
+| Parameter        | Type   | Required | Description                                                              |
+|------------------|--------|----------|--------------------------------------------------------------------------|
+| `prompt_id`      | string | Yes      | The prompt ID (e.g. "pmt_...")                                           |
+| `version_number` | number | Yes      | The version number to label                                              |
+| `label`          | string | Yes      | Label name (alphanumeric, hyphens, underscores — e.g. "production", "staging") |
+
+**Example prompts:**
+```
+Create a new prompt called billing-classifier
+Add a version to the support-agent prompt with this content: "You are a helpful support agent..."
+Set the production label on version 3 of support-agent
+```
 
 ---
 

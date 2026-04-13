@@ -24,6 +24,7 @@ function mockEntitlements(maxSpans: number) {
     canRunDiff: true,
     canAuditLog: false,
     canEvaluate: false,
+    canManagePrompts: false,
     maxSpans,
     maxProjects: -1,
     maxSeats: -1,

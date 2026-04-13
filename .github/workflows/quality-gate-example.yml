@@ -1,0 +1,102 @@
+name: Foxhound Quality Gate Example
+
+# This workflow demonstrates how to use the Foxhound Quality Gate action
+# to run LLM evaluations on every pull request.
+
+on:
+  # Run on pull request events
+  pull_request:
+    types: [opened, synchronize, reopened]
+  
+  # Run on main branch to update the baseline
+  push:
+    branches: [main]
+
+permissions:
+  # Required to post PR comments with score comparison
+  pull-requests: write
+  # Optional: needed if you want to auto-update baseline experiment ID
+  contents: read
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Foxhound Quality Gate
+        id: foxhound
+        uses: ./.github/actions/quality-gate
+        with:
+          # API credentials (stored as secrets)
+          api-key: ${{ secrets.FOXHOUND_API_KEY }}
+          api-endpoint: ${{ vars.FOXHOUND_API_ENDPOINT || 'https://api.foxhound.dev' }}
+          
+          # Dataset and evaluators
+          dataset-id: ${{ vars.FOXHOUND_DATASET_ID }}
+          # evaluator-ids: eval_accuracy,eval_safety  # Optional: specify evaluators
+          
+          # Experiment configuration
+          experiment-name: "PR #${{ github.event.pull_request.number || 'main' }}"
+          experiment-config: |
+            {
+              "model": "gpt-4-turbo",
+              "temperature": 0.7,
+              "max_tokens": 1000,
+              "top_p": 1.0
+            }
+          
+          # Quality threshold (0.0-1.0)
+          # Workflow fails if any evaluator scores below this
+          threshold: 0.75
+          
+          # Baseline for comparison
+          # On first run, this will be empty. After the first successful run,
+          # set BASELINE_EXPERIMENT_ID as a repository variable with the experiment-id output
+          baseline-experiment-id: ${{ vars.BASELINE_EXPERIMENT_ID }}
+          
+          # Timeout (seconds) - increase for large datasets
+          timeout: 900
+      
+      - name: Output experiment details
+        if: always()
+        run: |
+          echo "Experiment ID: ${{ steps.foxhound.outputs.experiment-id }}"
+          echo "Comparison URL: ${{ steps.foxhound.outputs.comparison-url }}"
+          echo ""
+          echo "To use this experiment as the baseline for future PRs, run:"
+          echo "gh variable set BASELINE_EXPERIMENT_ID --body '${{ steps.foxhound.outputs.experiment-id }}'"
+      
+      # Optional: Auto-update baseline on main branch
+      # This stores the latest main branch experiment as the baseline for PRs
+      - name: Update baseline on main
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          echo "Updating baseline experiment ID for future PR comparisons..."
+          gh variable set BASELINE_EXPERIMENT_ID --body "${{ steps.foxhound.outputs.experiment-id }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Setup Instructions:
+# 
+# 1. Create a Foxhound API key:
+#    - Go to https://app.foxhound.dev/settings/api-keys
+#    - Click "Create API Key" with experiments:create scope
+#    - Copy the key
+#
+# 2. Add secrets and variables to your repository:
+#    gh secret set FOXHOUND_API_KEY
+#    gh variable set FOXHOUND_API_ENDPOINT --body "https://api.foxhound.dev"
+#    gh variable set FOXHOUND_DATASET_ID --body "ds_your_dataset_id"
+#
+# 3. Run the workflow on main branch first to establish a baseline:
+#    git commit -m "Add quality gate" --allow-empty
+#    git push origin main
+#
+# 4. After the main branch run completes, check the action output for the experiment ID
+#    and store it as a baseline:
+#    gh variable set BASELINE_EXPERIMENT_ID --body "exp_abc123"
+#
+# 5. Future PRs will automatically compare against this baseline!

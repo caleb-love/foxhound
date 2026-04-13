@@ -42,6 +42,11 @@ import type {
   AgentConfigListResponse,
   BaselineListResponse,
   RegressionReportResponse,
+  PromptResponse,
+  PromptListResponse,
+  PromptVersionResponse,
+  PromptVersionListResponse,
+  ResolvedPromptResponse,
 } from "./types.js";
 import type {
   Score,
@@ -181,8 +186,13 @@ export class FoxhoundApiClient {
     return this.get("/v1/api-keys");
   }
 
-  async createApiKey(name: string): Promise<ApiKeyCreatedResponse> {
-    return this.post("/v1/api-keys", { name });
+  async createApiKey(
+    name: string,
+    options?: { expiresAt?: string },
+  ): Promise<ApiKeyCreatedResponse> {
+    const body: Record<string, unknown> = { name };
+    if (options?.expiresAt) body.expiresAt = options.expiresAt;
+    return this.post("/v1/api-keys", body);
   }
 
   async revokeApiKey(keyId: string): Promise<{ success: boolean }> {
@@ -546,6 +556,54 @@ export class FoxhoundApiClient {
     await this.del(
       `/v1/regressions/${encodeURIComponent(agentId)}/baselines?version=${encodeURIComponent(version)}`,
     );
+  }
+
+  // ── Prompts ────────────────────────────────────────────────────────────
+
+  async listPrompts(): Promise<PromptListResponse> {
+    return this.get("/v1/prompts");
+  }
+
+  async getPrompt(promptId: string): Promise<PromptResponse> {
+    return this.get(`/v1/prompts/${encodeURIComponent(promptId)}`);
+  }
+
+  async createPrompt(name: string): Promise<PromptResponse> {
+    return this.post("/v1/prompts", { name });
+  }
+
+  async deletePrompt(promptId: string): Promise<void> {
+    await this.del(`/v1/prompts/${encodeURIComponent(promptId)}`);
+  }
+
+  async createPromptVersion(
+    promptId: string,
+    params: { content: string; model?: string; config?: Record<string, unknown> },
+  ): Promise<PromptVersionResponse> {
+    return this.post(
+      `/v1/prompts/${encodeURIComponent(promptId)}/versions`,
+      params as unknown as Record<string, unknown>,
+    );
+  }
+
+  async listPromptVersions(promptId: string): Promise<PromptVersionListResponse> {
+    return this.get(`/v1/prompts/${encodeURIComponent(promptId)}/versions`);
+  }
+
+  async setPromptLabel(
+    promptId: string,
+    params: { label: string; versionNumber: number },
+  ): Promise<{ message: string }> {
+    return this.post(
+      `/v1/prompts/${encodeURIComponent(promptId)}/labels`,
+      params as unknown as Record<string, unknown>,
+    );
+  }
+
+  async resolvePrompt(name: string, label?: string): Promise<ResolvedPromptResponse> {
+    const query = new URLSearchParams({ name });
+    if (label) query.set("label", label);
+    return this.get(`/v1/prompts/resolve?${query.toString()}`);
   }
 
   // ── HTTP helpers ──────────────────────────────────────────────────────

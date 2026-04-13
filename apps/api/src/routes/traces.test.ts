@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
+import type { Span } from "@foxhound/types";
 import { registerAuth } from "../plugins/auth.js";
 import { tracesRoutes } from "./traces.js";
 
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   insertTrace: vi.fn(),
   insertSpans: vi.fn(),
   queryTraces: vi.fn(),
@@ -42,6 +44,9 @@ function mockApiKey(orgId = "org_1") {
       name: "Test Key",
       createdByUserId: null,
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -53,6 +58,7 @@ function mockApiKey(orgId = "org_1") {
       stripeCustomerId: null,
       retentionDays: 90,
       samplingRate: 1.0,
+      llmEvaluationEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -227,7 +233,7 @@ describe("GET /v1/traces — list traces", () => {
   });
 
   it("returns 401 for invalid API key", async () => {
-    vi.mocked(db.resolveApiKey).mockResolvedValue(null);
+    vi.mocked(db.resolveApiKey).mockResolvedValue({ rejected: "not_found" });
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
@@ -307,11 +313,13 @@ describe("GET /v1/traces/:id — single trace", () => {
       sessionId: null,
       startTimeMs: Date.now(),
       endTimeMs: null,
-      metadata: {},
-      spans: [],
+      metadata: {} as Record<string, unknown>,
+      spans: [] as Span[],
+      parentAgentId: null,
+      correlationId: null,
       createdAt: new Date(),
     };
-    vi.mocked(db.getTraceWithSpans).mockResolvedValue(mockTrace as never);
+    vi.mocked(db.getTraceWithSpans).mockResolvedValue(mockTrace);
     const app = buildApp();
     const res = await app.inject({
       method: "GET",

@@ -5,7 +5,7 @@ sidebar_label: TypeScript SDK
 
 # TypeScript SDK Reference
 
-Compliance-grade observability for AI agent fleets — trace, replay, and audit every agent decision.
+Open-source observability for AI agent fleets — trace, replay, and audit every agent decision.
 
 ## Installation
 
@@ -113,6 +113,64 @@ await foxProcessor.forceFlush();
 ### Coverage note
 
 The OTel bridge captures all spans emitted by frameworks as OpenTelemetry GenAI semantic convention attributes. Framework-specific metadata not yet encoded in those conventions is only available via native callback-based integrations where the SDK has direct access to raw framework event payloads.
+
+## Prompt Management
+
+Resolve versioned prompts from the Foxhound registry with built-in client-side caching (5-minute TTL). Prompts are resolved by name and label, so you can promote versions through staging → production without changing agent code.
+
+### Resolve a prompt
+
+```typescript
+import { FoxhoundClient } from "@foxhound-ai/sdk";
+
+const fox = new FoxhoundClient({
+  apiKey: "fox_...",
+  endpoint: "https://your-foxhound-instance.com",
+});
+
+const prompt = await fox.prompts.get({
+  name: "support-agent",
+  label: "production",  // defaults to "production" if omitted
+});
+
+console.log(prompt.content);  // The prompt template text
+console.log(prompt.version);  // e.g. 3
+console.log(prompt.model);    // e.g. "gpt-4o" or null
+```
+
+### Link prompt to a trace
+
+After resolving a prompt, attach it to the trace so you can see which prompt version produced each agent run:
+
+```typescript
+const prompt = await fox.prompts.get({ name: "support-agent" });
+
+const tracer = fox.startTrace({ agentId: "my-agent" });
+tracer.setPrompt({
+  name: prompt.name,
+  version: prompt.version,
+  label: prompt.label,
+});
+
+// Use prompt.content as your system prompt...
+const span = tracer.startSpan({ name: "llm:chat", kind: "llm" });
+span.setAttribute("model", prompt.model);
+span.end();
+
+await tracer.flush();
+```
+
+### Invalidate the cache
+
+Force a fresh fetch on the next `get()` call:
+
+```typescript
+// Clear a specific prompt+label
+fox.prompts.invalidate({ name: "support-agent", label: "production" });
+
+// Clear the entire prompt cache
+fox.prompts.invalidate();
+```
 
 ## Local Viewer
 

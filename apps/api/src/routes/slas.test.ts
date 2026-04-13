@@ -5,6 +5,7 @@ import { slasRoutes } from "./slas.js";
 
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   upsertAgentConfig: vi.fn(),
   getAgentConfig: vi.fn(),
   listAgentConfigs: vi.fn(),
@@ -36,6 +37,9 @@ function mockApiKey(orgId = "org_1") {
       name: "Test Key",
       createdByUserId: null,
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -47,6 +51,7 @@ function mockApiKey(orgId = "org_1") {
       stripeCustomerId: null,
       retentionDays: 90,
       samplingRate: 1.0,
+      llmEvaluationEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -88,6 +93,10 @@ describe("PUT /v1/slas/:agentId", () => {
 
     expect(res.statusCode).toBe(201);
     expect(JSON.parse(res.body)).toMatchObject({ agentId: "agent_1", maxDurationMs: 5000 });
+    // Verify org_id scoping — route must pass the authenticated org's ID
+    expect(db.upsertAgentConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org_1", agentId: "agent_1" }),
+    );
   });
 
   it("rejects when neither maxDurationMs nor minSuccessRate provided (400)", async () => {
@@ -121,6 +130,8 @@ describe("GET /v1/slas/:agentId", () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toMatchObject({ agentId: "agent_1", maxDurationMs: 5000 });
+    // Verify org_id scoping on read
+    expect(db.getAgentConfig).toHaveBeenCalledWith("org_1", "agent_1");
   });
 });
 
@@ -161,5 +172,32 @@ describe("DELETE /v1/slas/:agentId", () => {
       }),
     );
     expect(db.deleteAgentConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe("Auth enforcement", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns 401 without authorization header", async () => {
+    const app = buildApp();
+
+    const putRes = await app.inject({
+      method: "PUT",
+      url: "/v1/slas/agent_1",
+      payload: { maxDurationMs: 5000 },
+    });
+    expect(putRes.statusCode).toBe(401);
+
+    const getRes = await app.inject({
+      method: "GET",
+      url: "/v1/slas/agent_1",
+    });
+    expect(getRes.statusCode).toBe(401);
+
+    const delRes = await app.inject({
+      method: "DELETE",
+      url: "/v1/slas/agent_1",
+    });
+    expect(delRes.statusCode).toBe(401);
   });
 });

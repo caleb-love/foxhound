@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any
+import threading
+import time
+from typing import Any, Callable, TypedDict
 
 import httpx
 
 from .tracer import Tracer
+
+
+class BudgetExceededInfo(TypedDict):
+    """Information passed to the ``on_budget_exceeded`` callback."""
+
+    agent_id: str
+    current_cost: float
+    budget_limit: float
 
 
 class ScoresNamespace:
@@ -622,6 +632,150 @@ class RegressionsNamespace:
         return response.json() if response.content else {}
 
 
+class ResolvedPrompt(TypedDict):
+    """A resolved prompt version returned by ``fox.prompts.get(...)``."""
+
+    name: str
+    label: str
+    version: int
+    content: str
+    model: str | None
+    config: dict[str, Any]
+
+
+class _PromptCacheEntry(TypedDict):
+    prompt: ResolvedPrompt
+    expires_at: float
+
+
+class PromptsNamespace:
+    """Namespaced API for prompt resolution with client-side caching.
+
+    Access via ``fox.prompts.get(...)``::
+
+        prompt = await fox.prompts.get(name="support-agent", label="production")
+        print(prompt["content"])  # The prompt template text
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        api_key: str,
+        timeout: float,
+        cache_ttl_s: float = 300.0,
+    ) -> None:
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout
+        self._cache_ttl_s = cache_ttl_s
+        self._cache: dict[str, _PromptCacheEntry] = {}
+        self._cache_lock = threading.Lock()
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def _cache_key(self, name: str, label: str) -> str:
+        return f"{name}::{label}"
+
+    async def get(
+        self,
+        *,
+        name: str,
+        label: str = "production",
+    ) -> ResolvedPrompt:
+        """Resolve a prompt by name and label. Cached client-side (5min TTL).
+
+        Usage::
+
+            prompt = await fox.prompts.get(name="support-agent", label="production")
+            print(prompt["content"])
+        """
+        key = self._cache_key(name, label)
+        with self._cache_lock:
+            cached = self._cache.get(key)
+            if cached is not None and cached["expires_at"] > time.monotonic():
+                return cached["prompt"]
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._endpoint}/v1/prompts/resolve",
+                params={"name": name, "label": label},
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to resolve prompt: "
+                f"{response.status_code} {response.text}"
+            )
+
+        prompt: ResolvedPrompt = response.json()
+        with self._cache_lock:
+            self._cache[key] = _PromptCacheEntry(
+                prompt=prompt,
+                expires_at=time.monotonic() + self._cache_ttl_s,
+            )
+        return prompt
+
+    def get_sync(
+        self,
+        *,
+        name: str,
+        label: str = "production",
+    ) -> ResolvedPrompt:
+        """Synchronous version of :meth:`get`."""
+        key = self._cache_key(name, label)
+        with self._cache_lock:
+            cached = self._cache.get(key)
+            if cached is not None and cached["expires_at"] > time.monotonic():
+                return cached["prompt"]
+
+        with httpx.Client(timeout=self._timeout) as client:
+            response = client.get(
+                f"{self._endpoint}/v1/prompts/resolve",
+                params={"name": name, "label": label},
+                headers=self._headers(),
+            )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Foxhound: failed to resolve prompt: "
+                f"{response.status_code} {response.text}"
+            )
+
+        prompt: ResolvedPrompt = response.json()
+        with self._cache_lock:
+            self._cache[key] = _PromptCacheEntry(
+                prompt=prompt,
+                expires_at=time.monotonic() + self._cache_ttl_s,
+            )
+        return prompt
+
+    def invalidate(
+        self,
+        *,
+        name: str | None = None,
+        label: str | None = None,
+    ) -> None:
+        """Clear the client-side prompt cache.
+
+        Call with no arguments to clear everything, or with ``name``/``label``
+        to clear a specific entry.
+        """
+        if name is None and label is not None:
+            raise ValueError(
+                "Provide 'name' when specifying 'label', "
+                "or call with no arguments to clear all."
+            )
+        with self._cache_lock:
+            if name is None:
+                self._cache.clear()
+                return
+            resolved_label = label or "production"
+            self._cache.pop(self._cache_key(name, resolved_label), None)
+
+
 class FoxhoundClient:
     """
     Client for the Foxhound observability platform.
@@ -651,10 +805,12 @@ class FoxhoundClient:
         api_key: str,
         endpoint: str,
         timeout: float = 10.0,
+        on_budget_exceeded: Callable[[BudgetExceededInfo], None] | None = None,
     ) -> None:
         self._api_key = api_key
         self._endpoint = endpoint.rstrip("/")
         self._timeout = timeout
+        self._on_budget_exceeded = on_budget_exceeded
 
         # Namespaced sub-clients
         self.scores = ScoresNamespace(self._endpoint, self._api_key, self._timeout)
@@ -663,6 +819,7 @@ class FoxhoundClient:
         self.budgets = BudgetsNamespace(self._endpoint, self._api_key, self._timeout)
         self.slas = SLAsNamespace(self._endpoint, self._api_key, self._timeout)
         self.regressions = RegressionsNamespace(self._endpoint, self._api_key, self._timeout)
+        self.prompts = PromptsNamespace(self._endpoint, self._api_key, self._timeout)
 
     # ------------------------------------------------------------------
     # Tracer factory
@@ -733,6 +890,7 @@ class FoxhoundClient:
                 f"Foxhound: failed to ingest trace {payload.get('id')}: "
                 f"{response.status_code} {response.text}"
             )
+        self._check_budget_headers(response)
 
     def _send_trace_sync(self, payload: dict[str, Any]) -> None:
         with httpx.Client(timeout=self._timeout) as client:
@@ -749,6 +907,35 @@ class FoxhoundClient:
                 f"Foxhound: failed to ingest trace {payload.get('id')}: "
                 f"{response.status_code} {response.text}"
             )
+        self._check_budget_headers(response)
+
+    def _check_budget_headers(self, response: httpx.Response) -> None:
+        """Invoke the budget-exceeded callback when the server signals an overage."""
+        if self._on_budget_exceeded is None:
+            return
+
+        budget_status = response.headers.get("x-foxhound-budget-status")
+        if budget_status != "exceeded":
+            return
+
+        agent_id = response.headers.get("x-foxhound-budget-agent-id", "")
+        try:
+            current_cost = float(
+                response.headers.get("x-foxhound-budget-current-cost", "0")
+            )
+            budget_limit = float(
+                response.headers.get("x-foxhound-budget-limit", "0")
+            )
+        except ValueError:
+            return
+
+        self._on_budget_exceeded(
+            BudgetExceededInfo(
+                agent_id=agent_id,
+                current_cost=current_cost,
+                budget_limit=budget_limit,
+            )
+        )
 
     # ------------------------------------------------------------------
     # Context manager helpers

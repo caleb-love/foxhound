@@ -1,0 +1,16 @@
+{
+  "name": "foxhound-quality-gate-action",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild run.ts --bundle --platform=node --format=cjs --outfile=dist/run.js"
+  },
+  "devDependencies": {
+    "@foxhound/api-client": "workspace:*",
+    "@foxhound/types": "workspace:*",
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.3.3"
+  }
+}

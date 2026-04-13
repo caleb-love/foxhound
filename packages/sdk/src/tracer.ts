@@ -41,6 +41,19 @@ export class Tracer {
     return new ActiveSpan(span, this.spans);
   }
 
+  /**
+   * Attach prompt version info to this trace's metadata.
+   * Called automatically when using a resolved prompt with this trace.
+   */
+  setPrompt(params: { name: string; version: number; label?: string }): this {
+    this.options.metadata["prompt_name"] = params.name;
+    this.options.metadata["prompt_version"] = params.version;
+    if (params.label) {
+      this.options.metadata["prompt_label"] = params.label;
+    }
+    return this;
+  }
+
   async flush(): Promise<void> {
     const trace: Trace = {
       id: this.traceId,

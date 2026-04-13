@@ -13,6 +13,8 @@ vi.mock("@foxhound/db", () => ({
   updateOrgStripeCustomerId: vi.fn(),
   getUsageForPeriod: vi.fn(),
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@foxhound/billing", () => ({
@@ -24,6 +26,9 @@ vi.mock("@foxhound/billing", () => ({
     periodEnd: "2026-04-30T23:59:59.999Z",
   })),
 }));
+
+// Store a reference to constructEvent so tests can override its behavior.
+const mockConstructEvent = vi.fn();
 
 vi.mock("stripe", () => {
   const mockSubscriptions = {
@@ -43,6 +48,9 @@ vi.mock("stripe", () => {
       customers: { create: vi.fn().mockResolvedValue({ id: "cus_new" }) },
       subscriptionItems: {
         createUsageRecord: vi.fn().mockResolvedValue({}),
+      },
+      webhooks: {
+        constructEvent: mockConstructEvent,
       },
     })),
   };
@@ -541,5 +549,174 @@ describe("GET /v1/billing/usage", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().spansUsed).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP route tests: POST /v1/billing/webhooks — Stripe signature validation
+// ---------------------------------------------------------------------------
+
+describe("POST /v1/billing/webhooks — Stripe signature validation", () => {
+  const savedStripeSecret = process.env["STRIPE_SECRET_KEY"];
+  const savedWebhookSecret = process.env["STRIPE_WEBHOOK_SECRET"];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env["STRIPE_SECRET_KEY"] = "sk_test_fake";
+    process.env["STRIPE_WEBHOOK_SECRET"] = "whsec_test_fake";
+  });
+
+  afterEach(() => {
+    if (savedStripeSecret === undefined) {
+      delete process.env["STRIPE_SECRET_KEY"];
+    } else {
+      process.env["STRIPE_SECRET_KEY"] = savedStripeSecret;
+    }
+    if (savedWebhookSecret === undefined) {
+      delete process.env["STRIPE_WEBHOOK_SECRET"];
+    } else {
+      process.env["STRIPE_WEBHOOK_SECRET"] = savedWebhookSecret;
+    }
+  });
+
+  it("rejects requests without a stripe-signature header (400)", async () => {
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "customer.subscription.created" }),
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({
+      error: "Bad Request",
+      message: "Missing Stripe-Signature",
+    });
+    // constructEvent should never be called when the header is missing
+    expect(mockConstructEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects requests with an invalid/tampered stripe-signature (400)", async () => {
+    // Simulate Stripe SDK throwing on bad signature
+    mockConstructEvent.mockImplementation(() => {
+      throw new Error("No signatures found matching the expected signature for payload.");
+    });
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1234567890,v1=invalid_signature_value",
+      },
+      body: JSON.stringify({ type: "customer.subscription.created" }),
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({
+      error: "Bad Request",
+      message: "Invalid webhook signature",
+    });
+    expect(mockConstructEvent).toHaveBeenCalledOnce();
+  });
+
+  it("accepts requests with a valid stripe-signature and processes the event", async () => {
+    const fakeEvent = makeSubscriptionEvent("customer.subscription.created", "active");
+    mockConstructEvent.mockReturnValue(fakeEvent);
+
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "org_123",
+      plan: "free",
+      stripeCustomerId: "cus_test123",
+    });
+    (updateOrgPlan as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "org_123",
+      plan: "pro",
+      stripeCustomerId: "cus_test123",
+    });
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1234567890,v1=valid_signature",
+      },
+      body: JSON.stringify(fakeEvent),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ received: true });
+    expect(mockConstructEvent).toHaveBeenCalledOnce();
+    // Verify the subscription handler side-effects fired
+    expect(updateOrgPlan).toHaveBeenCalledWith("org_123", "pro");
+    expect(invalidateEntitlements).toHaveBeenCalledWith("org_123");
+  });
+
+  it("returns 503 when STRIPE_SECRET_KEY is not configured", async () => {
+    delete process.env["STRIPE_SECRET_KEY"];
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1234567890,v1=some_signature",
+      },
+      body: JSON.stringify({ type: "test" }),
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({
+      error: "Service Unavailable",
+      message: "Billing not configured",
+    });
+  });
+
+  it("returns 503 when STRIPE_WEBHOOK_SECRET is not configured", async () => {
+    delete process.env["STRIPE_WEBHOOK_SECRET"];
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1234567890,v1=some_signature",
+      },
+      body: JSON.stringify({ type: "test" }),
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({
+      error: "Service Unavailable",
+      message: "Billing not configured",
+    });
+  });
+
+  it("responds to POST at the correct endpoint path", async () => {
+    mockConstructEvent.mockReturnValue(
+      makeSubscriptionEvent("customer.subscription.created", "incomplete"),
+    );
+    (getOrganizationByStripeCustomerId as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const app = buildBillingApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/billing/webhooks",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1234567890,v1=valid_signature",
+      },
+      body: JSON.stringify({}),
+    });
+
+    // Should not 404 — the route is registered
+    expect(res.statusCode).not.toBe(404);
+    expect(res.statusCode).toBe(200);
   });
 });

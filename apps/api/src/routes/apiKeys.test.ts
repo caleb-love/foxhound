@@ -10,6 +10,8 @@ vi.mock("@foxhound/db", () => ({
   revokeApiKey: vi.fn(),
   generateApiKey: vi.fn(() => ({ key: "sk-abc123", prefix: "sk-abc123xx", keyHash: "hashval" })),
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 import * as db from "@foxhound/db";
@@ -47,6 +49,9 @@ describe("POST /v1/api-keys", () => {
       name: "My Key",
       createdByUserId: "u1",
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -88,7 +93,11 @@ describe("GET /v1/api-keys", () => {
         name: "Key A",
         createdByUserId: "u1",
         revokedAt: null,
+        expiresAt: null,
+        scopes: null,
+        lastUsedAt: null,
         createdAt: new Date(),
+        isExpired: false,
       },
     ];
     vi.mocked(db.listApiKeys).mockResolvedValue(mockKeys);
