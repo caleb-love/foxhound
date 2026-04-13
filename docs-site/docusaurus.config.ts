@@ -4,10 +4,10 @@ import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
   title: "Foxhound Docs",
-  tagline: "Compliance-grade observability for AI agent fleets",
+  tagline: "Open-source observability for AI agent fleets",
   favicon: "img/favicon.ico",
 
-  url: "https://docs.foxhound.dev",
+  url: "https://docs.foxhound.caleb-love.com",
   baseUrl: "/",
 
   organizationName: "caleb-love",
