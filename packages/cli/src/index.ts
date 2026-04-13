@@ -9,13 +9,14 @@ import { registerAlertsCommands } from "./commands/alerts.js";
 import { registerChannelsCommands } from "./commands/channels.js";
 import { registerKeysCommands } from "./commands/keys.js";
 import { registerInitCommand } from "./commands/init.js";
+import packageJson from "../package.json" with { type: "json" };
 
 const program = new Command();
 
 program
   .name("foxhound")
   .description("CLI for the Foxhound AI agent observability platform")
-  .version("0.1.0")
+  .version(packageJson.version)
   .option("--json", "Output as JSON")
   .option("--no-color", "Disable color output")
   .hook("preAction", (_thisCommand, actionCommand) => {

@@ -51,8 +51,13 @@ await app.register(rateLimit, {
 // Register auth plugin (JWT + API key middleware)
 registerAuth(app);
 
-app.get("/health", () => {
-  return { status: "ok", version: "0.0.1" };
+app.get("/health", async () => {
+  const packageJson = (await import("../package.json", { with: { type: "json" } })) as {
+    default?: { version?: string };
+    version?: string;
+  };
+  const version = packageJson.default?.version ?? packageJson.version ?? "0.1.0";
+  return { status: "ok", version };
 });
 
 await app.register(authRoutes);

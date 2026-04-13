@@ -43,6 +43,10 @@ docs/
 
 # Pi coding agent local config
 .pi/
+AGENTS.md
+**/AGENTS.md
+CLAUDE.md
+**/CLAUDE.md
 
 # Docusaurus build cache
 docs-site/.docusaurus/

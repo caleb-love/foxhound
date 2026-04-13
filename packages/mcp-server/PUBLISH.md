@@ -4,7 +4,7 @@ This document describes how to publish the Foxhound MCP server to the Model Cont
 
 ## Prerequisites
 
-1. Package must be published to npm first (already done: @foxhound-ai/mcp-server@0.2.0)
+1. Package must be published to npm first (already done for the most recent release cut; example shown here should match the current package version)
 2. `server.json` manifest must be present and valid (✓ committed)
 3. GitHub account with access to authenticate
 
@@ -50,7 +50,7 @@ Expected output:
 {
   "name": "io.github.caleb-love/foxhound",
   "description": "MCP server for querying Foxhound traces from Claude Code, Cursor, and other MCP clients",
-  "version": "0.2.0",
+  "version": "0.3.0",
   ...
 }
 ```

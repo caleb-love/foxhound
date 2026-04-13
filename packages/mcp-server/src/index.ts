@@ -19,6 +19,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { FoxhoundApiClient, toEpochMs, type TraceListResponse } from "@foxhound/api-client";
 import type { Trace, Span } from "@foxhound/types";
+import packageJson from "../package.json" with { type: "json" };
 
 function getConfig(): { endpoint: string; apiKey: string } {
   const apiKey = process.env["FOXHOUND_API_KEY"];
@@ -109,7 +110,7 @@ async function main(): Promise<void> {
 
   const server = new McpServer({
     name: "foxhound",
-    version: "0.1.0",
+    version: packageJson.version,
   });
 
   // --- Tool: search traces ---

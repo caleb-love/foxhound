@@ -1,6 +1,6 @@
 {
   "name": "@foxhound-ai/sdk",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Observability SDK for AI agents — trace, replay, and audit every agent decision",
   "license": "MIT",
   "type": "module",
