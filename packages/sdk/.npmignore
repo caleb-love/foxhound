@@ -1,19 +1,5 @@
-# Test files
-dist/**/*.test.js
-dist/**/*.test.js.map
-dist/**/*.test.d.ts
-dist/**/*.test.d.ts.map
-
-# Development files
 src/
-.turbo/
 coverage/
-node_modules/
-*.log
-.DS_Store
-
-# Config files
-tsconfig.json
-vitest.config.ts
-.eslintrc*
-.prettierrc*
+.turbo/
+*.tsbuildinfo
+**/*.test.*
