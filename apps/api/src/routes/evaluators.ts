@@ -186,7 +186,10 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/evaluator-runs",
-    { preHandler: [requireEntitlement("canEvaluate")] },
+    {
+      preHandler: [requireEntitlement("canEvaluate")],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const result = TriggerEvaluatorRunsSchema.safeParse(request.body);
       if (!result.success) {

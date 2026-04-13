@@ -23,7 +23,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -34,7 +34,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -68,6 +68,7 @@ describe("POST /v1/scores — create score", () => {
       sessionId: null,
       startTimeMs: Date.now(),
       endTimeMs: null,
+      spans: [],
       metadata: {},
       parentAgentId: null,
       correlationId: null,
@@ -81,7 +82,7 @@ describe("POST /v1/scores — create score", () => {
       name: "accuracy",
       value: 0.95,
       label: null,
-      source: "manual",
+      source: "manual" as const,
       comment: null,
       userId: null,
       createdAt: new Date(),
@@ -163,6 +164,7 @@ describe("POST /v1/scores — create score", () => {
       sessionId: null,
       startTimeMs: Date.now(),
       endTimeMs: null,
+      spans: [],
       metadata: {},
       parentAgentId: null,
       correlationId: null,
@@ -200,6 +202,26 @@ describe("POST /v1/scores — create score", () => {
     });
     expect(res.statusCode).toBe(401);
   });
+
+  it("returns 403 when api key lacks scores:write scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/scores",
+      headers: { authorization: "Bearer sk-test-key" },
+      body: {
+        traceId: "trace_1",
+        name: "accuracy",
+        value: 0.9,
+        source: "manual",
+      },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().message).toContain("scores:write");
+  });
 });
 
 describe("GET /v1/scores — query scores", () => {
@@ -218,7 +240,7 @@ describe("GET /v1/scores — query scores", () => {
         name: "accuracy",
         value: 0.9,
         label: null,
-        source: "manual",
+        source: "manual" as const,
         comment: null,
         userId: null,
         createdAt: new Date(),
@@ -281,7 +303,7 @@ describe("GET /v1/traces/:id/scores — scores for trace", () => {
         name: "relevance",
         value: 0.75,
         label: null,
-        source: "llm_judge",
+        source: "llm_judge" as const,
         comment: null,
         userId: null,
         createdAt: new Date(),

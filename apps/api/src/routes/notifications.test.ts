@@ -32,7 +32,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = ORG_ID) {
+function mockApiKey(orgId = ORG_ID, scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -43,7 +43,7 @@ function mockApiKey(orgId = ORG_ID) {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -136,6 +136,25 @@ describe("POST /v1/notifications/channels", () => {
     const res = await app.inject({ method: "POST", url: "/v1/notifications/channels" });
     expect(res.statusCode).toBe(401);
   });
+
+  it("returns 403 when api key lacks notifications:write scope", async () => {
+    mockApiKey(ORG_ID, "notifications:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/notifications/channels",
+      headers: { authorization: "Bearer sk-test" },
+      payload: {
+        name: "My Slack",
+        kind: "slack",
+        config: { webhookUrl: "https://hooks.slack.com/services/TEST" },
+      },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json<{ message: string }>().message).toContain("notifications:write");
+  });
 });
 
 describe("GET /v1/notifications/channels", () => {
@@ -157,6 +176,20 @@ describe("GET /v1/notifications/channels", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json<{ data: unknown[] }>();
     expect(body.data).toHaveLength(1);
+  });
+
+  it("returns 403 when api key lacks notifications:read scope", async () => {
+    mockApiKey(ORG_ID, "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/channels",
+      headers: { authorization: "Bearer sk-test" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json<{ message: string }>().message).toContain("notifications:read");
   });
 });
 

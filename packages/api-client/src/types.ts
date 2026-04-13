@@ -287,6 +287,11 @@ export interface PromptResponse {
 
 export interface PromptListResponse {
   data: PromptResponse[];
+  pagination?: {
+    page: number;
+    limit: number;
+    count: number;
+  };
 }
 
 export interface PromptVersionResponse {

@@ -27,7 +27,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -38,7 +38,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -199,5 +199,34 @@ describe("Auth enforcement", () => {
       url: "/v1/slas/agent_1",
     });
     expect(delRes.statusCode).toBe(401);
+  });
+
+  it("returns 403 when api key lacks slas:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+    const app = buildApp();
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/slas/agent_1",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("slas:read");
+  });
+
+  it("returns 403 when api key lacks slas:write scope", async () => {
+    mockApiKey("org_1", "slas:read");
+    const app = buildApp();
+
+    const res = await app.inject({
+      method: "PUT",
+      url: "/v1/slas/agent_1",
+      headers: { authorization: "Bearer sk-testkey123" },
+      payload: { maxDurationMs: 5000 },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("slas:write");
   });
 });

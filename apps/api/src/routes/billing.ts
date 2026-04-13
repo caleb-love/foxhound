@@ -50,7 +50,10 @@ export function billingRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/billing/checkout",
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const result = CheckoutSchema.safeParse(request.body);
       if (!result.success) {
@@ -117,7 +120,10 @@ export function billingRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/billing/portal",
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const BodySchema = z.object({ returnUrl: z.string().url() });
       const result = BodySchema.safeParse(request.body);
@@ -242,7 +248,10 @@ export function billingRoutes(fastify: FastifyInstance): void {
    * Designed to be called by a nightly cron job (secured by internal secret header).
    * Only reports spans beyond the 500K included pro allocation.
    */
-  fastify.post("/v1/billing/report-usage", async (request, reply) => {
+  fastify.post(
+    "/v1/billing/report-usage",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const internalSecret = process.env["INTERNAL_CRON_SECRET"];
     if (!internalSecret) {
       return reply
@@ -325,5 +334,6 @@ export function billingRoutes(fastify: FastifyInstance): void {
     );
 
     return reply.code(200).send({ reported: true, overage, period });
-  });
+  },
+  );
 }

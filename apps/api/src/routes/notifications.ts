@@ -119,7 +119,10 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
    * POST /v1/notifications/test
    * Send a test notification through a specific channel.
    */
-  fastify.post("/v1/notifications/test", async (request, reply) => {
+  fastify.post(
+    "/v1/notifications/test",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const result = SendTestSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -199,7 +202,8 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
     }
 
     return reply.code(200).send({ ok: true });
-  });
+  },
+  );
 }
 
 /** Strip the raw config (may contain webhook URLs) — return only safe fields */

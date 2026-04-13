@@ -2,6 +2,54 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 import { resolveApiKey, touchApiKeyLastUsed, type ApiKeyRejection } from "@foxhound/db";
 
+function parseApiKeyScopes(scopes: string | null | undefined): Set<string> | null {
+  if (!scopes) return null;
+  return new Set(
+    scopes
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter(Boolean),
+  );
+}
+
+function hasRequiredScope(scopes: Set<string> | null, requiredScope: string): boolean {
+  if (!scopes || scopes.size === 0) return true;
+  if (scopes.has(requiredScope)) return true;
+
+  const [resource, action] = requiredScope.split(":");
+  if (!resource || !action) return false;
+
+  return scopes.has(`${resource}:*`) || (action === "read" && scopes.has("*:*"));
+}
+
+function getRequiredApiKeyScope(method: string, url: string): string | null {
+  const path = url.split("?")[0] ?? url;
+  const normalizedMethod = method.toUpperCase();
+
+  const routeScopePrefixes: Array<{ prefix: string; resource: string }> = [
+    { prefix: "/v1/prompts", resource: "prompts" },
+    { prefix: "/v1/traces", resource: "traces" },
+    { prefix: "/v1/scores", resource: "scores" },
+    { prefix: "/v1/datasets", resource: "datasets" },
+    { prefix: "/v1/experiments", resource: "experiments" },
+    { prefix: "/v1/experiment-comparisons", resource: "experiments" },
+    { prefix: "/v1/evaluators", resource: "evaluators" },
+    { prefix: "/v1/evaluator-runs", resource: "evaluators" },
+    { prefix: "/v1/annotation-queues", resource: "annotations" },
+    { prefix: "/v1/annotation-queue-items", resource: "annotations" },
+    { prefix: "/v1/regressions", resource: "regressions" },
+    { prefix: "/v1/budgets", resource: "budgets" },
+    { prefix: "/v1/slas", resource: "slas" },
+    { prefix: "/v1/notifications", resource: "notifications" },
+  ];
+
+  const match = routeScopePrefixes.find(({ prefix }) => path.startsWith(prefix));
+  if (!match) return null;
+
+  const action = normalizedMethod === "GET" ? "read" : "write";
+  return `${match.resource}:${action}`;
+}
+
 export interface JwtPayload {
   userId: string;
   orgId: string;
@@ -16,6 +64,8 @@ declare module "fastify" {
     userId?: string;
     /** Org sampling rate (0.0–1.0) — set by API key middleware */
     samplingRate: number;
+    /** Resolved API key scopes — null means legacy/full access */
+    apiKeyScopes?: Set<string> | null;
   }
   interface FastifyInstance {
     /** Verify JWT and attach userId + orgId to request */
@@ -110,6 +160,15 @@ export function registerAuth(fastify: FastifyInstance): void {
 
     request.orgId = resolved.org.id;
     request.samplingRate = resolved.org.samplingRate;
+    request.apiKeyScopes = parseApiKeyScopes(resolved.apiKey.scopes);
+
+    const requiredScope = getRequiredApiKeyScope(request.method, request.url);
+    if (requiredScope && !hasRequiredScope(request.apiKeyScopes, requiredScope)) {
+      return reply.code(403).send({
+        error: "Forbidden",
+        message: `API key lacks required scope: ${requiredScope}`,
+      });
+    }
 
     // Fire-and-forget: track when this key was last used
     void touchApiKeyLastUsed(resolved.apiKey.id).catch((err) => {

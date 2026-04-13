@@ -1,6 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
+
+function isUniqueViolation(error: unknown, constraintName?: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? error.code : undefined;
+  const constraint = "constraint" in error ? error.constraint : undefined;
+  return code === "23505" && (!constraintName || constraint === constraintName);
+}
 import {
   createPrompt,
   listPrompts,
@@ -13,6 +20,7 @@ import {
   getPromptVersionByLabel,
   setPromptLabel,
   getLabelsForVersions,
+  deletePromptLabel,
   writeAuditLog,
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
@@ -32,6 +40,27 @@ const SetLabelSchema = z.object({
   versionNumber: z.number().int().positive(),
 });
 
+const ListPromptsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
+const RESOLVE_CACHE_TTL_MS = 30_000;
+const resolvePromptCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    payload: {
+      name: string;
+      label: string;
+      version: number;
+      content: string;
+      model: string | null;
+      config: Record<string, unknown>;
+    };
+  }
+>();
+
 export function promptsRoutes(fastify: FastifyInstance): void {
   // ── Prompts CRUD ────────────────────────────────────────────────────────
 
@@ -41,7 +70,10 @@ export function promptsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/prompts",
-    { preHandler: [requireEntitlement("canManagePrompts")] },
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const result = CreatePromptSchema.safeParse(request.body);
       if (!result.success) {
@@ -57,11 +89,19 @@ export function promptsRoutes(fastify: FastifyInstance): void {
         return reply.code(409).send({ error: "Conflict", message: `Prompt "${name}" already exists` });
       }
 
-      const prompt = await createPrompt({
-        id: `pmt_${randomUUID()}`,
-        orgId,
-        name,
-      });
+      let prompt;
+      try {
+        prompt = await createPrompt({
+          id: `pmt_${randomUUID()}`,
+          orgId,
+          name,
+        });
+      } catch (error) {
+        if (isUniqueViolation(error, "prompts_org_name_unique")) {
+          return reply.code(409).send({ error: "Conflict", message: `Prompt "${name}" already exists` });
+        }
+        throw error;
+      }
 
       if (!prompt) {
         return reply.code(500).send({ error: "Internal Server Error", message: "Failed to create prompt" });
@@ -90,8 +130,17 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     "/v1/prompts",
     { preHandler: [requireEntitlement("canManagePrompts")] },
     async (request, reply) => {
-      const rows = await listPrompts(request.orgId);
-      return reply.code(200).send({ data: rows });
+      const query = ListPromptsQuerySchema.safeParse(request.query);
+      if (!query.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: query.error.issues });
+      }
+
+      const { page, limit } = query.data;
+      const rows = await listPrompts(request.orgId, page, limit);
+      return reply.code(200).send({
+        data: rows,
+        pagination: { page, limit, count: rows.length },
+      });
     },
   );
 
@@ -148,7 +197,10 @@ export function promptsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/prompts/:id/versions",
-    { preHandler: [requireEntitlement("canManagePrompts")] },
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = CreateVersionSchema.safeParse(request.body);
@@ -197,7 +249,10 @@ export function promptsRoutes(fastify: FastifyInstance): void {
    */
   fastify.get(
     "/v1/prompts/:id/versions",
-    { preHandler: [requireEntitlement("canManagePrompts")] },
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 600, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const prompt = await getPrompt(id, request.orgId);
@@ -234,7 +289,10 @@ export function promptsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/prompts/:id/labels",
-    { preHandler: [requireEntitlement("canManagePrompts")] },
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = SetLabelSchema.safeParse(request.body);
@@ -278,6 +336,55 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     },
   );
 
+  /**
+   * DELETE /v1/prompts/:id/labels/:label
+   * Remove a label from whichever version currently owns it for this prompt.
+   */
+  fastify.delete(
+    "/v1/prompts/:id/labels/:label",
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id, label } = request.params as { id: string; label: string };
+
+      const prompt = await getPrompt(id, request.orgId);
+      if (!prompt) {
+        return reply.code(404).send({ error: "Not Found", message: "Prompt not found" });
+      }
+
+      const version = await getPromptVersionByLabel(request.orgId, prompt.name, label);
+      if (!version || version.promptId !== id) {
+        return reply.code(404).send({
+          error: "Not Found",
+          message: `Label "${label}" not found`,
+        });
+      }
+
+      const deleted = await deletePromptLabel(version.id, label);
+      if (!deleted) {
+        return reply.code(404).send({
+          error: "Not Found",
+          message: `Label "${label}" not found`,
+        });
+      }
+
+      writeAuditLog({
+        orgId: request.orgId,
+        action: "prompt_label.delete",
+        targetType: "prompt_label",
+        targetId: version.id,
+        metadata: { promptId: id, version: version.version, label },
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "prompt_label.delete" }, "Audit log write failed");
+      });
+
+      return reply.code(204).send();
+    },
+  );
+
   // ── SDK Resolution Endpoint ─────────────────────────────────────────────
 
   /**
@@ -286,7 +393,10 @@ export function promptsRoutes(fastify: FastifyInstance): void {
    * Returns the full prompt version content, model, and config.
    * No entitlement gate — available to all plans for SDK consumption.
    */
-  fastify.get("/v1/prompts/resolve", async (request, reply) => {
+  fastify.get(
+    "/v1/prompts/resolve",
+    { config: { rateLimit: { max: 600, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { name, label } = request.query as { name?: string; label?: string };
 
     if (!name) {
@@ -294,6 +404,12 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     }
 
     const resolvedLabel = label ?? "production";
+    const cacheKey = `${request.orgId}:${name}:${resolvedLabel}`;
+    const cached = resolvePromptCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return reply.code(200).send(cached.payload);
+    }
+
     const version = await getPromptVersionByLabel(request.orgId, name, resolvedLabel);
     if (!version) {
       return reply.code(404).send({
@@ -302,13 +418,36 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       });
     }
 
-    return reply.code(200).send({
+    writeAuditLog({
+      orgId: request.orgId,
+      action: "prompt.resolve",
+      targetType: "prompt_version",
+      targetId: version.id,
+      metadata: {
+        name,
+        label: resolvedLabel,
+        version: version.version,
+      },
+      ipAddress: request.ip,
+    }).catch((err) => {
+      request.log.error({ err, action: "prompt.resolve" }, "Audit log write failed");
+    });
+
+    const payload = {
       name,
       label: resolvedLabel,
       version: version.version,
       content: version.content,
       model: version.model,
       config: version.config,
+    };
+
+    resolvePromptCache.set(cacheKey, {
+      expiresAt: Date.now() + RESOLVE_CACHE_TTL_MS,
+      payload,
     });
-  });
+
+    return reply.code(200).send(payload);
+  },
+  );
 }

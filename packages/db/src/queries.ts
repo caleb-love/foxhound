@@ -2298,12 +2298,19 @@ export async function createPrompt(input: CreatePromptInput) {
   return row;
 }
 
-export async function listPrompts(orgId: string) {
+export async function listPrompts(
+  orgId: string,
+  page = 1,
+  limit = 50,
+) {
+  const offset = (page - 1) * limit;
   return db
     .select()
     .from(prompts)
     .where(eq(prompts.orgId, orgId))
-    .orderBy(desc(prompts.updatedAt));
+    .orderBy(desc(prompts.updatedAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function getPrompt(id: string, orgId: string) {

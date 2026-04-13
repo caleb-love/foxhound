@@ -76,7 +76,10 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
   });
 
   // On-demand comparison
-  fastify.post("/v1/regressions/:agentId/compare", async (request, reply) => {
+  fastify.post(
+    "/v1/regressions/:agentId/compare",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { agentId } = request.params as { agentId: string };
     const result = CompareSchema.safeParse(request.body);
     if (!result.success) {
@@ -111,7 +114,8 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
         after: baselineB?.sampleSize ?? 0,
       },
     });
-  });
+  },
+  );
 
   // List baselines
   fastify.get("/v1/regressions/:agentId/baselines", async (request, reply) => {
