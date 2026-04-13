@@ -184,3 +184,59 @@ The hooks, skills, CLAUDE.md, and memory are living config — they drift. Two l
 7. Document         → Update docs/, sync GSD state to docs/gsd/, update memory
 8. Commit           → Conventional commits, detailed messages
 ```
+
+## App-Specific Documentation
+
+### Web App (apps/web/)
+- **[apps/web/CLAUDE.md](apps/web/CLAUDE.md)** - Web app specific guidance (type safety, testing, conventions)
+- **[apps/web/PATTERNS.md](apps/web/PATTERNS.md)** - React patterns and best practices (state management, error handling)
+- **[apps/web/vitest.config.example.ts](apps/web/vitest.config.example.ts)** - Example test configuration
+
+### Packages
+- **[packages/types/README.md](packages/types/README.md)** - Shared TypeScript types documentation
+
+### General
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Code conventions, commit format, PR process
+
+## Documentation Workflow
+
+**All documentation follows the structured workflow defined in [`docs/DOCUMENTATION_WORKFLOW.md`](docs/DOCUMENTATION_WORKFLOW.md).**
+
+### Auto-Filing Rules
+
+**Every session must follow these rules:**
+
+1. **New plans** → `docs/plans/active/YYYY-MM-DD-<name>.md`
+2. **Completed work** → `docs/plans/completed/<category>/` (categories: phase-1 through phase-6, brand-gtm, infrastructure, security, refactoring)
+3. **Superseded versions** → `docs/plans/archive/<topic>/`
+4. **Session logs** → `docs/sessions/SESSION-YYYY-MM-DD.md`
+5. **Testing docs** → `docs/plans/testing/`
+
+### End-of-Session Checklist
+
+After every session, verify:
+
+```
+□ New plans filed in active/ with YYYY-MM-DD prefix?
+□ Completed work moved from active/ to completed/<category>/?
+□ Multiple iterations? Earlier versions in archive/<topic>/?
+□ Session notes created in sessions/SESSION-YYYY-MM-DD.md?
+□ Major changes reflected in docs/README.md?
+□ Phase complete? Created phaseN-COMPLETE.md summary?
+□ GSD milestone done? Synced .gsd/*.md to docs/gsd/?
+```
+
+### Document Lifecycle
+
+```
+New Plan → active/
+  ↓
+Work in Progress → stay in active/, archive old versions
+  ↓
+Completed → completed/<category>/
+  ↓
+Superseded → archive/<topic>/
+```
+
+**See [`docs/DOCUMENTATION_WORKFLOW.md`](docs/DOCUMENTATION_WORKFLOW.md) for complete filing rules, decision trees, and examples.**
+

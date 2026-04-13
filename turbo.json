@@ -1,6 +1,26 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "generators": [
+    {
+      "name": "next-app",
+      "description": "Create a new Next.js app with Foxhound conventions",
+      "config": {
+        "eslint": {
+          "rules": {
+            "@typescript-eslint/no-unused-vars": [
+              "error",
+              {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
