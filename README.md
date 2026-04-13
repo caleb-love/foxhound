@@ -48,7 +48,7 @@ Foxhound gives you the missing layer:
 | **Replay & Diff** | Session replay · run diff · trace timeline inspection |
 | **Evaluation** | LLM-as-judge evaluators · dataset curation from production traces · experiment comparison |
 | **Agent intelligence** | Cost budgets · SLA monitoring · regression detection by agent version |
-| **Prompt management** | Versioned prompt templates · label-based promotion such as `staging` → `production` |
+| **Prompt management** | Prompt templates · label-based promotion such as `staging` → `production` |
 | **Operations** | API keys · notifications · audit logging · multi-tenant isolation |
 | **Developer tooling** | TypeScript SDK · Python SDK · CLI · MCP server · GitHub quality gate |
 
@@ -194,14 +194,6 @@ Current repo expectations include:
 - rate limiting and security headers on the API/web surfaces
 
 If you discover a vulnerability, use GitHub security advisories or follow `SECURITY.md` if present.
-
-## Versioning
-
-Foxhound uses:
-- a **root/platform version** for the overall product/workspace
-- **independent SemVer** for public installable artifacts like the SDK, CLI, and MCP server
-
-See [`VERSIONING.md`](VERSIONING.md) for the canonical policy.
 
 ## Development
 
