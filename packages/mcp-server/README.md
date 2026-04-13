@@ -1,26 +1,29 @@
-# @foxhound/mcp-server
+# @foxhound-ai/mcp-server
 
-MCP server for querying Foxhound traces from Claude Code, Cursor, Windsurf, or any MCP-connected IDE.
+MCP server for querying and debugging Foxhound traces from Claude Code, Cursor, Windsurf, and other MCP-compatible clients.
 
-## Setup
+This package exposes Foxhound data through MCP tools so you can inspect traces, replay execution context, compare runs, and investigate anomalous behavior without leaving your editor.
 
-### Install from MCP Registry (Recommended)
+## Install
 
-Once published to the MCP Registry, the Foxhound server can be installed directly:
-
-#### Claude Code
+### From npm
 
 ```bash
-# Install from registry (when published)
-claude mcp add io.github.caleb-love/foxhound
-
-# Or install from npm package directly
-claude mcp add foxhound -e FOXHOUND_API_KEY=fox_your_key -e FOXHOUND_ENDPOINT=https://api.foxhound.dev -- npx @foxhound-ai/mcp-server
+npx @foxhound-ai/mcp-server
 ```
 
-#### Cursor / Windsurf
+### In Claude Code
 
-Add to your MCP config (`.cursor/mcp.json` or equivalent):
+```bash
+claude mcp add foxhound \
+  -e FOXHOUND_API_KEY=fox_your_key \
+  -e FOXHOUND_ENDPOINT=http://localhost:3000 \
+  -- npx @foxhound-ai/mcp-server
+```
+
+### In Cursor or Windsurf
+
+Add an MCP server entry to your MCP configuration:
 
 ```json
 {
@@ -30,101 +33,95 @@ Add to your MCP config (`.cursor/mcp.json` or equivalent):
       "args": ["@foxhound-ai/mcp-server"],
       "env": {
         "FOXHOUND_API_KEY": "fox_your_key",
-        "FOXHOUND_ENDPOINT": "https://api.foxhound.dev"
+        "FOXHOUND_ENDPOINT": "http://localhost:3000"
       }
     }
   }
 }
 ```
 
-### Install from npm (Alternative)
+### From the MCP Registry
 
-You can also install directly from npm without using the registry:
-
-```bash
-npx @foxhound-ai/mcp-server
-```
-
-### Environment Variables
-
-| Variable            | Required | Default                 | Description           |
-| ------------------- | -------- | ----------------------- | --------------------- |
-| `FOXHOUND_API_KEY`  | Yes      | —                       | Your Foxhound API key |
-| `FOXHOUND_ENDPOINT` | No       | `http://localhost:3001` | Foxhound API base URL |
-
-## Tools
-
-### foxhound_search_traces
-
-Search traces by agent name, time range, and status.
-
-```
-"Show me all traces for agent billing-bot in the last hour"
-"Find error traces from the past 24 hours"
-```
-
-**Parameters:** `agent_name`, `status` (ok/error), `from`, `to` (ISO 8601 or epoch ms), `limit`
-
-### foxhound_get_trace
-
-Get the full trace with its complete span tree.
-
-```
-"Get trace abc-123 and show me the span tree"
-"What happened in trace def-456?"
-```
-
-**Parameters:** `trace_id`
-
-### foxhound_replay_span
-
-Reconstruct agent state at a specific span — LLM context, tool inputs, and memory.
-
-```
-"Replay span xyz in trace abc-123 — what was the agent's context?"
-```
-
-**Parameters:** `trace_id`, `span_id`
-
-### foxhound_diff_runs
-
-Compare two agent runs side-by-side and surface divergence points.
-
-```
-"Compare runs abc and def — why did the second one fail?"
-```
-
-**Parameters:** `trace_id_a`, `trace_id_b`
-
-### foxhound_get_anomalies
-
-Surface behavioral anomalies — slow spans, error spikes, or unusual tool usage patterns.
-
-```
-"Any anomalies for billing-bot in the last 12 hours?"
-"Show me error spikes for the onboarding agent"
-```
-
-**Parameters:** `agent_name`, `hours` (lookback window, default 24)
-
-### foxhound_get_cost_summary
-
-Get span usage and billing period summary.
-
-```
-"How many spans have we used this period?"
-```
-
-**Parameters:** `agent_name` (optional, org-level by default)
-
-## Development
+If you are using registry-based install flows, use the published server name:
 
 ```bash
-npm install
-npm run build
-npm test
-npm run typecheck
+claude mcp add io.github.caleb-love/foxhound
 ```
+
+## Required environment variables
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `FOXHOUND_API_KEY` | Yes | none | Your Foxhound API key |
+| `FOXHOUND_ENDPOINT` | No | `http://localhost:3001` | Foxhound API base URL |
+
+If your local API runs on a different port or host, set `FOXHOUND_ENDPOINT` explicitly.
+
+## What this package provides
+
+The MCP server exposes Foxhound operations as tools that MCP clients can call during debugging and investigation workflows.
+
+Common use cases:
+- inspect recent traces for a specific agent
+- fetch a full trace and view the span tree
+- replay a specific span to recover context
+- compare two runs to understand behavioral drift
+- inspect anomalies and usage patterns
+
+## Tool overview
+
+### `foxhound_search_traces`
+Search traces by agent name, time range, and pagination.
+
+Example prompts:
+- "Show me all traces for billing-bot in the last hour"
+- "Find failed traces from the past day"
+
+### `foxhound_get_trace`
+Fetch a full trace with its span tree.
+
+Example prompts:
+- "Get trace abc-123 and show the full execution tree"
+- "What happened in trace def-456?"
+
+### `foxhound_replay_span`
+Replay a span to inspect execution context, model inputs, and tool state.
+
+Example prompts:
+- "Replay span xyz in trace abc-123"
+
+### `foxhound_diff_runs`
+Compare two traces and highlight divergence points.
+
+Example prompts:
+- "Compare trace A and trace B and tell me why they differ"
+
+### `foxhound_get_anomalies`
+Surface abnormal behavior such as spikes in latency or unusual tool usage.
+
+Example prompts:
+- "Any anomalies for onboarding-agent in the last 12 hours?"
+
+### `foxhound_get_cost_summary`
+Return span usage and billing-period summary information.
+
+Example prompts:
+- "How many spans have we used this billing period?"
+
+## Local development
+
+```bash
+pnpm install
+pnpm build
+pnpm test
+pnpm typecheck
+```
+
+## Publishing
+
+This package also includes:
+- `server.json` for MCP registry metadata
+- `PUBLISH.md` for MCP registry publication steps
 
 ## License
 
