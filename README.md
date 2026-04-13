@@ -1,71 +1,101 @@
-<p align="center">
-  <img src="https://github.com/caleb-love/foxhound/raw/main/.github/logo-wordmark.png" alt="Foxhound" width="480" />
+<div align="center">
+
+# Foxhound
+
+### Compliance-grade observability for AI agent fleets.
+
+Trace every decision. Evaluate every response. Budget every dollar.
+
+<p>
+  <a href="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/caleb-love/foxhound/ci.yml?branch=main&style=flat-square" alt="CI" /></a>
+  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-E8751A?style=flat-square" alt="MIT License" /></a>
+  <a href="https://www.npmjs.com/package/@foxhound-ai/sdk"><img src="https://img.shields.io/npm/v/@foxhound-ai/sdk?style=flat-square&label=sdk" alt="npm sdk" /></a>
+  <a href="https://www.npmjs.com/package/@foxhound-ai/mcp-server"><img src="https://img.shields.io/npm/v/@foxhound-ai/mcp-server?style=flat-square&label=mcp" alt="npm mcp" /></a>
+  <a href="https://pypi.org/project/foxhound-ai/"><img src="https://img.shields.io/pypi/v/foxhound-ai?style=flat-square&label=python" alt="PyPI" /></a>
 </p>
 
-<p align="center">
-  <strong>Compliance-grade observability for AI agent fleets.</strong><br />
-  Trace every decision. Evaluate every response. Budget every dollar.
-</p>
-
-<p align="center">
-  <a href="https://github.com/caleb-love/foxhound/actions"><img src="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://www.npmjs.com/package/@foxhound-ai/sdk"><img src="https://img.shields.io/npm/v/@foxhound-ai/sdk.svg?label=npm" alt="npm" /></a>
-  <a href="https://pypi.org/project/foxhound-ai/"><img src="https://img.shields.io/pypi/v/foxhound-ai.svg?label=pypi" alt="PyPI" /></a>
-  <a href="https://www.npmjs.com/package/@foxhound-ai/mcp-server"><img src="https://img.shields.io/npm/v/@foxhound-ai/mcp-server.svg?label=mcp" alt="MCP Server" /></a>
-</p>
-
-<p align="center">
+<p>
   <a href="https://docs.foxhound.dev">Docs</a> ·
   <a href="#quickstart">Quickstart</a> ·
-  <a href="#integrations">Integrations</a> ·
+  <a href="#tooling">Tooling</a> ·
   <a href="#self-hosting">Self-Hosting</a> ·
-  <a href="https://github.com/caleb-love/foxhound/blob/main/CHANGELOG.md">Changelog</a>
+  <a href="#development">Development</a>
 </p>
+
+</div>
 
 ---
 
-## Why Foxhound?
+## What is Foxhound?
 
-AI agents make thousands of autonomous decisions per session — calling tools, invoking LLMs, branching workflows. When something goes wrong, you need more than logs. You need **full decision traceability**: what the agent decided, what data it had, and why it diverged from the expected path.
+Foxhound is an open-source observability platform purpose-built for AI agent systems. Generic APM and logging tools do not model agent behavior well: tool calls, LLM invocations, branching workflows, replay, evaluation, and regression detection all get flattened into the wrong abstractions.
 
-Foxhound is an open-source observability platform purpose-built for production AI agent systems. It gives your team structured tracing, automated evaluation, cost controls, and compliance tooling — all self-hostable and extensible.
+Foxhound gives you the missing layer:
 
-## Features
+- **trace every agent run** as a structured span tree
+- **compare executions** to see exactly where behavior diverged
+- **evaluate responses** with datasets, experiments, and LLM-as-judge workflows
+- **enforce budgets and SLAs** before costs and latency drift silently
+- **audit and isolate tenant data** for security-sensitive deployments
 
-| Category | Capabilities |
+**Not a generic logging product. AI agent observability.**
+
+## Core capabilities
+
+| Area | What you get |
 | --- | --- |
-| **Tracing** | Structured span trees for every agent run · Session Replay · Run Diff to compare executions side-by-side |
-| **Evaluation** | LLM-as-judge evaluators · Dataset curation from production traces · Experiment runner with A/B comparison |
-| **Cost & SLA** | Per-agent cost budgets with SDK callbacks · SLA monitoring for duration and success rate targets · Automated alerting |
-| **Regression Detection** | Behavioral baselines per agent version · Automated drift detection across deployments |
-| **Prompt Management** | Versioned prompt templates · Label-based promotion (staging → production) |
-| **MCP Server** | 37 AI debugging tools for Claude Code, Cursor, Windsurf, and other MCP clients |
-| **Quality Gate** | GitHub Actions integration — block PRs that fail eval thresholds |
-| **Alerts** | Multi-channel notifications: Slack, PagerDuty, GitHub Issues, Linear, webhooks |
-| **Audit & Compliance** | Full audit log · Multi-tenant data isolation · API key management (SHA-256 hashed) |
+| **Tracing** | Structured traces and spans for every run · trace explorer · metadata and event capture |
+| **Replay & Diff** | Session replay · run diff · trace timeline inspection |
+| **Evaluation** | LLM-as-judge evaluators · dataset curation from production traces · experiment comparison |
+| **Agent intelligence** | Cost budgets · SLA monitoring · regression detection by agent version |
+| **Prompt management** | Versioned prompt templates · label-based promotion such as `staging` → `production` |
+| **Operations** | API keys · notifications · audit logging · multi-tenant isolation |
+| **Developer tooling** | TypeScript SDK · Python SDK · CLI · MCP server · GitHub quality gate |
 
 ## Quickstart
 
-### 1. Start the platform
+### 1. Clone and install
 
 ```bash
-git clone https://github.com/caleb-love/foxhound.git && cd foxhound
+git clone https://github.com/caleb-love/foxhound.git
+cd foxhound
 pnpm install
-docker compose -f docker-compose.dev.yml up -d   # Postgres + Redis
-cp apps/api/.env.example apps/api/.env            # set JWT_SECRET
-pnpm --filter @foxhound/db db:migrate
-pnpm dev                                          # API → localhost:3001
 ```
 
-### 2. Instrument your agent
+### 2. Start local infrastructure
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+cp apps/api/.env.example apps/api/.env
+pnpm --filter @foxhound/db db:migrate
+```
+
+### 3. Run the app
+
+```bash
+pnpm dev       # API
+pnpm dev:web   # dashboard in another terminal
+```
+
+Default local endpoints:
+- API: `http://localhost:3000`
+- Web: `http://localhost:3001`
+
+### 4. Send your first trace
+
+#### Python
+
+```bash
+pip install foxhound-ai
+```
 
 ```python
-pip install foxhound-ai
-
 from foxhound import FoxhoundClient
 
-fox = FoxhoundClient(api_key="fh-...", endpoint="http://localhost:3001")
+fox = FoxhoundClient(
+    api_key="fh-...",
+    endpoint="http://localhost:3000",
+)
 
 async with fox.trace(agent_id="support-agent") as tracer:
     span = tracer.start_span(name="tool:search", kind="tool_call")
@@ -73,121 +103,135 @@ async with fox.trace(agent_id="support-agent") as tracer:
     span.end()
 ```
 
-### 3. Explore traces
-
-Open the [Foxhound dashboard](https://github.com/caleb-love/foxhound-web) to browse span trees, replay sessions, and diff runs.
-
-## Integrations
-
-First-party SDKs for **Python** and **TypeScript** with auto-instrumentation for major agent frameworks.
-
-| Framework | SDK | Auto-instrumentation |
-| --- | --- | --- |
-| LangGraph | Python | ✓ |
-| CrewAI | Python | ✓ |
-| Pydantic AI | Python | ✓ |
-| OpenAI Agents | Python | ✓ |
-| Google ADK | Python | ✓ |
-| Claude Agent SDK | Python + TypeScript | ✓ |
-| AWS Bedrock AgentCore | Python | ✓ |
-| Mastra | TypeScript | ✓ |
-| OpenTelemetry | Any | Protocol-level |
-
-**Install:**
+#### TypeScript
 
 ```bash
-pip install foxhound-ai                              # Python
-pip install "foxhound-ai[langgraph]"                 # with LangGraph auto-instrumentation
-pip install "foxhound-ai[crewai,pydantic-ai]"        # multiple extras
-npm install @foxhound-ai/sdk                         # TypeScript
+npm install @foxhound-ai/sdk
+```
+
+```ts
+import { FoxhoundClient } from "@foxhound-ai/sdk";
+
+const fox = new FoxhoundClient({
+  apiKey: process.env.FOXHOUND_API_KEY!,
+  endpoint: "http://localhost:3000",
+});
+
+const trace = fox.trace({ agentId: "support-agent" });
+const span = trace.startSpan({ name: "tool:search", kind: "tool_call" });
+span.setAttribute("query", "refund policy");
+span.end();
+await trace.flush();
 ```
 
 ## Tooling
 
-| Tool | Install | What it does |
+| Artifact | Install | Purpose |
 | --- | --- | --- |
-| **Python SDK** | `pip install foxhound-ai` | Trace, evaluate, and budget AI agents |
-| **TypeScript SDK** | `npm install @foxhound-ai/sdk` | Same, for Node.js / Deno / Bun |
-| **CLI** | `npm install -g @foxhound-ai/cli` | Query traces, manage keys and alerts from the terminal |
-| **MCP Server** | `npm install -g @foxhound-ai/mcp-server` | 37 debugging tools for AI-native IDEs |
-| **GitHub Action** | `caleb-love/foxhound-quality-gate` | CI quality gate — block PRs that fail eval |
+| **Python SDK** | `pip install foxhound-ai` | Instrument Python agent systems |
+| **TypeScript SDK** | `npm install @foxhound-ai/sdk` | Instrument Node.js / TypeScript runtimes |
+| **CLI** | `npm install -g @foxhound-ai/cli` | Inspect traces and operate Foxhound from the terminal |
+| **MCP Server** | `npm install -g @foxhound-ai/mcp-server` | Query Foxhound from Claude Code, Cursor, and other MCP clients |
+| **GitHub Action** | `caleb-love/foxhound-quality-gate` | Block PRs that fail eval or quality thresholds |
 
 ## Architecture
 
-```
-                  ┌──────────────────────────────────────────────┐
-  SDKs / OTel ──▶ │  API (Fastify)          Worker (BullMQ)      │
-                  │  80 endpoints            7 queue processors   │
-                  │  ┌───────────┐           ┌────────────────┐  │
-                  │  │ Traces    │           │ Evaluator      │  │
-                  │  │ Evals     │           │ Experiment     │  │
-                  │  │ Budgets   │           │ Cost Monitor   │  │
-                  │  │ Prompts   │           │ SLA Check      │  │
-                  │  │ Alerts    │           │ Regression     │  │
-                  │  └───────────┘           └────────────────┘  │
-                  │          │                       │            │
-                  │     PostgreSQL 16           Redis / BullMQ    │
-                  └──────────────────────────────────────────────┘
+```text
+SDKs / OTLP  ->  API (Fastify)  ->  PostgreSQL
+                  |                 
+                  ->  Worker (BullMQ) -> Redis
+                  ->  Web dashboard (Next.js)
 ```
 
-**Stack:** TypeScript · Node.js 20 · pnpm · Turborepo · Fastify · Drizzle ORM · PostgreSQL 16 · Redis · BullMQ · Stripe
+Current monorepo layout:
 
-## Self-Hosting
+```text
+apps/api/               Fastify REST API
+apps/web/               Next.js dashboard
+apps/worker/            BullMQ workers
+packages/sdk/           TypeScript SDK
+packages/sdk-py/        Python SDK
+packages/cli/           CLI
+packages/mcp-server/    MCP server
+packages/api-client/    Typed API client
+packages/db/            Drizzle schema + queries
+packages/types/         Shared types
+packages/billing/       Billing + entitlements
+packages/notifications/ Notification delivery
+```
 
-Foxhound is designed to run on your infrastructure. You need PostgreSQL 16+ and Node.js 20+. Redis is required for the worker (evaluation, cost monitoring, SLA checks).
+## Self-hosting
 
-See [`apps/api/.env.example`](apps/api/.env.example) for all configuration options.
+Foxhound is designed to run on your own infrastructure.
 
-**Dashboard:** [caleb-love/foxhound-web](https://github.com/caleb-love/foxhound-web)
+Minimum stack:
+- PostgreSQL 16+
+- Redis
+- Node.js 20+
+- pnpm 9+
+
+Primary local/dev commands:
+
+```bash
+pnpm build
+pnpm test
+pnpm lint
+pnpm typecheck
+```
+
+For API configuration, see:
+- `apps/api/.env.example`
+
+## Security
+
+Foxhound is built for security-sensitive, multi-tenant environments.
+
+Current repo expectations include:
+- API keys hashed at rest
+- tenant-scoped data access via `org_id`
+- JWT auth for user-facing operations
+- audit logging for sensitive actions
+- rate limiting and security headers on the API/web surfaces
+
+If you discover a vulnerability, use GitHub security advisories or follow `SECURITY.md` if present.
+
+## Versioning
+
+Foxhound uses:
+- a **root/platform version** for the overall product/workspace
+- **independent SemVer** for public installable artifacts like the SDK, CLI, and MCP server
+
+See [`VERSIONING.md`](VERSIONING.md) for the canonical policy.
 
 ## Development
 
 ```bash
-pnpm build            # Build all packages (Turborepo)
-pnpm test             # Run all tests (Vitest)
-pnpm test:coverage    # Tests with coverage report
-pnpm lint             # Lint all packages
-pnpm typecheck        # TypeScript type checking
-pnpm format           # Format with Prettier
+pnpm install
+pnpm build
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm format
 ```
 
-### Monorepo structure
+Useful dev commands:
 
+```bash
+pnpm dev       # API only
+pnpm dev:web   # web only
+pnpm dev:all   # API + web
 ```
-apps/api/               Fastify REST API
-apps/worker/            BullMQ background workers
-packages/db/            Drizzle schema + migrations
-packages/sdk/           TypeScript SDK
-packages/sdk-py/        Python SDK
-packages/cli/           CLI
-packages/mcp-server/    MCP debugging tools
-packages/api-client/    Typed HTTP client (shared)
-packages/billing/       Stripe + entitlements
-packages/notifications/ Multi-provider alert dispatch
-packages/types/         Shared type definitions
-docs-site/              Docusaurus documentation (22 pages)
-```
-
-## Security
-
-- JWT authentication with 30-day expiry
-- API keys SHA-256 hashed, never stored plaintext
-- HttpOnly / Secure / SameSite cookies
-- CSP headers via Helmet
-- Rate limiting on all endpoints
-- All data queries scoped by `org_id` — strict multi-tenant isolation
-- Parameterized queries throughout (no string interpolation)
-
-To report a vulnerability, open a [security advisory](https://github.com/caleb-love/foxhound/security/advisories/new).
 
 ## Contributing
 
-We welcome contributions. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for guidelines.
+Contributions are welcome.
 
-- [Open an issue](https://github.com/caleb-love/foxhound/issues/new) for bugs and feature requests
-- [Browse good first issues](https://github.com/caleb-love/foxhound/issues?q=label%3A%22good+first+issue%22)
-- [Read the docs](https://docs.foxhound.dev)
+- open issues for bugs and feature requests
+- keep multi-tenant safety and security review standards high
+- prefer small, verifiable changes over broad speculative refactors
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution conventions.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+[MIT](LICENSE)
