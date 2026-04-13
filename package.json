@@ -1,6 +1,6 @@
 {
   "name": "foxhound",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Foxhound — open-source observability platform for AI agent fleets",
   "packageManager": "pnpm@9.0.0",
@@ -10,7 +10,9 @@
   },
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=api",
+    "dev:web": "turbo dev --filter=web",
+    "dev:all": "turbo dev --filter=api --filter=web",
     "test": "turbo test",
     "test:coverage": "turbo test:coverage",
     "lint": "turbo lint",
