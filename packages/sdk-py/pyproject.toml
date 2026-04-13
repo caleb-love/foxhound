@@ -47,3 +47,11 @@ include = ["foxhound/static/*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.hatch.envs.hatch-test]
+dependencies = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "respx>=0.20",
+    "langchain-core>=0.1.0",
+]
