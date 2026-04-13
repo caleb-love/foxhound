@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyJwt from "@fastify/jwt";
-import { resolveApiKey } from "@foxhound/db";
+import { resolveApiKey, touchApiKeyLastUsed, type ApiKeyRejection } from "@foxhound/db";
 
 export interface JwtPayload {
   userId: string;
@@ -31,6 +31,7 @@ const PUBLIC_PATHS = new Set([
   "/v1/billing/webhooks",
   "/v1/sso/callback/saml",
   "/v1/sso/callback/oidc",
+  "/v1/waitlist",
 ]);
 
 /** Routes that start with these prefixes are public (dynamic segments). */
@@ -80,7 +81,10 @@ export function registerAuth(fastify: FastifyInstance): void {
     if (PUBLIC_PREFIXES.some((p) => url.startsWith(p))) return;
 
     // JWT routes are handled per-route via the authenticate decorator
-    if (isJwtRoute(url)) return;
+    if (isJwtRoute(url)) {
+      request.samplingRate = 1.0;
+      return;
+    }
 
     // All other /v1/* routes require a valid API key
     const auth = request.headers.authorization;
@@ -92,11 +96,24 @@ export function registerAuth(fastify: FastifyInstance): void {
 
     const token = auth.slice(7);
     const resolved = await resolveApiKey(token);
-    if (!resolved) {
-      return reply.code(401).send({ error: "Unauthorized", message: "Invalid or revoked API key" });
+
+    if ("rejected" in resolved) {
+      const messages: Record<ApiKeyRejection["rejected"], string> = {
+        not_found: "Invalid API key",
+        revoked: "API key has been revoked",
+        expired: "API key has expired",
+      };
+      return reply
+        .code(401)
+        .send({ error: "Unauthorized", message: messages[resolved.rejected] });
     }
 
     request.orgId = resolved.org.id;
     request.samplingRate = resolved.org.samplingRate;
+
+    // Fire-and-forget: track when this key was last used
+    void touchApiKeyLastUsed(resolved.apiKey.id).catch((err) => {
+      request.log.error({ err }, "Failed to update API key lastUsedAt");
+    });
   });
 }

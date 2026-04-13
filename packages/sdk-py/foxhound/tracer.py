@@ -96,6 +96,29 @@ class Tracer:
         self._spans[span.span_id] = span
         return ActiveSpan(span, self._spans)
 
+    def set_prompt(
+        self,
+        *,
+        name: str,
+        version: int,
+        label: str | None = None,
+    ) -> "Tracer":
+        """Attach prompt version info to this trace's metadata.
+
+        Called after resolving a prompt to link the trace to the prompt version used.
+
+        Usage::
+
+            prompt = await fox.prompts.get(name="support-agent")
+            tracer = fox.start_trace(agent_id="my-agent")
+            tracer.set_prompt(name=prompt["name"], version=prompt["version"], label=prompt["label"])
+        """
+        self._metadata["prompt_name"] = name
+        self._metadata["prompt_version"] = version
+        if label is not None:
+            self._metadata["prompt_label"] = label
+        return self
+
     def to_payload(self) -> dict[str, Any]:
         """Serialize the trace to the Fox API payload format."""
         return {

@@ -1,57 +1,81 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { checkSpanLimit } from "@foxhound/billing";
-import { persistTraceWithRetry } from "../persistence.js";
+import { bufferTrace, initTraceBuffer } from "../trace-buffer.js";
 import type { Trace, Span, SpanKind, SpanEvent } from "@foxhound/types";
 
 // ---------------------------------------------------------------------------
-// OTel AnyValue JSON representation
+// OTel AnyValue JSON representation — Zod schemas
 // ---------------------------------------------------------------------------
 
-type OtelAnyValue =
+const OtelAnyValueSchema: z.ZodType<
   | { stringValue: string }
   | { intValue: number | string }
   | { doubleValue: number }
   | { boolValue: boolean }
-  | { arrayValue: { values: OtelAnyValue[] } }
-  | { kvlistValue: { values: { key: string; value: OtelAnyValue }[] } };
+  | { arrayValue: { values: unknown[] } }
+  | { kvlistValue: { values: { key: string; value: unknown }[] } }
+> = z.union([
+  z.object({ stringValue: z.string() }),
+  z.object({ intValue: z.union([z.number(), z.string()]) }),
+  z.object({ doubleValue: z.number() }),
+  z.object({ boolValue: z.boolean() }),
+  z.object({ arrayValue: z.object({ values: z.array(z.lazy(() => OtelAnyValueSchema)) }) }),
+  z.object({
+    kvlistValue: z.object({
+      values: z.array(
+        z.object({ key: z.string(), value: z.lazy(() => OtelAnyValueSchema) }),
+      ),
+    }),
+  }),
+]);
 
-type OtelAttribute = { key: string; value: OtelAnyValue };
+type OtelAnyValue = z.infer<typeof OtelAnyValueSchema>;
+
+const OtelAttributeSchema = z.object({
+  key: z.string(),
+  value: OtelAnyValueSchema,
+});
+
+type OtelAttribute = z.infer<typeof OtelAttributeSchema>;
 
 // ---------------------------------------------------------------------------
-// OTLP/HTTP JSON request shape
+// OTLP/HTTP JSON request shape — Zod schemas
 // ---------------------------------------------------------------------------
 
-interface OtlpExportRequest {
-  resourceSpans?: OtelResourceSpan[];
-}
+const OtelEventSchema = z.object({
+  timeUnixNano: z.string().optional(),
+  name: z.string().optional(),
+  attributes: z.array(OtelAttributeSchema).optional(),
+});
 
-interface OtelResourceSpan {
-  resource?: { attributes?: OtelAttribute[] };
-  scopeSpans?: OtelScopeSpan[];
-}
+const OtelSpanSchema = z.object({
+  traceId: z.string().optional(),
+  spanId: z.string().optional(),
+  parentSpanId: z.string().optional(),
+  name: z.string().optional(),
+  kind: z.number().optional(),
+  startTimeUnixNano: z.string().optional(),
+  endTimeUnixNano: z.string().optional(),
+  status: z.object({ code: z.number().optional() }).optional(),
+  attributes: z.array(OtelAttributeSchema).optional(),
+  events: z.array(OtelEventSchema).optional(),
+});
 
-interface OtelScopeSpan {
-  spans?: OtelSpan[];
-}
+const OtelScopeSpanSchema = z.object({
+  spans: z.array(OtelSpanSchema).optional(),
+});
 
-interface OtelSpan {
-  traceId?: string;
-  spanId?: string;
-  parentSpanId?: string;
-  name?: string;
-  kind?: number;
-  startTimeUnixNano?: string;
-  endTimeUnixNano?: string;
-  status?: { code?: number };
-  attributes?: OtelAttribute[];
-  events?: OtelEvent[];
-}
+const OtelResourceSpanSchema = z.object({
+  resource: z.object({ attributes: z.array(OtelAttributeSchema).optional() }).optional(),
+  scopeSpans: z.array(OtelScopeSpanSchema).optional(),
+});
 
-interface OtelEvent {
-  timeUnixNano?: string;
-  name?: string;
-  attributes?: OtelAttribute[];
-}
+const OtlpExportRequestSchema = z.object({
+  resourceSpans: z.array(OtelResourceSpanSchema),
+});
+
+type OtlpExportRequest = z.infer<typeof OtlpExportRequestSchema>;
 
 // ---------------------------------------------------------------------------
 // Helpers — OTel → Foxhound conversions
@@ -112,7 +136,10 @@ function nanoToMs(nano: string | undefined): number | undefined {
   try {
     return Number(BigInt(nano) / BigInt(1_000_000));
   } catch {
-    return Math.floor(parseInt(nano, 10) / 1_000_000);
+    // BigInt failed — try parseInt as fallback, but guard against NaN
+    const parsed = parseInt(nano, 10);
+    if (Number.isNaN(parsed)) return undefined;
+    return Math.floor(parsed / 1_000_000);
   }
 }
 
@@ -270,14 +297,16 @@ export function otlpRoutes(fastify: FastifyInstance): void {
         });
       }
 
-      const body = request.body as OtlpExportRequest | null;
-      if (!body || !Array.isArray(body.resourceSpans)) {
-        return reply
-          .code(400)
-          .send({ error: "Bad Request", message: "Expected OTLP ExportTraceServiceRequest JSON" });
+      const parsed = OtlpExportRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({
+          error: "Bad Request",
+          message: "Expected OTLP ExportTraceServiceRequest JSON",
+          issues: parsed.error.issues,
+        });
       }
 
-      const traces = mapOtlpToFoxhoundTraces(body);
+      const traces = mapOtlpToFoxhoundTraces(parsed.data);
 
       if (traces.length === 0) {
         // Empty payload — OTLP spec says return success
@@ -307,14 +336,16 @@ export function otlpRoutes(fastify: FastifyInstance): void {
               return hasError || Math.random() < samplingRate;
             });
 
+      // Initialize buffer on first request (idempotent — logger ref is set once)
+      initTraceBuffer(fastify.log);
+
       // Respond immediately — OTLP spec requires 202 before slow persistence
       void reply.code(202).send({ partialSuccess: {} });
 
-      setImmediate(() => {
-        for (const trace of tracesToPersist) {
-          persistTraceWithRetry(fastify.log, trace, orgId).catch(() => {});
-        }
-      });
+      // Micro-batch: buffer traces and flush in batches (100ms or 50 traces)
+      for (const trace of tracesToPersist) {
+        bufferTrace(trace, orgId);
+      }
     },
   );
 }

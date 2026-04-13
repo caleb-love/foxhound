@@ -1,6 +1,9 @@
 import { Worker, Queue } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
 import { getAllAgentConfigs } from "@foxhound/db";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "sla-scheduler" });
 
 export const SLA_SCHEDULER_QUEUE = "sla-scheduler";
 export const SLA_CHECK_QUEUE = "sla-check";
@@ -43,7 +46,7 @@ export function startSlaSchedulerWorker(connection: ConnectionOptions): Worker {
     },
   );
 
-  worker.on("failed", (job, err) => console.error(`[sla-scheduler] Failed:`, err.message));
+  worker.on("failed", (job, err) => log.error("Job failed", { jobId: job?.id, error: err.message }));
 
   return worker;
 }

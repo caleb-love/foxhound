@@ -104,7 +104,7 @@ export function scoresRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const deleted = await deleteScore(id, request.orgId);
     if (!deleted) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Score not found" });
     }
     return reply.code(204).send();
   });

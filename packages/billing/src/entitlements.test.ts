@@ -17,6 +17,7 @@ function makeOrg(plan: Plan) {
     stripeCustomerId: null,
     retentionDays: 90,
     samplingRate: 1.0,
+    llmEvaluationEnabled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -39,6 +40,7 @@ describe("getEntitlements", () => {
     expect(e.canReplay).toBe(true);
     expect(e.canRunDiff).toBe(true);
     expect(e.canAuditLog).toBe(false);
+    expect(e.canManagePrompts).toBe(false);
     expect(e.maxSpans).toBe(100_000);
     expect(e.maxProjects).toBe(-1);
     expect(e.maxSeats).toBe(-1);
@@ -53,6 +55,7 @@ describe("getEntitlements", () => {
     expect(e.canReplay).toBe(true);
     expect(e.canRunDiff).toBe(true);
     expect(e.canAuditLog).toBe(false);
+    expect(e.canManagePrompts).toBe(true);
     expect(e.maxSpans).toBe(1_000_000);
     expect(e.retentionDays).toBe(365);
   });

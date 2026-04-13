@@ -5,6 +5,7 @@ import { notificationsRoutes } from "./notifications.js";
 
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   createNotificationChannel: vi.fn(),
   listNotificationChannels: vi.fn(),
   getNotificationChannel: vi.fn(),
@@ -41,6 +42,9 @@ function mockApiKey(orgId = ORG_ID) {
       name: "Test Key",
       createdByUserId: null,
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -52,6 +56,7 @@ function mockApiKey(orgId = ORG_ID) {
       stripeCustomerId: null,
       retentionDays: 90,
       samplingRate: 1.0,
+      llmEvaluationEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -87,7 +92,7 @@ function makeRule(id = "rule_1", channelId = "ch_1") {
 
 describe("POST /v1/notifications/channels", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockApiKey();
   });
 
@@ -135,7 +140,7 @@ describe("POST /v1/notifications/channels", () => {
 
 describe("GET /v1/notifications/channels", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockApiKey();
   });
 
@@ -157,7 +162,7 @@ describe("GET /v1/notifications/channels", () => {
 
 describe("POST /v1/notifications/rules", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockApiKey();
   });
 
@@ -207,7 +212,7 @@ describe("POST /v1/notifications/rules", () => {
 
 describe("GET /v1/notifications/rules", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockApiKey();
   });
 
@@ -229,7 +234,7 @@ describe("GET /v1/notifications/rules", () => {
 
 describe("POST /v1/notifications/test", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     mockApiKey();
   });
 

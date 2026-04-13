@@ -21,7 +21,7 @@ Quickstart::
         span.end()
 """
 
-from .client import FoxhoundClient
+from .client import BudgetExceededInfo, FoxhoundClient, ResolvedPrompt
 from .tracer import ActiveSpan, Tracer
 
-__all__ = ["FoxhoundClient", "Tracer", "ActiveSpan"]
+__all__ = ["BudgetExceededInfo", "FoxhoundClient", "ResolvedPrompt", "Tracer", "ActiveSpan"]

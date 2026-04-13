@@ -3,6 +3,9 @@ import type { ConnectionOptions } from "bullmq";
 import { Redis } from "ioredis";
 import { getAllAgentConfigs, sumSpanCosts } from "@foxhound/db";
 import { getBudgetPeriodKey, parsePeriodStart } from "@foxhound/types";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "cost-reconciler" });
 
 export const COST_RECONCILER_QUEUE = "cost-reconciler";
 
@@ -35,7 +38,7 @@ export function startCostReconcilerWorker(connection: ConnectionOptions): Worker
     },
   );
 
-  worker.on("failed", (job, err) => console.error(`[cost-reconciler] Failed:`, err.message));
+  worker.on("failed", (job, err) => log.error("Job failed", { jobId: job?.id, error: err.message }));
 
   return worker;
 }

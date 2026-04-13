@@ -1,7 +1,7 @@
 {
   "name": "@foxhound-ai/sdk",
   "version": "0.1.0",
-  "description": "Compliance-grade observability SDK for AI agents — trace, replay, and audit every agent decision",
+  "description": "Observability SDK for AI agents — trace, replay, and audit every agent decision",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -46,6 +46,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist"
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@foxhound/types": "workspace:*",
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "typescript": "^5.4.0",
     "vitest": "^3.2.4"
   }

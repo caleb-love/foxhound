@@ -2,7 +2,7 @@
   "name": "foxhound",
   "version": "0.0.1",
   "private": true,
-  "description": "Foxhound — compliance-grade observability platform for AI agent fleets",
+  "description": "Foxhound — open-source observability platform for AI agent fleets",
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.0.0",
@@ -12,6 +12,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
+    "test:coverage": "turbo test:coverage",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
@@ -28,6 +29,13 @@
     "typescript": "^5.4.0",
     "husky": "^9.0.0",
     "lint-staged": "^15.2.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-jwt": ">=6.2.1",
+      "serialize-javascript": ">=7.0.5",
+      "webpack": "~5.104.1"
+    }
   },
   "lint-staged": {
     "*.{ts,js}": [

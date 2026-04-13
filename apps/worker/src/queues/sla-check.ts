@@ -8,6 +8,9 @@ import {
   createNotificationLogEntry,
 } from "@foxhound/db";
 import { dispatchAlert } from "@foxhound/notifications";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "sla-check" });
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
 import { randomUUID } from "crypto";
 
@@ -126,7 +129,8 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
       channels.map((c) => [c.id, c as unknown as NotificationChannel]),
     );
     const matchingRules = rules.filter((r) => r.eventType === alert.type);
-    await dispatchAlert(event, matchingRules, channelMap, console);
+    const alertLogger = { error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>) };
+    await dispatchAlert(event, matchingRules, channelMap, alertLogger);
 
     await Promise.allSettled(
       matchingRules
@@ -163,9 +167,9 @@ export function startSlaCheckWorker(connection: ConnectionOptions): Worker<SlaCh
     },
   );
 
-  worker.on("completed", (job) => console.log(`[sla-check] Job ${job.id} completed`));
+  worker.on("completed", (job) => log.info("Job completed", { jobId: job.id }));
   worker.on("failed", (job, err) =>
-    console.error(`[sla-check] Job ${job?.id} failed:`, err.message),
+    log.error("Job failed", { jobId: job?.id, error: err.message }),
   );
 
   return worker;

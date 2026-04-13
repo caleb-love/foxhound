@@ -7,6 +7,7 @@ import { startCostReconcilerWorker, COST_RECONCILER_QUEUE } from "./queues/cost-
 import { startSlaSchedulerWorker, SLA_SCHEDULER_QUEUE } from "./queues/sla-scheduler.js";
 import { startSlaCheckWorker } from "./queues/sla-check.js";
 import { startRegressionDetectorWorker } from "./queues/regression-detector.js";
+import { logger } from "./logger.js";
 
 const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
 
@@ -22,31 +23,30 @@ function parseRedisUrl(url: string): ConnectionOptions {
 
 const connection = parseRedisUrl(redisUrl);
 
-console.log("[worker] Starting Foxhound worker...");
-console.log(`[worker] Redis: ${redisUrl.replace(/\/\/.*@/, "//***@")}`);
+logger.info("Starting Foxhound worker...", { redis: redisUrl.replace(/\/\/.*@/, "//***@") });
 
 // Phase 2 workers
 const evaluatorWorker = startEvaluatorWorker(connection);
-console.log("[worker] Evaluator worker started (concurrency: 10)");
+logger.info("Evaluator worker started", { concurrency: 10 });
 
 const experimentWorker = startExperimentWorker(connection);
-console.log("[worker] Experiment worker started (concurrency: 5)");
+logger.info("Experiment worker started", { concurrency: 5 });
 
 // Phase 4 workers
 const costMonitorWorker = startCostMonitorWorker(connection);
-console.log("[worker] Cost monitor worker started (concurrency: 10)");
+logger.info("Cost monitor worker started", { concurrency: 10 });
 
 const costReconcilerWorker = startCostReconcilerWorker(connection);
-console.log("[worker] Cost reconciler worker started (concurrency: 1)");
+logger.info("Cost reconciler worker started", { concurrency: 1 });
 
 const slaSchedulerWorker = startSlaSchedulerWorker(connection);
-console.log("[worker] SLA scheduler worker started (concurrency: 1)");
+logger.info("SLA scheduler worker started", { concurrency: 1 });
 
 const slaCheckWorker = startSlaCheckWorker(connection);
-console.log("[worker] SLA check worker started (concurrency: 10)");
+logger.info("SLA check worker started", { concurrency: 10 });
 
 const regressionWorker = startRegressionDetectorWorker(connection);
-console.log("[worker] Regression detector worker started (concurrency: 3)");
+logger.info("Regression detector worker started", { concurrency: 3 });
 
 // Set up repeatable jobs
 async function setupRepeatableJobs(): Promise<void> {
@@ -60,7 +60,7 @@ async function setupRepeatableJobs(): Promise<void> {
       jobId: "sla-schedule-repeatable",
     },
   );
-  console.log("[worker] SLA scheduler repeatable job configured (every 60s)");
+  logger.info("SLA scheduler repeatable job configured", { intervalMs: 60_000 });
 
   // Cost reconciler: run every 5 minutes
   const reconcilerQueue = new Queue(COST_RECONCILER_QUEUE, { connection });
@@ -72,14 +72,14 @@ async function setupRepeatableJobs(): Promise<void> {
       jobId: "cost-reconcile-repeatable",
     },
   );
-  console.log("[worker] Cost reconciler repeatable job configured (every 5m)");
+  logger.info("Cost reconciler repeatable job configured", { intervalMs: 300_000 });
 }
 
 void setupRepeatableJobs();
 
 // Graceful shutdown
 async function shutdown(signal: string): Promise<void> {
-  console.log(`[worker] Received ${signal}, shutting down...`);
+  logger.info("Received shutdown signal", { signal });
   await Promise.all([
     evaluatorWorker.close(),
     experimentWorker.close(),
@@ -89,7 +89,7 @@ async function shutdown(signal: string): Promise<void> {
     slaCheckWorker.close(),
     regressionWorker.close(),
   ]);
-  console.log("[worker] Shutdown complete");
+  logger.info("Shutdown complete");
   process.exit(0);
 }
 

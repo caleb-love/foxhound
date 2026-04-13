@@ -53,12 +53,29 @@ jobs:
 
       - run: pnpm build
 
-      - run: pnpm test
+      - run: pnpm test:coverage
+
+  test-python:
+    name: Test Python SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install hatch
+        run: pip install hatch
+
+      - name: Run Python tests
+        working-directory: packages/sdk-py
+        run: hatch test
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint-typecheck, test]
+    needs: [lint-typecheck, test, test-python]
     steps:
       - uses: actions/checkout@v4
 

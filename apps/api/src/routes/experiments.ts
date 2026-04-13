@@ -44,7 +44,7 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
       return reply.code(404).send({ error: "Dataset not found" });
     }
 
-    const items = await listDatasetItems({ datasetId, limit: 10000 });
+    const items = await listDatasetItems({ datasetId, orgId, limit: 10000 });
     if (items.length === 0) {
       return reply.code(400).send({ error: "Dataset has no items" });
     }
@@ -102,10 +102,10 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const experiment = await getExperiment(id, request.orgId);
     if (!experiment) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Experiment not found" });
     }
 
-    const runs = await listExperimentRuns(id);
+    const runs = await listExperimentRuns(id, request.orgId);
     return reply.code(200).send({ ...experiment, runs });
   });
 
@@ -114,7 +114,7 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const deleted = await deleteExperiment(id, request.orgId);
     if (!deleted) {
-      return reply.code(404).send({ error: "Not Found" });
+      return reply.code(404).send({ error: "Not Found", message: "Experiment not found" });
     }
     return reply.code(204).send();
   });

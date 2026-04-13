@@ -5,6 +5,7 @@ import { otlpRoutes } from "./otlp.js";
 
 vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
+  touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   insertTrace: vi.fn(),
   insertSpans: vi.fn(),
 }));
@@ -14,8 +15,21 @@ vi.mock("@foxhound/billing", () => ({
   incrementSpanCount: vi.fn(),
 }));
 
+vi.mock("../trace-buffer.js", () => ({
+  initTraceBuffer: vi.fn(),
+  bufferTrace: vi.fn(),
+}));
+
 import * as db from "@foxhound/db";
 import * as billing from "@foxhound/billing";
+import { bufferTrace } from "../trace-buffer.js";
+
+/** Helper to get the trace passed to bufferTrace in the last call */
+function getBufferedTrace() {
+  const calls = vi.mocked(bufferTrace).mock.calls;
+  if (calls.length === 0) throw new Error("bufferTrace was not called");
+  return calls[calls.length - 1]![0]; // first arg is the trace
+}
 
 function buildApp() {
   const app = Fastify({ logger: false });
@@ -35,6 +49,9 @@ function mockApiKey(orgId = "org_1") {
       name: "Test Key",
       createdByUserId: null,
       revokedAt: null,
+      expiresAt: null,
+      scopes: null,
+      lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -46,6 +63,7 @@ function mockApiKey(orgId = "org_1") {
       stripeCustomerId: null,
       retentionDays: 90,
       samplingRate: 1.0,
+      llmEvaluationEnabled: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -103,11 +121,8 @@ function makeOtlpRequest({
 }
 
 describe("POST /v1/traces/otlp — basic ingestion", () => {
-  beforeEach(async () => {
-    await new Promise<void>((resolve) => setImmediate(resolve));
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(db.insertTrace).mockResolvedValue(undefined);
-    vi.mocked(billing.incrementSpanCount).mockResolvedValue(undefined);
   });
 
   it("returns 401 without API key", async () => {
@@ -239,11 +254,8 @@ describe("POST /v1/traces/otlp — content negotiation", () => {
 });
 
 describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
-  beforeEach(async () => {
-    await new Promise<void>((resolve) => setImmediate(resolve));
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(db.insertTrace).mockResolvedValue(undefined);
-    vi.mocked(billing.incrementSpanCount).mockResolvedValue(undefined);
     mockSpanLimit(true);
   });
 
@@ -269,10 +281,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       ),
     });
 
-    // Drain setImmediate to let persistence fire
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans[0]?.kind).toBe("llm_call");
   });
 
@@ -290,9 +299,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(makeOtlpRequest({ spanKind: 3 })), // CLIENT
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans[0]?.kind).toBe("tool_call");
   });
 
@@ -310,9 +317,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(makeOtlpRequest({ spanKind: 2 })), // SERVER
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans[0]?.kind).toBe("workflow");
   });
 
@@ -330,9 +335,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(makeOtlpRequest({ spanKind: 1 })), // INTERNAL
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans[0]?.kind).toBe("agent_step");
   });
 
@@ -350,9 +353,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(makeOtlpRequest({ serviceName: "payment-agent" })),
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.agentId).toBe("payment-agent");
   });
 
@@ -375,9 +376,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       ),
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans[0]?.startTimeMs).toBe(1617981203000);
     expect(insertedTrace.spans[0]?.endTimeMs).toBe(1617981203500);
   });
@@ -435,11 +434,9 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(payload),
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    // Should produce exactly one insertTrace call with 2 spans
-    expect(db.insertTrace).toHaveBeenCalledTimes(1);
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    // Should produce exactly one bufferTrace call with 2 spans
+    expect(bufferTrace).toHaveBeenCalledTimes(1);
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.spans).toHaveLength(2);
     expect(insertedTrace.id).toBe(sharedTraceId);
   });
@@ -464,9 +461,7 @@ describe("POST /v1/traces/otlp — OTel to Foxhound mapping", () => {
       body: JSON.stringify(makeOtlpRequest({ traceId: traceIdBase64, spanId: spanIdBase64 })),
     });
 
-    await new Promise<void>((resolve) => setImmediate(resolve));
-
-    const [insertedTrace] = vi.mocked(db.insertTrace).mock.calls[0]!;
+    const insertedTrace = getBufferedTrace();
     expect(insertedTrace.id).toBe(traceIdHex);
     expect(insertedTrace.spans[0]?.spanId).toBe(spanIdHex);
   });

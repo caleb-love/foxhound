@@ -8,8 +8,10 @@ import {
   updateEvaluator,
   deleteEvaluator,
   createEvaluatorRuns,
-  getEvaluatorRun,
+  getEvaluatorRunForOrg,
   getTrace,
+  isLlmEvaluationEnabled,
+  writeAuditLog,
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { getEvaluatorQueue } from "../queue.js";
@@ -67,6 +69,18 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
         labels,
       });
 
+      // Audit: evaluator creation
+      writeAuditLog({
+        orgId: request.orgId,
+        action: "evaluator.create",
+        targetType: "evaluator",
+        targetId: evaluator.id,
+        metadata: { name, model, scoringType },
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "evaluator.create" }, "Audit log write failed");
+      });
+
       return reply.code(201).send(evaluator);
     },
   );
@@ -95,7 +109,7 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
       const { id } = request.params as { id: string };
       const evaluator = await getEvaluator(id, request.orgId);
       if (!evaluator) {
-        return reply.code(404).send({ error: "Not Found" });
+        return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
       return reply.code(200).send(evaluator);
     },
@@ -117,8 +131,21 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
 
       const updated = await updateEvaluator(id, request.orgId, result.data);
       if (!updated) {
-        return reply.code(404).send({ error: "Not Found" });
+        return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
+
+      // Audit: evaluator update (security-relevant: prompt/model changes)
+      writeAuditLog({
+        orgId: request.orgId,
+        action: "evaluator.update",
+        targetType: "evaluator",
+        targetId: id,
+        metadata: { updatedFields: Object.keys(result.data) },
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "evaluator.update" }, "Audit log write failed");
+      });
+
       return reply.code(200).send(updated);
     },
   );
@@ -134,8 +161,20 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
       const { id } = request.params as { id: string };
       const deleted = await deleteEvaluator(id, request.orgId);
       if (!deleted) {
-        return reply.code(404).send({ error: "Not Found" });
+        return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
+
+      // Audit: evaluator deletion
+      writeAuditLog({
+        orgId: request.orgId,
+        action: "evaluator.delete",
+        targetType: "evaluator",
+        targetId: id,
+        ipAddress: request.ip,
+      }).catch((err) => {
+        request.log.error({ err, action: "evaluator.delete" }, "Audit log write failed");
+      });
+
       return reply.code(204).send();
     },
   );
@@ -157,14 +196,26 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
       const { evaluatorId, traceIds } = result.data;
       const orgId = request.orgId;
 
+      // Consent gate: org must opt in to sending trace data to LLM providers
+      const consentEnabled = await isLlmEvaluationEnabled(orgId);
+      if (!consentEnabled) {
+        return reply.code(403).send({
+          error: "Forbidden",
+          message:
+            "Your organization has not enabled LLM-based evaluation. " +
+            "Enabling this feature will send trace data to third-party LLM providers. " +
+            "Enable it in your organization settings to proceed.",
+        });
+      }
+
       // Verify evaluator belongs to this org
       const evaluator = await getEvaluator(evaluatorId, orgId);
       if (!evaluator) {
-        return reply.code(404).send({ error: "Evaluator not found" });
+        return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
 
       if (!evaluator.enabled) {
-        return reply.code(400).send({ error: "Evaluator is disabled" });
+        return reply.code(400).send({ error: "Bad Request", message: "Evaluator is disabled" });
       }
 
       // Verify all traces belong to this org
@@ -173,7 +224,7 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
       if (missingTraces.length > 0) {
         return reply.code(400).send({
           error: "Some traces not found",
-          missingTraceIds: missingTraces,
+          missingCount: missingTraces.length,
         });
       }
 
@@ -220,9 +271,9 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const run = await getEvaluatorRun(id);
+      const run = await getEvaluatorRunForOrg(id, request.orgId);
       if (!run) {
-        return reply.code(404).send({ error: "Not Found" });
+        return reply.code(404).send({ error: "Not Found", message: "Evaluator run not found" });
       }
       return reply.code(200).send(run);
     },

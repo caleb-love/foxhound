@@ -31,6 +31,9 @@ export const organizations = pgTable("organizations", {
   retentionDays: integer("retention_days").notNull().default(90),
   /** Server-side sampling rate 0.0–1.0 (default 1.0 = keep all) */
   samplingRate: real("sampling_rate").notNull().default(1.0),
+  /** Whether this org has opted in to sending trace data to third-party LLM providers for evaluation.
+   *  Default false — must be explicitly enabled before evaluator runs can execute. */
+  llmEvaluationEnabled: boolean("llm_evaluation_enabled").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -84,6 +87,13 @@ export const apiKeys = pgTable(
     createdByUserId: text("created_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    /** Optional expiration timestamp — keys past this date are rejected at auth time */
+    expiresAt: timestamp("expires_at"),
+    /** Comma-separated permission scopes, e.g. "traces:write,scores:read".
+     *  NULL means full access (legacy keys). */
+    scopes: text("scopes"),
+    /** Last time this key was used to authenticate a request */
+    lastUsedAt: timestamp("last_used_at"),
     revokedAt: timestamp("revoked_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -102,8 +112,10 @@ export const traces = pgTable(
   "traces",
   {
     id: text("id").primaryKey(),
-    /** Tenant isolation — every trace belongs to an org */
-    orgId: text("org_id").references(() => organizations.id),
+    /** Tenant isolation — every trace belongs to an org (NOT NULL enforced) */
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
     agentId: text("agent_id").notNull(),
     sessionId: text("session_id"),
     startTimeMs: bigint("start_time_ms", { mode: "number" }).notNull(),
@@ -165,6 +177,9 @@ export const spans = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.traceId, table.id] }),
     traceIdIdx: index("spans_trace_id_idx").on(table.traceId),
+    orgKindIdx: index("spans_org_id_kind_idx").on(table.orgId, table.kind),
+    orgStartTimeIdx: index("spans_org_id_start_time_ms_idx").on(table.orgId, table.startTimeMs),
+    parentSpanIdIdx: index("spans_parent_span_id_idx").on(table.parentSpanId),
   }),
 );
 
@@ -187,6 +202,35 @@ export const auditEvents = pgTable(
     agentIdIdx: index("audit_events_agent_id_idx").on(table.agentId),
     timestampIdx: index("audit_events_timestamp_idx").on(table.timestamp),
     eventTypeIdx: index("audit_events_event_type_idx").on(table.eventType),
+  }),
+);
+
+export const adminAuditLog = pgTable(
+  "admin_audit_log",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    /** The user who performed the action (null for system actions) */
+    actorUserId: text("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** Action performed: api_key.create, api_key.revoke, evaluator.create, evaluator.delete,
+     *  billing.plan_change, org.settings_update, etc. */
+    action: text("action").notNull(),
+    /** The type of resource affected */
+    targetType: text("target_type").notNull(),
+    /** The ID of the affected resource */
+    targetId: text("target_id"),
+    /** Additional context about the change */
+    metadata: jsonb("metadata").notNull().default({}).$type<Record<string, unknown>>(),
+    /** IP address of the request */
+    ipAddress: text("ip_address"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("admin_audit_log_org_id_idx").on(table.orgId),
+    orgActionIdx: index("admin_audit_log_org_action_idx").on(table.orgId, table.action),
+    createdAtIdx: index("admin_audit_log_created_at_idx").on(table.orgId, table.createdAt),
   }),
 );
 
@@ -653,6 +697,70 @@ export const experiments = pgTable(
     orgIdIdx: index("experiments_org_id_idx").on(table.orgId),
     datasetIdIdx: index("experiments_dataset_id_idx").on(table.datasetId),
     orgStatusIdx: index("experiments_org_status_idx").on(table.orgId, table.status),
+  }),
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Prompt Management tables (Phase 6)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const prompts = pgTable(
+  "prompts",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIdx: index("prompts_org_id_idx").on(table.orgId),
+    orgNameUnique: unique("prompts_org_name_unique").on(table.orgId, table.name),
+  }),
+);
+
+export const promptVersions = pgTable(
+  "prompt_versions",
+  {
+    id: text("id").primaryKey(),
+    promptId: text("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    content: text("content").notNull(),
+    model: text("model"),
+    config: jsonb("config").notNull().default({}).$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (table) => ({
+    promptVersionUnique: unique("prompt_versions_prompt_version_unique").on(
+      table.promptId,
+      table.version,
+    ),
+    promptIdIdx: index("prompt_versions_prompt_id_idx").on(table.promptId),
+  }),
+);
+
+export const promptLabels = pgTable(
+  "prompt_labels",
+  {
+    id: text("id").primaryKey(),
+    promptVersionId: text("prompt_version_id")
+      .notNull()
+      .references(() => promptVersions.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    versionLabelUnique: unique("prompt_labels_version_label_unique").on(
+      table.promptVersionId,
+      table.label,
+    ),
+    promptVersionIdIdx: index("prompt_labels_prompt_version_id_idx").on(table.promptVersionId),
+    labelIdx: index("prompt_labels_label_idx").on(table.label),
   }),
 );
 

@@ -13,6 +13,9 @@ import {
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
 import { randomUUID } from "crypto";
+import { logger } from "../logger.js";
+
+const log = logger.child({ queue: "regression" });
 
 export const REGRESSION_DETECTOR_QUEUE = "regression-detector";
 
@@ -54,7 +57,7 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
     spanStructure: structure,
   });
 
-  console.log(`[regression] Created baseline for ${agentId}@${agentVersion} (${count} traces)`);
+  log.info("Created baseline", { agentId, agentVersion, traceCount: count });
 
   // Compare against previous version
   const baselines = await getRecentBaselines(orgId, agentId, 2);
@@ -90,7 +93,9 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
     channels.map((c) => [c.id, c as unknown as NotificationChannel]),
   );
   const matchingRules = rules.filter((r) => r.eventType === "behavior_regression");
-  await dispatchAlert(event, matchingRules, channelMap, console);
+  // Adapt to pino-style (obj, msg) signature expected by dispatchAlert
+  const alertLogger = { error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>) };
+  await dispatchAlert(event, matchingRules, channelMap, alertLogger);
 
   await Promise.allSettled(
     matchingRules
@@ -157,9 +162,9 @@ export function startRegressionDetectorWorker(
     },
   );
 
-  worker.on("completed", (job) => console.log(`[regression] Job ${job.id} completed`));
+  worker.on("completed", (job) => log.info("Job completed", { jobId: job.id }));
   worker.on("failed", (job, err) =>
-    console.error(`[regression] Job ${job?.id} failed:`, err.message),
+    log.error("Job failed", { jobId: job?.id, error: err.message }),
   );
 
   return worker;
