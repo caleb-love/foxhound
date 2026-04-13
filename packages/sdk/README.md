@@ -40,7 +40,7 @@ yarn add @foxhound-ai/sdk
 import { FoxhoundClient } from "@foxhound-ai/sdk";
 
 const fox = new FoxhoundClient({
-  apiKey: process.env.FOXHOUND_API_KEY!, // Get free API key at foxhound.ai
+  apiKey: process.env.FOXHOUND_API_KEY!, // Get API key at foxhound.caleb-love.com
   endpoint: "https://api.foxhound.ai",
 });
 
@@ -699,16 +699,16 @@ import type {
 
 ## Links
 
-- **Documentation:** [https://docs.foxhound.ai](https://docs.foxhound.ai)
+- **Documentation:** [https://docs.foxhound.caleb-love.com](https://docs.foxhound.caleb-love.com)
 - **GitHub:** [https://github.com/caleb-love/foxhound](https://github.com/caleb-love/foxhound)
-- **Homepage:** [https://foxhound.ai](https://foxhound.ai)
+- **Homepage:** [https://foxhound.caleb-love.com](https://foxhound.caleb-love.com)
 - **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
 ## License
 
-MIT © [Foxhound](https://foxhound.ai)
+MIT © [Foxhound](https://foxhound.caleb-love.com)
 
 ---
 
@@ -716,4 +716,4 @@ MIT © [Foxhound](https://foxhound.ai)
 
 - **Issues:** [GitHub Issues](https://github.com/caleb-love/foxhound/issues)
 - **Discord:** [Join our community](https://discord.gg/foxhound) *(coming soon)*
-- **Email:** support@foxhound.ai
+- **Email:** foxhound@caleb-love.com

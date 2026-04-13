@@ -4,10 +4,15 @@
   "description": "Observability SDK for AI agents — trace, replay, and audit every agent decision",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://foxhound.caleb-love.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/caleb-love/foxhound.git",
     "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/caleb-love/foxhound/issues",
+    "email": "foxhound@caleb-love.com"
   },
   "keywords": [
     "ai",
