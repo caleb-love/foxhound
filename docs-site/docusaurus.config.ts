@@ -58,7 +58,7 @@ const config: Config = {
       title: "Foxhound",
       logo: {
         alt: "Foxhound Logo",
-        src: "img/logo.svg",
+        src: "img/logo.png",
       },
       items: [
         {
