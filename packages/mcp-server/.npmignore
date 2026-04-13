@@ -1,0 +1,9 @@
+.mcpregistry_github_token
+.mcpregistry_registry_token
+.turbo/
+coverage/
+src/
+mcp-publisher
+vitest.config.ts
+*.tsbuildinfo
+**/*.test.*
