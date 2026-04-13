@@ -30,7 +30,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -41,7 +41,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -71,7 +71,7 @@ describe("POST /v1/annotation-queues", () => {
       orgId: "org_1",
       name: "Review Queue",
       description: "For manual review",
-      scoreConfigs: [{ name: "accuracy", type: "numeric" }],
+      scoreConfigs: [{ name: "accuracy", type: "numeric" as const }],
       createdAt: new Date(),
     };
     vi.mocked(db.createAnnotationQueue).mockResolvedValue(created);
@@ -111,6 +111,23 @@ describe("POST /v1/annotation-queues", () => {
 
     expect(res.statusCode).toBe(400);
   });
+
+  it("returns 403 when api key lacks annotations:write scope", async () => {
+    mockApiKey("org_1", "annotations:read");
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/annotation-queues",
+      headers: { authorization: "Bearer sk-testkey123" },
+      payload: {
+        name: "Review Queue",
+        description: "For manual review",
+      },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("annotations:write");
+  });
 });
 
 describe("GET /v1/annotation-queues", () => {
@@ -130,6 +147,20 @@ describe("GET /v1/annotation-queues", () => {
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toHaveProperty("data");
     expect(db.listAnnotationQueues).toHaveBeenCalledWith("org_1");
+  });
+
+  it("returns 403 when api key lacks annotations:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/annotation-queues",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("annotations:read");
   });
 });
 
@@ -226,9 +257,17 @@ describe("POST /v1/annotation-queues/:id/items", () => {
       scoreConfigs: [],
       createdAt: new Date(),
     });
-    vi.mocked(db.getTrace).mockResolvedValue({ id: "trace_1" } as any);
+    vi.mocked(db.getTrace).mockResolvedValue({ id: "trace_1" } as never);
     const items = [
-      { id: "aqi_1", queueId: "anq_123", traceId: "trace_1", status: "pending" },
+      {
+        id: "aqi_1",
+        queueId: "anq_123",
+        traceId: "trace_1",
+        status: "pending" as const,
+        assignedTo: null,
+        completedAt: null,
+        createdAt: new Date(),
+      },
     ];
     vi.mocked(db.addAnnotationQueueItems).mockResolvedValue(items);
 
@@ -320,10 +359,11 @@ describe("POST /v1/annotation-queues/:id/claim", () => {
 
     const app = buildApp();
     // Inject userId via a preHandler hook to simulate JWT-authenticated request
-    app.addHook("preHandler", async (request) => {
+    app.addHook("preHandler", (request, _reply, done) => {
       if (request.url.includes("/claim")) {
         request.userId = "user_1";
       }
+      done();
     });
 
     const res = await app.inject({
@@ -345,8 +385,9 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
       id: "aqi_1",
       queueId: "anq_123",
       traceId: "trace_1",
-      status: "pending",
+      status: "pending" as const,
       assignedTo: null,
+      completedAt: null,
       createdAt: new Date(),
     };
     vi.mocked(db.getAnnotationQueueItem).mockResolvedValue(item);
@@ -360,8 +401,8 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
       source: "manual",
       comment: null,
       createdAt: new Date(),
-    } as any);
-    vi.mocked(db.completeAnnotationQueueItem).mockResolvedValue(undefined);
+    } as never);
+    vi.mocked(db.completeAnnotationQueueItem).mockResolvedValue(null);
 
     const app = buildApp();
     const res = await app.inject({
@@ -403,8 +444,9 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
       id: "aqi_1",
       queueId: "anq_123",
       traceId: "trace_1",
-      status: "completed",
+      status: "completed" as const,
       assignedTo: null,
+      completedAt: new Date(),
       createdAt: new Date(),
     });
 
@@ -432,16 +474,18 @@ describe("POST /v1/annotation-queue-items/:id/skip", () => {
       id: "aqi_1",
       queueId: "anq_123",
       traceId: "trace_1",
-      status: "pending",
+      status: "pending" as const,
       assignedTo: null,
+      completedAt: null,
       createdAt: new Date(),
     });
     const updated = {
       id: "aqi_1",
       queueId: "anq_123",
       traceId: "trace_1",
-      status: "skipped",
+      status: "skipped" as const,
       assignedTo: null,
+      completedAt: null,
       createdAt: new Date(),
     };
     vi.mocked(db.skipAnnotationQueueItem).mockResolvedValue(updated);

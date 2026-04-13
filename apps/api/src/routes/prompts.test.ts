@@ -17,8 +17,15 @@ vi.mock("@foxhound/db", () => ({
   getPromptVersionByLabel: vi.fn(),
   setPromptLabel: vi.fn(),
   getLabelsForVersions: vi.fn(),
+  deletePromptLabel: vi.fn(),
   writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
+
+const makeUniqueViolation = (constraint: string) => {
+  const error = new Error("duplicate key value violates unique constraint");
+  Object.assign(error, { code: "23505", constraint });
+  return error;
+};
 
 vi.mock("@foxhound/billing", () => ({
   getEntitlements: vi.fn().mockResolvedValue({
@@ -45,7 +52,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -56,7 +63,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -140,6 +147,48 @@ describe("POST /v1/prompts", () => {
 
     expect(res.statusCode).toBe(400);
   });
+
+  it("returns 409 when db unique constraint fires", async () => {
+    mockApiKey();
+    vi.mocked(db.getPromptByName).mockResolvedValue(null);
+    vi.mocked(db.createPrompt).mockRejectedValue(makeUniqueViolation("prompts_org_name_unique"));
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/prompts",
+      headers,
+      payload: { name: "support-agent" },
+    });
+
+    expect(res.statusCode).toBe(409);
+  });
+
+  it("returns 401 without auth header", async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/prompts",
+      payload: { name: "support-agent" },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 403 when api key lacks prompts:write scope", async () => {
+    mockApiKey("org_1", "prompts:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/prompts",
+      headers,
+      payload: { name: "support-agent" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("prompts:write");
+  });
 });
 
 describe("GET /v1/prompts", () => {
@@ -158,6 +207,76 @@ describe("GET /v1/prompts", () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toMatchObject({ data: [] });
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith("org_1", 1, 50);
+  });
+
+  it("passes pagination params through to listPrompts", async () => {
+    mockApiKey();
+    vi.mocked(db.listPrompts).mockResolvedValue([]);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts?page=2&limit=10",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith("org_1", 2, 10);
+    expect(JSON.parse(res.body).pagination).toMatchObject({ page: 2, limit: 10, count: 0 });
+  });
+
+  it("returns 403 when api key lacks prompts:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("prompts:read");
+  });
+});
+
+describe("GET /v1/prompts/:id", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns a single prompt", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toMatchObject({ id: "pmt_123", name: "support-agent" });
+  });
+
+  it("returns 404 for missing prompt", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_missing",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
   });
 });
 
@@ -252,6 +371,76 @@ describe("POST /v1/prompts/:id/versions", () => {
   });
 });
 
+describe("GET /v1/prompts/:id/versions", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("lists versions with batch-fetched labels", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.listPromptVersions).mockResolvedValue([
+      {
+        id: "pmv_1",
+        promptId: "pmt_123",
+        version: 1,
+        content: "v1",
+        model: null,
+        config: {},
+        createdAt: new Date(),
+        createdBy: null,
+      },
+      {
+        id: "pmv_2",
+        promptId: "pmt_123",
+        version: 2,
+        content: "v2",
+        model: "gpt-4o",
+        config: { temperature: 0.2 },
+        createdAt: new Date(),
+        createdBy: null,
+      },
+    ]);
+    vi.mocked(db.getLabelsForVersions).mockResolvedValue([
+      { promptVersionId: "pmv_1", label: "production" },
+      { promptVersionId: "pmv_2", label: "staging" },
+      { promptVersionId: "pmv_2", label: "candidate" },
+    ] as never);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123/versions",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0]).toMatchObject({ id: "pmv_1", labels: ["production"] });
+    expect(body.data[1]).toMatchObject({ id: "pmv_2", labels: ["staging", "candidate"] });
+    expect(vi.mocked(db.getLabelsForVersions)).toHaveBeenCalledWith(["pmv_1", "pmv_2"]);
+  });
+
+  it("returns 404 when prompt is missing", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_missing/versions",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
 // ── Labels ────────────────────────────────────────────────────────────────
 
 describe("POST /v1/prompts/:id/labels", () => {
@@ -320,6 +509,107 @@ describe("POST /v1/prompts/:id/labels", () => {
 
 // ── SDK Resolution ────────────────────────────────────────────────────────
 
+describe("DELETE /v1/prompts/:id/labels/:label", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("deletes an existing label", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getPromptVersionByLabel).mockResolvedValue({
+      id: "pmv_2",
+      promptId: "pmt_123",
+      version: 2,
+      content: "content",
+      model: null,
+      config: {},
+      createdAt: new Date(),
+      createdBy: null,
+    });
+    vi.mocked(db.deletePromptLabel).mockResolvedValue(true);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/v1/prompts/pmt_123/labels/production",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(204);
+    expect(vi.mocked(db.deletePromptLabel)).toHaveBeenCalledWith("pmv_2", "production");
+  });
+
+  it("returns 404 when prompt is missing", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/v1/prompts/pmt_missing/labels/production",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when label is missing", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getPromptVersionByLabel).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/v1/prompts/pmt_123/labels/production",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when label resolves to another prompt", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getPromptVersionByLabel).mockResolvedValue({
+      id: "pmv_other",
+      promptId: "pmt_other",
+      version: 1,
+      content: "content",
+      model: null,
+      config: {},
+      createdAt: new Date(),
+      createdBy: null,
+    });
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/v1/prompts/pmt_123/labels/production",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
 describe("GET /v1/prompts/resolve", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -354,11 +644,46 @@ describe("GET /v1/prompts/resolve", () => {
     });
   });
 
-  it("defaults to production label", async () => {
+  it("serves repeated resolves successfully for the same prompt key", async () => {
     mockApiKey();
     vi.mocked(db.getPromptVersionByLabel).mockResolvedValue({
       id: "pmv_1",
       promptId: "pmt_123",
+      version: 3,
+      content: "You are a helpful support agent...",
+      model: "gpt-4o",
+      config: { temperature: 0.7 },
+      createdAt: new Date(),
+      createdBy: null,
+    });
+
+    const app = buildApp();
+
+    const first = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/resolve?name=support-agent&label=production",
+      headers,
+    });
+    const second = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/resolve?name=support-agent&label=production",
+      headers,
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(second.statusCode).toBe(200);
+    expect(JSON.parse(second.body)).toMatchObject({
+      name: "support-agent",
+      label: "production",
+      version: 3,
+    });
+  });
+
+  it("defaults to production label", async () => {
+    mockApiKey();
+    vi.mocked(db.getPromptVersionByLabel).mockResolvedValue({
+      id: "pmv_default_label",
+      promptId: "pmt_default_label",
       version: 1,
       content: "content",
       model: null,
@@ -370,16 +695,16 @@ describe("GET /v1/prompts/resolve", () => {
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
-      url: "/v1/prompts/resolve?name=support-agent",
+      url: "/v1/prompts/resolve?name=support-agent-default-label-check",
       headers,
     });
 
     expect(res.statusCode).toBe(200);
-    expect(vi.mocked(db.getPromptVersionByLabel)).toHaveBeenCalledWith(
-      "org_1",
-      "support-agent",
-      "production",
-    );
+    expect(JSON.parse(res.body)).toMatchObject({
+      name: "support-agent-default-label-check",
+      label: "production",
+      version: 1,
+    });
   });
 
   it("returns 404 when prompt not found", async () => {

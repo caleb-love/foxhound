@@ -22,7 +22,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -33,7 +33,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -71,6 +71,20 @@ describe("GET /v1/regressions/:agentId", () => {
     const body = JSON.parse(res.body);
     expect(body.regressions).toEqual([]);
     expect(body.message).toMatch(/Insufficient baselines/);
+  });
+
+  it("returns 403 when api key lacks regressions:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/regressions/agent_1",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("regressions:read");
   });
 });
 
@@ -111,6 +125,21 @@ describe("POST /v1/regressions/:agentId/compare", () => {
     expect(body.previousVersion).toBe("v1");
     expect(body.newVersion).toBe("v2");
     expect(body.regressions.length).toBeGreaterThan(0);
+  });
+
+  it("returns 403 when api key lacks regressions:write scope", async () => {
+    mockApiKey("org_1", "regressions:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/regressions/agent_1/compare",
+      headers: { authorization: "Bearer sk-testkey123" },
+      payload: { versionA: "v1", versionB: "v2" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("regressions:write");
   });
 });
 

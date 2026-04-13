@@ -30,7 +30,10 @@ const ComparisonSchema = z.object({
 
 export function experimentsRoutes(fastify: FastifyInstance): void {
   // POST /v1/experiments — Create and enqueue experiment
-  fastify.post("/v1/experiments", async (request, reply) => {
+  fastify.post(
+    "/v1/experiments",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const result = CreateExperimentSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -84,7 +87,8 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
       runCount: runs.length,
       message: `Experiment queued with ${runs.length} run(s)`,
     });
-  });
+  },
+  );
 
   // GET /v1/experiments — List experiments
   fastify.get("/v1/experiments", async (request, reply) => {

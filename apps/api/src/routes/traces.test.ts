@@ -34,7 +34,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -45,7 +45,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -219,6 +219,21 @@ describe("POST /v1/traces — span limit enforcement", () => {
 
     expect(res.statusCode).toBe(400);
   });
+
+  it("returns 403 when api key lacks traces:write scope", async () => {
+    mockApiKey("org_1", "traces:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/traces",
+      headers: { authorization: "Bearer sk-test-key", "content-type": "application/json" },
+      body: JSON.stringify(makeTrace(1)),
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().message).toContain("traces:write");
+  });
 });
 
 describe("GET /v1/traces — list traces", () => {
@@ -284,6 +299,20 @@ describe("GET /v1/traces — list traces", () => {
     expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agent_42", sessionId: "sess_99" }),
     );
+  });
+
+  it("returns 403 when api key lacks traces:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/traces",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().message).toContain("traces:read");
   });
 });
 

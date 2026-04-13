@@ -47,7 +47,7 @@ function buildApp() {
   return app;
 }
 
-function mockApiKey(orgId = "org_1") {
+function mockApiKey(orgId = "org_1", scopes: string | null = null) {
   vi.mocked(db.resolveApiKey).mockResolvedValue({
     apiKey: {
       id: "key_1",
@@ -58,7 +58,7 @@ function mockApiKey(orgId = "org_1") {
       createdByUserId: null,
       revokedAt: null,
       expiresAt: null,
-      scopes: null,
+      scopes,
       lastUsedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -91,7 +91,7 @@ describe("POST /v1/evaluators", () => {
       name: "Helpfulness",
       promptTemplate: "Rate the helpfulness of this response",
       model: "gpt-4o",
-      scoringType: "numeric",
+      scoringType: "numeric" as const,
       labels: null,
       enabled: true,
       createdAt: new Date(),
@@ -159,6 +159,26 @@ describe("POST /v1/evaluators", () => {
     expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body)).toHaveProperty("issues");
   });
+
+  it("returns 403 when api key lacks evaluators:write scope", async () => {
+    mockApiKey("org_1", "evaluators:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/evaluators",
+      headers: AUTH,
+      payload: {
+        name: "Helpfulness",
+        promptTemplate: "Rate the helpfulness of this response",
+        model: "gpt-4o",
+        scoringType: "numeric",
+      },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("evaluators:write");
+  });
 });
 
 describe("GET /v1/evaluators", () => {
@@ -179,6 +199,20 @@ describe("GET /v1/evaluators", () => {
     expect(JSON.parse(res.body)).toHaveProperty("data");
     expect(db.listEvaluators).toHaveBeenCalledWith("org_1");
   });
+
+  it("returns 403 when api key lacks evaluators:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/evaluators",
+      headers: AUTH,
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("evaluators:read");
+  });
 });
 
 describe("GET /v1/evaluators/:id", () => {
@@ -192,7 +226,7 @@ describe("GET /v1/evaluators/:id", () => {
       name: "Helpfulness",
       promptTemplate: "Rate helpfulness",
       model: "gpt-4o",
-      scoringType: "numeric",
+      scoringType: "numeric" as const,
       labels: null,
       enabled: true,
       createdAt: new Date(),
@@ -238,7 +272,7 @@ describe("PATCH /v1/evaluators/:id", () => {
       name: "Updated Name",
       promptTemplate: "Rate helpfulness",
       model: "gpt-4o",
-      scoringType: "numeric",
+      scoringType: "numeric" as const,
       labels: null,
       enabled: true,
       createdAt: new Date(),
@@ -355,7 +389,7 @@ describe("POST /v1/evaluator-runs", () => {
       name: "Helpfulness",
       promptTemplate: "Rate helpfulness",
       model: "gpt-4o",
-      scoringType: "numeric",
+      scoringType: "numeric" as const,
       labels: null,
       enabled: true,
       createdAt: new Date(),
@@ -378,9 +412,11 @@ describe("POST /v1/evaluator-runs", () => {
         id: "evr_1",
         evaluatorId: "evl_123",
         traceId: "trace_1",
-        status: "pending",
-        result: null,
+        scoreId: null,
+        status: "pending" as const,
+        error: null,
         createdAt: new Date(),
+        completedAt: null,
       },
     ]);
 
@@ -409,9 +445,11 @@ describe("GET /v1/evaluator-runs/:id", () => {
       id: "evr_1",
       evaluatorId: "evl_123",
       traceId: "trace_1",
-      status: "completed",
-      result: { score: 0.85 },
+      scoreId: "scr_1",
+      status: "completed" as const,
+      error: null,
       createdAt: new Date(),
+      completedAt: new Date(),
     };
     vi.mocked(db.getEvaluatorRunForOrg).mockResolvedValue(run);
 

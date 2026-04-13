@@ -560,8 +560,12 @@ export class FoxhoundApiClient {
 
   // ── Prompts ────────────────────────────────────────────────────────────
 
-  async listPrompts(): Promise<PromptListResponse> {
-    return this.get("/v1/prompts");
+  async listPrompts(params?: { page?: number; limit?: number }): Promise<PromptListResponse> {
+    const query = new URLSearchParams();
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/prompts${suffix}`);
   }
 
   async getPrompt(promptId: string): Promise<PromptResponse> {
@@ -597,6 +601,12 @@ export class FoxhoundApiClient {
     return this.post(
       `/v1/prompts/${encodeURIComponent(promptId)}/labels`,
       params as unknown as Record<string, unknown>,
+    );
+  }
+
+  async deletePromptLabel(promptId: string, label: string): Promise<void> {
+    await this.del(
+      `/v1/prompts/${encodeURIComponent(promptId)}/labels/${encodeURIComponent(label)}`,
     );
   }
 

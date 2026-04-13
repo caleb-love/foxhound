@@ -48,7 +48,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    * POST /v1/annotation-queues
    * Create an annotation queue for human review workflows.
    */
-  fastify.post("/v1/annotation-queues", async (request, reply) => {
+  fastify.post(
+    "/v1/annotation-queues",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const result = CreateAnnotationQueueSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -63,7 +66,8 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     });
 
     return reply.code(201).send(queue);
-  });
+  },
+  );
 
   /**
    * GET /v1/annotation-queues
@@ -106,7 +110,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    * POST /v1/annotation-queues/:id/items
    * Add traces to an annotation queue for review.
    */
-  fastify.post("/v1/annotation-queues/:id/items", async (request, reply) => {
+  fastify.post(
+    "/v1/annotation-queues/:id/items",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { id } = request.params as { id: string };
     const result = AddItemsSchema.safeParse(request.body);
     if (!result.success) {
@@ -135,14 +142,18 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     );
 
     return reply.code(201).send({ added: items.length, items });
-  });
+  },
+  );
 
   /**
    * POST /v1/annotation-queues/:id/claim
    * Claim the next pending item in the queue for the current user.
    * Requires JWT auth (userId).
    */
-  fastify.post("/v1/annotation-queues/:id/claim", async (request, reply) => {
+  fastify.post(
+    "/v1/annotation-queues/:id/claim",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { id } = request.params as { id: string };
 
     if (!request.userId) {
@@ -160,13 +171,17 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     }
 
     return reply.code(200).send(item);
-  });
+  },
+  );
 
   /**
    * POST /v1/annotation-queue-items/:id/submit
    * Submit scores for an annotation queue item and mark it as completed.
    */
-  fastify.post("/v1/annotation-queue-items/:id/submit", async (request, reply) => {
+  fastify.post(
+    "/v1/annotation-queue-items/:id/submit",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { id } = request.params as { id: string };
     const result = SubmitScoresSchema.safeParse(request.body);
     if (!result.success) {
@@ -206,13 +221,17 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       item: { ...item, status: "completed" },
       scores: createdScores,
     });
-  });
+  },
+  );
 
   /**
    * POST /v1/annotation-queue-items/:id/skip
    * Skip an annotation queue item.
    */
-  fastify.post("/v1/annotation-queue-items/:id/skip", async (request, reply) => {
+  fastify.post(
+    "/v1/annotation-queue-items/:id/skip",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const { id } = request.params as { id: string };
     const orgId = request.orgId;
     const item = await getAnnotationQueueItem(id, orgId);
@@ -226,5 +245,6 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
 
     const updated = await skipAnnotationQueueItem(id, orgId);
     return reply.code(200).send(updated);
-  });
+  },
+  );
 }
