@@ -27,7 +27,8 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "!dist/**/*.test.*"
   ],
   "exports": {
     ".": {
