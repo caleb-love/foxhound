@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Job } from "bullmq";
 
 vi.mock("bullmq", () => ({
@@ -63,7 +63,7 @@ function mockFetchSuccess(content = "Hello from LLM", totalTokens = 100): void {
     "fetch",
     vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => Promise.resolve({
         choices: [{ message: { content } }],
         usage: { total_tokens: totalTokens },
       }),
@@ -77,7 +77,7 @@ function mockFetchFailure(status = 500, body = "Internal Server Error"): void {
     vi.fn().mockResolvedValue({
       ok: false,
       status,
-      text: async () => body,
+      text: () => Promise.resolve(body),
     }),
   );
 }
@@ -156,7 +156,7 @@ describe("processExperimentJob (via processor)", () => {
       config: { model: "gpt-4o", promptTemplate: "{{input}}", temperature: 0 },
       status: "pending",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      completedAt: null,
     } as Awaited<ReturnType<typeof db.getExperiment>>);
 
     vi.mocked(db.listExperimentRuns).mockResolvedValue([
@@ -211,11 +211,11 @@ describe("processExperimentJob (via processor)", () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 500,
-        text: async () => "Server Error",
+        text: () => Promise.resolve("Server Error"),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => Promise.resolve({
           choices: [{ message: { content: "Result" } }],
           usage: { total_tokens: 50 },
         }),
@@ -236,7 +236,11 @@ describe("processExperimentJob (via processor)", () => {
 
     // Second run should get a successful output
     const secondRunUpdate = vi.mocked(db.updateExperimentRun).mock.calls.find(
-      (call) => call[0] === "run_2" && !(call[2] as Record<string, unknown>).output?.hasOwnProperty?.("error"),
+      (call) => {
+        if (call[0] !== "run_2") return false;
+        const output = (call[2] as { output?: Record<string, unknown> }).output;
+        return !Object.prototype.hasOwnProperty.call(output ?? {}, "error");
+      },
     );
     expect(secondRunUpdate).toBeDefined();
 
@@ -268,15 +272,21 @@ describe("processExperimentJob (via processor)", () => {
         promptTemplate: "Rate the output: {{output}} given input: {{input}}",
         model: "gpt-4o",
         scoringType: "numeric",
+        labels: null,
         enabled: true,
         createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ] as Awaited<ReturnType<typeof db.listEvaluators>>);
 
     vi.mocked(db.getExperimentRun).mockResolvedValue({
       id: "run_1",
+      experimentId: "exp_1",
+      datasetItemId: "item_1",
       output: { content: "Answer: 4" },
+      latencyMs: 120,
+      tokenCount: 50,
+      cost: 0.001,
+      createdAt: new Date(),
     } as Awaited<ReturnType<typeof db.getExperimentRun>>);
 
     // The evaluator invocation also calls fetch (OpenAI), which is already
@@ -284,7 +294,7 @@ describe("processExperimentJob (via processor)", () => {
     // Override fetch to return a score-like response for evaluator calls.
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => Promise.resolve({
         choices: [{ message: { content: "0.95" } }],
         usage: { total_tokens: 50 },
       }),
@@ -317,16 +327,22 @@ describe("processExperimentJob (via processor)", () => {
         promptTemplate: "Rate: {{output}}",
         model: "gpt-4o",
         scoringType: "numeric",
+        labels: null,
         enabled: true,
         createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ] as Awaited<ReturnType<typeof db.listEvaluators>>);
 
     // getExperimentRun returns a run with an error output
     vi.mocked(db.getExperimentRun).mockResolvedValue({
       id: "run_1",
+      experimentId: "exp_1",
+      datasetItemId: "item_1",
       output: { error: "LLM API error: 500" },
+      latencyMs: null,
+      tokenCount: null,
+      cost: null,
+      createdAt: new Date(),
     } as Awaited<ReturnType<typeof db.getExperimentRun>>);
 
     const processor = setupProcessor();

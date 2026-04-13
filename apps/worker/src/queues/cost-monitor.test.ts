@@ -30,18 +30,18 @@ const mockUpdateAgentConfigStatus = vi.fn();
 const mockSumSpanCosts = vi.fn();
 
 vi.mock("@foxhound/db", () => ({
-  getAgentConfig: (...args: unknown[]) => mockGetAgentConfig(...args),
-  getAlertRulesForOrg: (...args: unknown[]) => mockGetAlertRulesForOrg(...args),
-  listNotificationChannels: (...args: unknown[]) => mockListNotificationChannels(...args),
-  createNotificationLogEntry: (...args: unknown[]) => mockCreateNotificationLogEntry(...args),
-  updateAgentConfigStatus: (...args: unknown[]) => mockUpdateAgentConfigStatus(...args),
-  sumSpanCosts: (...args: unknown[]) => mockSumSpanCosts(...args),
+  getAgentConfig: mockGetAgentConfig,
+  getAlertRulesForOrg: mockGetAlertRulesForOrg,
+  listNotificationChannels: mockListNotificationChannels,
+  createNotificationLogEntry: mockCreateNotificationLogEntry,
+  updateAgentConfigStatus: mockUpdateAgentConfigStatus,
+  sumSpanCosts: mockSumSpanCosts,
 }));
 
 const mockDispatchAlert = vi.fn();
 
 vi.mock("@foxhound/notifications", () => ({
-  dispatchAlert: (...args: unknown[]) => mockDispatchAlert(...args),
+  dispatchAlert: mockDispatchAlert,
 }));
 
 vi.mock("@foxhound/types", () => ({
@@ -59,7 +59,7 @@ describe("cost-monitor", () => {
     vi.mocked(Worker).mockImplementation(
       (_name: string, processor: unknown, _opts: unknown) => {
         capturedProcessor = processor as (job: unknown) => Promise<void>;
-        return { on: vi.fn(), close: vi.fn() } as unknown as ReturnType<typeof Worker>;
+        return { on: vi.fn(), close: vi.fn() } as never;
       },
     );
   });

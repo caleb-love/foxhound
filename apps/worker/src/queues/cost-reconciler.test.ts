@@ -26,8 +26,8 @@ const mockGetAllAgentConfigs = vi.fn();
 const mockSumSpanCosts = vi.fn();
 
 vi.mock("@foxhound/db", () => ({
-  getAllAgentConfigs: (...args: unknown[]) => mockGetAllAgentConfigs(...args),
-  sumSpanCosts: (...args: unknown[]) => mockSumSpanCosts(...args),
+  getAllAgentConfigs: mockGetAllAgentConfigs,
+  sumSpanCosts: mockSumSpanCosts,
 }));
 
 vi.mock("@foxhound/types", () => ({
@@ -58,7 +58,7 @@ describe("cost-reconciler", () => {
     vi.mocked(Worker).mockImplementation(
       (_name: string, processor: unknown, _opts: unknown) => {
         capturedProcessor = processor as (job: unknown) => Promise<void>;
-        return { on: vi.fn(), close: vi.fn() } as unknown as ReturnType<typeof Worker>;
+        return { on: vi.fn(), close: vi.fn() } as never;
       },
     );
   });

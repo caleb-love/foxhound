@@ -27,7 +27,7 @@ vi.mock("../logger.js", () => ({
 const mockGetAllAgentConfigs = vi.fn();
 
 vi.mock("@foxhound/db", () => ({
-  getAllAgentConfigs: (...args: unknown[]) => mockGetAllAgentConfigs(...args),
+  getAllAgentConfigs: mockGetAllAgentConfigs,
 }));
 
 import { Worker } from "bullmq";
@@ -41,7 +41,7 @@ describe("sla-scheduler", () => {
     vi.mocked(Worker).mockImplementation(
       (_name: string, processor: unknown, _opts: unknown) => {
         capturedProcessor = processor as (job: unknown) => Promise<void>;
-        return { on: vi.fn(), close: vi.fn() } as unknown as ReturnType<typeof Worker>;
+        return { on: vi.fn(), close: vi.fn() } as never;
       },
     );
   });
