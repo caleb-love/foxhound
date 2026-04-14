@@ -13,6 +13,14 @@ Built with Next.js 16, Tailwind CSS 4, and shadcn/ui.
 Test the UI with realistic generated data:
 
 ```bash
+# from repo root, make sure workspace packages are linked
+pnpm install
+
+# if workspace-package module resolution fails, build the shared packages first
+pnpm --filter @foxhound/types build
+pnpm --filter @foxhound/api-client build
+pnpm --filter @foxhound/demo-domain build
+
 cd apps/web
 pnpm dev
 # Navigate to http://localhost:3001/demo
@@ -26,6 +34,39 @@ pnpm dev
 - Session grouping (~30% of traces)
 - No authentication required
 - Perfect for screenshots and demos
+
+### Local Dashboard Demo Bypass (No Login Required)
+
+If you want to review the real dashboard routes without getting blocked by auth redirects, enable the local dashboard demo flag:
+
+```bash
+cd apps/web
+pnpm dev:demo
+```
+
+Then open routes like:
+- `http://localhost:3001/` ← real dashboard home in demo mode
+- `http://localhost:3001/executive`
+- `http://localhost:3001/traces/demo-trace`
+- `http://localhost:3001/diff?a=demo-a&b=demo-b`
+- `http://localhost:3001/replay/demo-trace`
+- `http://localhost:3001/budgets`
+- `http://localhost:3001/slas`
+- `http://localhost:3001/regressions`
+- `http://localhost:3001/notifications`
+
+**Important:**
+- This is a local preview mode only.
+- Default behavior remains auth-protected when `FOXHOUND_UI_DEMO_MODE` is not set.
+- `pnpm dev:demo` is the simplest way to launch the local dashboard preview.
+- Some pages use seeded example data in this mode so the workflow can be reviewed without a live API session.
+- The legacy `/demo` area is no longer the primary path for dashboard preview; use the real dashboard routes directly.
+- If Next reports `Module not found` for a workspace package like `@foxhound/demo-domain` or `@foxhound/api-client`, debug in this order:
+  1. verify the workspace package is actually linked under `apps/web/node_modules/@foxhound/`
+  2. verify the package exposes the expected `exports` entry
+  3. verify the package has been built if it exports from `dist/`
+  4. only then consider TS path or import-specifier changes
+- Do **not** rewrite NodeNext `.js` import specifiers in workspace package source just to make web dev boot; fix link/build state first.
 
 ### Development (With Real API)
 
@@ -67,6 +108,7 @@ Create `.env.local` in `apps/web/`:
 NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-random-secret-here
 NEXTAUTH_URL=http://localhost:3001
+FOXHOUND_UI_DEMO_MODE=true
 ```
 
 For production, update to your deployed API URL and generate a secure secret.
@@ -344,7 +386,7 @@ See [`docs/plans/2026-04-13-dashboard-ui-comprehensive-plan.md`](../../docs/plan
 For questions or issues:
 
 1. Check documentation in `docs/plans/`
-2. Review `docs/gsd/KNOWLEDGE.md` for patterns
+2. Review `docs/reference/engineering-notes.md` for patterns
 3. Open GitHub issue
 
 ---

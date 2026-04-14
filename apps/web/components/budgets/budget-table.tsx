@@ -15,17 +15,17 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
   const { removeBudget } = useBudgetStore();
   
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-red-500';
-    if (percentage >= 90) return 'bg-orange-500';
-    if (percentage >= 80) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (percentage >= 100) return 'var(--tenant-danger)';
+    if (percentage >= 90) return 'color-mix(in srgb, var(--tenant-danger) 60%, var(--tenant-warning))';
+    if (percentage >= 80) return 'var(--tenant-warning)';
+    return 'var(--tenant-success)';
   };
   
   if (budgetStatuses.length === 0) {
     return (
-      <div className="rounded-lg border bg-white p-12 text-center">
-        <p className="text-lg font-medium text-gray-900">No budgets configured</p>
-        <p className="mt-2 text-sm text-gray-500">
+      <div className="rounded-lg border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+        <p className="text-lg font-medium" style={{ color: 'var(--tenant-text-primary)' }}>No budgets configured</p>
+        <p className="mt-2 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
           Click &ldquo;Add Budget&rdquo; to set spending limits for your agents
         </p>
       </div>
@@ -33,17 +33,17 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
   }
 
   return (
-    <div className="rounded-lg border bg-white overflow-hidden">
-      <div className="px-6 py-4 border-b bg-gray-50">
-        <h2 className="text-lg font-semibold">Agent Budgets</h2>
-        <p className="text-sm text-gray-600 mt-1">
+    <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Agent Budgets</h2>
+        <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
           Monthly spending limits and current usage
         </p>
       </div>
       
       <div className="divide-y">
         {budgetStatuses.map((status) => (
-          <div key={status.agentId} className="p-6 hover:bg-gray-50 transition-colors">
+          <div key={status.agentId} className="p-6 transition-colors" style={{ background: 'transparent' }}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
@@ -54,19 +54,16 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Budget:</span>{' '}
+                    <span style={{ color: 'var(--tenant-text-muted)' }}>Budget:</span>{' '}
                     <span className="font-medium">${status.budget.toFixed(2)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Spent:</span>{' '}
+                    <span style={{ color: 'var(--tenant-text-muted)' }}>Spent:</span>{' '}
                     <span className="font-medium">${status.spent.toFixed(2)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Remaining:</span>{' '}
-                    <span className={cn(
-                      'font-medium',
-                      status.remaining >= 0 ? 'text-green-600' : 'text-red-600'
-                    )}>
+                    <span style={{ color: 'var(--tenant-text-muted)' }}>Remaining:</span>{' '}
+                    <span className="font-medium" style={{ color: status.remaining >= 0 ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
                       ${status.remaining >= 0
                         ? status.remaining.toFixed(2)
                         : `(${Math.abs(status.remaining).toFixed(2)})`}
@@ -100,19 +97,19 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
             {/* Progress Bar */}
             <div className="mb-3">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-gray-600">
+                <span style={{ color: 'var(--tenant-text-secondary)' }}>
                   {status.percentage.toFixed(1)}% used
                 </span>
                 {status.projectedMonthEnd > status.budget && (
-                  <span className="text-orange-600 font-medium">
+                  <span className="font-medium" style={{ color: 'var(--tenant-warning)' }}>
                     Projected: ${status.projectedMonthEnd.toFixed(2)}
                   </span>
                 )}
               </div>
-              <div className="h-3 w-full rounded-full bg-gray-200 overflow-hidden">
+              <div className="h-3 w-full overflow-hidden rounded-full" style={{ background: 'var(--tenant-panel-alt)' }}>
                 <div
-                  className={`h-full transition-all ${getProgressColor(status.percentage)}`}
-                  style={{ width: `${Math.min(status.percentage, 100)}%` }}
+                  className="h-full transition-all"
+                  style={{ width: `${Math.min(status.percentage, 100)}%`, background: getProgressColor(status.percentage) }}
                 />
               </div>
             </div>

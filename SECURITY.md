@@ -94,8 +94,8 @@ These are core project rules, not suggestions:
 
 Current hardening priorities and project state are tracked in:
 
-- `docs/gsd/STATE.md`
-- `docs/gsd/KNOWLEDGE.md`
+- `docs/overview/current-status.md`
+- `docs/reference/engineering-notes.md`
 - `docs/plans/active/`
 
 ## Disclosure

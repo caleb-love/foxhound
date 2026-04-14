@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Session Review - Wrong Turns and Repo Improvements</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: #0c1830;
+      --panel: rgba(255,255,255,0.08);
+      --panel-strong: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.16);
+      --text: #f3f7ff;
+      --muted: #a9b7d0;
+      --accent: #7dd3fc;
+      --accent2: #c084fc;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 24px 80px rgba(0,0,0,0.38);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(125,211,252,0.12), transparent 30%),
+        radial-gradient(circle at top right, rgba(192,132,252,0.14), transparent 28%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      scroll-behavior: smooth;
+    }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      backdrop-filter: blur(18px);
+      background: rgba(7,17,31,0.58);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    .nav a:hover { color: var(--text); border-color: rgba(125,211,252,0.32); }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .hero {
+      min-height: 78vh;
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 24px;
+      align-items: center;
+      padding: 28px 0 40px;
+    }
+    .glass {
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    .hero-card { padding: 32px; }
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125,211,252,0.08);
+      border: 1px solid rgba(125,211,252,0.24);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 18px 0 14px;
+      font-size: clamp(40px, 6vw, 74px);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+      max-width: 800px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .metric { padding: 18px; border-radius: 20px; background: var(--panel-strong); border: 1px solid rgba(255,255,255,0.08); }
+    .metric .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .metric .value { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; }
+    .metric .sub { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .hero-side { padding: 24px; }
+    .score-ring {
+      width: 210px; height: 210px; border-radius: 50%; margin: 8px auto 20px;
+      background: conic-gradient(var(--accent) 0 74%, rgba(255,255,255,0.08) 74% 100%);
+      display: grid; place-items: center;
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.35);
+    }
+    .score-ring::before {
+      content: "";
+      width: 158px; height: 158px; border-radius: 50%;
+      background: linear-gradient(180deg, rgba(7,17,31,0.95), rgba(12,24,48,0.96));
+      border: 1px solid rgba(255,255,255,0.08);
+      position: absolute;
+    }
+    .score-content { position: relative; text-align: center; }
+    .score-content .big { font-size: 46px; font-weight: 800; letter-spacing: -0.05em; }
+    .score-content .small { color: var(--muted); font-size: 13px; }
+    section { padding: 24px 0 40px; }
+    h2 { font-size: 32px; letter-spacing: -0.03em; margin: 0 0 16px; }
+    .section-lead { color: var(--muted); margin-bottom: 20px; max-width: 900px; }
+    .cards { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+    .card { grid-column: span 12; padding: 22px; }
+    .card.half { grid-column: span 6; }
+    .card.third { grid-column: span 4; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .pill { padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid rgba(255,255,255,0.12); color: var(--muted); background: rgba(255,255,255,0.04); }
+    .pill.good { color: var(--good); border-color: rgba(52,211,153,0.28); background: rgba(52,211,153,0.08); }
+    .pill.warn { color: var(--warn); border-color: rgba(251,191,36,0.28); background: rgba(251,191,36,0.08); }
+    .pill.bad { color: var(--bad); border-color: rgba(251,113,133,0.28); background: rgba(251,113,133,0.08); }
+    .evidence {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(2,6,23,0.46);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #dce7fb;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .compare { padding: 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
+    .compare h4 { margin: 0 0 10px; }
+    .compare.before h4 { color: var(--bad); }
+    .compare.after h4 { color: var(--good); }
+    ul { margin: 10px 0 0 18px; color: var(--muted); }
+    li { margin: 8px 0; }
+    .rank { font-size: 14px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .time { color: var(--good); font-weight: 600; margin-top: 10px; }
+    .footer { color: var(--muted); font-size: 13px; text-align: center; padding: 32px 0 56px; }
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .card.half, .card.third { grid-column: span 12; }
+      .two-col, .hero-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="#hero">Summary</a>
+    <a href="#friction">Friction Points</a>
+    <a href="#evidence">Before / After Evidence</a>
+    <a href="#recommendations">Recommendations</a>
+    <a href="#savings">Time Savings</a>
+  </nav>
+
+  <div class="wrap">
+    <section id="hero" class="hero">
+      <div class="glass hero-card">
+        <div class="eyebrow">Session Efficiency Review</div>
+        <h1>Wrong turns were real, but recoverable.</h1>
+        <p class="lead">
+          This session eventually reached strong outcomes: repo hygiene improved, release versioning was aligned, packaging quality was tightened, and several CI blockers were identified and fixed. The main efficiency loss came from repo-truth drift: ignored docs, tracked local-only files, unclear CI expectations, and mismatches between local publish/test assumptions and GitHub runtime reality.
+        </p>
+        <div class="hero-grid">
+          <div class="metric">
+            <div class="label">Overall efficiency</div>
+            <div class="value">7.4 / 10</div>
+            <div class="sub">Good execution quality, avoidable repository friction</div>
+          </div>
+          <div class="metric">
+            <div class="label">Major wrong turns</div>
+            <div class="value">6</div>
+            <div class="sub">All recoverable with better repo defaults</div>
+          </div>
+          <div class="metric">
+            <div class="label">Estimated preventable loss</div>
+            <div class="value">45-70 min</div>
+            <div class="sub">Across staging, docs, packaging, and CI diagnosis</div>
+          </div>
+          <div class="metric">
+            <div class="label">Root pattern</div>
+            <div class="value">Drift</div>
+            <div class="sub">Config, docs, action bundles, and test env assumptions</div>
+          </div>
+        </div>
+      </div>
+      <div class="glass hero-side">
+        <div class="score-ring"><div class="score-content"><div class="big">74%</div><div class="small">Session efficiency</div></div></div>
+        <div class="pill-row">
+          <span class="pill good">Code review quality was strong</span>
+          <span class="pill warn">Repo defaults caused repeated detours</span>
+          <span class="pill good">Most fixes were systematic, not ad hoc</span>
+        </div>
+        <ul>
+          <li>The agent correctly found concrete code, packaging, and CI issues.</li>
+          <li>The biggest waste came from discovering hidden repo rules by collision instead of by documentation.</li>
+          <li>The final repo state is materially stronger than the starting point.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="friction">
+      <h2>Specific friction points</h2>
+      <p class="section-lead">Each item below captures a moment where the session went in the wrong direction first, then corrected course. The goal is not blame. The goal is to convert recurring friction into durable repo improvements.</p>
+      <div class="cards">
+        <div class="glass card">
+          <div class="rank">Friction 1</div>
+          <h3>Versioning policy was initially placed under ignored docs</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Create <code>docs/VERSIONING.md</code></li>
+                <li>Link from <code>docs/README.md</code></li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Discover root <code>.gitignore</code> ignores <code>docs/</code></li>
+                <li>Move policy to tracked root <code>VERSIONING.md</code></li>
+                <li>Link from root <code>README.md</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+- git add docs/VERSIONING.md failed because docs/ was ignored
+- Root .gitignore contained: docs/
+- Final fix: VERSIONING.md created at repo root instead</div>
+        </div>
+
+        <div class="glass card">
+          <div class="rank">Friction 2</div>
+          <h3>Local-only repo files were treated as public content until later cleanup</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Proceed with repo cleanup while <code>AGENTS.md</code> and <code>CLAUDE.md</code> were still present in working tree/public path</li>
+                <li>Only later learn they were local Pi / local machine files</li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Ignore all <code>AGENTS.md</code> and <code>CLAUDE.md</code> files</li>
+                <li>Untrack existing tracked local-only files with <code>git rm --cached</code></li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+- Added ignore rules for AGENTS.md and CLAUDE.md late in session
+- Needed git rm --cached for tracked CLAUDE.md files because ignore rules do not affect tracked files
+- This was discovered only after status still showed modified CLAUDE.md</div>
+        </div>
+
+        <div class="glass card">
+          <div class="rank">Friction 3</div>
+          <h3>Package publishing was attempted before package surfaces were release-clean</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Attempt npm publish for SDK and MCP packages</li>
+                <li>Assume auth was the only blocker</li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Inspect <code>npm pack --dry-run</code> output first</li>
+                <li>Clean SDK and MCP package contents</li>
+                <li>Add <code>.npmignore</code> and files allowlist</li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+Before cleanup, MCP dry-run tarball contained:
+- .mcpregistry_github_token
+- .mcpregistry_registry_token
+- .turbo logs
+- coverage/
+- mcp-publisher
+- test sources and test build artifacts
+After cleanup:
+- MCP tarball reduced to 9 files
+- SDK tarball no longer included compiled test artifacts</div>
+        </div>
+
+        <div class="glass card">
+          <div class="rank">Friction 4</div>
+          <h3>CI diagnosis initially focused on lockfile/install assumptions instead of the actual failing step</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Suspect <code>pnpm install --frozen-lockfile</code> mismatch</li>
+                <li>Refresh local install and inspect lockfile</li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Run <code>pnpm format:check</code> locally</li>
+                <li>Confirm formatting step was failing in CI</li>
+                <li>Run Prettier and push style-only fix</li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+- Local pnpm install reported lockfile up to date
+- Local pnpm format:check failed on 82 files
+- After formatting pass and final file cleanup, format:check passed
+- Commit pushed: style: run prettier across repo for CI</div>
+        </div>
+
+        <div class="glass card">
+          <div class="rank">Friction 5</div>
+          <h3>Python Hatch fix was applied to the wrong env key first</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Add missing Python test deps under <code>[tool.hatch.envs.hatch-test]</code></li>
+                <li>Then switch to <code>[tool.hatch.envs.test]</code></li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Use CI log evidence showing environment name <code>hatch-test.py3.11</code></li>
+                <li>Mirror dependencies into both <code>test</code> and <code>hatch-test</code> env configs</li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+Repeated CI failure:
+- ModuleNotFoundError: No module named 'langchain_core'
+- Unknown config option: asyncio_mode
+- Unknown pytest.mark.asyncio
+This proved langchain-core and pytest-asyncio were still not installed in the actual Hatch CI env.</div>
+        </div>
+
+        <div class="glass card">
+          <div class="rank">Friction 6</div>
+          <h3>Local GitHub action referenced build output that was not committed</h3>
+          <div class="two-col">
+            <div class="compare before">
+              <h4>Initial move</h4>
+              <ul>
+                <li>Treat action failure as runtime/module issue</li>
+                <li>Only later inspect local action bundle tracking state</li>
+              </ul>
+            </div>
+            <div class="compare after">
+              <h4>Correct move</h4>
+              <ul>
+                <li>Check whether <code>.github/actions/quality-gate/dist/run.js</code> was tracked</li>
+                <li>Commit only the required bundle</li>
+                <li>Ignore local action <code>.turbo/</code> junk</li>
+              </ul>
+            </div>
+          </div>
+          <div class="evidence">Evidence
+Action error:
+- Cannot find module .../.github/actions/quality-gate/dist/run.js
+Repo inspection showed:
+- dist/run.js existed locally
+- git ls-files did not include it
+Fix applied:
+- commit .github/actions/quality-gate/dist/run.js
+- ignore .turbo/ in action directory</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <h2>Before / after evidence</h2>
+      <p class="section-lead">The pattern was consistent: the wrong direction usually came from repo truth being implicit instead of explicit. Once the actual truth was read from files or command output, the fix was straightforward.</p>
+      <div class="cards">
+        <div class="glass card half">
+          <h3>Before: ambiguous repo truth</h3>
+          <div class="evidence">Examples
+- docs/ treated as durable truth in repo guidance, but root .gitignore ignored docs/
+- local-only AGENTS.md and CLAUDE.md were present without repo-level public/private boundary guidance
+- local action expected dist/run.js but tracked files did not include it
+- Python test env behavior was assumed, not codified clearly
+- formatting policy existed in CI but repo contained many unformatted files</div>
+        </div>
+        <div class="glass card half">
+          <h3>After: explicit correction</h3>
+          <div class="evidence">Examples
+- VERSIONING.md moved to tracked root
+- AGENTS.md and CLAUDE.md ignored / untracked as local machine files
+- SDK and MCP npm surfaces cleaned via .npmignore and files allowlists
+- quality-gate bundle committed intentionally
+- formatting normalized and CI-specific blockers fixed with dedicated commits</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="recommendations">
+      <h2>Ranked repo improvements</h2>
+      <p class="section-lead">These are the highest-leverage repo changes that would have prevented the wrong turns above and reduced total session cost.</p>
+      <div class="cards">
+        <div class="glass card third">
+          <div class="rank">Rank 1</div>
+          <h3>Fix durable-truth location policy</h3>
+          <ul>
+            <li>Either stop ignoring <code>docs/</code>, or stop telling agents durable truth lives there.</li>
+            <li>Make one documented public location for versioning, plans, and repo process truth.</li>
+          </ul>
+          <div class="time">Estimated savings: 10-15 min per substantial docs/process change</div>
+        </div>
+        <div class="glass card third">
+          <div class="rank">Rank 2</div>
+          <h3>Codify local-only file boundaries</h3>
+          <ul>
+            <li>Document that <code>AGENTS.md</code> and <code>CLAUDE.md</code> are machine-local in this repo.</li>
+            <li>Keep ignore rules in root by default.</li>
+          </ul>
+          <div class="time">Estimated savings: 8-12 min per repo hygiene pass</div>
+        </div>
+        <div class="glass card third">
+          <div class="rank">Rank 3</div>
+          <h3>Require npm pack dry-runs before publish</h3>
+          <ul>
+            <li>Add a documented release checklist.</li>
+            <li>Optionally add a script that fails if package tarballs include test or token files.</li>
+          </ul>
+          <div class="time">Estimated savings: 12-20 min per release, plus major risk reduction</div>
+        </div>
+        <div class="glass card third">
+          <div class="rank">Rank 4</div>
+          <h3>Add CI diagnosis guide to repo ops docs</h3>
+          <ul>
+            <li>Document the workflow order: install, lint, format:check, typecheck, test, Python test, build.</li>
+            <li>Advise reproducing exact failing steps locally before theorizing.</li>
+          </ul>
+          <div class="time">Estimated savings: 6-10 min per CI incident</div>
+        </div>
+        <div class="glass card third">
+          <div class="rank">Rank 5</div>
+          <h3>Document Hatch test env contract</h3>
+          <ul>
+            <li>State which env key is used in CI.</li>
+            <li>List integration-test dependencies explicitly.</li>
+          </ul>
+          <div class="time">Estimated savings: 10-15 min per Python CI fix</div>
+        </div>
+        <div class="glass card third">
+          <div class="rank">Rank 6</div>
+          <h3>Define local-action bundling rule</h3>
+          <ul>
+            <li>If a local GitHub Action references built JS, the built artifact must be committed.</li>
+            <li>Ignore local build logs and caches in the action directory.</li>
+          </ul>
+          <div class="time">Estimated savings: 8-12 min per action-related CI issue</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="savings">
+      <h2>Estimated time savings if improvements are applied</h2>
+      <div class="cards">
+        <div class="glass card">
+          <div class="evidence">Aggregate estimate
+
+1. Durable-truth policy fix:            10-15 min
+2. Local-only file boundary docs:       8-12 min
+3. Release pack dry-run checklist:      12-20 min
+4. CI diagnosis guide:                  6-10 min
+5. Hatch env documentation:            10-15 min
+6. Local action bundle rule:            8-12 min
+
+Estimated savings across a session like this:
+45-70 minutes
+
+That estimate excludes second-order value from lower frustration, fewer wrong commits, and lower risk of public-release mistakes.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Generated from this session's observed tool-call evidence and correction sequence. Meyer default review style: premium dark, glass panels, compact nav, card-based evidence.
+    </div>
+  </div>
+</body>
+</html>

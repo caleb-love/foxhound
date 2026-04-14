@@ -1,6 +1,7 @@
 import type { Trace, Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { tenantStyles } from '@/components/demo/dashboard-primitives';
 
 interface TimelineDiffProps {
   traceA: Trace;
@@ -18,21 +19,21 @@ function matchesSpan(left: Span, right: Span): boolean {
 }
 
 const SPAN_KIND_COLORS: Record<string, string> = {
-  llm_call: 'bg-blue-500',
-  tool_call: 'bg-green-500',
-  agent_step: 'bg-purple-500',
-  workflow: 'bg-gray-400',
+  llm_call: 'var(--tenant-accent)',
+  tool_call: 'var(--tenant-success)',
+  agent_step: 'color-mix(in srgb, var(--tenant-accent) 72%, var(--tenant-text-secondary))',
+  workflow: 'var(--tenant-text-muted)',
 };
 
 export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
   if (traceA.spans.length === 0 && traceB.spans.length === 0) {
     return (
-      <div className="rounded-lg border bg-white overflow-hidden">
-        <div className="bg-gray-50 border-b p-4">
-          <h3 className="text-lg font-semibold">Timeline Comparison</h3>
-          <p className="text-sm text-gray-600 mt-1">Side-by-side span execution order</p>
+      <div className="overflow-hidden rounded-lg" style={tenantStyles.panel}>
+        <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timeline Comparison</h3>
+          <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Side-by-side span execution order</p>
         </div>
-        <div className="p-8 text-center text-sm text-gray-500">No spans available to compare.</div>
+        <div className="p-8 text-center text-sm" style={{ color: 'var(--tenant-text-muted)' }}>No spans available to compare.</div>
       </div>
     );
   }
@@ -51,11 +52,11 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
   const getDiffBadge = (type: string) => {
     switch (type) {
       case 'added':
-        return <Badge className="bg-green-100 text-green-800 text-xs">Added</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, white)', color: 'var(--tenant-success)' }}>Added</Badge>;
       case 'removed':
-        return <Badge className="bg-red-100 text-red-800 text-xs">Removed</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, white)', color: 'var(--tenant-danger)' }}>Removed</Badge>;
       case 'modified':
-        return <Badge className="bg-blue-100 text-blue-800 text-xs">Modified</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 14%, white)', color: 'var(--tenant-accent)' }}>Modified</Badge>;
       default:
         return null;
     }
@@ -85,8 +86,8 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
     
     if (!shouldShow) {
       return (
-        <div key={span.spanId} className="h-16 bg-gray-50 border-b flex items-center justify-center">
-          <span className="text-xs text-gray-400">—</span>
+        <div key={span.spanId} className="flex h-16 items-center justify-center border-b" style={{ background: 'var(--tenant-panel-alt)', borderColor: 'var(--tenant-panel-stroke)' }}>
+          <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>—</span>
         </div>
       );
     }
@@ -95,22 +96,22 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
       <div
         key={span.spanId}
         className={cn(
-          'border-b p-3 hover:bg-gray-50 transition-colors',
+          'border-b p-3 transition-colors',
           getDiffBorder(diffType)
         )}
       >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <div className={cn('h-2 w-2 rounded-full', SPAN_KIND_COLORS[span.kind] || 'bg-gray-400')} />
+            <div className="h-2 w-2 rounded-full" style={{ background: SPAN_KIND_COLORS[span.kind] || 'var(--tenant-text-muted)' }} />
             <span className="font-medium text-sm">{span.name}</span>
             {getDiffBadge(diffType)}
           </div>
-          <span className="text-xs text-gray-500">{span.kind}</span>
+          <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{span.kind}</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-gray-600">
+        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
           <span>Duration: {duration}s</span>
           {cost > 0 && <span>Cost: ${cost.toFixed(4)}</span>}
-          <span className={span.status === 'error' ? 'text-red-600 font-medium' : ''}>
+          <span className={span.status === 'error' ? 'font-medium' : ''} style={span.status === 'error' ? { color: 'var(--tenant-danger)' } : undefined}>
             Status: {span.status}
           </span>
         </div>
@@ -119,10 +120,10 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
   };
 
   return (
-    <div className="rounded-lg border bg-white overflow-hidden">
-      <div className="bg-gray-50 border-b p-4">
-        <h3 className="text-lg font-semibold">Timeline Comparison</h3>
-        <p className="text-sm text-gray-600 mt-1">
+    <div className="overflow-hidden rounded-lg" style={tenantStyles.panel}>
+      <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timeline Comparison</h3>
+        <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
           Side-by-side span execution order
         </p>
       </div>
@@ -130,9 +131,9 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
       <div className="grid grid-cols-2 divide-x">
         {/* Trace A */}
         <div>
-          <div className="bg-gray-100 border-b px-4 py-2 sticky top-0">
-            <div className="text-xs font-medium text-gray-600">Trace A (Baseline)</div>
-            <div className="text-xs text-gray-500 mt-0.5">{spansA.length} spans</div>
+          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+            <div className="text-xs font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Trace A (Baseline)</div>
+            <div className="mt-0.5 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{spansA.length} spans</div>
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {spansA.map(span => renderSpanRow(span, true))}
@@ -141,9 +142,9 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
         
         {/* Trace B */}
         <div>
-          <div className="bg-gray-100 border-b px-4 py-2 sticky top-0">
-            <div className="text-xs font-medium text-gray-600">Trace B (Comparison)</div>
-            <div className="text-xs text-gray-500 mt-0.5">{spansB.length} spans</div>
+          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+            <div className="text-xs font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Trace B (Comparison)</div>
+            <div className="mt-0.5 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{spansB.length} spans</div>
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {spansB.map(span => renderSpanRow(span, false))}
@@ -152,19 +153,19 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
       </div>
       
       {/* Legend */}
-      <div className="border-t bg-gray-50 p-3">
-        <div className="flex items-center gap-6 text-xs">
+      <div className="border-t p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <div className="flex items-center gap-6 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-1 bg-green-500" />
-            <span className="text-gray-600">Added in B</span>
+            <div className="h-3 w-1" style={{ background: 'var(--tenant-success)' }} />
+            <span>Added in B</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-1 bg-red-500" />
-            <span className="text-gray-600">Removed from A</span>
+            <div className="h-3 w-1" style={{ background: 'var(--tenant-danger)' }} />
+            <span>Removed from A</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-1 bg-blue-500" />
-            <span className="text-gray-600">Modified</span>
+            <div className="h-3 w-1" style={{ background: 'var(--tenant-accent)' }} />
+            <span>Modified</span>
           </div>
         </div>
       </div>

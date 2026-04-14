@@ -3,10 +3,10 @@ import type { Trace } from '@foxhound/types';
 import { RunDiffView } from '@/components/diff/run-diff-view';
 
 interface DiffPageProps {
-  searchParams: {
+  searchParams: Promise<{
     a?: string;
     b?: string;
-  };
+  }>;
 }
 
 async function getTrace(id: string): Promise<Trace | null> {
@@ -23,8 +23,8 @@ async function getTrace(id: string): Promise<Trace | null> {
 }
 
 export default async function DiffPage({ searchParams }: DiffPageProps) {
-  const { a, b } = searchParams;
-  
+  const { a, b } = await searchParams;
+
   if (!a || !b) {
     notFound();
   }

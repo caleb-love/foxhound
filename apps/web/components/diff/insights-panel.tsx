@@ -1,5 +1,6 @@
 import type { Span } from '@foxhound/types';
 import { Lightbulb, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { tenantStyles } from '@/components/demo/dashboard-primitives';
 
 interface InsightsPanelProps {
   costDelta: number;
@@ -101,42 +102,54 @@ export function InsightsPanel({
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+        return <CheckCircle2 className="h-5 w-5" style={{ color: 'var(--tenant-success)' }} />;
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-amber-600" />;
+        return <AlertCircle className="h-5 w-5" style={{ color: 'var(--tenant-warning)' }} />;
       case 'info':
       default:
-        return <Info className="h-5 w-5 text-blue-600" />;
+        return <Info className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />;
     }
   };
   
   const getBgClass = (type: string) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'success';
       case 'warning':
-        return 'bg-amber-50 border-amber-200';
+        return 'warning';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'info';
     }
   };
 
   return (
-    <div className="rounded-lg border bg-white p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Lightbulb className="h-5 w-5 text-indigo-600" />
-        <h3 className="text-lg font-semibold">Insights</h3>
+    <div className="rounded-lg p-6" style={tenantStyles.panel}>
+      <div className="mb-4 flex items-center gap-2">
+        <Lightbulb className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Insights</h3>
       </div>
       
       <div className="space-y-3">
         {insights.map((insight, index) => (
           <div
             key={index}
-            className={`flex items-start gap-3 rounded-lg border p-3 ${getBgClass(insight.type)}`}
+            className="flex items-start gap-3 rounded-lg border p-3"
+            style={{
+              background: insight.type === 'success'
+                ? 'color-mix(in srgb, var(--tenant-success) 10%, white)'
+                : insight.type === 'warning'
+                  ? 'color-mix(in srgb, var(--tenant-warning) 12%, white)'
+                  : 'color-mix(in srgb, var(--tenant-accent) 10%, white)',
+              borderColor: insight.type === 'success'
+                ? 'color-mix(in srgb, var(--tenant-success) 24%, white)'
+                : insight.type === 'warning'
+                  ? 'color-mix(in srgb, var(--tenant-warning) 24%, white)'
+                  : 'color-mix(in srgb, var(--tenant-accent) 24%, white)',
+            }}
           >
             <div className="mt-0.5">{getIcon(insight.type)}</div>
-            <p className="text-sm text-gray-800">{insight.message}</p>
+            <p className="text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{insight.message}</p>
           </div>
         ))}
       </div>

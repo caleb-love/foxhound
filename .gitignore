@@ -35,8 +35,8 @@ vendor/
 .cache/
 tmp/
 
-# Internal docs — never commit
-docs/
+# Internal docs are committed repo truth. Do not ignore docs/ globally.
+# Generated docs output should still be ignored via more specific rules below.
 
 # Claude Code local config
 .claude/
@@ -48,13 +48,14 @@ AGENTS.md
 CLAUDE.md
 **/CLAUDE.md
 
-# Docusaurus build cache
+# Docusaurus generated output
 docs-site/.docusaurus/
+docs-site/build/
 
-# Python coverage
+# Python coverage and caches
 .coverage
 *.coverage
 
-# MCP Registry tokens (secrets)
+# Local auth/registry helper files must never live in committed package paths
 packages/mcp-server/.mcpregistry_github_token
 packages/mcp-server/.mcpregistry_registry_token

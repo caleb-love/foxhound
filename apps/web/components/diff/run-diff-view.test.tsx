@@ -8,7 +8,7 @@ const traceA = {
   startTimeMs: 0,
   endTimeMs: 5000,
   sessionId: 'session_a',
-  metadata: {},
+  metadata: { prompt_name: 'support-routing', prompt_version: 3 },
   spans: [
     {
       traceId: 'trace_a',
@@ -41,7 +41,7 @@ const traceB = {
   startTimeMs: 0,
   endTimeMs: 3000,
   sessionId: 'session_b',
-  metadata: {},
+  metadata: { prompt_name: 'support-routing', prompt_version: 4 },
   spans: [
     {
       traceId: 'trace_b',
@@ -84,6 +84,7 @@ describe('RunDiffView', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
     expect(screen.getByText('Run Diff')).toBeInTheDocument();
+    expect(screen.getByText('Baseline vs comparison')).toBeInTheDocument();
     expect(screen.getByText('trace_a')).toBeInTheDocument();
     expect(screen.getByText('trace_b')).toBeInTheDocument();
     expect(screen.getByText('Insights')).toBeInTheDocument();
@@ -97,6 +98,18 @@ describe('RunDiffView', () => {
     expect(screen.getByText(/Cost reduced by/)).toBeInTheDocument();
     expect(screen.getByText(/Latency improved by/)).toBeInTheDocument();
     expect(screen.getByText(/Added 1 span/)).toBeInTheDocument();
+  });
+
+  it('renders direct investigation links', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
+
+    expect(screen.getByRole('link', { name: /Inspect baseline trace/i })).toHaveAttribute('href', '/traces/trace_a');
+    expect(screen.getByRole('link', { name: /Inspect comparison trace/i })).toHaveAttribute('href', '/traces/trace_b');
+    expect(screen.getByRole('link', { name: /Review prompt history/i })).toHaveAttribute('href', '/prompts?focus=support-routing');
+    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
+      'href',
+      '/prompts?focus=support-routing&baseline=3&comparison=4',
+    );
   });
 
   it('uses the provided back link when supplied', () => {

@@ -1,20 +1,57 @@
-import type { Trace } from '@foxhound/types';
-import { BudgetDashboard } from '@/components/budgets/budget-dashboard';
+import { buildLocalReviewDemo } from '@foxhound/demo-domain';
+import { BudgetsGovernDashboard } from '@/components/budgets/budgets-govern-dashboard';
 
-async function getAllTraces(): Promise<Trace[]> {
-  try {
-    const response = await fetch('http://localhost:3001/api/demo/traces', {
-      cache: 'no-store',
-    });
-    const data = await response.json();
-    return data.data || [];
-  } catch {
-    return [];
-  }
-}
+export default function DemoBudgetsPage() {
+  const demo = buildLocalReviewDemo();
 
-export default async function BudgetsPage() {
-  const traces = await getAllTraces();
-  
-  return <BudgetDashboard traces={traces} />;
+  return (
+    <BudgetsGovernDashboard
+      metrics={[
+        {
+          label: 'Budget-configured agents',
+          value: String(demo.budgets.length),
+          supportingText: 'The first shared demo-domain slice includes the refund-policy-agent hotspot story.',
+        },
+        {
+          label: 'Critical hotspots',
+          value: String(demo.budgets.filter((item) => item.status === 'critical').length),
+          supportingText: 'One agent is already beyond its monthly budget and needs intervention.',
+        },
+        {
+          label: 'Tracked monthly budget',
+          value: `$${demo.budgets.reduce((sum, item) => sum + item.budgetUsd, 0).toLocaleString()}`,
+          supportingText: 'Budget context is intentionally tied to the same traces, regressions, and experiments as the hero story.',
+        },
+        {
+          label: 'Current modeled spend',
+          value: `$${demo.budgets.reduce((sum, item) => sum + item.currentSpendUsd, 0).toLocaleString()}`,
+          supportingText: 'Modeled spend is concentrated in refund-related workflows during the regression window.',
+        },
+      ]}
+      hotspots={demo.budgets.map((item) => ({
+        agent: item.agentId,
+        status: item.status,
+        spend: `$${item.currentSpendUsd.toLocaleString()}`,
+        budget: `$${item.budgetUsd.toLocaleString()} / month`,
+        description: item.summary,
+        tracesHref: '/demo/traces/trace_support_refund_v18_regression',
+        regressionsHref: '/demo/regressions',
+        improveHref: '/demo/experiments',
+      }))}
+      nextActions={[
+        {
+          title: 'Inspect the expensive regression run',
+          description: 'Open the refund regression trace and compare it against the baseline to see why cost and quality both worsened.',
+          href: '/demo/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression',
+          cta: 'Open run diff',
+        },
+        {
+          title: 'Validate the recovery candidate before promotion',
+          description: 'Use the experiment and dataset loop to confirm the proposed fix improves quality without runaway spend.',
+          href: '/demo/experiments',
+          cta: 'Open experiments',
+        },
+      ]}
+    />
+  );
 }

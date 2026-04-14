@@ -25,9 +25,9 @@ interface TraceFiltersProps {
 }
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; color: string }[] = [
-  { value: 'all', label: 'All', color: 'bg-gray-100 text-gray-800' },
-  { value: 'success', label: 'Success', color: 'bg-green-100 text-green-800' },
-  { value: 'error', label: 'Error', color: 'bg-red-100 text-red-800' },
+  { value: 'all', label: 'All', color: 'var(--tenant-panel-alt)' },
+  { value: 'success', label: 'Success', color: 'color-mix(in srgb, var(--tenant-success) 14%, white)' },
+  { value: 'error', label: 'Error', color: 'color-mix(in srgb, var(--tenant-danger) 14%, white)' },
 ];
 
 const DATE_PRESETS = [
@@ -71,7 +71,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
     <div className="space-y-4">
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--tenant-text-muted)' }} />
         <Input
           placeholder="Search traces by ID, agent, or workflow..."
           value={searchQuery}
@@ -81,7 +81,8 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--tenant-text-muted)' }}
           >
             <X className="h-4 w-4" />
           </button>
@@ -92,24 +93,20 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
       <div className="flex flex-wrap items-center gap-3">
         {/* Status Pills */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Status:</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Status:</span>
           {STATUS_OPTIONS.map((option) => (
             <button
               key={option.value}
               onClick={() => setStatus(option.value)}
-              className={cn(
-                'rounded-full px-3 py-1 text-sm font-medium transition-colors',
-                status === option.value
-                  ? option.color
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              )}
+              className="rounded-full px-3 py-1 text-sm font-medium transition-colors"
+              style={status === option.value ? { background: option.color, color: option.value === 'success' ? 'var(--tenant-success)' : option.value === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-text-primary)' } : { background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}
             >
               {option.label}
             </button>
           ))}
         </div>
 
-        <div className="h-6 w-px bg-gray-200" />
+        <div className="h-6 w-px" style={{ background: 'var(--tenant-panel-stroke)' }} />
 
         {/* Agent Filter */}
         <Popover open={isAgentPopoverOpen} onOpenChange={setIsAgentPopoverOpen}>
@@ -131,13 +128,15 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
                 {availableAgents.map((agentId) => (
                   <label
                     key={agentId}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-50 cursor-pointer"
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                    style={{ background: 'transparent' }}
                   >
                     <input
                       type="checkbox"
                       checked={agentIds.includes(agentId)}
                       onChange={() => toggleAgent(agentId)}
-                      className="rounded border-gray-300"
+                      className="rounded"
+                      style={{ borderColor: 'var(--tenant-panel-stroke)' }}
                     />
                     <span className="text-sm font-mono">{agentId}</span>
                   </label>
@@ -178,12 +177,13 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
         {/* Clear Filters */}
         {hasActiveFilters && (
           <>
-            <div className="h-6 w-px bg-gray-200" />
+            <div className="h-6 w-px" style={{ background: 'var(--tenant-panel-stroke)' }} />
             <Button
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="gap-2 text-gray-600"
+              className="gap-2"
+              style={{ color: 'var(--tenant-text-secondary)' }}
             >
               <X className="h-4 w-4" />
               Clear filters
@@ -194,7 +194,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
 
       {/* Active Filters Summary */}
       {hasActiveFilters && (
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
           <span>Active filters:</span>
           {status !== 'all' && (
             <Badge variant="secondary">Status: {status}</Badge>

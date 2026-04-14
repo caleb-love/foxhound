@@ -46,6 +46,7 @@ import type {
   PromptListResponse,
   PromptVersionResponse,
   PromptVersionListResponse,
+  PromptVersionDiffResponse,
   ResolvedPromptResponse,
 } from "./types.js";
 import type {
@@ -592,6 +593,17 @@ export class FoxhoundApiClient {
 
   async listPromptVersions(promptId: string): Promise<PromptVersionListResponse> {
     return this.get(`/v1/prompts/${encodeURIComponent(promptId)}/versions`);
+  }
+
+  async diffPromptVersions(
+    promptId: string,
+    params: { versionA: number; versionB: number },
+  ): Promise<PromptVersionDiffResponse> {
+    const query = new URLSearchParams({
+      versionA: String(params.versionA),
+      versionB: String(params.versionB),
+    });
+    return this.get(`/v1/prompts/${encodeURIComponent(promptId)}/diff?${query.toString()}`);
   }
 
   async setPromptLabel(

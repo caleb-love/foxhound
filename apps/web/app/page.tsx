@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
+import { isDashboardDemoModeEnabled } from '@/lib/demo-auth';
 
 export default function HomePage() {
-  // Redirect to demo mode by default
-  // Change to '/login' if you want auth-first experience
-  redirect('/demo');
+  if (isDashboardDemoModeEnabled()) {
+    return null;
+  }
+
+  redirect('/login');
 }

@@ -12,6 +12,7 @@
     "build": "turbo build",
     "dev": "turbo dev --filter=api",
     "dev:web": "turbo dev --filter=web",
+    "dev:web:demo": "pnpm --filter web dev:demo",
     "dev:all": "turbo dev --filter=api --filter=web",
     "test": "turbo test",
     "test:coverage": "turbo test:coverage",
@@ -19,6 +20,7 @@
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "typecheck": "turbo typecheck",
+    "check:hygiene": "bash scripts/check-repo-hygiene.sh",
     "clean": "turbo clean && rm -rf node_modules"
   },
   "devDependencies": {
