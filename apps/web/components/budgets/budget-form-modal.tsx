@@ -105,7 +105,7 @@ export function BudgetFormModal({
                 Monthly Budget Limit
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--tenant-text-muted)' }}>
                   $
                 </span>
                 <Input
@@ -119,7 +119,7 @@ export function BudgetFormModal({
                   required
                 />
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
                 Alert thresholds: 80% (warning), 90% (critical), 100% (exceeded)
               </p>
             </div>

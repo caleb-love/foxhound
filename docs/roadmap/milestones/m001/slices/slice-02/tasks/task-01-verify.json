@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T01",
+  "unitId": "M001/S02/T01",
+  "timestamp": 1775799905117,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "npm view @foxhound-ai/mcp-server version shows 0.2.0, npm view @foxhound-ai/mcp-server mcpName shows io.github.caleb-love/foxhound, and tarball contains LICENSE file",
+      "exitCode": 0,
+      "durationMs": 1700,
+      "verdict": "pass"
+    }
+  ]
+}

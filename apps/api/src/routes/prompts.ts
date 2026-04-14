@@ -18,6 +18,7 @@ import {
   listPromptVersions,
   getPromptVersionByNumber,
   getPromptVersionByLabel,
+  diffPromptVersions,
   setPromptLabel,
   getLabelsForVersions,
   deletePromptLabel,
@@ -51,6 +52,11 @@ const SetLabelSchema = z.object({
 const ListPromptsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
+const PromptDiffQuerySchema = z.object({
+  versionA: z.coerce.number().int().positive(),
+  versionB: z.coerce.number().int().positive(),
 });
 
 const RESOLVE_CACHE_TTL_MS = 30_000;
@@ -293,6 +299,44 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       }));
 
       return reply.code(200).send({ data: versionsWithLabels });
+    },
+  );
+
+  /**
+   * GET /v1/prompts/:id/diff?versionA=<number>&versionB=<number>
+   * Compare two versions of the same prompt.
+   */
+  fastify.get(
+    "/v1/prompts/:id/diff",
+    {
+      preHandler: [requireEntitlement("canManagePrompts")],
+      config: { rateLimit: { max: 300, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const query = PromptDiffQuerySchema.safeParse(request.query);
+      if (!query.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: query.error.issues });
+      }
+
+      const prompt = await getPrompt(id, request.orgId);
+      if (!prompt) {
+        return reply.code(404).send({ error: "Not Found", message: "Prompt not found" });
+      }
+
+      const { versionA, versionB } = query.data;
+      const diff = await diffPromptVersions(id, request.orgId, versionA, versionB);
+      if (!diff) {
+        return reply.code(404).send({
+          error: "Not Found",
+          message: "One or both prompt versions were not found",
+        });
+      }
+
+      return reply.code(200).send({
+        ...diff,
+        promptName: prompt.name,
+      });
     },
   );
 

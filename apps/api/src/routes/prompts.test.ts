@@ -15,6 +15,7 @@ vi.mock("@foxhound/db", () => ({
   listPromptVersions: vi.fn(),
   getPromptVersionByNumber: vi.fn(),
   getPromptVersionByLabel: vi.fn(),
+  diffPromptVersions: vi.fn(),
   setPromptLabel: vi.fn(),
   getLabelsForVersions: vi.fn(),
   deletePromptLabel: vi.fn(),
@@ -442,6 +443,118 @@ describe("GET /v1/prompts/:id/versions", () => {
 });
 
 // ── Labels ────────────────────────────────────────────────────────────────
+
+describe("GET /v1/prompts/:id/diff", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns a structured diff for two prompt versions", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.diffPromptVersions).mockResolvedValue({
+      promptId: "pmt_123",
+      versionA: 1,
+      versionB: 2,
+      hasChanges: true,
+      changes: [
+        {
+          field: "content",
+          before: "Be concise.",
+          after: "Be concise and cite sources.",
+        },
+      ],
+    });
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123/diff?versionA=1&versionB=2",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toMatchObject({
+      promptId: "pmt_123",
+      promptName: "support-agent",
+      versionA: 1,
+      versionB: 2,
+      hasChanges: true,
+      changes: [
+        {
+          field: "content",
+          before: "Be concise.",
+          after: "Be concise and cite sources.",
+        },
+      ],
+    });
+  });
+
+  it("returns 404 when prompt is missing", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_missing/diff?versionA=1&versionB=2",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when one or both versions are missing", async () => {
+    mockApiKey();
+    vi.mocked(db.getPrompt).mockResolvedValue({
+      id: "pmt_123",
+      orgId: "org_1",
+      name: "support-agent",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.diffPromptVersions).mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123/diff?versionA=1&versionB=99",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 400 for invalid query params", async () => {
+    mockApiKey();
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123/diff?versionA=0&versionB=2",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 403 when api key lacks prompts:read scope", async () => {
+    mockApiKey("org_1", "scores:read");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts/pmt_123/diff?versionA=1&versionB=2",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(JSON.parse(res.body).message).toContain("prompts:read");
+  });
+});
 
 describe("POST /v1/prompts/:id/labels", () => {
   beforeEach(() => vi.clearAllMocks());

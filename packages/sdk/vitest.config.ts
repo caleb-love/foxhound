@@ -1,16 +1,16 @@
 import { mergeConfig } from "vitest/config";
 import sharedConfig from "../../vitest.shared";
 
-// SDK client.ts has many thin wrapper methods that lower coverage.
-// Current: ~58% lines/stmts. Target: 80%.
+// Public SDK surface should move toward hardening-grade verification.
+// Keep branch threshold high and raise line/function floors above shared defaults.
 export default mergeConfig(sharedConfig, {
   test: {
     coverage: {
       thresholds: {
-        lines: 55,
-        functions: 55,
+        lines: 70,
+        functions: 70,
         branches: 85,
-        statements: 55,
+        statements: 70,
       },
     },
   },

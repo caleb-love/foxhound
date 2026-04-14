@@ -4,6 +4,8 @@ This document describes how to publish the Foxhound MCP server to the Model Cont
 
 ## Prerequisites
 
+> `dist/` is a build artifact for npm publication and registry validation. It should be produced by the release/build flow, not treated as committed source-of-truth in the repo.
+
 1. Package must be published to npm first (already done for the most recent release cut; example shown here should match the current package version)
 2. `server.json` manifest must be present and valid (✓ committed)
 3. GitHub account with access to authenticate
@@ -30,6 +32,8 @@ This will:
 Once authenticated:
 
 ```bash
+rm -rf dist
+pnpm build
 ./mcp-publisher publish
 ```
 

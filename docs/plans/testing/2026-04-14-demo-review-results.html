@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foxhound Demo Review Results — 2026-04-14</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(17, 24, 39, 0.72);
+      --panel-2: rgba(15, 23, 42, 0.82);
+      --text: #e5eefc;
+      --muted: #9fb0d1;
+      --line: rgba(148, 163, 184, 0.22);
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(96,165,250,.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(52,211,153,.12), transparent 24%),
+        linear-gradient(180deg, #0a0f1d 0%, #0b1020 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 72px;
+    }
+    .hero {
+      background: linear-gradient(180deg, rgba(30,41,59,.72), rgba(15,23,42,.82));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 1.02;
+    }
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      max-width: 860px;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 22px;
+    }
+    .grid.metrics {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .card h2, .card h3 {
+      margin: 0 0 10px;
+    }
+    .metric-value {
+      font-size: 34px;
+      font-weight: 800;
+      margin: 6px 0;
+    }
+    .muted { color: var(--muted); }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+    }
+    .status.pass { color: var(--green); }
+    .status.partial { color: var(--yellow); }
+    .status.fail { color: var(--red); }
+    ul {
+      margin: 10px 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    li + li { margin-top: 6px; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    pre {
+      white-space: pre-wrap;
+      margin: 0;
+      padding: 14px;
+      background: rgba(2, 6, 23, .58);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: #d7e4ff;
+      overflow: auto;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .section-title {
+      margin-top: 30px;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      color: var(--text);
+      background: rgba(255,255,255,.04);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    td { color: var(--muted); }
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Foxhound · Demo Evaluation Pack</div>
+      <h1>Demo Review Results</h1>
+      <p class="sub">
+        Review artifact for the shared <code>packages/demo-domain</code> powered <code>/demo</code> experience in <code>apps/web</code>, based on
+        <code>docs/plans/testing/2026-04-13-demo-review-checklist.md</code>.
+      </p>
+      <div class="chips">
+        <span class="chip">Date: 2026-04-14</span>
+        <span class="chip">Scope: apps/web demo review</span>
+        <span class="chip">Primary URL: http://localhost:3001/demo</span>
+      </div>
+    </section>
+
+    <section class="grid metrics">
+      <div class="card">
+        <div class="muted">Final verdict</div>
+        <div class="metric-value">PASS</div>
+        <div class="status pass">● Review passed</div>
+      </div>
+      <div class="card">
+        <div class="muted">Checklist outcome</div>
+        <div class="metric-value">9/9</div>
+        <div class="muted">Core sections pass after navigation fixes</div>
+      </div>
+      <div class="card">
+        <div class="muted">Route verification</div>
+        <div class="metric-value">16</div>
+        <div class="muted">Key demo routes verified with HTTP 200</div>
+      </div>
+      <div class="card">
+        <div class="muted">Code verification</div>
+        <div class="metric-value">3</div>
+        <div class="muted">Install/build/typecheck checks executed</div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Executive summary</h2>
+    <section class="grid two">
+      <div class="card">
+        <h3>What passed</h3>
+        <ul>
+          <li>The demo story is coherent across overview, traces, prompt, experiment, and governance surfaces.</li>
+          <li>Main click paths now stay inside <code>/demo</code>.</li>
+          <li>Hero story remains legible: v18 got cheaper/faster, introduced regressions, and v19 reads as the recovery path.</li>
+          <li>Seeded data supports both operator workflows and marketing-style storytelling.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What was fixed during review</h3>
+        <ul>
+          <li>Next 16 async <code>searchParams</code> handling in <code>/demo/diff</code>.</li>
+          <li>Workspace dependency drift for <code>@foxhound/demo-domain</code>.</li>
+          <li>Broken/incomplete trace-detail CTAs.</li>
+          <li>Prompt links in diff and regression flows.</li>
+          <li>Demo-mode session links to unimplemented routes.</li>
+        </ul>
+      </div>
+    </section>
+
+    <h2 class="section-title">Verification evidence</h2>
+    <section class="grid two">
+      <div class="card">
+        <h3>Commands run</h3>
+        <pre>pnpm install
+pnpm --filter @foxhound/demo-domain build
+pnpm --filter @foxhound/demo-domain typecheck
+pnpm --filter web typecheck</pre>
+      </div>
+      <div class="card">
+        <h3>Key routes verified</h3>
+        <pre>/demo
+/demo/executive
+/demo/traces
+/demo/traces/trace_support_refund_v18_regression
+/demo/diff?a=trace_support_refund_v17_baseline&amp;b=trace_support_refund_v18_regression
+/demo/diff?a=trace_support_refund_v18_regression&amp;b=trace_support_refund_v19_fix
+/demo/prompts
+/demo/prompts/prompt_support_reply
+/demo/prompts/prompt_support_reply/diff?versionA=17&amp;versionB=18
+/demo/regressions
+/demo/datasets
+/demo/experiments
+/demo/budgets
+/demo/slas
+/demo/notifications</pre>
+      </div>
+    </section>
+
+    <h2 class="section-title">Checklist results</h2>
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Overview and executive summary</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Metrics, decision framing, and shared story all align.</td>
+          </tr>
+          <tr>
+            <td>2. Traces and investigation flow</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Hero, hallucination, and timeout traces all support the intended narrative.</td>
+          </tr>
+          <tr>
+            <td>3. Run diff flow</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Diff routes load and communicate regression/recovery clearly.</td>
+          </tr>
+          <tr>
+            <td>4. Prompt surfaces</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Prompt list/detail/diff flows are coherent and legible.</td>
+          </tr>
+          <tr>
+            <td>5. Regressions, datasets, experiments</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Cross-links now route correctly; validation-before-promotion story is strong.</td>
+          </tr>
+          <tr>
+            <td>6. Governance surfaces</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Budgets, SLAs, and notifications reinforce the same incident family.</td>
+          </tr>
+          <tr>
+            <td>7. Navigation integrity</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Main story paths remain inside demo mode after CTA fixes.</td>
+          </tr>
+          <tr>
+            <td>Successful review definition</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>The app now feels like a product demo, not disconnected fixtures.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <h2 class="section-title">Files changed during review</h2>
+    <section class="card">
+      <pre>apps/web/app/demo/diff/page.tsx
+packages/demo-domain/src/index.ts
+apps/web/components/traces/trace-detail-view.tsx
+apps/web/components/diff/run-diff-view.tsx
+apps/web/app/demo/regressions/page.tsx
+apps/web/components/traces/trace-table.tsx</pre>
+    </section>
+
+    <h2 class="section-title">Remaining caveats</h2>
+    <section class="grid two">
+      <div class="card">
+        <h3>Non-blocking gaps</h3>
+        <ul>
+          <li>This artifact does not yet include screenshots.</li>
+          <li>No recorded walkthrough has been captured yet.</li>
+          <li>Replay/session routes are outside the core verified demo path.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Recommended next step</h3>
+        <ul>
+          <li>Capture the Section 8 pages from the checklist.</li>
+          <li>Add screenshots or a short narrated demo clip.</li>
+          <li>Use this HTML file as the async review handoff.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="footer">
+      Generated from the live review session for <code>docs/plans/testing/2026-04-13-demo-review-checklist.md</code>
+    </div>
+  </div>
+</body>
+</html>

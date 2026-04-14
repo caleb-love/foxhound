@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
+    "dev:demo": "FOXHOUND_UI_DEMO_MODE=true next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@base-ui/react": "^1.3.0",
     "@foxhound/api-client": "workspace:^",
+    "@foxhound/demo-domain": "workspace:^",
     "@foxhound/types": "workspace:^",
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.99.0",

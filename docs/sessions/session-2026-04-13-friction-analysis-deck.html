@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Session Friction Analysis — 2026-04-13</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: radial-gradient(circle at top left, rgba(73, 117, 255, 0.18), transparent 28%), radial-gradient(circle at top right, rgba(0, 212, 170, 0.12), transparent 22%), linear-gradient(180deg, #08111d 0%, #0b1322 45%, #09101c 100%);
+      --panel: rgba(255,255,255,0.08);
+      --panel-strong: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.14);
+      --text: #ecf3ff;
+      --muted: #a8b7d4;
+      --green: #49d18d;
+      --yellow: #ffd166;
+      --red: #ff6b81;
+      --blue: #78a6ff;
+      --cyan: #6ee7f9;
+      --shadow: 0 20px 80px rgba(0,0,0,0.35);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      background-image: var(--bg2);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .deck {
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(24px);
+      background: rgba(8, 14, 24, 0.72);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    .slide {
+      min-height: 92vh;
+      padding: 28px 0 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .hero, .panel, .card, .evidence, .stat {
+      backdrop-filter: blur(22px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 34px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -35% auto;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(120,166,255,0.18), transparent 60%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: clamp(42px, 7vw, 84px);
+      line-height: 0.94;
+      margin: 0 0 18px;
+      max-width: 900px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      margin: 0 0 16px;
+    }
+    h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+    p, li { color: var(--muted); }
+    .hero-grid, .grid, .stats, .evidence-grid, .rec-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .hero-grid { grid-template-columns: 1.5fr 1fr; margin-top: 28px; }
+    .stats { grid-template-columns: repeat(4, 1fr); }
+    .stat { padding: 18px; }
+    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat .value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+    .panel { padding: 24px; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .evidence-grid { grid-template-columns: repeat(2, 1fr); }
+    .card, .evidence { padding: 20px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+    .good { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+    .code {
+      margin-top: 12px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px;
+      overflow: auto;
+      color: #d8e5ff;
+      font-size: 13px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .rec-grid { grid-template-columns: repeat(2, 1fr); }
+    .rank {
+      width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center;
+      background: rgba(120,166,255,0.18); color: var(--text); font-weight: 800; margin-bottom: 12px;
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;
+      overflow: hidden; border-radius: 16px;
+    }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    th { color: var(--text); background: rgba(255,255,255,0.05); }
+    td { color: var(--muted); vertical-align: top; }
+    .footer { color: #88a0c7; font-size: 12px; margin-top: 16px; }
+    @media (max-width: 980px) {
+      .hero-grid, .grid, .stats, .evidence-grid, .rec-grid, .two-col { grid-template-columns: 1fr; }
+      .slide { min-height: auto; padding: 18px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="nav">
+      <a href="#hero">Summary</a>
+      <a href="#efficiency">Efficiency</a>
+      <a href="#friction-1">Friction 1</a>
+      <a href="#friction-2">Friction 2</a>
+      <a href="#friction-3">Friction 3</a>
+      <a href="#friction-4">Friction 4</a>
+      <a href="#recommendations">Recommendations</a>
+    </div>
+
+    <section class="slide" id="hero">
+      <div class="hero">
+        <div class="eyebrow">Session Friction Analysis · Meyer Style</div>
+        <h1>Wrong turns were short,<br/>but they were real.</h1>
+        <p style="max-width:860px;font-size:18px;">
+          This session was overall efficient and high-output. The agent hardened backend auth scopes, route-level rate limits, frontend error handling, shared page-state shells, and frontend interaction tests. The main inefficiencies came from four avoidable wrong-direction moves: using the wrong source-of-truth for session context, guessing workspace/test harness details, attempting unsupported Fastify route introspection, and initially aiming at lower-ROI server-page tests before the more bug-prone client interaction layer.
+        </p>
+
+        <div class="hero-grid">
+          <div class="panel">
+            <h3>Executive Summary</h3>
+            <ul>
+              <li><span class="good">Strong:</span> once the right surface was identified, fixes were usually minimal and verified immediately.</li>
+              <li><span class="warn">Main waste:</span> a few repo-discovery and harness-discovery misses caused small loops.</li>
+              <li><span class="good">Most valuable correction:</span> switching frontend hardening from brittle page/server testing to shared state components plus client interaction tests.</li>
+              <li><span class="warn">Preventable via repo improvements:</span> better session logging, frontend testing docs, route-config testing conventions, and a clearer active-work pointer in docs.</li>
+            </ul>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <div class="label">Overall efficiency</div>
+              <div class="value">8.1/10</div>
+            </div>
+            <div class="stat">
+              <div class="label">Wrong turns</div>
+              <div class="value">4</div>
+            </div>
+            <div class="stat">
+              <div class="label">Estimated avoidable time</div>
+              <div class="value">22–38m</div>
+            </div>
+            <div class="stat">
+              <div class="label">Recovered quickly</div>
+              <div class="value">Yes</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">Evidence source: this session’s actual tool-call sequence and resulting file changes, not generic retrospective guesses.</div>
+      </div>
+    </section>
+
+    <section class="slide" id="efficiency">
+      <div class="panel">
+        <h2>Executive summary of session efficiency</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>What went well</h3>
+            <ul>
+              <li>High-value ordering after initial discovery: prompts → auth scopes → frontend → rate limits → security docs.</li>
+              <li>Verification discipline was solid. Narrow test loops and typechecks caught regressions quickly.</li>
+              <li>Hardening work stayed mostly minimal-diff and cross-cutting, which fits repo needs.</li>
+              <li>Frontend work was eventually systemized with reusable `PageState` components instead of ad hoc page boxes.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Where efficiency leaked</h3>
+            <ul>
+              <li>Session analysis briefly anchored on a stale session file that was not the current coding session.</li>
+              <li>Web test setup was partly guessed instead of confirmed from live config.</li>
+              <li>A route-config regression-proofing test used the wrong Fastify mental model and real DB imports.</li>
+              <li>Frontend test strategy initially leaned toward server-page paths before pivoting to the actually buggy client interaction layer.</li>
+            </ul>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Phase</th><th>Direction quality</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Repo/docs discovery</td><td class="warn">Mixed</td><td>Good cross-checking overall, but one stale session file caused a context mismatch.</td></tr>
+            <tr><td>Backend hardening</td><td class="good">Strong</td><td>Very direct after identifying prompts were already mostly done.</td></tr>
+            <tr><td>Frontend hardening</td><td class="good">Strong after pivot</td><td>Reusable state shells and behavior-focused tests were the right move.</td></tr>
+            <tr><td>Regression-proofing tests</td><td class="warn">One miss</td><td>Fastify route introspection path was not repo-compatible.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-1">
+      <div class="panel">
+        <h2>Friction point 1 · Started from a stale session summary</h2>
+        <div class="evidence-grid">
+          <div class="evidence">
+            <span class="badge bad">Initial wrong direction</span>
+            <h3>What was tried</h3>
+            <p>Read <code>docs/sessions/session-2026-04-13.md</code> as if it described the current session state.</p>
+            <div class="code">read docs/sessions/session-2026-04-13.md
+→ described manual follow-ups, website refresh, and next steps from a prior workflow</div>
+          </div>
+          <div class="evidence">
+            <span class="badge good">Correct direction</span>
+            <h3>What worked</h3>
+            <p>Switched to first-hand evidence from the actual tool history and current working-tree changes instead of trusting the stale session note.</p>
+            <div class="code">git status --short
+read current edited files
+use actual tool-call sequence from this session as evidence base</div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="card">
+            <h3>Why it didn’t work</h3>
+            <p>The file existed, but it summarized a different workstream. It was a valid session log, just not the current one.</p>
+          </div>
+          <div class="card">
+            <h3>Repo improvement to prevent it</h3>
+            <p>Add a machine-updated “current session evidence” pointer or naming convention that distinguishes retrospective notes from active session transcripts.</p>
+            <ul>
+              <li>Add to <code>docs/README.md</code>: “Session logs are historical, not active truth.”</li>
+              <li>Add to repo guidance: prefer live diff + active plan + current tool evidence over older session summaries.</li>
+            </ul>
+            <p><strong>Estimated time savings:</strong> 5–8 minutes/session.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-2">
+      <div class="panel">
+        <h2>Friction point 2 · Guessed web harness details before verifying them</h2>
+        <div class="evidence-grid">
+          <div class="evidence">
+            <span class="badge bad">Initial wrong direction</span>
+            <h3>What was tried</h3>
+            <p>Guessed the workspace filter and assumed the web test harness was complete.</p>
+            <div class="code">pnpm --filter @foxhound/web typecheck
+→ No projects matched
+
+read apps/web/vitest.config.ts
+→ references ./vitest.setup.ts
+read apps/web/test-setup.ts
+→ ENOENT</div>
+          </div>
+          <div class="evidence">
+            <span class="badge good">Correct direction</span>
+            <h3>What worked</h3>
+            <p>Read <code>apps/web/package.json</code>, discovered the package name was <code>web</code>, created the missing setup file, and later fixed the environment to <code>jsdom</code>.</p>
+            <div class="code">read apps/web/package.json
+→ name: "web"
+
+write apps/web/vitest.setup.ts
+edit apps/web/vitest.config.ts
+→ environment: 'jsdom'
+
+pnpm --filter web typecheck
+pnpm --filter web test ...</div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="card">
+            <h3>Why it didn’t work</h3>
+            <p>The repo’s package naming and test-harness setup were not obvious from memory. The guessed filter and guessed setup filename were wrong.</p>
+          </div>
+          <div class="card">
+            <h3>Repo improvement to prevent it</h3>
+            <ul>
+              <li>Add <code>apps/web/AGENTS.md</code> or README testing section with canonical commands:</li>
+              <li><code>pnpm --filter web typecheck</code></li>
+              <li><code>pnpm --filter web test</code></li>
+              <li>Document that Vitest runs in <code>jsdom</code> and requires <code>vitest.setup.ts</code>.</li>
+            </ul>
+            <p><strong>Estimated time savings:</strong> 6–10 minutes/session.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-3">
+      <div class="panel">
+        <h2>Friction point 3 · Tried unsupported Fastify route introspection</h2>
+        <div class="evidence-grid">
+          <div class="evidence">
+            <span class="badge bad">Initial wrong direction</span>
+            <h3>What was tried</h3>
+            <p>Attempted a route-config regression test using direct route imports plus <code>app.routes[...]</code> inspection.</p>
+            <div class="code">write apps/api/src/routes/rate-limit-config.test.ts
+→ imports route modules directly
+→ expects app.routes to exist
+
+pnpm --filter @foxhound/api test -- src/routes/rate-limit-config.test.ts
+→ DATABASE_URL environment variable is required
+
+pnpm --filter @foxhound/api typecheck
+→ Property 'routes' does not exist on FastifyInstance</div>
+          </div>
+          <div class="evidence">
+            <span class="badge good">Correct direction</span>
+            <h3>What worked</h3>
+            <p>Backed out the bad test immediately and returned to behavior-based verification instead of unsupported config introspection.</p>
+            <div class="code">rm apps/api/src/routes/rate-limit-config.test.ts
+pnpm --filter @foxhound/api typecheck
+→ green again</div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="card">
+            <h3>Why it didn’t work</h3>
+            <p>Route modules pull real dependencies in this repo. Direct import hit live DB client requirements. Also, the assumed Fastify route registry API was wrong.</p>
+          </div>
+          <div class="card">
+            <h3>Repo improvement to prevent it</h3>
+            <ul>
+              <li>Add a testing note to <code>docs/reference/engineering-notes.md</code>:</li>
+              <li>“Do not use route-config introspection via direct route imports in API tests; prefer behavior tests or a documented app-factory helper with mocks.”</li>
+              <li>Add a dedicated mocked app-factory helper if config assertions are desired later.</li>
+            </ul>
+            <p><strong>Estimated time savings:</strong> 7–12 minutes/session.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-4">
+      <div class="panel">
+        <h2>Friction point 4 · Initially aimed at lower-ROI frontend tests</h2>
+        <div class="evidence-grid">
+          <div class="evidence">
+            <span class="badge bad">Initial wrong direction</span>
+            <h3>What was tried</h3>
+            <p>Started thinking in terms of server-page unhappy-path tests for traces/detail/diff.</p>
+            <div class="code">inspect server page files
+consider page-level tests around getServerSession / redirect / fetch failure
+
+later realization:
+real flakiness is in TraceTable and interactive client state</div>
+          </div>
+          <div class="evidence">
+            <span class="badge good">Correct direction</span>
+            <h3>What worked</h3>
+            <p>Pivoted to reusable page-state shells plus high-ROI client interaction tests.</p>
+            <div class="code">write apps/web/components/ui/page-state.tsx
+edit traces/detail/diff pages to use shared state shells
+write login/page.test.tsx
+write trace-table.test.tsx
+write trace-timeline.test.tsx
+write run-diff-view.test.tsx</div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px;">
+          <div class="card">
+            <h3>Why it didn’t work</h3>
+            <p>The buggy surface was mostly client interaction: compare selection, loading states, transient failures, and click behavior. Server-page tests would have been more brittle and less representative.</p>
+          </div>
+          <div class="card">
+            <h3>Repo improvement to prevent it</h3>
+            <ul>
+              <li>Add a frontend testing rule to repo guidance:</li>
+              <li>“For wireframe UI, prioritize client interaction components over server-page shells.”</li>
+              <li>Document reusable page-state components as the default for empty/error/warning shells.</li>
+            </ul>
+            <p><strong>Estimated time savings:</strong> 4–8 minutes/session, plus higher test ROI.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="recommendations">
+      <div class="panel">
+        <h2>Ranked recommendations for repo improvements</h2>
+        <div class="rec-grid">
+          <div class="card">
+            <div class="rank">1</div>
+            <h3>Add explicit frontend test/runbook docs</h3>
+            <p>Document package name, Vitest environment, setup file, and preferred frontend testing strategy in <code>apps/web/AGENTS.md</code> or <code>apps/web/README.md</code>.</p>
+            <p><strong>Time savings:</strong> 8–12 min/session</p>
+          </div>
+          <div class="card">
+            <div class="rank">2</div>
+            <h3>Document API test constraints</h3>
+            <p>Add a note that direct route-import config introspection is unsafe in this repo unless a mocked app-factory helper is used.</p>
+            <p><strong>Time savings:</strong> 7–10 min/session</p>
+          </div>
+          <div class="card">
+            <div class="rank">3</div>
+            <h3>Clarify historical vs active session evidence</h3>
+            <p>Mark <code>docs/sessions/</code> as historical context, not active truth. Prefer live diff, active plan, and current tool evidence.</p>
+            <p><strong>Time savings:</strong> 5–8 min/session</p>
+          </div>
+          <div class="card">
+            <div class="rank">4</div>
+            <h3>Codify wireframe-first frontend rule</h3>
+            <p>Keep reusable page-state shells and behavior-first tests as a named convention in repo guidance.</p>
+            <p><strong>Time savings:</strong> 4–8 min/session</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Recommendation</th><th>Repo change</th><th>Why it helps</th><th>Estimated savings</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Frontend runbook</td>
+              <td><code>apps/web/AGENTS.md</code> or <code>apps/web/README.md</code></td>
+              <td>Removes workspace/test-harness guessing</td>
+              <td>8–12 min</td>
+            </tr>
+            <tr>
+              <td>API testing caveat</td>
+              <td><code>docs/reference/engineering-notes.md</code></td>
+              <td>Prevents failed config-introspection attempts</td>
+              <td>7–10 min</td>
+            </tr>
+            <tr>
+              <td>Current-vs-historical session rule</td>
+              <td><code>docs/README.md</code> + state docs</td>
+              <td>Prevents stale-session anchoring</td>
+              <td>5–8 min</td>
+            </tr>
+            <tr>
+              <td>Frontend wireframe testing convention</td>
+              <td><code>docs/reference/engineering-notes.md</code>, <code>apps/web/AGENTS.md</code></td>
+              <td>Keeps tests high-ROI and future-restyle friendly</td>
+              <td>4–8 min</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footer">Bottom line: the session was productive. The waste was mostly small repo-discovery and harness-discovery misses, not deep architectural confusion. A few lightweight repo docs would cut most of it.</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

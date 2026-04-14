@@ -1,19 +1,21 @@
 /**
- * Demo API endpoint for testing the dashboard without a real API server
+ * Demo API endpoint for testing the dashboard without a real API server.
+ * Uses the shared demo-domain package so web demo mode can later share the same
+ * narrative data as the marketing-site interactive demo.
  */
 
 import { NextResponse } from "next/server";
-import { DEMO_TRACES } from "@/lib/demo-data-advanced";
+import { buildLocalReviewDemo } from "@foxhound/demo-domain";
 
 export async function GET() {
-  // Return first 50 traces from the 100 generated
-  const traces = DEMO_TRACES.slice(0, 50);
+  const demo = buildLocalReviewDemo();
+  const traces = demo.allTraces;
 
   return NextResponse.json({
     data: traces,
     pagination: {
       page: 1,
-      limit: 50,
+      limit: traces.length,
       count: traces.length,
     },
   });

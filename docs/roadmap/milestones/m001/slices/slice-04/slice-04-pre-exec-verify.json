@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "milestoneId": "M001",
+  "sliceId": "S04",
+  "timestamp": 1775803539993,
+  "status": "fail",
+  "durationMs": 2,
+  "checks": [
+    {
+      "category": "file",
+      "target": "packages/sdk/README.md",
+      "passed": false,
+      "message": "Task T03 references 'packages/sdk/README.md' which doesn't exist and isn't created by prior tasks",
+      "blocking": true
+    }
+  ]
+}

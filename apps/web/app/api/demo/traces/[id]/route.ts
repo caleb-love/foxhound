@@ -1,15 +1,13 @@
-/**
- * Demo API endpoint for a single trace
- */
-
 import { NextResponse } from "next/server";
-import { DEMO_TRACES } from "@/lib/demo-data-advanced";
+import { buildLocalReviewDemo } from "@foxhound/demo-domain";
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
-
-  // Find trace by ID from the generated demo data
-  const trace = DEMO_TRACES.find((t) => t.id === id);
+  const demo = buildLocalReviewDemo();
+  const trace = demo.curatedTraces.find((item: (typeof demo.curatedTraces)[number]) => item.id === id)?.trace;
 
   if (!trace) {
     return NextResponse.json({ error: "Trace not found" }, { status: 404 });

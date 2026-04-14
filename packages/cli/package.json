@@ -32,6 +32,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist"
@@ -44,6 +46,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
   }
 }

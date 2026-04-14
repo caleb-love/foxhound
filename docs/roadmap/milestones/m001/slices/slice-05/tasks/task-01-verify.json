@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T01",
+  "unitId": "M001/S05/T01",
+  "timestamp": 1775871219059,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm --filter @foxhound-ai/docs build",
+      "exitCode": 0,
+      "durationMs": 1918,
+      "verdict": "pass"
+    },
+    {
+      "command": "test -f docs-site/build/index.html",
+      "exitCode": 0,
+      "durationMs": 12,
+      "verdict": "pass"
+    },
+    {
+      "command": "grep -q 'docs-site' pnpm-workspace.yaml",
+      "exitCode": 0,
+      "durationMs": 16,
+      "verdict": "pass"
+    }
+  ]
+}

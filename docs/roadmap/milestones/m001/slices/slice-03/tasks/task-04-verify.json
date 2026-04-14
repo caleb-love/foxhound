@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T04",
+  "unitId": "M001/S03/T04",
+  "timestamp": 1775802058644,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "test -f .github/actions/quality-gate/README.md",
+      "exitCode": 0,
+      "durationMs": 15,
+      "verdict": "pass"
+    },
+    {
+      "command": "grep -q 'api-key' .github/actions/quality-gate/README.md",
+      "exitCode": 0,
+      "durationMs": 22,
+      "verdict": "pass"
+    },
+    {
+      "command": "test -f .github/workflows/quality-gate-example.yml",
+      "exitCode": 0,
+      "durationMs": 17,
+      "verdict": "pass"
+    },
+    {
+      "command": "grep -q 'quality-gate' .github/workflows/quality-gate-example.yml",
+      "exitCode": 0,
+      "durationMs": 22,
+      "verdict": "pass"
+    }
+  ]
+}

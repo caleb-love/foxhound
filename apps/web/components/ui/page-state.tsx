@@ -8,16 +8,16 @@ interface PageStateProps {
   tone?: 'default' | 'warning' | 'error';
 }
 
-const toneClasses: Record<NonNullable<PageStateProps['tone']>, string> = {
-  default: 'border-border bg-background',
-  warning: 'border-yellow-200 bg-yellow-50',
-  error: 'border-red-200 bg-red-50',
+const toneStyles: Record<NonNullable<PageStateProps['tone']>, React.CSSProperties> = {
+  default: { borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' },
+  warning: { borderColor: 'color-mix(in srgb, var(--tenant-warning) 24%, white)', background: 'color-mix(in srgb, var(--tenant-warning) 10%, white)' },
+  error: { borderColor: 'color-mix(in srgb, var(--tenant-danger) 24%, white)', background: 'color-mix(in srgb, var(--tenant-danger) 10%, white)' },
 };
 
-const detailClasses: Record<NonNullable<PageStateProps['tone']>, string> = {
-  default: 'text-muted-foreground',
-  warning: 'text-yellow-700',
-  error: 'text-red-700',
+const detailStyles: Record<NonNullable<PageStateProps['tone']>, React.CSSProperties> = {
+  default: { color: 'var(--tenant-text-muted)' },
+  warning: { color: 'var(--tenant-warning)' },
+  error: { color: 'var(--tenant-danger)' },
 };
 
 export function PageState({
@@ -27,14 +27,14 @@ export function PageState({
   tone = 'default',
 }: PageStateProps) {
   return (
-    <Card className={toneClasses[tone]}>
+    <Card style={toneStyles[tone]}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        <CardDescription className="text-foreground/80">{message}</CardDescription>
+        <CardDescription style={{ color: 'var(--tenant-text-secondary)' }}>{message}</CardDescription>
       </CardHeader>
       {detail ? (
         <CardContent>
-          <p className={`text-xs ${detailClasses[tone]}`}>{detail}</p>
+          <p className="text-xs" style={detailStyles[tone]}>{detail}</p>
         </CardContent>
       ) : null}
     </Card>

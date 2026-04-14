@@ -1,25 +1,23 @@
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
 import { getAuthenticatedClient } from '@/lib/api-client';
 import { TraceTable } from '@/components/traces/trace-table';
 import { PageErrorState } from '@/components/ui/page-state';
 import type { Trace } from '@foxhound/types';
+import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/demo-auth';
 
 export default async function TracesPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect('/login');
-  }
+  const session = await getDashboardSessionOrDemo();
 
   let traces: Trace[] = [];
   let error: string | null = null;
 
   try {
-    const client = getAuthenticatedClient(session.user.token);
-    const response = await client.searchTraces({ limit: 50 });
-    traces = response.data || [];
+    if (isDashboardDemoModeEnabled()) {
+      traces = [];
+    } else {
+      const client = getAuthenticatedClient(session.user.token);
+      const response = await client.searchTraces({ limit: 50 });
+      traces = response.data || [];
+    }
   } catch (e) {
     error = 'Unable to load traces right now.';
     console.error('Error fetching traces:', e);

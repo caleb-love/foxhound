@@ -28,11 +28,11 @@ const SPAN_KIND_LABELS: Record<string, string> = {
 };
 
 const SPAN_KIND_COLORS: Record<string, string> = {
-  llm_call: 'bg-blue-100 text-blue-800',
-  tool_call: 'bg-green-100 text-green-800',
-  agent_step: 'bg-purple-100 text-purple-800',
-  workflow: 'bg-indigo-100 text-indigo-800',
-  custom: 'bg-gray-100 text-gray-800',
+  llm_call: 'color-mix(in srgb, var(--tenant-accent) 14%, white)',
+  tool_call: 'color-mix(in srgb, var(--tenant-success) 14%, white)',
+  agent_step: 'color-mix(in srgb, var(--tenant-accent) 14%, white)',
+  workflow: 'color-mix(in srgb, var(--tenant-text-muted) 14%, white)',
+  custom: 'var(--tenant-panel-alt)',
 };
 
 export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps) {
@@ -83,30 +83,30 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
         <div className="mt-6 space-y-6">
           {/* Key Metrics */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg border p-3">
-              <div className="text-sm text-gray-500">Duration</div>
-              <div className="text-2xl font-bold">{duration}s</div>
+            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+              <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Duration</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{duration}s</div>
             </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-sm text-gray-500">Status</div>
-              <div className="text-2xl font-bold capitalize">{span.status}</div>
+            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+              <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Status</div>
+              <div className="text-2xl font-bold capitalize" style={{ color: 'var(--tenant-text-primary)' }}>{span.status}</div>
             </div>
           </div>
 
           {/* LLM-specific info */}
           {isLlmCall && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm text-gray-700">LLM Details</h3>
-              <div className="space-y-2 rounded-lg border p-4 bg-blue-50/50">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-secondary)' }}>LLM Details</h3>
+              <div className="space-y-2 rounded-lg border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-accent) 10%, white)' }}>
                 {llmModel && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Model</span>
+                    <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Model</span>
                     <span className="font-mono text-sm font-medium">{llmModel}</span>
                   </div>
                 )}
                 {inputTokens !== null && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Input Tokens</span>
+                    <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Input Tokens</span>
                     <span className="font-mono text-sm font-medium">
                       {inputTokens.toLocaleString()}
                     </span>
@@ -114,7 +114,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 )}
                 {outputTokens !== null && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Output Tokens</span>
+                    <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Output Tokens</span>
                     <span className="font-mono text-sm font-medium">
                       {outputTokens.toLocaleString()}
                     </span>
@@ -122,8 +122,8 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 )}
                 {cost !== null && (
                   <div className="flex items-center justify-between border-t pt-2">
-                    <span className="text-sm font-medium text-gray-700">Cost</span>
-                    <span className="font-mono text-sm font-bold text-blue-700">
+                    <span className="text-sm font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Cost</span>
+                    <span className="font-mono text-sm font-bold" style={{ color: 'var(--tenant-accent)' }}>
                       ${cost.toFixed(4)}
                     </span>
                   </div>
@@ -135,17 +135,17 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           {/* Tool-specific info */}
           {isToolCall && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm text-gray-700">Tool Details</h3>
-              <div className="space-y-2 rounded-lg border p-4 bg-green-50/50">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-secondary)' }}>Tool Details</h3>
+              <div className="space-y-2 rounded-lg border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-success) 10%, white)' }}>
                 {toolName && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Tool Name</span>
+                    <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Tool Name</span>
                     <span className="font-mono text-sm font-medium">{toolName}</span>
                   </div>
                 )}
                 {toolResults !== null && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Results</span>
+                    <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Results</span>
                     <span className="font-mono text-sm font-medium">{toolResults}</span>
                   </div>
                 )}
@@ -156,7 +156,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           {/* All Attributes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-gray-700">All Attributes</h3>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-secondary)' }}>All Attributes</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -165,7 +165,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
               >
                 {copiedField === 'attributes' ? (
                   <>
-                    <Check className="h-4 w-4 text-green-600" />
+                    <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
                     Copied!
                   </>
                 ) : (
@@ -176,24 +176,24 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 )}
               </Button>
             </div>
-            <pre className="rounded-lg border bg-gray-50 p-4 text-xs overflow-x-auto">
+            <pre className="overflow-x-auto rounded-lg border p-4 text-xs" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}>
               {JSON.stringify(span.attributes, null, 2)}
             </pre>
           </div>
 
           {/* Timing Details */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-700">Timing</h3>
-            <div className="space-y-2 rounded-lg border p-4">
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-secondary)' }}>Timing</h3>
+            <div className="space-y-2 rounded-lg border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Started</span>
+                <span style={{ color: 'var(--tenant-text-secondary)' }}>Started</span>
                 <span className="font-mono">
                   {new Date(span.startTimeMs).toLocaleString()}
                 </span>
               </div>
               {span.endTimeMs && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Ended</span>
+                  <span style={{ color: 'var(--tenant-text-secondary)' }}>Ended</span>
                   <span className="font-mono">
                     {new Date(span.endTimeMs).toLocaleString()}
                   </span>
@@ -204,7 +204,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
 
           {/* Actions */}
           <div className="space-y-3 border-t pt-6">
-            <h3 className="font-semibold text-sm text-gray-700">Actions</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-secondary)' }}>Actions</h3>
             <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
@@ -212,7 +212,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 className="justify-start gap-2"
               >
                 {copiedField === 'spanId' ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}

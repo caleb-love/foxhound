@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Full File Audit — Outside apps/web — 2026-04-14</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --bg2: #0b1830;
+      --panel: rgba(10, 20, 38, 0.74);
+      --text: #e7eef8;
+      --muted: #9fb1c9;
+      --cyan: #67e8f9;
+      --violet: #a78bfa;
+      --mint: #6ee7b7;
+      --amber: #fbbf24;
+      --red: #fb7185;
+      --border: rgba(148,163,184,0.18);
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(103,232,249,0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(167,139,250,0.12), transparent 24%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      line-height: 1.45;
+    }
+    .wrap { width: min(1200px, calc(100vw - 40px)); margin: 0 auto; padding: 24px 0 80px; }
+    nav, section {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 24px;
+      box-shadow: var(--shadow); backdrop-filter: blur(18px); padding: 24px; margin-bottom: 18px;
+    }
+    nav { position: sticky; top: 0; z-index: 10; }
+    nav a { color: var(--muted); margin-right: 10px; text-decoration: none; font-size: 14px; }
+    h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1; margin: 10px 0; }
+    h2 { font-size: 28px; margin: 0 0 12px; }
+    h3 { font-size: 19px; margin: 16px 0 8px; }
+    .muted { color: var(--muted); }
+    .pill {
+      display:inline-block; padding: 6px 10px; border-radius: 999px; margin: 0 8px 8px 0;
+      border:1px solid var(--border); background: rgba(255,255,255,0.04); font-size: 12px; font-weight: 700;
+    }
+    .red { background: rgba(251,113,133,0.12); }
+    .amber { background: rgba(251,191,36,0.12); }
+    .cyan { background: rgba(103,232,249,0.12); }
+    .mint { background: rgba(110,231,183,0.12); }
+    .violet { background: rgba(167,139,250,0.12); }
+    .grid2, .grid3, .metrics { display:grid; gap:14px; }
+    .grid2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .grid3, .metrics { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .card { background: rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:18px; padding:16px; }
+    .k { font-size: 30px; font-weight: 800; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 10px; border-bottom: 1px solid rgba(148,163,184,0.12); vertical-align: top; }
+    th { color: var(--cyan); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    code { color: var(--mint); }
+    pre { white-space: pre-wrap; background: rgba(0,0,0,0.26); border:1px solid var(--border); border-radius:16px; padding:14px; font-size:12px; }
+    .callout { border-left: 4px solid var(--cyan); background: rgba(103,232,249,0.08); border-radius: 12px; padding: 14px 16px; }
+    @media (max-width: 900px) { .grid2, .grid3, .metrics { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <strong>Full File Audit</strong>
+    <a href="#summary">Summary</a>
+    <a href="#scope">Scope</a>
+    <a href="#findings">Findings</a>
+    <a href="#directory">Directory View</a>
+    <a href="#backlog">Backlog</a>
+    <a href="#phases">Phases</a>
+    <a href="#proof">Proof</a>
+  </nav>
+
+  <section id="summary">
+    <span class="pill violet">Audit depth: file-by-file exhaustive</span>
+    <span class="pill cyan">Scope excludes <code>apps/web</code></span>
+    <span class="pill amber">Evidence index included</span>
+    <h1>Foxhound repo full audit</h1>
+    <p class="muted">This pass inspected every in-scope file outside <code>apps/web</code>. Generated/cache artifacts were also counted and classified individually as audited noise. Human-authored/config/doc/source files were reviewed as the basis for findings and backlog planning.</p>
+    <div class="metrics">
+      <div class="card"><div class="k">1,644</div><div>Total in-scope files</div></div>
+      <div class="card"><div class="k">470</div><div>Authored/config/doc/source files reviewed individually</div></div>
+      <div class="card"><div class="k">1,174</div><div>Generated/cache/noise files classified individually</div></div>
+      <div class="card"><div class="k">8</div><div>Highest-leverage debt themes</div></div>
+    </div>
+    <div class="callout">
+      The repo’s biggest backlog is not missing implementation breadth. It is truth hygiene: generated artifacts and caches committed into the working tree, weak verification floors in shared security-critical layers, packaging/release inconsistency, and a docs/process surface that has become much larger than the enforcement surface underneath it.
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>How “full audit” was executed</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Included</h3>
+        <ul>
+          <li>Root config, Docker, CI, workflows, hooks, docs, docs-site, sessions, plans</li>
+          <li><code>apps/api</code>, <code>apps/worker</code></li>
+          <li>All packages outside <code>apps/web</code></li>
+          <li>Generated and cache files as explicit audit objects, not silently skipped</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Excluded</h3>
+        <ul>
+          <li><code>apps/web/**</code></li>
+          <li><code>.git/**</code>, <code>node_modules/**</code></li>
+        </ul>
+      </div>
+    </div>
+    <h3>Machine-readable proof</h3>
+    <ul>
+      <li><code>docs/plans/active/2026-04-14-file-audit-index.json</code> — every in-scope file with audit classification and signal metadata</li>
+      <li><code>docs/plans/active/2026-04-14-full-file-audit-plan.html</code> — this review deck</li>
+    </ul>
+  </section>
+
+  <section id="findings">
+    <h2>Top findings</h2>
+    <div class="grid3">
+      <div class="card"><span class="pill red">Critical</span><h3>Generated artifact sprawl</h3><p>1,174 in-scope files are generated/cache/noise. This includes tracked <code>dist</code>, <code>coverage</code>, <code>.turbo</code>, docs-site build outputs, docusaurus caches, tsbuildinfo, DS_Store, pycache, and Python coverage leftovers.</p></div>
+      <div class="card"><span class="pill red">Critical</span><h3>Secret-like files in package path</h3><p><code>packages/mcp-server/.mcpregistry_github_token</code> and <code>packages/mcp-server/.mcpregistry_registry_token</code> should not live inside a package directory, even if gitignored.</p></div>
+      <div class="card"><span class="pill red">Critical</span><h3>Shared-layer test debt</h3><p><code>packages/db</code> remains the biggest hardening gap. The tenant-safety core is concentrated there while coverage is low and implementation is monolithic.</p></div>
+      <div class="card"><span class="pill amber">High</span><h3>Docs/process bloat</h3><p>The repo has a very large planning/session/archive surface. Useful, but currently bigger than the enforcement surface in CI. There is risk of “documentation feels hardened” while runtime verification lags.</p></div>
+      <div class="card"><span class="pill amber">High</span><h3>Public package inconsistency</h3><p>SDK, MCP, CLI, and Python package release surfaces are not equally hardened. CLI still lacks test scripts. SDK threshold policy is permissive. Python package has local caches committed.</p></div>
+      <div class="card"><span class="pill amber">High</span><h3>Authored/generated truth blur</h3><p>Example: <code>packages/types/src/index.js</code>, <code>index.d.ts</code>, and maps in <code>src/</code>. Generated outputs are mixed into authored source directories.</p></div>
+    </div>
+
+    <h3>Coverage and verification reality</h3>
+    <table>
+      <thead><tr><th>Surface</th><th>Status</th><th>Debt</th></tr></thead>
+      <tbody>
+        <tr><td><code>apps/api</code></td><td>Broad route tests exist</td><td>Need stronger auth/rate-limit/tenant/entitlement matrix and abuse-path verification</td></tr>
+        <tr><td><code>apps/worker</code></td><td>Good test presence</td><td>Need deeper operational-path coverage: retries, DLQ, repeated scheduler startup, shutdown</td></tr>
+        <tr><td><code>packages/db</code></td><td>Monolithic, critical, under-covered</td><td>Highest-value refactor + verification target</td></tr>
+        <tr><td><code>packages/sdk</code></td><td>Useful tests exist</td><td>Coverage policy intentionally too low for a public SDK</td></tr>
+        <tr><td><code>packages/cli</code></td><td>No test scripts</td><td>Public CLI surface not verification-hardened</td></tr>
+        <tr><td><code>packages/mcp-server</code></td><td>Strong test presence</td><td>Branch/error/deployment hardening still worth deepening</td></tr>
+        <tr><td><code>packages/sdk-py</code></td><td>Healthy test set</td><td>Packaging/install verification and cache hygiene need work</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="directory">
+    <h2>Directory-by-directory audit view</h2>
+    <table>
+      <thead><tr><th>Area</th><th>What was found</th><th>Main action</th></tr></thead>
+      <tbody>
+        <tr><td><code>.claude/</code></td><td>Large local automation surface checked in; useful but repo-specific/local boundary is blurred. Friction log and audit report are repo noise if committed.</td><td>Decide what is repo policy vs local operator state; untrack local-only artifacts.</td></tr>
+        <tr><td><code>.github/</code></td><td>Quality-gate action is a real product surface. Good documentation, but bundled artifact presence plus runtime/bundle drift need stricter release checks.</td><td>Add action-specific tests, bundle validation, and publish/release simulation.</td></tr>
+        <tr><td><code>apps/api/</code></td><td>Broad endpoint implementation and tests. Also heavy dist/coverage/.turbo noise. Bootstrap centralization is convenient but increases single-file blast radius.</td><td>Clean artifacts, then deepen route-class verification and split concerns where helpful.</td></tr>
+        <tr><td><code>apps/worker/</code></td><td>Operational logic is well represented in source/test files. Artifact noise still high. One explicit TODO remains in evaluator DLQ notification path.</td><td>Harden failure-path tests and close/remediate TODOs.</td></tr>
+        <tr><td><code>docs-site/</code></td><td>Authored docs look useful; built site and docusaurus cache outputs are present and massively inflate repo surface.</td><td>Keep authored docs, remove tracked generated site/cache artifacts unless intentionally versioned.</td></tr>
+        <tr><td><code>docs/</code></td><td>Very large durable/planning/archive/session corpus. Good recoverability, but high drift risk and cost to future audits.</td><td>Prune/archive strategy, reduce duplication, separate active truth from historical artifacts more aggressively.</td></tr>
+        <tr><td><code>packages/api-client</code></td><td>Lean and healthy.</td><td>Minor function coverage improvements only.</td></tr>
+        <tr><td><code>packages/billing</code></td><td>Healthy, relatively contained.</td><td>Low urgency; mostly keep clean.</td></tr>
+        <tr><td><code>packages/cli</code></td><td>Public surface with no test harness in scripts.</td><td>Add tests, smoke installs, and release verification.</td></tr>
+        <tr><td><code>packages/db</code></td><td>Monolithic query layer, migrations/history, pricing data, integration tests, critical tenant logic.</td><td>Top implementation priority after cleanup.</td></tr>
+        <tr><td><code>packages/demo-domain</code></td><td>Small package, likely low-risk but adds maintenance footprint.</td><td>Confirm necessity and keep lean.</td></tr>
+        <tr><td><code>packages/mcp-server</code></td><td>Public surface with token files nearby, substantial implementation, tests, and publish metadata.</td><td>Move local creds out, improve release hardening.</td></tr>
+        <tr><td><code>packages/notifications</code></td><td>Provider structure is solid and test-supported.</td><td>Add provider integration/contract checks if not already present.</td></tr>
+        <tr><td><code>packages/sdk-py</code></td><td>Strong source/test surface; local Python caches and coverage file are present.</td><td>Clean caches, add packaging/install verification.</td></tr>
+        <tr><td><code>packages/sdk</code></td><td>Public SDK with docs and tests, but permissive coverage floor.</td><td>Raise thresholds and expand error/integration tests.</td></tr>
+        <tr><td><code>packages/types</code></td><td>Generated JS/d.ts/map files in <code>src/</code>.</td><td>Restore strict authored/generated separation.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="backlog">
+    <h2>Prioritized backlog</h2>
+    <table>
+      <thead><tr><th>#</th><th>Priority</th><th>Item</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Critical</td><td>Untrack and block generated artifacts, caches, and local noise</td><td><code>.turbo/**</code>, <code>dist/**</code>, <code>coverage/**</code>, <code>docs-site/build/**</code>, <code>docs-site/.docusaurus/**</code>, <code>*.tsbuildinfo</code>, <code>.DS_Store</code>, Python caches</td></tr>
+        <tr><td>2</td><td>Critical</td><td>Remove package-local token files and document safe credential storage</td><td><code>packages/mcp-server/.mcpregistry_*</code></td></tr>
+        <tr><td>3</td><td>Critical</td><td>Refactor and harden <code>packages/db</code></td><td>Low coverage + monolithic query core + tenant-critical logic</td></tr>
+        <tr><td>4</td><td>High</td><td>Add artifact cleanliness CI gate</td><td>Generated noise currently dominates file count</td></tr>
+        <tr><td>5</td><td>High</td><td>Add secret-surface CI gate</td><td>Token files inside package path</td></tr>
+        <tr><td>6</td><td>High</td><td>Add CLI tests and coverage scripts</td><td><code>packages/cli/package.json</code></td></tr>
+        <tr><td>7</td><td>High</td><td>Raise SDK coverage thresholds to hardening-grade</td><td><code>packages/sdk/vitest.config.ts</code></td></tr>
+        <tr><td>8</td><td>High</td><td>Strengthen API route-class verification</td><td>Large auth/billing/tenant-sensitive route surface</td></tr>
+        <tr><td>9</td><td>High</td><td>Strengthen worker failure-path verification</td><td>Schedulers, retries, DLQ, shutdown semantics</td></tr>
+        <tr><td>10</td><td>High</td><td>Clean authored/generated boundary in <code>packages/types</code></td><td>Generated outputs in <code>src/</code></td></tr>
+        <tr><td>11</td><td>Medium</td><td>Reduce docs/process sprawl and duplication</td><td>Large archive/session/plan footprint</td></tr>
+        <tr><td>12</td><td>Medium</td><td>Add release simulation for all public packages</td><td>SDK, CLI, MCP, Python package not equally hardened</td></tr>
+        <tr><td>13</td><td>Medium</td><td>Add packaging/install smoke tests for Python SDK</td><td>Source is tested, packaging path less clearly enforced</td></tr>
+        <tr><td>14</td><td>Medium</td><td>Audit/trim local automation files committed under <code>.claude/</code></td><td>Repo vs local state boundary unclear</td></tr>
+        <tr><td>15</td><td>Medium</td><td>Normalize ignore rules with committed truth</td><td>Examples include docs and local-state ambiguity</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="phases">
+    <h2>Execution phases</h2>
+    <div class="grid2">
+      <div class="card"><h3>Phase A — Sanitation</h3><p>Remove tracked noise, token files, cache/build artifacts, and restore source-of-truth clarity.</p></div>
+      <div class="card"><h3>Phase B — Enforcement</h3><p>Add CI gates for artifact cleanliness, secret surfaces, changed-package verification, and coverage floors.</p></div>
+      <div class="card"><h3>Phase C — DB hardening</h3><p>Split <code>queries.ts</code>, deepen tenant-safety tests, and raise core verification confidence.</p></div>
+      <div class="card"><h3>Phase D — API/worker resilience</h3><p>Expand route abuse-path and worker operational-path verification.</p></div>
+      <div class="card"><h3>Phase E — Public package hardening</h3><p>CLI/MCP/SDK/Python packaging, tests, smoke installs, release simulation.</p></div>
+      <div class="card"><h3>Phase F — Docs/process pruning</h3><p>Reduce durable-doc sprawl, strengthen active-truth boundaries, keep history without letting it dominate audits.</p></div>
+    </div>
+  </section>
+
+  <section id="proof">
+    <h2>Proof of full coverage</h2>
+    <p class="muted">Every in-scope file was accounted for in the machine-readable index. Generated/cache files were individually classified. Authored files were individually reviewed for audit relevance.</p>
+    <pre>Proof artifacts
+- docs/plans/active/2026-04-14-file-audit-index.json
+- docs/plans/active/2026-04-14-full-file-audit-plan.html
+
+File counts
+- Total in-scope files: 1,644
+- Authored/config/doc/source files reviewed: 470
+- Generated/cache/noise files classified: 1,174</pre>
+    <div class="callout">
+      Recommended next step: implement Phase A + Phase B immediately. They are the highest-leverage backlog reducers and will make every subsequent hardening phase cheaper and more reliable.
+    </div>
+  </section>
+</div>
+</body>
+</html>

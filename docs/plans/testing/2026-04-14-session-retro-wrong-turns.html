@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foxhound Session Retro — Wrong Turns & Repo Improvements</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-2: #0b1627;
+      --panel: rgba(16, 24, 39, 0.62);
+      --panel-strong: rgba(14, 20, 34, 0.78);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #e6eef8;
+      --muted: #9db0c8;
+      --accent: #60a5fa;
+      --accent-2: #a78bfa;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --shadow: 0 28px 80px rgba(2, 8, 20, 0.45);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(96,165,250,0.14), transparent 26%),
+        radial-gradient(circle at top right, rgba(167,139,250,0.12), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px 80px; }
+    .topnav {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 10px 0 18px; margin-bottom: 8px;
+      backdrop-filter: blur(10px);
+    }
+    .navchip {
+      color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; padding: 10px 12px; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.04);
+    }
+    .hero {
+      position: relative; overflow: hidden;
+      border: 1px solid var(--line); border-radius: 30px; padding: 30px;
+      background: linear-gradient(180deg, rgba(15,23,42,.78), rgba(15,23,42,.62));
+      box-shadow: var(--shadow); backdrop-filter: blur(16px);
+    }
+    .hero::before {
+      content: ""; position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at top left, rgba(96,165,250,.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(167,139,250,.16), transparent 22%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(96,165,250,.22);
+      background: rgba(96,165,250,.10); color: #bfdbfe;
+      font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    }
+    h1 { margin: 14px 0 12px; font-size: clamp(34px, 6vw, 58px); line-height: .98; }
+    .hero p { margin: 0; max-width: 900px; color: var(--muted); font-size: 16px; line-height: 1.7; }
+    .hero-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 14px; margin-top: 24px; }
+    .metric {
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+      background: rgba(255,255,255,.04); backdrop-filter: blur(10px);
+    }
+    .metric .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .metric .value { margin-top: 8px; font-size: 32px; font-weight: 800; }
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .section { margin-top: 26px; }
+    .section h2 { margin: 0 0 12px; font-size: 28px; }
+    .section p.lead { margin: 0 0 18px; color: var(--muted); line-height: 1.7; }
+    .card {
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+      background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    }
+    .card h3 { margin: 0 0 10px; font-size: 20px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; font-weight: 700; }
+    .good { color: var(--good); background: rgba(52,211,153,.08); }
+    .warn { color: var(--warn); background: rgba(251,191,36,.08); }
+    .bad { color: var(--bad); background: rgba(248,113,113,.08); }
+    .muted { color: var(--muted); }
+    ul { margin: 10px 0 0 18px; color: var(--muted); line-height: 1.7; }
+    li + li { margin-top: 6px; }
+    .evidence {
+      margin-top: 14px; display: grid; gap: 12px;
+    }
+    .evidence-block {
+      border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+      background: rgba(255,255,255,.03);
+    }
+    .evidence-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 10px 12px; border-bottom: 1px solid var(--line);
+      font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    pre {
+      margin: 0; padding: 14px; overflow: auto; white-space: pre-wrap;
+      font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #dbe7f8; background: rgba(2,6,23,.42);
+    }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 16px; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    td { color: var(--text); }
+    .rank { font-weight: 800; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topnav">
+      <a class="navchip" href="#summary">Summary</a>
+      <a class="navchip" href="#wrong-turns">Wrong Turns</a>
+      <a class="navchip" href="#recommendations">Recommendations</a>
+      <a class="navchip" href="#savings">Time Savings</a>
+    </div>
+
+    <section class="hero" id="summary">
+      <div class="hero-inner">
+        <div class="eyebrow">Meyer Session Retro · Wrong Turns Analysis</div>
+        <h1>Where the session burned time before finding the right path</h1>
+        <p>
+          This review isolates moments where work initially went in the wrong direction, then later corrected course.
+          The dominant pattern was not poor coding judgment — it was <strong>repo truth ambiguity</strong>: multiple competing
+          sources of brand truth, package-resolution drift, and incomplete guidance around demo-vs-workspace behavior.
+        </p>
+        <div class="hero-metrics">
+          <div class="metric">
+            <div class="label">Material wrong turns</div>
+            <div class="value">5</div>
+          </div>
+          <div class="metric">
+            <div class="label">Most expensive category</div>
+            <div class="value">Config truth drift</div>
+          </div>
+          <div class="metric">
+            <div class="label">Estimated avoidable time</div>
+            <div class="value">45–80 min</div>
+          </div>
+          <div class="metric">
+            <div class="label">Best repo fix</div>
+            <div class="value">Document source of truth</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="wrong-turns">
+      <h2>Wrong turns and recoveries</h2>
+      <p class="lead">Each case shows the initial move, why it failed, the correct approach, and the repo improvement that would have prevented the detour.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="pill bad">#1 · Package resolution drift</div>
+          <h3>Tried to fix runtime by rewriting source imports instead of fixing workspace install state</h3>
+          <ul>
+            <li><strong>Initial try:</strong> Changed <code>packages/demo-domain/src/index.ts</code> from explicit <code>.js</code> imports to extensionless TS-friendly imports so Next dev would stop 500ing.</li>
+            <li><strong>Why it failed:</strong> It fixed runtime temporarily but broke package typecheck because <code>demo-domain</code> is NodeNext-configured and expects explicit <code>.js</code> import specifiers in TS source.</li>
+            <li><strong>Correct approach:</strong> Restore NodeNext-correct imports, then discover the real issue: <code>@foxhound/demo-domain</code> was declared in <code>apps/web</code> but not actually linked into <code>apps/web/node_modules</code> until <code>pnpm install</code> was run.</li>
+            <li><strong>Preventive repo improvement:</strong> Add a short repo note in <code>apps/web/README.md</code> and/or <code>CLAUDE.md</code>: “If a workspace package fails to resolve in web dev, verify it is actually linked in <code>apps/web/node_modules</code> before editing TS import specifiers.”</li>
+          </ul>
+          <div class="evidence">
+            <div class="evidence-block">
+              <div class="evidence-head"><span>Before</span><span>Wrong approach</span></div>
+              <pre>Root cause assumed: TS/Next import extension mismatch
+Action taken: rewrite demo-domain src exports away from .js imports
+Side effect: package typecheck failure under NodeNext</pre>
+            </div>
+            <div class="evidence-block">
+              <div class="evidence-head"><span>After</span><span>Correct approach</span></div>
+              <pre>Evidence found: apps/web/node_modules/@foxhound lacked demo-domain symlink
+Action taken: pnpm install
+Result: package linked, runtime + typecheck path reconciled</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="pill bad">#2 · TS alias detour</div>
+          <h3>Tried to solve package resolution with TS path hacks that fought runtime</h3>
+          <ul>
+            <li><strong>Initial try:</strong> Removed and then reintroduced TS path mappings in <code>apps/web/tsconfig.json</code>, including pointing <code>@foxhound/demo-domain</code> at generated declarations.</li>
+            <li><strong>Why it failed:</strong> The TypeScript resolver and Next runtime were pulling in different truths. The path trick helped typecheck but regressed module resolution in the running dev server.</li>
+            <li><strong>Correct approach:</strong> Treat package install/link state as the real source of truth, fix that first, then keep TS config simple.</li>
+            <li><strong>Preventive repo improvement:</strong> Add a “workspace resolution debugging order” note in <code>CLAUDE.md</code> / <code>docs/overview/start-here.md</code>: 1) verify package symlink, 2) verify package exports, 3) only then touch TS paths.</li>
+          </ul>
+          <div class="evidence">
+            <div class="evidence-block">
+              <div class="evidence-head"><span>Before</span><span>Wrong approach</span></div>
+              <pre>apps/web/tsconfig.json temporarily used @foxhound/demo-domain -> dist/index.d.ts
+Typecheck improved, runtime regressed</pre>
+            </div>
+            <div class="evidence-block">
+              <div class="evidence-head"><span>After</span><span>Correct approach</span></div>
+              <pre>apps/web/node_modules/@foxhound/demo-domain symlink restored
+TS path workaround removed
+Runtime and typecheck both green</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="pill warn">#3 · Brand truth ambiguity</div>
+          <h3>Assumed old docs-site orange tokens were the brand source of truth</h3>
+          <ul>
+            <li><strong>Initial try:</strong> Inferred default theme from local docs-site CSS that still used orange tokens.</li>
+            <li><strong>Why it failed:</strong> That source was stale. The real current marketing implementation lived in a different repo (<code>foxhound-web</code>) and used a blue-primary system.</li>
+            <li><strong>Correct approach:</strong> Read the actual marketing repo’s design system file, then align the default tenant theme to that source of truth.</li>
+            <li><strong>Preventive repo improvement:</strong> Add an explicit “brand source of truth” section to <code>CLAUDE.md</code> or a new <code>docs/reference/brand-source-of-truth.md</code> naming the authoritative repo/file for marketing tokens.</li>
+          </ul>
+          <div class="evidence">
+            <div class="evidence-block">
+              <div class="evidence-head"><span>Before</span><span>Wrong source</span></div>
+              <pre>docs-site/custom.css implied orange branding
+Result: default demo theme briefly steered toward stale orange assumptions</pre>
+            </div>
+            <div class="evidence-block">
+              <div class="evidence-head"><span>After</span><span>Correct source</span></div>
+              <pre>/Users/caleb.love/Developer/foxhound-web/src/styles/design-system.css
+Current truth: blue primary, light premium background, Outfit / DM Sans / JetBrains Mono</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="pill warn">#4 · Demo route completeness discovered late</div>
+          <h3>Tried to avoid broken routes by removing links instead of first checking for reusable existing components</h3>
+          <ul>
+            <li><strong>Initial try:</strong> Removed or de-emphasized broken demo links like replay/session paths after seeing 404s.</li>
+            <li><strong>Why it failed:</strong> It reduced brokenness short-term but didn’t solve the product problem, and it hid that reusable replay/evaluator components already existed in the codebase.</li>
+            <li><strong>Correct approach:</strong> Search the repo for existing dashboard implementations and wire demo routes on top of shared components.</li>
+            <li><strong>Preventive repo improvement:</strong> Add a route inventory or information architecture doc for demo mode, listing implemented routes, missing routes, and shared components available to backfill them.</li>
+          </ul>
+          <div class="evidence">
+            <div class="evidence-block">
+              <div class="evidence-head"><span>Before</span><span>Short-term mitigation</span></div>
+              <pre>Replay/session links suppressed or redirected away from missing pages</pre>
+            </div>
+            <div class="evidence-block">
+              <div class="evidence-head"><span>After</span><span>Actual fix</span></div>
+              <pre>Found existing replay/evaluator components in apps/web
+Added /demo/replay, /demo/replay/[id], /demo/evaluators, /demo/sessions/[id]</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="pill warn">#5 · Repeated exact-match patch friction</div>
+          <h3>Large anchored replacements kept failing on duplicated UI patterns</h3>
+          <ul>
+            <li><strong>Initial try:</strong> Patch repeated JSX blocks with large exact snippets across deeply similar cards and records.</li>
+            <li><strong>Why it failed:</strong> Many files contained repeated structures (cards, badges, sections), so generic matches collided or missed after nearby edits.</li>
+            <li><strong>Correct approach:</strong> Re-read the file and patch smaller unique chunks using surrounding labels/titles as anchors.</li>
+            <li><strong>Preventive repo improvement:</strong> Add a short repo rule under exact-text editing guidance: “For repeated UI structures, anchor edits with the nearest unique title/label, not repeated class blocks.” Also consider more helper extraction to reduce repeated markup.</li>
+          </ul>
+          <div class="evidence">
+            <div class="evidence-block">
+              <div class="evidence-head"><span>Before</span><span>Wrong approach</span></div>
+              <pre>Large exact block patch against repeated card structures
+Result: duplicate-match failures and re-read loops</pre>
+            </div>
+            <div class="evidence-block">
+              <div class="evidence-head"><span>After</span><span>Correct approach</span></div>
+              <pre>Patch each repeated block with unique nearby content (e.g. specific CardTitle or section heading)
+Result: reliable exact-match edits</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="recommendations">
+      <h2>Ranked repo improvement recommendations</h2>
+      <p class="lead">These are ranked by expected reduction in future agent wrong turns.</p>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Improvement</th>
+              <th>What to add</th>
+              <th>Why it matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="rank">1</td>
+              <td>Document brand source of truth</td>
+              <td><code>docs/reference/brand-source-of-truth.md</code> or <code>CLAUDE.md</code> section pointing to the canonical marketing repo + design token file</td>
+              <td>Prevents future theme/default-brand drift and stops agents from reading stale local docs or outdated CSS.</td>
+            </tr>
+            <tr>
+              <td class="rank">2</td>
+              <td>Workspace package debugging order</td>
+              <td>Short checklist in <code>docs/overview/start-here.md</code> / <code>CLAUDE.md</code>: verify symlink → verify exports → only then TS paths/import rewrites</td>
+              <td>Would have prevented both the import-rewrite detour and the TS alias detour.</td>
+            </tr>
+            <tr>
+              <td class="rank">3</td>
+              <td>Demo route inventory</td>
+              <td>One doc listing demo IA, implemented routes, route owners, and reusable backing components</td>
+              <td>Stops agents from removing broken links before realizing shared components already exist.</td>
+            </tr>
+            <tr>
+              <td class="rank">4</td>
+              <td>Repeated-UI edit rule</td>
+              <td>Append to repo editing conventions: use title/heading anchors for repeated cards, not repeated class blocks</td>
+              <td>Reduces exact-match patch failures and reread churn in UI-heavy files.</td>
+            </tr>
+            <tr>
+              <td class="rank">5</td>
+              <td>Theme/tenant architecture note</td>
+              <td>Short <code>docs/reference/theme-architecture.md</code> explaining semantic tokens, presets, provider, and Settings role</td>
+              <td>Helps future contributors extend the theme system without reintroducing hardcoded styling.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="savings">
+      <h2>Estimated time savings</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>Estimated savings by improvement</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Improvement</th>
+                <th>Estimated savings / session</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Brand source of truth doc</td>
+                <td>10–20 min</td>
+              </tr>
+              <tr>
+                <td>Workspace package debugging order</td>
+                <td>15–25 min</td>
+              </tr>
+              <tr>
+                <td>Demo route inventory</td>
+                <td>8–15 min</td>
+              </tr>
+              <tr>
+                <td>Repeated-UI edit rule</td>
+                <td>5–10 min</td>
+              </tr>
+              <tr>
+                <td>Theme architecture note</td>
+                <td>7–12 min</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Executive takeaway</h3>
+          <ul>
+            <li>The session was productive, but a meaningful share of time went to <strong>truth discovery</strong>, not implementation.</li>
+            <li>The two most expensive wrong turns were both rooted in <strong>missing source-of-truth documentation</strong>.</li>
+            <li>Adding a small number of repo-native docs would likely save <strong>45–80 minutes</strong> in similar future sessions.</li>
+            <li>The best ROI fix is not more process — it is clearer repo truth: brand source, workspace debugging order, and demo route inventory.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

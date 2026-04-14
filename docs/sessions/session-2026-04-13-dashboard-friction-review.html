@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Dashboard Session Friction Review — 2026-04-13</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-2: #0b1730;
+      --panel: rgba(18, 28, 53, 0.68);
+      --panel-strong: rgba(18, 28, 53, 0.82);
+      --border: rgba(170, 205, 255, 0.16);
+      --text: #eef4ff;
+      --muted: #9fb1d1;
+      --accent: #78c4ff;
+      --accent-2: #9f8cff;
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(120,196,255,0.14), transparent 26%),
+        radial-gradient(circle at top right, rgba(159,140,255,0.16), transparent 22%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+    .hero, .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 28px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: -20% auto auto 55%;
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(120,196,255,0.18), transparent 60%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(120,196,255,0.28);
+      color: var(--accent);
+      background: rgba(120,196,255,0.08);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 14px 0 10px; font-size: 38px; line-height: 1.05; }
+    h2 { margin: 0 0 14px; font-size: 24px; }
+    h3 { margin: 0 0 10px; font-size: 18px; }
+    p, li { color: var(--text); line-height: 1.5; }
+    .muted { color: var(--muted); }
+    .nav {
+      position: sticky;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 12px;
+      margin-bottom: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(18px);
+    }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .panel { padding: 22px; margin-bottom: 18px; }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .metric {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+    .metric .value { font-size: 34px; font-weight: 800; margin-top: 8px; }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .good { background: rgba(74,222,128,0.12); color: var(--good); }
+    .warn { background: rgba(251,191,36,0.12); color: var(--warn); }
+    .bad { background: rgba(251,113,133,0.12); color: var(--bad); }
+    .code {
+      background: rgba(6, 10, 20, 0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px;
+      color: #d9e7ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--accent); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .rank { font-weight: 800; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero" id="top">
+      <div class="eyebrow">Meyer friction review · dashboard buildout</div>
+      <h1>Where the session went sideways, then recovered</h1>
+      <p class="muted">Review of the 2026-04-13 Foxhound dashboard implementation session. Focus: wrong turns later corrected, why they happened, and what repo truth could prevent repeats.</p>
+      <div class="grid grid-3" style="margin-top:18px;">
+        <div class="metric">
+          <div class="muted">Implemented slices</div>
+          <div class="value">14</div>
+          <div class="muted">A1–A3, B2–B5, C1–C4, D1–D4, E1–E4 landed</div>
+        </div>
+        <div class="metric">
+          <div class="muted">Reviewable friction points</div>
+          <div class="value">7</div>
+          <div class="muted">Concrete course corrections with identifiable causes</div>
+        </div>
+        <div class="metric">
+          <div class="muted">Ending verification state</div>
+          <div class="value">51/51</div>
+          <div class="muted">Targeted web tests passing + typecheck clean</div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="nav">
+      <a href="#summary">Executive summary</a>
+      <a href="#f1">Friction 1</a>
+      <a href="#f2">Friction 2</a>
+      <a href="#f3">Friction 3</a>
+      <a href="#f4">Friction 4</a>
+      <a href="#f5">Friction 5</a>
+      <a href="#f6">Friction 6</a>
+      <a href="#f7">Friction 7</a>
+      <a href="#recommendations">Ranked recommendations</a>
+    </nav>
+
+    <section class="panel" id="summary">
+      <h2>Executive summary of session efficiency</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>What went well</h3>
+          <ul>
+            <li>Once the workflow model was chosen, implementation velocity was high.</li>
+            <li>Most problems were not architecture failures; they were <strong>handoff realism</strong>, <strong>test fragility</strong>, and <strong>placeholder context drift</strong>.</li>
+            <li>The repo’s existing behavioral-test culture caught several issues before they escaped.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Where time was lost</h3>
+          <ul>
+            <li>Workspace export/build drift between packages.</li>
+            <li>Tests written against incidental class names or overly specific single-match queries.</li>
+            <li>Decorative deep links introduced before destination pages actually honored the parameters.</li>
+            <li>Hardcoded placeholder IDs creating false “finished” flows.</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px;" class="muted">Estimated avoidable overhead in this session: <strong>45–75 minutes</strong> if the repo had stronger guidance on route handoffs, workspace rebuild expectations, and UI-test resilience.</p>
+    </section>
+
+    <section class="panel" id="f1">
+      <h2>Friction 1 — Workspace type surface drift after adding new API exports</h2>
+      <span class="badge bad">Wrong turn</span>
+      <span class="badge good">Recovered</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Added `diffPromptVersions` to `packages/db/src/queries.ts`, then immediately typechecked consuming packages.</p>
+          <div class="code">pnpm --filter @foxhound/api test -- src/routes/prompts.test.ts
+pnpm --filter @foxhound/api typecheck
+→ TS2724 / TS2551: exported member not found from @foxhound/db dist surface</div>
+        </div>
+        <div class="card">
+          <h3>2. Why it failed</h3>
+          <p>The consumer (`apps/api`) imports from the built workspace package surface (`dist`), not directly from source. The new export existed in source, but not yet in built artifacts.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Rebuild the producer package first, then typecheck the consumer.</p>
+          <div class="code">pnpm --filter @foxhound/db build
+pnpm --filter @foxhound/api typecheck
+pnpm --filter @foxhound/api-client typecheck</div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a short note to <code>apps/web/CLAUDE.md</code> or root guidance: <em>“When changing exported workspace types/functions, rebuild the producer package before typechecking consumers.”</em></li>
+        <li>Add a tiny helper script like <code>pnpm verify:workspace-export @foxhound/db @foxhound/api</code>.</li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>5–10 min per workspace API surface change</strong>.</p>
+    </section>
+
+    <section class="panel" id="f2">
+      <h2>Friction 2 — Decorative handoff links before destination pages supported them</h2>
+      <span class="badge bad">Wrong direction first</span>
+      <span class="badge warn">Subtle product risk</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Added deep links like:</p>
+          <div class="code">/prompts?focus=support-routing
+/prompts?focus=support-routing&baseline=11&comparison=12
+/datasets?sourceTrace=trace_123</div>
+          <p>These made flows look connected.</p>
+        </div>
+        <div class="card">
+          <h3>2. Why it didn’t really work</h3>
+          <p>Destination pages initially ignored those query parameters, so the links were mostly narrative decoration rather than working handoffs.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Teach the destination pages to honor the parameters:</p>
+          <div class="code">Prompts page:
+- resolve focus → redirect to matching prompt detail
+- resolve baseline/comparison/version → redirect into prompt diff
+
+Datasets page:
+- honor sourceTrace with contextual next action</div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a rule to <code>docs/reference/engineering-notes.md</code>: <em>“Do not add context-carrying deep links unless the destination page parses and applies the query params.”</em></li>
+        <li>Adopt a naming convention doc for dashboard handoffs: <code>focus</code>, <code>baseline</code>, <code>comparison</code>, <code>sourceTrace</code> with required page behavior.</li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>10–15 min per multi-page workflow slice</strong> and better product honesty.</p>
+    </section>
+
+    <section class="panel" id="f3">
+      <h2>Friction 3 — Hardcoded fake deep links as temporary UX shortcuts</h2>
+      <span class="badge bad">Wrong shortcut</span>
+      <span class="badge good">Fixed in review pass</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>The command palette used a hardcoded route:</p>
+          <div class="code">{ label: 'Session Replay', href: '/replay/trace_reg_1' }</div>
+        </div>
+        <div class="card">
+          <h3>2. Why it failed</h3>
+          <p>It created a brittle non-real workflow. The route could 404 or silently imply a recent trace exists when it does not.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Use a stable real route for quick jump unless live recent data is available.</p>
+          <div class="code">Session Replay quick jump → /traces</div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a small rule in dashboard docs: <em>“Quick-jump/launcher entries must target stable real routes, not fabricated entity IDs.”</em></li>
+        <li>Prefer “open list/workbench” over “open item” unless data is fetched live.</li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>5–8 min per launcher/shortcut feature</strong> plus reduced QA confusion.</p>
+    </section>
+
+    <section class="panel" id="f4">
+      <h2>Friction 4 — Tests coupled to incidental details instead of durable behavior</h2>
+      <span class="badge bad">Repeated friction</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Several tests assumed a single matching element or old class names:</p>
+          <div class="code">expect(getByRole('link', { name: /Open datasets/i }))...
+expect(className).toContain('bg-indigo-50')</div>
+        </div>
+        <div class="card">
+          <h3>2. Why it failed</h3>
+          <p>As pages became richer, multiple valid links had the same accessible name, and the visual uplift changed implementation classes while preserving behavior.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Use behavior-resilient tests:</p>
+          <div class="code">getAllByRole(...)
+assert first relevant href
+assert new active-state semantic classes
+avoid overfitting to old color classes</div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a stronger testing note in <code>apps/web/CLAUDE.md</code>: prefer <code>getAllByRole</code> when duplicate CTA names are likely.</li>
+        <li>Add a dashboard-testing note: active-state tests should assert semantic state classes/tokens, not exact historical utility names.</li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>10–20 min per polish pass</strong>.</p>
+    </section>
+
+    <section class="panel" id="f5">
+      <h2>Friction 5 — Browser-environment test gaps for command palette primitives</h2>
+      <span class="badge warn">Harness friction</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Wrote tests for the command palette assuming jsdom had all required DOM APIs.</p>
+          <div class="code">ReferenceError: ResizeObserver is not defined
+TypeError: scrollIntoView is not a function</div>
+        </div>
+        <div class="card">
+          <h3>2. Why it failed</h3>
+          <p>The <code>cmdk</code> stack relies on browser APIs not always present in test environment defaults.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Add explicit test shims for missing browser APIs in the test or shared setup.</p>
+          <div class="code">vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+Element.prototype.scrollIntoView = vi.fn()</div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add common browser polyfills to <code>vitest.setup.ts</code> so component tests do not rediscover them one file at a time.</li>
+        <li>Document: <em>“cmdk/dialog-rich tests may require ResizeObserver + scrollIntoView shims.”</em></li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>8–12 min per command/dialog test suite</strong>.</p>
+    </section>
+
+    <section class="panel" id="f6">
+      <h2>Friction 6 — Product copy leaking implementation language</h2>
+      <span class="badge warn">Low technical cost, high polish drag</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Used internal build language in the UI:</p>
+          <div class="code">Operator mode · dashboard shell uplift</div>
+        </div>
+        <div class="card">
+          <h3>2. Why it didn’t work</h3>
+          <p>It exposed implementation thinking to end users and made the polished UI feel unfinished.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <div class="code">Operator Console · live workspace</div>
+          <p>Product-facing, stable, and meaningful.</p>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a short UI-copy rule to <code>apps/web/CLAUDE.md</code>: <em>avoid shipping implementation-language labels to user-facing surfaces.</em></li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>3–5 min per page polish pass</strong>, but improves perceived quality disproportionately.</p>
+    </section>
+
+    <section class="panel" id="f7">
+      <h2>Friction 7 — Executive surface was added without clear discoverability rule</h2>
+      <span class="badge warn">IA ambiguity</span>
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>1. Initial try</h3>
+          <p>Added <code>/executive</code> and command-palette access first.</p>
+        </div>
+        <div class="card">
+          <h3>2. Why it fell short</h3>
+          <p>The route existed, but stakeholder discovery depended on remembering quick jump. The IA did not explicitly state whether executive surfaces belong in persistent nav.</p>
+          <h3 style="margin-top:14px;">3. Correct approach</h3>
+          <p>Add it to the Overview nav group and keep it in quick jump.</p>
+        </div>
+      </div>
+      <h3 style="margin-top:16px;">4. Repo improvement to prevent repeat</h3>
+      <ul>
+        <li>Add a route-governance rule: if a page is intended for recurring stakeholder use, it must be discoverable in persistent navigation, not just a launcher.</li>
+      </ul>
+      <p class="muted">Estimated time savings: <strong>5–10 min per new summary surface</strong> and fewer follow-up discoverability fixes.</p>
+    </section>
+
+    <section class="panel" id="recommendations">
+      <h2>Ranked recommendations for repo improvements</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Recommendation</th>
+            <th>Where to add it</th>
+            <th>Why it matters</th>
+            <th>Est. savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rank">1</td>
+            <td>Document dashboard query-param handoff contracts (<code>focus</code>, <code>baseline</code>, <code>comparison</code>, <code>sourceTrace</code>) and require destination support before link creation.</td>
+            <td><code>docs/reference/engineering-notes.md</code> + dashboard plan docs</td>
+            <td>Prevents fake workflow integration and misleading “connected” UX.</td>
+            <td>10–15 min per cross-page workflow slice</td>
+          </tr>
+          <tr>
+            <td class="rank">2</td>
+            <td>Add shared Vitest browser shims for <code>ResizeObserver</code> and <code>scrollIntoView</code>.</td>
+            <td><code>apps/web/vitest.setup.ts</code></td>
+            <td>Stops repeated command/dialog test failures.</td>
+            <td>8–12 min per UI-command/dialog test suite</td>
+          </tr>
+          <tr>
+            <td class="rank">3</td>
+            <td>Add explicit workspace-export verification guidance: rebuild producer packages before typechecking consumers.</td>
+            <td><code>docs/reference/engineering-notes.md</code> or root agent guidance</td>
+            <td>Prevents needless type-surface confusion in monorepo work.</td>
+            <td>5–10 min per workspace API change</td>
+          </tr>
+          <tr>
+            <td class="rank">4</td>
+            <td>Strengthen dashboard UI testing rules: prefer durable semantic assertions over exact old utility classes, and expect duplicate CTA labels.</td>
+            <td><code>apps/web/CLAUDE.md</code></td>
+            <td>Reduces churn during visual polish and richer page composition.</td>
+            <td>10–20 min per polish wave</td>
+          </tr>
+          <tr>
+            <td class="rank">5</td>
+            <td>Add route-governance rule for launcher-only vs persistent-nav surfaces.</td>
+            <td><code>docs/plans/active/2026-04-13-dashboard-implementation-roadmap.md</code> or <code>apps/web/CLAUDE.md</code></td>
+            <td>Prevents discoverability ambiguity for executive and stakeholder routes.</td>
+            <td>5–10 min per summary surface</td>
+          </tr>
+          <tr>
+            <td class="rank">6</td>
+            <td>Add a small user-facing copy rule: no implementation-language labels in shipped UI.</td>
+            <td><code>apps/web/CLAUDE.md</code></td>
+            <td>Improves polish and reduces cleanup passes.</td>
+            <td>3–5 min per page polish pass</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Bottom line</h2>
+      <p>The session was highly productive, but the main quality drag was not “bad coding.” It was <strong>workflow realism drift</strong>: links, routes, tests, and package surfaces looked correct one layer earlier than they were truly integrated. The highest leverage repo improvements are the ones that force <strong>destination truth</strong>, <strong>workspace export discipline</strong>, and <strong>UI-test resilience</strong>.</p>
+      <p class="muted">Saved as: <code>docs/sessions/session-2026-04-13-dashboard-friction-review.html</code></p>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T03",
+  "unitId": "M001/S03/T03",
+  "timestamp": 1775801838466,
+  "passed": false,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "grep -q 'compareExperiments' .github/actions/quality-gate/run.ts",
+      "exitCode": 0,
+      "durationMs": 28,
+      "verdict": "pass"
+    },
+    {
+      "command": "grep -q 'github.issues.createComment' .github/actions/quality-gate/run.ts",
+      "exitCode": 1,
+      "durationMs": 24,
+      "verdict": "fail"
+    },
+    {
+      "command": "grep -q 'threshold' .github/actions/quality-gate/run.ts",
+      "exitCode": 0,
+      "durationMs": 23,
+      "verdict": "pass"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

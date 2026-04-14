@@ -2,6 +2,8 @@
 
 ## Pre-publish Checklist
 
+> `dist/` is a build artifact for packaging and publish verification. It should be produced by the release/build flow, not treated as committed source-of-truth in the repo.
+
 - [x] Version bumped to 0.2.0
 - [x] CHANGELOG.md created with all new features
 - [x] README.md updated with comprehensive documentation
@@ -49,6 +51,7 @@ npm login
 
 ```bash
 cd packages/sdk
+rm -rf dist
 pnpm build
 pnpm test
 npm pack --dry-run

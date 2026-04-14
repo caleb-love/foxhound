@@ -295,8 +295,14 @@ var FoxhoundApiClient = class {
     await this.del(`/v1/regressions/${encodeURIComponent(agentId)}/baselines?version=${encodeURIComponent(version)}`);
   }
   // ── Prompts ────────────────────────────────────────────────────────────
-  async listPrompts() {
-    return this.get("/v1/prompts");
+  async listPrompts(params) {
+    const query = new URLSearchParams();
+    if (params?.page !== void 0)
+      query.set("page", String(params.page));
+    if (params?.limit !== void 0)
+      query.set("limit", String(params.limit));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/prompts${suffix}`);
   }
   async getPrompt(promptId) {
     return this.get(`/v1/prompts/${encodeURIComponent(promptId)}`);
@@ -312,6 +318,13 @@ var FoxhoundApiClient = class {
   }
   async listPromptVersions(promptId) {
     return this.get(`/v1/prompts/${encodeURIComponent(promptId)}/versions`);
+  }
+  async diffPromptVersions(promptId, params) {
+    const query = new URLSearchParams({
+      versionA: String(params.versionA),
+      versionB: String(params.versionB)
+    });
+    return this.get(`/v1/prompts/${encodeURIComponent(promptId)}/diff?${query.toString()}`);
   }
   async setPromptLabel(promptId, params) {
     return this.post(`/v1/prompts/${encodeURIComponent(promptId)}/labels`, params);
@@ -425,7 +438,9 @@ function parseExperimentConfig() {
   try {
     config = JSON.parse(experimentConfigRaw);
   } catch (err) {
-    throw new Error(`Invalid experiment-config JSON: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `Invalid experiment-config JSON: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
   return { config, timeout };
 }
@@ -507,7 +522,9 @@ async function main() {
         if (score.source !== "llm_judge") continue;
         if (score.value === void 0) continue;
         const scoreWithRun = score;
-        const run = comparison.runs.find((r) => r.id === scoreWithRun.experimentRunId);
+        const run = comparison.runs.find(
+          (r) => r.id === scoreWithRun.experimentRunId
+        );
         if (!run) continue;
         const isBaseline = run.experimentId === baselineExperimentId;
         const isCurrent = run.experimentId === experimentId;
@@ -562,7 +579,9 @@ async function main() {
       );
       console.log(`Posted quality gate comment to PR #${prNumber}`);
     } catch (err) {
-      console.error(`Failed to post PR comment: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        `Failed to post PR comment: ${err instanceof Error ? err.message : String(err)}`
+      );
       console.log("Quality gate results written to step summary only");
     }
   } else {
@@ -573,7 +592,9 @@ async function main() {
   setOutput("comparison-url", comparisonUrl);
   if (violations.length > 0) {
     const names = violations.map((v) => `${v.name} (${v.score.toFixed(3)})`).join(", ");
-    console.error(`Quality gate failed: ${violations.length} evaluator(s) below threshold ${threshold}: ${names}`);
+    console.error(
+      `Quality gate failed: ${violations.length} evaluator(s) below threshold ${threshold}: ${names}`
+    );
     process.exit(1);
   }
   console.log("Quality gate action complete.");
@@ -645,14 +666,20 @@ function formatQualityGateComment(params) {
       } else {
         status = "\u2705 stable";
       }
-      lines.push(`| ${name} | ${baseline.toFixed(3)} | ${current.toFixed(3)} | ${deltaStr} | ${status} |`);
+      lines.push(
+        `| ${name} | ${baseline.toFixed(3)} | ${current.toFixed(3)} | ${deltaStr} | ${status} |`
+      );
     }
     lines.push("");
   } else if (!errorMessage && baselineExperimentId) {
-    lines.push("> No evaluator scores found (all evaluators may be disabled or no LLM judge scores present)");
+    lines.push(
+      "> No evaluator scores found (all evaluators may be disabled or no LLM judge scores present)"
+    );
     lines.push("");
   } else if (!baselineExperimentId) {
-    lines.push("> No baseline experiment provided -- this is the first run. Future PRs will show score deltas.");
+    lines.push(
+      "> No baseline experiment provided -- this is the first run. Future PRs will show score deltas."
+    );
     lines.push("");
   }
   lines.push("<details>");
@@ -691,7 +718,9 @@ ${body}`;
   while (page <= maxPages) {
     const listRes = await fetch(`${commentsUrl}?per_page=100&page=${page}`, { headers });
     if (!listRes.ok) {
-      console.warn(`Failed to list PR comments (page ${page}): ${listRes.status} ${listRes.statusText}`);
+      console.warn(
+        `Failed to list PR comments (page ${page}): ${listRes.status} ${listRes.statusText}`
+      );
       break;
     }
     const comments = await listRes.json();

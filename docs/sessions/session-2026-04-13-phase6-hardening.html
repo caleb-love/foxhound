@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound — Docs Review + Phase 6 Hardening</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #0f1530;
+      --text: #eef2ff;
+      --muted: #a7b0d6;
+      --accent: #7cc4ff;
+      --good: #45d483;
+      --warn: #ffcc66;
+      --bad: #ff7a7a;
+      --border: #263158;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #09101c);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+    .hero, .slide {
+      background: rgba(18, 25, 51, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    h1, h2, h3 { margin: 0 0 12px; }
+    h1 { font-size: 34px; }
+    h2 { font-size: 24px; color: var(--accent); }
+    h3 { font-size: 18px; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .good { background: rgba(69,212,131,.14); color: var(--good); }
+    .warn { background: rgba(255,204,102,.14); color: var(--warn); }
+    .bad { background: rgba(255,122,122,.14); color: var(--bad); }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #0a1022;
+      color: #dbe7ff;
+    }
+    pre {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    a { color: var(--accent); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--accent); font-size: 13px; }
+    .toc a { display: block; margin: 6px 0; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero" id="top">
+      <div class="pill good">Implemented</div>
+      <div class="pill warn">Docs reviewed</div>
+      <h1>Foxhound: docs review + Phase 6 hardening start</h1>
+      <p class="muted">Date: 2026-04-13 • Scope: review what docs say is next, reconcile stale state, and begin the highest-value build slice.</p>
+    </section>
+
+    <section class="slide toc">
+      <h2>Index</h2>
+      <a href="#findings">1. What docs say needs to be done</a>
+      <a href="#decision">2. Chosen next build slice</a>
+      <a href="#changes">3. Code changes shipped</a>
+      <a href="#docs">4. Documentation updates made</a>
+      <a href="#verification">5. Verification evidence</a>
+      <a href="#next">6. Recommended next steps</a>
+    </section>
+
+    <section class="slide" id="findings">
+      <h2>1. What docs say needs to be done</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Roadmap / project context</h3>
+          <ul>
+            <li><code>docs/overview/project-overview.md</code> says Phases 0–5 are complete and Phase 6 is next.</li>
+            <li>Recent commits indicate Phase 6 implementation already happened.</li>
+            <li><code>docs/plans/active/2026-04-12-phase6-prompt-management-hardening.md</code> lists concrete follow-up items.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Mismatch found</h3>
+          <ul>
+            <li><code>docs/overview/current-status.md</code> incorrectly said all milestones complete and no active slice.</li>
+            <li><code>docs/README.md</code> correctly points to active Phase 6 work.</li>
+            <li><code>docs/sessions/session-2026-04-13.md</code> also says next step is Phase 6 hardening.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Highest-value documented work item</h3>
+      <p>The strongest next slice was already documented: prompt management hardening. It was small, security-relevant, and had explicit missing test coverage.</p>
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Status before</th><th>Why it mattered</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Prompt route rate limits</td><td>Missing</td><td>Protect SDK hot path and write endpoints from abuse</td></tr>
+          <tr><td>API key prompt scope enforcement</td><td>Documented gap</td><td>Prevent over-privileged keys</td></tr>
+          <tr><td>409 on duplicate create</td><td>TOCTOU fallback missing</td><td>Prevent DB unique collision surfacing as 500</td></tr>
+          <tr><td>Prompt route tests</td><td>Incomplete</td><td>Docs explicitly called out missing coverage</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide" id="decision">
+      <h2>2. Chosen next build slice</h2>
+      <p><strong>Selected slice:</strong> Phase 6 prompt management hardening.</p>
+      <ul>
+        <li>Directly backed by active docs</li>
+        <li>Security-sensitive</li>
+        <li>Small enough to ship immediately</li>
+        <li>Unblocks cleaner follow-on work for growth/prompt platform features</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="changes">
+      <h2>3. Code changes shipped</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>API scope enforcement</h3>
+          <p><code>apps/api/src/plugins/auth.ts</code></p>
+          <ul>
+            <li>Added API key scope parsing</li>
+            <li>Added prompt route scope checks</li>
+            <li><code>GET /v1/prompts*</code> requires <code>prompts:read</code></li>
+            <li>Non-GET prompt routes require <code>prompts:write</code></li>
+            <li>Legacy keys with null scopes still retain full access</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Prompt route hardening</h3>
+          <p><code>apps/api/src/routes/prompts.ts</code></p>
+          <ul>
+            <li>Added route-specific rate limits</li>
+            <li>Catches Postgres unique violation <code>23505</code> for duplicate prompt creation</li>
+            <li>Returns clean <code>409 Conflict</code> instead of accidental 500</li>
+            <li>Added audit log on prompt resolve reads</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Applied prompt route limits</h3>
+      <pre>POST /v1/prompts              → 30/min
+POST /v1/prompts/:id/versions → 30/min
+POST /v1/prompts/:id/labels   → 60/min
+GET  /v1/prompts/:id/versions → 600/min
+GET  /v1/prompts/resolve      → 600/min</pre>
+
+      <h3>Test coverage added</h3>
+      <p><code>apps/api/src/routes/prompts.test.ts</code></p>
+      <ul>
+        <li>single prompt fetch</li>
+        <li>version listing with batch labels</li>
+        <li>401 without auth</li>
+        <li>403 for missing prompt scopes</li>
+        <li>409 on DB unique violation</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="docs">
+      <h2>4. Documentation updates made</h2>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Change</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>docs/overview/current-status.md</code></td><td>Replaced stale “all complete” state with active Phase 6 hardening slice and next action</td></tr>
+          <tr><td><code>docs/reference/requirements-traceability.md</code></td><td>Added active requirement R011 for prompt management hardening</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">This reconciles the doc mismatch between project state and the active plans/session notes.</p>
+    </section>
+
+    <section class="slide" id="verification">
+      <h2>5. Verification evidence</h2>
+      <div class="pill good">Passing</div>
+      <pre>pnpm --filter @foxhound/api test -- src/routes/prompts.test.ts
+
+✓ src/routes/prompts.test.ts (22 tests)
+Test Files  1 passed (1)
+Tests      22 passed (22)</pre>
+      <h3>What was verified</h3>
+      <ul>
+        <li>Prompt route behavior still passes after hardening</li>
+        <li>New auth/scope cases are covered</li>
+        <li>Duplicate create path now returns 409</li>
+        <li>New single-resource + version-list tests pass</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="next">
+      <h2>6. Recommended next steps</h2>
+      <ol>
+        <li>Run broader API test suite and typecheck for full confidence.</li>
+        <li>Extend rate limiting to <code>GET /v1/prompts</code> and <code>GET /v1/prompts/:id</code> if you want complete parity on all prompt reads.</li>
+        <li>Add prompt label deletion route if you want the Phase 6 plan fully closed.</li>
+        <li>Validate Python/TS SDK prompt metadata naming consistency (<code>snake_case</code> vs <code>camelCase</code>).</li>
+        <li>Then move to the next product-facing slice: prompt growth features or website refresh V2.</li>
+      </ol>
+      <p><a href="#top">Back to top ↑</a></p>
+    </section>
+  </div>
+</body>
+</html>

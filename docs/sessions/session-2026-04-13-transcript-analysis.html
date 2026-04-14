@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Session Analysis — 2026-04-13</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #0f1530;
+      --text: #eef2ff;
+      --muted: #aab4d6;
+      --accent: #7dd3fc;
+      --good: #86efac;
+      --warn: #fbbf24;
+      --bad: #fca5a5;
+      --border: rgba(255,255,255,0.08);
+      --code: #0a0f1f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #0a0f1d 0%, #101936 100%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .deck {
+      width: min(1200px, 92vw);
+      margin: 0 auto;
+      padding: 32px 0 64px;
+    }
+    .slide {
+      min-height: 100vh;
+      padding: 40px 0;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      align-content: start;
+      gap: 20px;
+    }
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    h1, h2, h3 { margin: 0; line-height: 1.1; }
+    h1 { font-size: clamp(40px, 7vw, 72px); }
+    h2 { font-size: clamp(28px, 4vw, 44px); }
+    h3 { font-size: 22px; }
+    p, li { color: var(--muted); font-size: 18px; }
+    .lead { font-size: 22px; max-width: 900px; }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      background: rgba(18, 25, 51, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .metric {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .label { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+    }
+    .good { color: #052e16; background: var(--good); }
+    .warn { color: #3b2200; background: var(--warn); }
+    .bad { color: #450a0a; background: var(--bad); }
+    .code {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #dbe7ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(18, 25, 51, 0.72);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--text); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+    td { color: var(--muted); }
+    .tight li { margin-bottom: 8px; }
+    .footer { color: var(--muted); font-size: 14px; }
+    @media (max-width: 900px) {
+      .cols-2, .cols-3 { grid-template-columns: 1fr; }
+      .slide { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide">
+      <div class="eyebrow">Foxhound / Session Analysis</div>
+      <h1>Wrong turns from the 2026-04-13 build session</h1>
+      <p class="lead">
+        This review analyzes the previous Foxhound session transcript and isolates places where the work initially moved in a less effective direction, then recovered to the correct approach. The goal is not blame; it is repo hardening.
+      </p>
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="label">Wrong turns identified</div>
+          <div class="metric">3</div>
+          <p>Material cases where the session had to re-orient before moving efficiently.</p>
+        </div>
+        <div class="card">
+          <div class="label">Recovered successfully</div>
+          <div class="metric">100%</div>
+          <p>Each wrong turn was corrected in-session without abandoning the work.</p>
+        </div>
+        <div class="card">
+          <div class="label">Estimated avoidable time</div>
+          <div class="metric">15–30m</div>
+          <p>Reasonable savings if the repo exposed the right cues earlier.</p>
+        </div>
+      </div>
+      <p class="footer">Primary evidence source: <code>~/.pi/agent/sessions/.../2026-04-13T09-59-23-693Z_242315d5-7d4b-4201-b7fc-5c320baa9a10.jsonl</code></p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Executive Summary</div>
+      <h2>Session efficiency: solid recovery, but avoidable drift</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>What went well</h3>
+          <ul class="tight">
+            <li>The session asked for evaluation criteria first and worked against a concrete deliverable.</li>
+            <li>Once the right slice was chosen, implementation moved cleanly: prompt scopes, route hardening, tests, docs state updates, and an HTML deliverable all landed.</li>
+            <li>Verification discipline was good: targeted tests first, then broader test + typecheck once continuing “in order.”</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Where efficiency leaked</h3>
+          <ul class="tight">
+            <li>State documents advertised “all milestones complete,” while active plans and session notes clearly showed unfinished Phase 6 hardening.</li>
+            <li>Broader verification surfaced pre-existing test-fixture typing debt that was not scoped in docs as a known baseline issue.</li>
+            <li>One edit attempt failed because the anchor text was too generic for the edit tool’s exact-match behavior.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Bottom line</h3>
+        <p>
+          The biggest source of wasted motion was not coding quality; it was repo truth fragmentation. The repo gave conflicting answers about what was done, what remained, and what verification debt already existed. Better source-of-truth docs and sharper file-editing conventions would have shortened the path materially.
+        </p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Friction Point 1</div>
+      <h2>Trusted stale state docs before cross-checking active plans</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <span class="pill bad">Initial direction</span>
+          <p><strong>What was tried initially?</strong><br/>The session began by loading high-level state docs such as <code>docs/overview/project-overview.md</code> and related documentation that described Phases 0–5 as complete and implied a clean transition state.</p>
+          <p><strong>Why didn’t it work?</strong><br/>Those files were stale relative to active planning artifacts. They suggested completion, while active plans and recent commits still contained open Phase 6 hardening work.</p>
+          <div class="code">Transcript evidence (early read):
+"Current state: Phase 5 ... complete ... Phase 6 (Prompt Management & Growth) is next."
+
+Later session finding:
+"Identified docs mismatch: docs/overview/current-status.md said all milestones complete, but active Phase 6 hardening work existed in plans/session notes and recent commits."</div>
+        </div>
+        <div class="card">
+          <span class="pill good">Correct approach</span>
+          <p><strong>What was the correct approach?</strong><br/>Cross-check state docs against active plans, session notes, and recent git activity before selecting the next slice. That recovery happened later and led to the correct target: Phase 6 prompt management hardening.</p>
+          <div class="code">Before:
+read docs/overview/project-overview.md
+read docs/reference/engineering-notes.md
+read roadmap docs
+
+After:
+read docs/plans/active/2026-04-12-phase6-prompt-management-hardening.md
+read docs/sessions/session-2026-04-13.md
+git log --oneline -20
+
+Result:
+Selected "Phase 6 prompt management hardening" as the next build slice.</div>
+          <p><strong>Preventive repo improvement</strong><br/>Add a single “Current Active Slice” source of truth and require stale-state detection in docs.</p>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Suggested repo change</th><th>Location</th><th>Estimated savings</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Add a mandatory “state freshness” banner linking <code>STATE.md</code> to active plans and latest session note.</td>
+            <td><code>docs/overview/current-status.md</code>, <code>docs/README.md</code></td>
+            <td>5–10 minutes per planning-oriented session</td>
+          </tr>
+          <tr>
+            <td>Add AGENTS.md rule: “Before trusting milestone completeness, compare <code>STATE.md</code> with <code>docs/plans/active/</code> and latest session note.”</td>
+            <td><code>CLAUDE.md</code> or repo-level <code>AGENTS.md</code></td>
+            <td>3–5 minutes and one wrong slice avoided</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Friction Point 2</div>
+      <h2>Ran broader typecheck expecting prompt-slice verification, but hit unrelated fixture debt</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <span class="pill warn">Initial direction</span>
+          <p><strong>What was tried initially?</strong><br/>After finishing the prompt hardening slice, the session moved “in order” to broader API verification using full API tests and typecheck.</p>
+          <p><strong>Why didn’t it work?</strong><br/>The typecheck failures were unrelated to the prompt slice. They came from pre-existing strict typing mismatches in route test fixtures (<code>annotations.test.ts</code>, <code>evaluators.test.ts</code>, <code>scores.test.ts</code>).</p>
+          <div class="code">Evidence:
+> pnpm --filter @foxhound/api typecheck
+src/routes/annotations.test.ts(...): error TS2345 ...
+ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL @foxhound/api@0.0.1 typecheck</div>
+          <p>This was not a bad verification instinct, but the repo lacked a declared baseline of known typecheck debt. That made the failure look like new breakage until investigated.</p>
+        </div>
+        <div class="card">
+          <span class="pill good">Correct approach</span>
+          <p><strong>What was the correct approach?</strong><br/>Inspect the failing fixture types directly and patch them narrowly: add <code>as const</code> literals, required fields like <code>completedAt</code>, and correct mocked return values.</p>
+          <div class="code">Before:
+pnpm --filter @foxhound/api test && pnpm --filter @foxhound/api typecheck
+
+After:
+read failing test files
+edit fixture literals / mocked return types
+re-run typecheck
+
+Final evidence:
+> @foxhound/api@0.0.1 typecheck
+> tsc --noEmit</div>
+          <p><strong>Preventive repo improvement</strong><br/>Document known verification debt and establish a “slice verification vs baseline repo repair” distinction.</p>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Suggested repo change</th><th>Location</th><th>Estimated savings</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Add a “Known verification debt” section listing existing failing suites or strict-type fixture hotspots.</td>
+            <td><code>docs/reference/engineering-notes.md</code> or <code>docs/plans/testing/</code></td>
+            <td>5–8 minutes per verification pass</td>
+          </tr>
+          <tr>
+            <td>Add typed test-fixture helpers for common entities instead of ad hoc object literals.</td>
+            <td><code>apps/api/src/test/fixtures/</code></td>
+            <td>5–10 minutes per future type-tightening change</td>
+          </tr>
+          <tr>
+            <td>Note in AGENTS/CLAUDE: when broad verification fails outside the touched slice, classify as baseline debt before assuming regression.</td>
+            <td><code>CLAUDE.md</code></td>
+            <td>2–4 minutes of investigation churn</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Friction Point 3</div>
+      <h2>Used an edit anchor that was too generic for exact-match editing</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <span class="pill bad">Initial direction</span>
+          <p><strong>What was tried initially?</strong><br/>The session attempted to patch <code>scores.test.ts</code> with an <code>edit</code> block whose <code>oldText</code> occurred multiple times.</p>
+          <p><strong>Why didn’t it work?</strong><br/>The edit tool requires each <code>oldText</code> block to be unique in the original file. The selected anchor matched two places.</p>
+          <div class="code">Tool failure:
+Found 2 occurrences of edits[0] in .../scores.test.ts.
+Each oldText must be unique. Please provide more context to make it unique.</div>
+        </div>
+        <div class="card">
+          <span class="pill good">Correct approach</span>
+          <p><strong>What was the correct approach?</strong><br/>Re-anchor the edit with surrounding test-name context so each replacement targets exactly one block.</p>
+          <div class="code">Before:
+oldText = repeated db.getTrace mock block
+
+After:
+oldText = block including surrounding test case:
+  it("creates score when valid", async () => {
+    mockApiKey("org_1");
+    vi.mocked(db.getTrace)...
+
+Result:
+Successfully replaced 5 block(s) in scores.test.ts.</div>
+          <p><strong>Preventive repo improvement</strong><br/>Codify repo-local editing guidance for exact-text tools: use nearest test name or function signature as anchor.</p>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Suggested repo change</th><th>Location</th><th>Estimated savings</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Add a small “Editing conventions for agent tools” section: anchor replacements with nearest <code>describe/it</code> or function signature.</td>
+            <td><code>CLAUDE.md</code> or repo <code>AGENTS.md</code></td>
+            <td>1–3 minutes per failed patch</td>
+          </tr>
+          <tr>
+            <td>Consider test fixture helper extraction to reduce duplicate literal blocks that make exact-match edits ambiguous.</td>
+            <td><code>apps/api/src/routes/*.test.ts</code></td>
+            <td>2–5 minutes per future refactor</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Ranked Recommendations</div>
+      <h2>Highest-value repo improvements</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Improvement</th>
+            <th>Why it matters</th>
+            <th>Estimated savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Make <code>docs/overview/current-status.md</code> explicitly subordinate to active plans and latest session notes when mismatched.</td>
+            <td>Prevents picking the wrong slice because “done” docs lag behind active work.</td>
+            <td>5–10 min / session</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Add a known-baseline verification debt ledger for API typecheck/test hotspots.</td>
+            <td>Separates new regressions from old debt immediately.</td>
+            <td>5–8 min / verification cycle</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Create reusable typed fixture builders for API route tests.</td>
+            <td>Reduces repetitive literals and narrows type drift.</td>
+            <td>5–10 min / future fixture fix</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Add agent-edit anchoring rules to CLAUDE/AGENTS docs.</td>
+            <td>Avoids failed exact-text patches caused by duplicate snippets.</td>
+            <td>1–3 min / patch attempt</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Add a “current active slice” pointer in docs/README and session templates.</td>
+            <td>Makes next-slice discovery faster for new sessions.</td>
+            <td>2–4 min / session</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Recommended Repo Deltas</div>
+      <h2>Concrete changes to prevent recurrence</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Docs</h3>
+          <ul class="tight">
+            <li>Add <strong>State Freshness</strong> note to <code>docs/overview/current-status.md</code>.</li>
+            <li>Add <strong>Current Active Slice</strong> section to <code>docs/README.md</code>.</li>
+            <li>Add <strong>Known verification debt</strong> section to <code>docs/reference/engineering-notes.md</code> or testing docs.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Config / guidance</h3>
+          <ul class="tight">
+            <li>In <code>CLAUDE.md</code>, require state cross-checking before planning work.</li>
+            <li>In <code>CLAUDE.md</code>, document exact-text edit anchoring conventions.</li>
+            <li>In test conventions, prefer typed fixture builders over repeated inline literals.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Expected outcome</h3>
+        <p>
+          These changes do not primarily optimize model intelligence. They optimize repo legibility. That is the highest-leverage intervention for future agent sessions in this codebase.
+        </p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Closing</div>
+      <h2>Key lesson</h2>
+      <p class="lead">
+        The session’s biggest inefficiencies came from ambiguous repository truth, not from implementation skill. When docs, plans, and verification baselines disagree, the agent spends time rediscovering reality. Fix the repo cues, and future sessions should be measurably faster and calmer.
+      </p>
+      <div class="card">
+        <p><strong>Deliverable:</strong> <code>docs/sessions/session-2026-04-13-transcript-analysis.html</code></p>
+        <p><strong>Evidence basis:</strong> transcript JSONL tool-call sequence + session summary artifacts</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

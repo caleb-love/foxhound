@@ -309,6 +309,47 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       expect(resolved).toEqual({ rejected: "revoked" });
     });
 
+    it("resolveApiKey returns not_found for unknown keys", async () => {
+      const resolved = await queries.resolveApiKey(`sk-${"a".repeat(64)}`);
+      expect(resolved).toEqual({ rejected: "not_found" });
+    });
+
+    it("listApiKeys excludes revoked keys but keeps expired keys marked as expired", async () => {
+      const org = await createTestOrg();
+      const user = await createTestUser();
+      await createTestMembership(user.id, org.id, "owner");
+
+      const active = await createTestApiKey(org.id, user.id, { name: "active-key" });
+      const expired = await createTestApiKey(org.id, user.id, {
+        name: "expired-key",
+        expiresAt: new Date(Date.now() - 60_000),
+      });
+      const revoked = await createTestApiKey(org.id, user.id, {
+        name: "revoked-key",
+        revokedAt: new Date(),
+      });
+
+      const keys = await queries.listApiKeys(org.id);
+      expect(keys).toHaveLength(2);
+      expect(keys.some((k) => k.id === active.id && k.isExpired === false)).toBe(true);
+      expect(keys.some((k) => k.id === expired.id && k.isExpired === true)).toBe(true);
+      expect(keys.some((k) => k.id === revoked.id)).toBe(false);
+    });
+
+    it("touchApiKeyLastUsed updates lastUsedAt for active keys", async () => {
+      const org = await createTestOrg();
+      const user = await createTestUser();
+      await createTestMembership(user.id, org.id, "owner");
+
+      const key = await createTestApiKey(org.id, user.id);
+      await queries.touchApiKeyLastUsed(key.id);
+
+      const keys = await queries.listApiKeys(org.id);
+      const found = keys.find((k) => k.id === key.id);
+      expect(found).toBeDefined();
+      expect(found!.lastUsedAt).not.toBeNull();
+    });
+
     it("revokeApiKey returns false for wrong org", async () => {
       const orgA = await createTestOrg();
       const orgB = await createTestOrg();
@@ -823,6 +864,40 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       const list = await queries.listAnnotationQueues(org.id);
       expect(list).toHaveLength(1);
     });
+
+    it("queue item lifecycle stays org-scoped", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+      const user = await createTestUser();
+      const trace = await createTestTrace(orgA.id);
+
+      await queries.createAnnotationQueue({
+        id: "queue-lifecycle",
+        orgId: orgA.id,
+        name: "Lifecycle Queue",
+      });
+
+      const items = await queries.addAnnotationQueueItems(
+        { queueId: "queue-lifecycle", traceIds: [trace.id] },
+        () => "aqi-1",
+      );
+      expect(items).toHaveLength(1);
+
+      const claimed = await queries.claimAnnotationQueueItem("queue-lifecycle", orgA.id, user.id);
+      expect(claimed).not.toBeNull();
+      expect(claimed!.assignedTo).toBe(user.id);
+
+      const blocked = await queries.completeAnnotationQueueItem(claimed!.id, orgB.id);
+      expect(blocked).toBeNull();
+
+      const completed = await queries.completeAnnotationQueueItem(claimed!.id, orgA.id);
+      expect(completed).not.toBeNull();
+      expect(completed!.status).toBe("completed");
+
+      const fetched = await queries.getAnnotationQueueItem(claimed!.id, orgA.id);
+      expect(fetched).not.toBeNull();
+      expect(fetched!.status).toBe("completed");
+    });
   });
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -866,6 +941,71 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       expect(listA).toHaveLength(1);
       expect(listB).toHaveLength(0);
     });
+
+    it("get and delete notification channel stay org-scoped", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+
+      const channel = await queries.createNotificationChannel({
+        id: "ch-del",
+        orgId: orgA.id,
+        kind: "slack",
+        name: "#delete-me",
+        config: {},
+      });
+
+      const foundA = await queries.getNotificationChannel(channel.id, orgA.id);
+      const foundB = await queries.getNotificationChannel(channel.id, orgB.id);
+      expect(foundA).not.toBeNull();
+      expect(foundB).toBeNull();
+
+      expect(await queries.deleteNotificationChannel(channel.id, orgB.id)).toBe(false);
+      expect(await queries.deleteNotificationChannel(channel.id, orgA.id)).toBe(true);
+    });
+
+    it("alert rules and notification log entries work with tenant scoping", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+      const channel = await queries.createNotificationChannel({
+        id: "ch-rule",
+        orgId: orgA.id,
+        kind: "slack",
+        name: "#ops",
+        config: {},
+      });
+
+      const rule = await queries.createAlertRule({
+        id: "rule-1",
+        orgId: orgA.id,
+        eventType: "agent_failure",
+        minSeverity: "high",
+        channelId: channel.id,
+      });
+
+      const orgARules = await queries.listAlertRules(orgA.id);
+      const orgBRules = await queries.listAlertRules(orgB.id);
+      expect(orgARules).toHaveLength(1);
+      expect(orgBRules).toHaveLength(0);
+
+      const enabledRules = await queries.getAlertRulesForOrg(orgA.id);
+      expect(enabledRules).toHaveLength(1);
+      expect(enabledRules[0]!.id).toBe(rule.id);
+
+      const log = await queries.createNotificationLogEntry({
+        id: "nlog-1",
+        orgId: orgA.id,
+        ruleId: rule.id,
+        channelId: channel.id,
+        eventType: "agent_failure",
+        severity: "high",
+        agentId: "agent-a",
+        status: "sent",
+      });
+      expect(log.orgId).toBe(orgA.id);
+
+      expect(await queries.deleteAlertRule(rule.id, orgB.id)).toBe(false);
+      expect(await queries.deleteAlertRule(rule.id, orgA.id)).toBe(true);
+    });
   });
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -882,6 +1022,222 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       const second = await queries.upsertUsageRecord(org.id, period, 50);
       expect(second.spanCount).toBe(150);
+    });
+
+    it("getUsageForPeriod returns org-scoped usage record", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+      const period = "2026-04";
+
+      await queries.upsertUsageRecord(orgA.id, period, 25);
+      await queries.upsertUsageRecord(orgB.id, period, 70);
+
+      const usageA = await queries.getUsageForPeriod(orgA.id, period);
+      const usageB = await queries.getUsageForPeriod(orgB.id, period);
+
+      expect(usageA?.spanCount).toBe(25);
+      expect(usageB?.spanCount).toBe(70);
+    });
+  });
+
+  describe("Prompt management", () => {
+    it("createPromptVersion increments versions atomically within one prompt", async () => {
+      const org = await createTestOrg();
+      const prompt = await queries.createPrompt({ id: "prompt-1", orgId: org.id, name: "support" });
+
+      const v1 = await queries.createPromptVersion({
+        id: "pv-1",
+        promptId: prompt.id,
+        orgId: org.id,
+        content: "Version 1",
+      });
+      const v2 = await queries.createPromptVersion({
+        id: "pv-2",
+        promptId: prompt.id,
+        orgId: org.id,
+        content: "Version 2",
+      });
+
+      expect(v1.version).toBe(1);
+      expect(v2.version).toBe(2);
+
+      const latest = await queries.getLatestPromptVersion(prompt.id, org.id);
+      expect(latest?.version).toBe(2);
+    });
+
+    it("setPromptLabel moves label between versions of the same prompt", async () => {
+      const org = await createTestOrg();
+      const prompt = await queries.createPrompt({ id: "prompt-label", orgId: org.id, name: "router" });
+      const v1 = await queries.createPromptVersion({
+        id: "pv-label-1",
+        promptId: prompt.id,
+        orgId: org.id,
+        content: "old",
+      });
+      const v2 = await queries.createPromptVersion({
+        id: "pv-label-2",
+        promptId: prompt.id,
+        orgId: org.id,
+        content: "new",
+      });
+
+      await queries.setPromptLabel({
+        id: "label-1",
+        promptId: prompt.id,
+        promptVersionId: v1.id,
+        label: "production",
+      });
+      await queries.setPromptLabel({
+        id: "label-2",
+        promptId: prompt.id,
+        promptVersionId: v2.id,
+        label: "production",
+      });
+
+      const v1Labels = await queries.getLabelsForVersion(v1.id);
+      const v2Labels = await queries.getLabelsForVersion(v2.id);
+      expect(v1Labels).toHaveLength(0);
+      expect(v2Labels).toHaveLength(1);
+
+      const resolved = await queries.getPromptVersionByLabel(org.id, prompt.name, "production");
+      expect(resolved?.id).toBe(v2.id);
+    });
+  });
+
+  describe("Experiments", () => {
+    it("experiment comparison returns null if any experiment is outside the org", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+      const dsA = await createTestDataset(orgA.id);
+      const dsB = await createTestDataset(orgB.id);
+
+      const expA = await queries.createExperiment({
+        id: "exp-a",
+        orgId: orgA.id,
+        datasetId: dsA.id,
+        name: "Experiment A",
+        config: {},
+      });
+      const expB = await queries.createExperiment({
+        id: "exp-b",
+        orgId: orgB.id,
+        datasetId: dsB.id,
+        name: "Experiment B",
+        config: {},
+      });
+
+      const comparison = await queries.getExperimentComparison([expA.id, expB.id], orgA.id);
+      expect(comparison).toBeNull();
+    });
+  });
+
+  describe("SSO and platform", () => {
+    it("jitProvisionUser creates membership once and reuses existing user on second call", async () => {
+      const org = await createTestOrg();
+
+      const first = await queries.jitProvisionUser({
+        userId: "jit-user-1",
+        email: "jit@test.dev",
+        name: "Jit User",
+        orgId: org.id,
+      });
+      expect(first.provisioned).toBe(true);
+
+      const second = await queries.jitProvisionUser({
+        userId: "jit-user-2",
+        email: "jit@test.dev",
+        name: "Jit User",
+        orgId: org.id,
+      });
+      expect(second.provisioned).toBe(false);
+      expect(second.user.id).toBe(first.user.id);
+
+      const memberships = await queries.getMembershipsByUser(first.user.id);
+      expect(memberships).toHaveLength(1);
+      expect(memberships[0]!.org.id).toBe(org.id);
+    });
+
+    it("SSO config and sessions round-trip correctly", async () => {
+      const org = await createTestOrg();
+      const user = await createTestUser();
+      await createTestMembership(user.id, org.id, "member");
+
+      const config = await queries.upsertSsoConfig({
+        id: "sso-1",
+        orgId: org.id,
+        provider: "oidc",
+        config: { issuer: "https://issuer.test" },
+        enforceSso: true,
+      });
+      expect(config.orgId).toBe(org.id);
+
+      const foundConfig = await queries.getSsoConfigByOrg(org.id);
+      expect(foundConfig?.provider).toBe("oidc");
+      expect(foundConfig?.enforceSso).toBe(true);
+
+      const session = await queries.createSsoSession({
+        id: "sso-session-1",
+        userId: user.id,
+        orgId: org.id,
+        idpSessionId: "idp-1",
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      expect(session.orgId).toBe(org.id);
+
+      const foundSession = await queries.getSsoSession("sso-session-1");
+      expect(foundSession?.idpSessionId).toBe("idp-1");
+
+      await queries.deleteSsoSessionByIdpSession("idp-1");
+      const deletedSession = await queries.getSsoSession("sso-session-1");
+      expect(deletedSession).toBeNull();
+
+      expect(await queries.deleteSsoConfig(org.id)).toBe(true);
+      expect(await queries.getSsoConfigByOrg(org.id)).toBeNull();
+    });
+
+    it("agent config and baselines support lifecycle operations", async () => {
+      const org = await createTestOrg();
+
+      const config = await queries.upsertAgentConfig({
+        orgId: org.id,
+        agentId: "agent-a",
+        costBudgetUsd: "25.00",
+        maxDurationMs: 5000,
+      });
+      expect(config.agentId).toBe("agent-a");
+
+      const foundConfig = await queries.getAgentConfig(org.id, "agent-a");
+      expect(foundConfig?.costBudgetUsd).toBe("25.00");
+
+      await queries.updateAgentConfigStatus(org.id, "agent-a", { state: "warning" }, null);
+      const updatedConfig = await queries.getAgentConfig(org.id, "agent-a");
+      expect(updatedConfig?.lastCostStatus).toEqual({ state: "warning" });
+
+      const baseline = await queries.upsertBaseline({
+        orgId: org.id,
+        agentId: "agent-a",
+        agentVersion: "v1",
+        sampleSize: 10,
+        spanStructure: { "llm_call:respond": 1 },
+      });
+      expect(baseline.agentVersion).toBe("v1");
+
+      const foundBaseline = await queries.getBaseline(org.id, "agent-a", "v1");
+      expect(foundBaseline?.sampleSize).toBe(10);
+
+      const recent = await queries.getRecentBaselines(org.id, "agent-a");
+      expect(recent).toHaveLength(1);
+
+      expect(await queries.deleteBaseline(org.id, "agent-a", "v1")).toBe(true);
+      expect(await queries.deleteAgentConfig(org.id, "agent-a")).toBe(true);
+    });
+
+    it("insertWaitlistSignup deduplicates by normalized email", async () => {
+      const first = await queries.insertWaitlistSignup("wait-1", "Test@Example.com ");
+      const second = await queries.insertWaitlistSignup("wait-2", "test@example.com");
+
+      expect(first).toEqual({ alreadyExists: false });
+      expect(second).toEqual({ alreadyExists: true });
     });
   });
 });

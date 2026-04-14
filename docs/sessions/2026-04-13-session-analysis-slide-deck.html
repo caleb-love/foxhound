@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Session Analysis — Wrong Turns and Repo Improvements</title>
+  <style>
+    :root {
+      --bg-0: #07111f;
+      --bg-1: #0c1728;
+      --bg-2: #101f35;
+      --panel: rgba(19, 32, 53, 0.62);
+      --panel-strong: rgba(22, 38, 63, 0.78);
+      --border: rgba(183, 212, 255, 0.18);
+      --text: #eef4ff;
+      --muted: #9eb1cc;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.15), transparent 24%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, #08101c 100%);
+      min-height: 100vh;
+    }
+    .shell {
+      width: min(1280px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 20px 0 80px;
+    }
+    .nav {
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px;
+      backdrop-filter: blur(18px);
+      background: rgba(10, 18, 32, 0.58);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      width: fit-content;
+      margin: 0 auto 24px;
+    }
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+    }
+    .nav a:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .slide {
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
+      padding: 22px 0;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(22px);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    .hero {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 1.3fr 0.9fr;
+    }
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.04; }
+    h1 { font-size: clamp(42px, 6vw, 74px); }
+    h2 { font-size: clamp(28px, 4vw, 44px); }
+    h3 { font-size: 20px; }
+    p, li { color: var(--muted); font-size: 16px; line-height: 1.55; }
+    .hero p { font-size: 18px; max-width: 62ch; }
+    .grid { display: grid; gap: 18px; }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 18px;
+    }
+    .stat .k { font-size: 34px; font-weight: 700; color: var(--text); }
+    .stat .l { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      font-size: 13px;
+      color: var(--text);
+    }
+    .section-title { margin-bottom: 18px; }
+    .card {
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+    }
+    .rank {
+      width: 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #06101d; font-weight: 800;
+      margin-bottom: 14px;
+    }
+    .label {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 10px;
+    }
+    .evidence {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .evidence-block {
+      background: rgba(4, 10, 22, 0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .evidence-block h4 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #dbe8ff;
+      font-size: 12px;
+      line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    table {
+      width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+    th, td { padding: 14px 16px; text-align: left; font-size: 14px; vertical-align: top; }
+    th { color: var(--text); background: rgba(255,255,255,0.04); }
+    td { color: var(--muted); border-top: 1px solid rgba(255,255,255,0.06); }
+    .footer-note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    @media (max-width: 980px) {
+      .hero, .grid.cols-2, .grid.cols-3, .evidence { grid-template-columns: 1fr; }
+      .nav { border-radius: 24px; width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav">
+      <a href="#summary">Summary</a>
+      <a href="#friction-1">Friction 1</a>
+      <a href="#friction-2">Friction 2</a>
+      <a href="#friction-3">Friction 3</a>
+      <a href="#recommendations">Recommendations</a>
+      <a href="#savings">Time Savings</a>
+    </nav>
+
+    <section class="slide" id="summary">
+      <div class="hero">
+        <div class="panel">
+          <div class="eyebrow">Meyer Session Analysis</div>
+          <h1>Wrong Turns Identified, Recovered, and Ready to Eliminate</h1>
+          <p>
+            This session was mostly efficient, but it still paid avoidable tax in three places: guessing config truth without doc-backed validation,
+            revealing sensitive config during inspection, and using test-only type patches that passed lint but broke typecheck later.
+          </p>
+          <div class="badge-row">
+            <span class="badge"><strong>Efficiency:</strong> Moderate</span>
+            <span class="badge"><strong>Wrong-turn count:</strong> 3 primary</span>
+            <span class="badge"><strong>Recoveries:</strong> all corrected in-session</span>
+            <span class="badge"><strong>Biggest root cause:</strong> missing explicit repo/user-level guardrails</span>
+          </div>
+        </div>
+        <div class="grid cols-1">
+          <div class="stat panel">
+            <div class="l">Estimated avoidable time</div>
+            <div class="k">18–28 min</div>
+          </div>
+          <div class="stat panel">
+            <div class="l">Highest-severity issue</div>
+            <div class="k bad">Secret exposure</div>
+          </div>
+          <div class="stat panel">
+            <div class="l">Most leverage fix</div>
+            <div class="k">Sensitive-config read protocol</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Executive Summary</div>
+          <h2>What slowed the session down</h2>
+        </div>
+        <div class="grid cols-3">
+          <div class="card">
+            <div class="label">1 · Configuration work</div>
+            <h3>Started with inference instead of source-backed certainty</h3>
+            <p>The agent initially reasoned that <code>gpt-5.4</code> looked suspicious before checking docs or provider truth. That created uncertainty and a shaky recommendation path.</p>
+          </div>
+          <div class="card">
+            <div class="label">2 · Secret handling</div>
+            <h3>Direct read of sensitive config exposed the API key</h3>
+            <p>The session used a raw file read on <code>~/.pi/agent/models.json</code>, which surfaced the full key in tool output. The correction came only after exposure.</p>
+          </div>
+          <div class="card">
+            <div class="label">3 · Test typing fixes</div>
+            <h3>Local “good enough” casts passed one gate, failed the next</h3>
+            <p>The first annotations test patch used nonexistent exports and later had to be corrected to restore typecheck. Similar worker test issues followed the same pattern.</p>
+          </div>
+        </div>
+        <p class="footer-note">Assessment basis: compacted session history plus transcript evidence from <code>~/.pi/agent/sessions/--Users-caleb.love-Developer-Foxhound--/2026-04-13T10-28-16-062Z_a0976497-3ba6-41b8-9858-5ff5d2194b11.jsonl</code> and the active coding thread summary.</p>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-1">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Friction Point 1</div>
+          <h2>Model-config audit started in the wrong mode</h2>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <span class="pill bad">Initial try</span>
+            <p><strong>What was tried:</strong> the agent assessed whether <code>gpt-5.4</code> metadata was “right” by heuristic judgment: “looks suspicious,” “looks guessed,” “pricing may be placeholder.”</p>
+            <p><strong>Why it didn’t work:</strong> config correctness here is not inferential. It needed either official docs or explicit local contract documentation. The initial answer created uncertainty instead of a reliable answer.</p>
+            <p><strong>Correct approach:</strong> read the exact config files first, state only what is locally true, then explicitly separate “local config truth” from “provider-doc truth.” If provider truth is needed, require documentation lookup instead of guessing.</p>
+          </div>
+          <div class="card">
+            <span class="pill good">Repo prevention</span>
+            <p><strong>Add to repo/config:</strong></p>
+            <ul>
+              <li>Add a <code>~/.pi/agent/AGENTS.md</code> rule: “For provider/model metadata, do not infer validity from naming. Report local config truth first; use docs lookup for provider truth.”</li>
+              <li>Add a small JSON comment-free companion doc like <code>~/.pi/agent/MODEL_REGISTRY.md</code> defining which fields are verified vs placeholder.</li>
+              <li>Add a helper script to validate configured models against a known source.</li>
+            </ul>
+            <p><strong>Estimated savings:</strong> 4–6 minutes per config audit.</p>
+          </div>
+        </div>
+        <div class="evidence">
+          <div class="evidence-block">
+            <h4>Before: heuristic answer</h4>
+            <pre>"Most likely issues:
+- contextWindow: 128000 — plausible
+- maxTokens: 16384 — plausible
+- cost.input: 5.0 / cost.output: 15.0 — look placeholder-style
+- gpt-5.4 itself looks suspicious"</pre>
+          </div>
+          <div class="evidence-block">
+            <h4>After: source-of-truth read flow</h4>
+            <pre>toolCall(read ~/.pi/agent/models.json)
+toolCall(read ~/.pi/agent/settings.json)
+...
+"Findings from local config:
+- configured model: gpt-5.4
+- defaultModel: gpt-5.4"</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-2">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Friction Point 2</div>
+          <h2>Sensitive config inspection leaked the secret before safeguards kicked in</h2>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <span class="pill bad">Initial try</span>
+            <p><strong>What was tried:</strong> directly reading <code>~/.pi/agent/models.json</code> to inspect the model/provider config.</p>
+            <p><strong>Why it didn’t work:</strong> the file contains <code>apiKey</code>. Raw read returned the full secret in the transcript. The agent then had to respond with a rotation warning after the damage was already done.</p>
+            <p><strong>Correct approach:</strong> treat <code>models.json</code> as conditionally sensitive. Use a redaction-first workflow: inspect exact keys without printing secret values, or read then summarize only non-secret fields. If debugging auth, mask by default.</p>
+          </div>
+          <div class="card">
+            <span class="pill good">Repo prevention</span>
+            <p><strong>Add to repo/config:</strong></p>
+            <ul>
+              <li>Update <code>~/.pi/agent/AGENTS.md</code> to classify <code>~/.pi/agent/models.json</code> as sensitive when <code>apiKey</code> is inline.</li>
+              <li>Add a helper script like <code>~/.pi/agent/bin/pi-models-redacted</code> that prints provider/model metadata while masking secrets.</li>
+              <li>Document a preferred env-var/file-secret pattern for Pi auth so inline keys are not normal.</li>
+            </ul>
+            <p><strong>Estimated savings:</strong> 8–12 minutes plus avoids secret-rotation overhead and risk.</p>
+          </div>
+        </div>
+        <div class="evidence">
+          <div class="evidence-block">
+            <h4>Before: raw sensitive read</h4>
+            <pre>toolCall(read ~/.pi/agent/models.json)
+...
+"apiKey": "sk-proj-V4Fy..."</pre>
+          </div>
+          <div class="evidence-block">
+            <h4>After: retroactive correction</h4>
+            <pre>"Important note:
+- The tool output exposed your openai API key
+- You should rotate that key now"
+
+Later clarification:
+"I haven't yet found evidence that Pi supports apiKey values as file references"</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="friction-3">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Friction Point 3</div>
+          <h2>Type fixes were patched to the wrong contract first</h2>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <span class="pill bad">Initial try</span>
+            <p><strong>What was tried:</strong> in <code>apps/api/src/routes/annotations.test.ts</code>, the session added imports for <code>TraceRecord</code> and <code>ScoreRecord</code> from <code>@foxhound/db</code> and cast test data to those types.</p>
+            <p><strong>Why it didn’t work:</strong> those exports do not exist from <code>@foxhound/db</code>. The change fixed one lint concern but introduced a typecheck failure that surfaced only during the later staged verification pass.</p>
+            <p><strong>Correct approach:</strong> inspect the actual public exports of <code>@foxhound/db</code> before importing types, or avoid fake-public-type imports in tests and use repository-approved test typing patterns.</p>
+          </div>
+          <div class="card">
+            <span class="pill good">Repo prevention</span>
+            <p><strong>Add to repo/docs:</strong></p>
+            <ul>
+              <li>Add a short testing note in <code>CLAUDE.md</code> or <code>docs/reference/engineering-notes.md</code>: “Before importing DB record types in tests, verify they are exported from <code>@foxhound/db</code>; prefer <code>Awaited&lt;ReturnType&lt;...&gt;&gt;</code> or <code>as never</code> only as last-resort local test shims.”</li>
+              <li>Add package export guidance in <code>packages/db/src/index.ts</code> docs or README.</li>
+              <li>Add a narrow preflight script for changed-package typecheck before broader staging.</li>
+            </ul>
+            <p><strong>Estimated savings:</strong> 6–10 minutes per similar test-fix cycle.</p>
+          </div>
+        </div>
+        <div class="evidence">
+          <div class="evidence-block">
+            <h4>Before: fix that later failed typecheck</h4>
+            <pre>Compacted history:
+- added `import type { TraceRecord, ScoreRecord } from "@foxhound/db";`
+- replaced `as any` with `as TraceRecord` / `as ScoreRecord`</pre>
+          </div>
+          <div class="evidence-block">
+            <h4>After: verification exposed contract mismatch</h4>
+            <pre>pnpm --filter @foxhound/api typecheck
+...
+error TS2305: Module '"@foxhound/db"' has no exported member 'TraceRecord'.
+error TS2305: Module '"@foxhound/db"' has no exported member 'ScoreRecord'.
+
+Final correction:
+- removed those imports
+- used safer local test casts instead</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="recommendations">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Ranked Recommendations</div>
+          <h2>Highest-leverage repo improvements</h2>
+        </div>
+        <div class="grid cols-3">
+          <div class="card">
+            <div class="rank">1</div>
+            <h3>Add sensitive-config read protocol</h3>
+            <p>Update user-level <code>AGENTS.md</code> so reads of <code>models.json</code>, <code>auth.json</code>, and similar files default to redacted summaries unless the task is explicitly secret debugging.</p>
+            <p><strong>Time savings:</strong> 8–12 min/session + major risk reduction.</p>
+          </div>
+          <div class="card">
+            <div class="rank">2</div>
+            <h3>Document “local truth vs provider truth”</h3>
+            <p>Add a config note that model registry values may be placeholders and must not be treated as provider-factual without doc verification.</p>
+            <p><strong>Time savings:</strong> 4–6 min/session.</p>
+          </div>
+          <div class="card">
+            <div class="rank">3</div>
+            <h3>Codify test typing patterns</h3>
+            <p>Capture a standard for typed mocks in API/worker tests so fixes don’t bounce from lint pass to typecheck fail.</p>
+            <p><strong>Time savings:</strong> 6–10 min/session.</p>
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:18px;">
+          <div class="card">
+            <h3>Suggested concrete additions</h3>
+            <ul>
+              <li><code>~/.pi/agent/AGENTS.md</code>: redaction-first secret handling rule.</li>
+              <li><code>~/.pi/agent/MODEL_REGISTRY.md</code>: verified vs placeholder metadata policy.</li>
+              <li><code>docs/reference/engineering-notes.md</code>: test typing patterns for DB mocks and worker mocks.</li>
+              <li><code>scripts/verify-changed-packages.sh</code>: run typecheck/lint for only changed packages pre-stage.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Why these rank highest</h3>
+            <p>They prevent the exact classes of mistakes seen here: reading sensitive files unsafely, inferring truth from guesses, and patching tests to the wrong exported API.</p>
+            <p>They are also small, local, and low-maintenance compared with larger workflow changes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="savings">
+      <div class="panel">
+        <div class="section-title">
+          <div class="eyebrow">Estimated Impact</div>
+          <h2>Projected time savings and quality gain</h2>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Improvement</th>
+              <th>Prevents</th>
+              <th>Estimated Savings</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sensitive-config redaction workflow</td>
+              <td>Secret exposure, follow-up rotation, recovery discussion</td>
+              <td>8–12 min + security risk avoided</td>
+              <td>High</td>
+            </tr>
+            <tr>
+              <td>Model metadata verification note</td>
+              <td>Heuristic guessing about model validity/pricing/limits</td>
+              <td>4–6 min</td>
+              <td>High</td>
+            </tr>
+            <tr>
+              <td>Typed test mock guidance</td>
+              <td>Lint-pass/typecheck-fail loops in tests</td>
+              <td>6–10 min</td>
+              <td>Medium-high</td>
+            </tr>
+            <tr>
+              <td>Changed-package preflight script</td>
+              <td>Late discovery of staged regressions</td>
+              <td>3–5 min</td>
+              <td>Medium</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="footer-note">Total estimated recurring savings from all four changes: <strong>21–33 minutes</strong> across similar sessions, with a disproportionate benefit from the secret-handling fix.</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

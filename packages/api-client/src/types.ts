@@ -310,6 +310,19 @@ export interface PromptVersionListResponse {
   data: PromptVersionResponse[];
 }
 
+export interface PromptVersionDiffResponse {
+  promptId: string;
+  promptName: string;
+  versionA: number;
+  versionB: number;
+  changes: Array<{
+    field: "content" | "model" | "config";
+    before: unknown;
+    after: unknown;
+  }>;
+  hasChanges: boolean;
+}
+
 export interface ResolvedPromptResponse {
   name: string;
   label: string;

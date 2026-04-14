@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { GitCompare } from 'lucide-react';
 import { useFilterStore } from '@/lib/stores/filter-store';
 import { useCompareStore } from '@/lib/stores/compare-store';
+import { getDemoSessionHref } from '@/lib/demo-routes';
 
 interface TraceTableProps {
   initialData: Trace[];
@@ -83,11 +84,11 @@ export function TraceTable({ initialData }: TraceTableProps) {
   if (traces.length === 0) {
     const hasFilters = status !== 'all' || agentIds.length > 0 || searchQuery;
     return (
-      <div className="rounded-lg border bg-white p-12 text-center">
-        <p className="text-lg font-medium text-gray-900">
+      <div className="rounded-lg p-12 text-center" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+        <p className="text-lg font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
           {hasFilters ? 'No traces match your filters' : 'No traces yet'}
         </p>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
           {hasFilters
             ? 'Try adjusting your filters or clearing them to see more results.'
             : 'Traces will appear here once your agents start sending data.'}
@@ -99,17 +100,17 @@ export function TraceTable({ initialData }: TraceTableProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Showing <span className="font-medium text-gray-900">{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
+        <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+          Showing <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
           {traces.length !== initialData.length && (
-            <span className="text-gray-500"> (filtered from {initialData.length})</span>
+            <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
           )}
         </div>
         
         {/* Compare Button */}
         {selectedTraceIds.length > 0 && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
               {selectedTraceIds.length} selected
             </span>
             <Button
@@ -132,7 +133,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
           </div>
         )}
       </div>
-      <div className="rounded-lg border bg-white">
+      <div className="rounded-lg" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -160,16 +161,16 @@ export function TraceTable({ initialData }: TraceTableProps) {
             return (
               <TableRow
                 key={trace.id}
-                className={`hover:bg-gray-50 ${
-                  isSelected ? 'bg-indigo-50' : ''
-                }`}
+                className={isSelected ? '' : ''}
+                style={isSelected ? { background: 'var(--tenant-accent-soft)' } : undefined}
               >
                 <TableCell>
                   <input
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => toggleTrace(trace.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    className="h-4 w-4 cursor-pointer rounded"
+                    style={{ borderColor: 'var(--tenant-panel-stroke)', accentColor: 'var(--tenant-accent)' }}
                     aria-label={`Select trace ${trace.id}`}
                   />
                 </TableCell>
@@ -183,27 +184,37 @@ export function TraceTable({ initialData }: TraceTableProps) {
                 </TableCell>
                 <TableCell>
                   {trace.sessionId ? (
-                    <Link
-                      href={`${baseHref}/sessions/${trace.sessionId}`}
-                      className="text-indigo-600 hover:underline font-mono text-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {trace.sessionId.slice(0, 8)}
-                    </Link>
+                    isDemo ? (
+                      <Link
+                        href={getDemoSessionHref(trace.sessionId)}
+                        className="font-mono text-sm text-indigo-300 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {trace.sessionId.slice(0, 8)}
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`${baseHref}/sessions/${trace.sessionId}`}
+                        className="text-indigo-600 hover:underline font-mono text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {trace.sessionId.slice(0, 8)}
+                      </Link>
+                    )
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span style={{ color: 'var(--tenant-text-muted)' }}>-</span>
                   )}
                 </TableCell>
                 <TableCell>{duration}s</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{trace.spans.length}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
                       ({trace.spans.filter((s) => s.kind === 'llm_call').length} LLM)
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-gray-500">
+                <TableCell style={{ color: 'var(--tenant-text-muted)' }}>
                   {formatDistanceToNow(new Date(trace.startTimeMs), {
                     addSuffix: true,
                   })}

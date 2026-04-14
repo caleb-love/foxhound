@@ -4,17 +4,18 @@ import { useState } from 'react';
 import type { Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { SpanDetailPanel } from './span-detail-panel';
+import { tenantStyles } from '@/components/demo/dashboard-primitives';
 
 interface TraceTimelineProps {
   spans: Span[];
 }
 
 const SPAN_KIND_COLORS: Record<string, string> = {
-  llm_call: 'bg-blue-500',
-  tool_call: 'bg-green-500',
-  agent_step: 'bg-purple-500',
-  workflow: 'bg-indigo-500',
-  custom: 'bg-gray-500',
+  llm_call: 'var(--tenant-accent)',
+  tool_call: 'var(--tenant-success)',
+  agent_step: 'color-mix(in srgb, var(--tenant-accent) 72%, var(--tenant-text-secondary))',
+  workflow: 'color-mix(in srgb, var(--tenant-accent) 58%, var(--tenant-text-muted))',
+  custom: 'var(--tenant-text-muted)',
 };
 
 const SPAN_KIND_LABELS: Record<string, string> = {
@@ -42,7 +43,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
 
   if (!spans || spans.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-gray-500">
+      <div className="flex items-center justify-center py-12" style={{ color: 'var(--tenant-text-muted)' }}>
         No spans in this trace
       </div>
     );
@@ -74,16 +75,12 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
               <div className="relative h-8">
                 <button
                   onClick={() => handleSpanClick(span)}
-                  className={`absolute h-full rounded ${
-                    SPAN_KIND_COLORS[span.kind] || 'bg-gray-400'
-                  } ${
-                    span.status === 'error'
-                      ? 'ring-2 ring-red-500 ring-offset-1'
-                      : ''
-                  } hover:opacity-80 hover:ring-2 hover:ring-offset-1 hover:ring-indigo-400 transition-all cursor-pointer`}
+                  className="absolute h-full rounded transition-all cursor-pointer hover:opacity-80"
                   style={{
                     left: `${offset}%`,
                     width: `${Math.max(width, 2)}%`,
+                    background: SPAN_KIND_COLORS[span.kind] || 'var(--tenant-text-muted)',
+                    boxShadow: span.status === 'error' ? '0 0 0 2px var(--tenant-danger), 0 0 0 3px color-mix(in srgb, white 85%, transparent)' : '0 0 0 1px color-mix(in srgb, white 55%, transparent)',
                   }}
                   title={`${span.name}\nDuration: ${(duration / 1000).toFixed(3)}s\nStatus: ${span.status}\nClick for details`}
                   aria-label={`View details for ${span.name}`}
@@ -96,24 +93,19 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
           </div>
         );
       })}
-      <div className="mt-4 pt-4 border-t">
-        <div className="flex items-center gap-6 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-blue-500" />
-            <span>LLM Call</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-green-500" />
-            <span>Tool Call</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-purple-500" />
-            <span>Agent Step</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-indigo-500" />
-            <span>Workflow</span>
-          </div>
+      <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+        <div className="flex items-center gap-6 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+          {[
+            ['LLM Call', SPAN_KIND_COLORS.llm_call],
+            ['Tool Call', SPAN_KIND_COLORS.tool_call],
+            ['Agent Step', SPAN_KIND_COLORS.agent_step],
+            ['Workflow', SPAN_KIND_COLORS.workflow],
+          ].map(([label, color]) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded" style={{ background: color }} />
+              <span>{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 

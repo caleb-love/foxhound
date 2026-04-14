@@ -28,29 +28,31 @@ export function BudgetAlerts({ budgetStatuses }: BudgetAlertsProps) {
       {criticalAlerts.map((alert) => (
         <div
           key={alert.agentId}
-          className="rounded-lg border-2 border-red-200 bg-red-50 p-4"
+          className="rounded-lg border-2 p-4"
+          style={{ borderColor: 'color-mix(in srgb, var(--tenant-danger) 25%, white)', background: 'color-mix(in srgb, var(--tenant-danger) 10%, white)' }}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
-              <div className="rounded-full bg-red-100 p-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div className="rounded-full p-2" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, white)' }}>
+                <AlertTriangle className="h-5 w-5" style={{ color: 'var(--tenant-danger)' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-red-900">
+                <h3 className="font-semibold" style={{ color: 'var(--tenant-danger)' }}>
                   🚨 Budget Exceeded: {alert.agentId}
                 </h3>
-                <p className="mt-1 text-sm text-red-700">
+                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-danger)' }}>
                   Over budget by <span className="font-medium">${Math.abs(alert.remaining).toFixed(2)}</span>
                   {' '}({alert.percentage.toFixed(1)}% of ${alert.budget.toFixed(2)} limit)
                 </p>
-                <p className="mt-2 text-xs text-red-600">
+                <p className="mt-2 text-xs" style={{ color: 'var(--tenant-danger)' }}>
                   <strong>Action required:</strong> Review usage and increase budget or pause agent
                 </p>
               </div>
             </div>
             <button
               onClick={() => handleDismiss(alert.agentId)}
-              className="text-red-600 hover:text-red-800 transition-colors"
+              className="transition-colors"
+              style={{ color: 'var(--tenant-danger)' }}
             >
               <X className="h-5 w-5" />
             </button>
@@ -62,37 +64,24 @@ export function BudgetAlerts({ budgetStatuses }: BudgetAlertsProps) {
       {warningAlerts.map((alert) => (
         <div
           key={alert.agentId}
-          className={`rounded-lg border-2 p-4 ${
-            alert.status === 'critical'
-              ? 'border-orange-200 bg-orange-50'
-              : 'border-yellow-200 bg-yellow-50'
-          }`}
+          className="rounded-lg border-2 p-4"
+          style={{ borderColor: alert.status === 'critical' ? 'color-mix(in srgb, var(--tenant-warning) 32%, white)' : 'color-mix(in srgb, var(--tenant-warning) 24%, white)', background: 'color-mix(in srgb, var(--tenant-warning) 10%, white)' }}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
-              <div className={`rounded-full p-2 ${
-                alert.status === 'critical' ? 'bg-orange-100' : 'bg-yellow-100'
-              }`}>
-                <DollarSign className={`h-5 w-5 ${
-                  alert.status === 'critical' ? 'text-orange-600' : 'text-yellow-600'
-                }`} />
+              <div className="rounded-full p-2" style={{ background: 'color-mix(in srgb, var(--tenant-warning) 14%, white)' }}>
+                <DollarSign className="h-5 w-5" style={{ color: 'var(--tenant-warning)' }} />
               </div>
               <div>
-                <h3 className={`font-semibold ${
-                  alert.status === 'critical' ? 'text-orange-900' : 'text-yellow-900'
-                }`}>
+                <h3 className="font-semibold" style={{ color: 'var(--tenant-warning)' }}>
                   {alert.status === 'critical' ? '🔶 Near Budget Limit' : '⚠️ Approaching Budget Limit'}: {alert.agentId}
                 </h3>
-                <p className={`mt-1 text-sm ${
-                  alert.status === 'critical' ? 'text-orange-700' : 'text-yellow-700'
-                }`}>
+                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-warning)' }}>
                   Used <span className="font-medium">${alert.spent.toFixed(2)}</span> of ${alert.budget.toFixed(2)}
                   {' '}({alert.percentage.toFixed(1)}%)
                 </p>
                 {alert.projectedMonthEnd > alert.budget && (
-                  <p className={`mt-1 text-xs ${
-                    alert.status === 'critical' ? 'text-orange-600' : 'text-yellow-600'
-                  }`}>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--tenant-warning)' }}>
                     Projected month-end: ${alert.projectedMonthEnd.toFixed(2)}
                   </p>
                 )}
@@ -100,11 +89,8 @@ export function BudgetAlerts({ budgetStatuses }: BudgetAlertsProps) {
             </div>
             <button
               onClick={() => handleDismiss(alert.agentId)}
-              className={`transition-colors ${
-                alert.status === 'critical'
-                  ? 'text-orange-600 hover:text-orange-800'
-                  : 'text-yellow-600 hover:text-yellow-800'
-              }`}
+              className="transition-colors"
+              style={{ color: 'var(--tenant-warning)' }}
             >
               <X className="h-5 w-5" />
             </button>
