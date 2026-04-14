@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TraceDetailView } from './trace-detail-view';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
+
+const useSearchParams = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => useSearchParams(),
+}));
 
 const trace = {
   id: 'trace_123',
@@ -39,6 +47,15 @@ const trace = {
 };
 
 describe('TraceDetailView', () => {
+  beforeEach(() => {
+    useSearchParams.mockReturnValue(new URLSearchParams(''));
+    useSegmentStore.setState({
+      currentSegmentName: 'Support agent',
+      currentFilters: createDefaultDashboardFilters(),
+      savedSegments: [],
+    });
+  });
+
   it('renders richer summary cards and prompt context', () => {
     render(<TraceDetailView trace={trace as never} />);
 
@@ -49,28 +66,28 @@ describe('TraceDetailView', () => {
     expect(screen.getByText('Version 12')).toBeInTheDocument();
   });
 
-  it('renders direct investigation CTAs', () => {
+  it('renders direct investigation CTAs with segment-aware links', () => {
     render(<TraceDetailView trace={trace as never} />);
 
     expect(screen.getByRole('link', { name: /Compare against another run/i })).toHaveAttribute(
       'href',
-      '/diff?a=trace_123&b=',
+      '/traces?segment=Support+agent',
     );
-    expect(screen.getByRole('link', { name: /Open session replay/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Review trace timeline/i })).toHaveAttribute(
       'href',
-      '/replay/trace_123',
+      '/traces/trace_123?segment=Support+agent',
     );
     expect(screen.getByRole('link', { name: /Inspect prompt history/i })).toHaveAttribute(
       'href',
-      '/prompts?focus=support-routing',
+      '/?segment=Support+agent',
     );
     expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
       'href',
-      '/prompts?focus=support-routing&version=12',
+      '/?segment=Support+agent',
     );
     expect(screen.getByRole('link', { name: /Add to evaluation workflow/i })).toHaveAttribute(
       'href',
-      '/datasets?sourceTrace=trace_123',
+      '/datasets?sourceTrace=trace_123&segment=Support+agent',
     );
   });
 

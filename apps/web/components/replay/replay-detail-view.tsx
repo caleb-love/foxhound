@@ -1,5 +1,6 @@
 'use client';
 
+import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SessionReplay } from './session-replay';
@@ -80,26 +81,24 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
               </p>
             </div>
             <div className="flex flex-wrap gap-2 pt-2">
-              <a href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
+              <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
                 Open trace detail
-              </a>
-              <a href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
+              </SegmentAwareLink>
+              <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
                 Inspect trace context
-              </a>
-              <a
+              </SegmentAwareLink>
+              <SegmentAwareLink
                 href={promptHistoryHref ?? '#'}
-                aria-disabled={!promptHistoryHref}
                 className={`rounded-lg border px-3 py-2 font-medium transition-colors ${promptHistoryHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
               >
                 Review prompts
-              </a>
-              <a
+              </SegmentAwareLink>
+              <SegmentAwareLink
                 href={promptDiffHref ?? '#'}
-                aria-disabled={!promptDiffHref}
                 className={`rounded-lg border px-3 py-2 font-medium transition-colors ${promptDiffHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
               >
                 Compare prompt versions
-              </a>
+              </SegmentAwareLink>
             </div>
           </CardContent>
         </Card>

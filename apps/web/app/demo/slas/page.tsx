@@ -10,7 +10,7 @@ export default function DemoSLAsPage() {
         {
           label: 'SLA-configured agents',
           value: String(demo.slas.length),
-          supportingText: 'The first shared demo-domain slice focuses on refund-policy-agent reliability drift.',
+          supportingText: 'The week-long shared demo story highlights refund-policy-agent reliability drift alongside other monitored agents.',
         },
         {
           label: 'Critical breaches',
@@ -47,7 +47,7 @@ export default function DemoSLAsPage() {
         },
         {
           title: 'Compare against the validated recovery',
-          description: 'Use run diff to see how the v19 fix reduces SLA pressure while restoring correctness.',
+          description: 'Use run diff to see how the late-week v19 fix reduces SLA pressure while restoring correctness.',
           href: '/demo/diff?a=trace_support_refund_v18_regression&b=trace_support_refund_v19_fix',
           cta: 'Open recovery diff',
         },

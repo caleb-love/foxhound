@@ -10,7 +10,7 @@ export default function DemoBudgetsPage() {
         {
           label: 'Budget-configured agents',
           value: String(demo.budgets.length),
-          supportingText: 'The first shared demo-domain slice includes the refund-policy-agent hotspot story.',
+          supportingText: 'The week-long shared demo story includes the refund-policy-agent hotspot plus supporting budget pressure elsewhere.',
         },
         {
           label: 'Critical hotspots',
@@ -25,7 +25,7 @@ export default function DemoBudgetsPage() {
         {
           label: 'Current modeled spend',
           value: `$${demo.budgets.reduce((sum, item) => sum + item.currentSpendUsd, 0).toLocaleString()}`,
-          supportingText: 'Modeled spend is concentrated in refund-related workflows during the regression window.',
+          supportingText: 'Modeled spend is concentrated in refund-related workflows, with secondary pressure from RAG recovery and escalation review during the week.',
         },
       ]}
       hotspots={demo.budgets.map((item) => ({

@@ -20,7 +20,7 @@ export default async function DemoTracesPage() {
         <div>
           <h1 className="text-3xl font-bold">Traces</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
-            {traces.length} demo traces • {uniqueAgents.length} agent types
+            {traces.length} demo traces across 7 days • {uniqueAgents.length} agent types
           </p>
         </div>
       </div>

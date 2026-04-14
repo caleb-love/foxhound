@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Command,
   CommandDialog,
@@ -12,6 +12,8 @@ import {
   CommandList,
   CommandShortcut,
 } from '@/components/ui/command';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { upsertSegmentInUrl } from '@/lib/segment-url';
 import {
   LayoutDashboard,
   Activity,
@@ -54,7 +56,9 @@ const routes: CommandRoute[] = [
 export function OperatorCommandPalette() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -79,7 +83,9 @@ export function OperatorCommandPalette() {
   }, []);
 
   const handleSelect = (href: string) => {
-    router.push(href);
+    const currentSearch = searchParams?.toString() ?? '';
+    const nextUrl = upsertSegmentInUrl(`${href}${currentSearch ? `?${currentSearch}` : ''}`, currentSegmentName);
+    router.push(nextUrl);
     setOpen(false);
   };
 

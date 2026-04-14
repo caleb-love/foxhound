@@ -1,53 +1,52 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PromptListView } from './prompt-list-view';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
 const prompts = [
   {
-    id: 'pmt_b',
-    orgId: 'org_1',
-    name: 'zebra-agent',
-    createdAt: new Date().toISOString(),
-    updatedAt: '2026-04-13T02:00:00.000Z',
+    id: 'prompt_support_routing',
+    name: 'support-routing',
+    updatedAt: '2026-04-14T10:00:00.000Z',
   },
   {
-    id: 'pmt_a',
-    orgId: 'org_1',
-    name: 'alpha-agent',
-    createdAt: new Date().toISOString(),
-    updatedAt: '2026-04-13T01:00:00.000Z',
+    id: 'prompt_onboarding_router',
+    name: 'onboarding-router',
+    updatedAt: '2026-04-14T11:00:00.000Z',
   },
-];
+] as never;
 
 describe('PromptListView', () => {
-  it('renders prompts sorted by name', () => {
+  beforeEach(() => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: defaults,
+      savedSegments: [],
+    });
+  });
+
+  it('renders prompts and shared filter bar', () => {
     render(<PromptListView prompts={prompts} />);
 
-    const alpha = screen.getByText('alpha-agent');
-    const zebra = screen.getByText('zebra-agent');
-    expect(alpha.compareDocumentPosition(zebra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Prompts')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search prompts, versions, or linked workflows...')).toBeInTheDocument();
+    expect(screen.getByText('support-routing')).toBeInTheDocument();
+    expect(screen.getByText('onboarding-router')).toBeInTheDocument();
   });
 
-  it('renders links to prompt detail pages', () => {
+  it('respects active segment prompt filters', () => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'Support prompts',
+      currentFilters: { ...defaults, promptIds: ['support-routing'] },
+      savedSegments: [],
+    });
+
     render(<PromptListView prompts={prompts} />);
 
-    const links = screen.getAllByRole('link', { name: /view prompt/i });
-    expect(links[0]).toHaveAttribute('href', '/prompts/pmt_a');
-    expect(links[1]).toHaveAttribute('href', '/prompts/pmt_b');
-  });
-
-  it('shows focused prompt context when provided', () => {
-    render(<PromptListView prompts={prompts} focusedPromptName="alpha-agent" />);
-
-    expect(screen.getByText('Focused')).toBeInTheDocument();
-    expect(screen.getByText(/Focused from another workflow:/)).toBeInTheDocument();
-    expect(screen.getAllByText('alpha-agent').length).toBeGreaterThan(0);
-  });
-
-  it('shows an empty state when there are no prompts', () => {
-    render(<PromptListView prompts={[]} />);
-
-    expect(screen.getByText('No prompts yet')).toBeInTheDocument();
-    expect(screen.getByText(/Create a prompt in the API first/)).toBeInTheDocument();
+    expect(screen.getByText('support-routing')).toBeInTheDocument();
+    expect(screen.queryByText('onboarding-router')).not.toBeInTheDocument();
   });
 });

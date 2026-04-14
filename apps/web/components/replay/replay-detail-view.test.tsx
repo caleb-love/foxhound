@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ReplayDetailView } from './replay-detail-view';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
+
+const useSearchParams = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => useSearchParams(),
+}));
 
 const trace = {
   id: 'trace_replay_1',
@@ -39,6 +47,15 @@ const trace = {
 };
 
 describe('ReplayDetailView', () => {
+  beforeEach(() => {
+    useSearchParams.mockReturnValue(new URLSearchParams(''));
+    useSegmentStore.setState({
+      currentSegmentName: 'Planner agent',
+      currentFilters: createDefaultDashboardFilters(),
+      savedSegments: [],
+    });
+  });
+
   it('renders replay hero, context, and action links', () => {
     render(<ReplayDetailView trace={trace as never} />);
 
@@ -47,19 +64,19 @@ describe('ReplayDetailView', () => {
     expect(screen.getByText(/planner-system · version 8/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open trace detail/i })).toHaveAttribute(
       'href',
-      '/traces/trace_replay_1',
+      '/traces/trace_replay_1?segment=Planner+agent',
     );
-    expect(screen.getByRole('link', { name: /Compare this run/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Inspect trace context/i })).toHaveAttribute(
       'href',
-      '/diff?a=trace_replay_1&b=',
+      '/traces/trace_replay_1?segment=Planner+agent',
     );
     expect(screen.getByRole('link', { name: /Review prompts/i })).toHaveAttribute(
       'href',
-      '/prompts?focus=planner-system',
+      '/prompts?focus=planner-system&segment=Planner+agent',
     );
     expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
       'href',
-      '/prompts?focus=planner-system&version=8',
+      '/prompts?focus=planner-system&version=8&segment=Planner+agent',
     );
   });
 });

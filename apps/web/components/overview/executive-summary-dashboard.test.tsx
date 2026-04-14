@@ -58,14 +58,14 @@ describe('ExecutiveSummaryDashboard', () => {
     expect(screen.getByText('$182')).toBeInTheDocument();
   });
 
-  it('renders decision queue links and statuses', () => {
+  it('renders decision queue links and decision items', () => {
     render(
       <ExecutiveSummaryDashboard metrics={metrics} decisions={decisions} highlights={highlights} />,
     );
 
     expect(screen.getByText('Decision queue')).toBeInTheDocument();
-    expect(screen.getByText('watch')).toBeInTheDocument();
-    expect(screen.getByText('attention')).toBeInTheDocument();
+    expect(screen.getByText('Decide whether support-routing v12 is safe to promote')).toBeInTheDocument();
+    expect(screen.getByText('Review planner-agent reliability drift')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open experiments/i })).toHaveAttribute('href', '/experiments');
     expect(screen.getByRole('link', { name: /Open regressions/i })).toHaveAttribute('href', '/regressions');
   });

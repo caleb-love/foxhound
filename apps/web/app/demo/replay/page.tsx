@@ -12,7 +12,7 @@ export default function DemoReplayIndexPage() {
       <DemoHero
         eyebrow="Investigate · Session Replay"
         title="Replay critical investigation runs"
-        description="Step through the seeded demo traces in execution order to identify the exact transition point before regressions, hallucinations, escalation misses, and infrastructure failures."
+        description="Step through the seeded demo traces in week-long execution order to identify the exact transition points before regressions, hallucinations, escalation misses, and infrastructure failures."
       >
         <DemoPill>{replayTargets.length} replay targets</DemoPill>
         <DemoPill>{demo.curatedTraces.filter((item) => item.status === 'error').length} failing hero traces</DemoPill>

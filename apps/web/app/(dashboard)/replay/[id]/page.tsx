@@ -7,9 +7,10 @@ import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/dem
 export default async function ReplayPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await getDashboardSessionOrDemo();
+  const { id } = await params;
 
   let trace = null;
   let error = null;
@@ -17,20 +18,20 @@ export default async function ReplayPage({
   try {
     if (isDashboardDemoModeEnabled()) {
       trace = {
-        id: params.id,
+        id,
         agentId: 'demo-agent',
         sessionId: 'demo-session',
         startTimeMs: 0,
         endTimeMs: 5000,
         metadata: { prompt_name: 'demo-prompt', prompt_version: 3 },
         spans: [
-          { traceId: params.id, spanId: 'span_1', name: 'plan', kind: 'llm_call' as const, startTimeMs: 0, endTimeMs: 2000, status: 'ok' as const, attributes: { cost: 0.01 }, events: [] },
-          { traceId: params.id, spanId: 'span_2', name: 'execute', kind: 'tool_call' as const, startTimeMs: 2000, endTimeMs: 5000, status: 'error' as const, attributes: { cost: 0.005 }, events: [] },
+          { traceId: id, spanId: 'span_1', name: 'plan', kind: 'llm_call' as const, startTimeMs: 0, endTimeMs: 2000, status: 'ok' as const, attributes: { cost: 0.01 }, events: [] },
+          { traceId: id, spanId: 'span_2', name: 'execute', kind: 'tool_call' as const, startTimeMs: 2000, endTimeMs: 5000, status: 'error' as const, attributes: { cost: 0.005 }, events: [] },
         ],
       };
     } else {
       const client = getAuthenticatedClient(session.user.token);
-      trace = await client.getTrace(params.id);
+      trace = await client.getTrace(id);
     }
   } catch (e) {
     error = 'Unable to load this trace replay right now.';

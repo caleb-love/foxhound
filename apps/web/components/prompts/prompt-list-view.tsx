@@ -1,7 +1,11 @@
 'use client';
 
+import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageWarningState } from '@/components/ui/page-state';
+import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import type { PromptResponse } from '@foxhound/api-client';
 
 interface PromptListViewProps {
@@ -9,8 +13,32 @@ interface PromptListViewProps {
   focusedPromptName?: string;
 }
 
+const promptFilters: DashboardFilterDefinition[] = [
+  {
+    key: 'searchQuery',
+    kind: 'search',
+    label: 'Search',
+    placeholder: 'Search prompts, versions, or linked workflows...',
+  },
+  {
+    key: 'promptIds',
+    kind: 'multi-select',
+    label: 'Prompts',
+    options: [
+      { value: 'support-routing', label: 'support-routing' },
+      { value: 'onboarding-router', label: 'onboarding-router' },
+      { value: 'refund-policy-check', label: 'refund-policy-check' },
+    ],
+  },
+];
+
 export function PromptListView({ prompts, focusedPromptName }: PromptListViewProps) {
-  const sortedPrompts = [...prompts].sort((a, b) => a.name.localeCompare(b.name));
+  const filters = useSegmentStore((state) => state.currentFilters);
+
+  const sortedPrompts = filterByDashboardScope(prompts, filters, {
+    searchableText: (prompt) => `${prompt.name} ${prompt.id}`,
+    promptIds: (prompt) => [prompt.name],
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="space-y-6">
@@ -25,6 +53,8 @@ export function PromptListView({ prompts, focusedPromptName }: PromptListViewPro
           </p>
         ) : null}
       </div>
+
+      <DashboardFilterBar definitions={promptFilters} />
 
       {sortedPrompts.length === 0 ? (
         <PageWarningState

@@ -11,14 +11,14 @@ export default function DemoExecutivePage() {
         {
           title: 'Decide whether support-reply v19 is safe to promote',
           status: 'watch',
-          description: 'The refund recovery experiment is complete and currently the strongest candidate for promotion review.',
+          description: 'The refund recovery experiment is complete and now stands out as the strongest promotion candidate from the seven-day review window.',
           href: '/demo/experiments',
           cta: 'Open experiments',
         },
         {
           title: 'Contain refund-policy-agent overspend',
           status: 'attention',
-          description: 'The refund incident now has linked budget, SLA, regression, and notification evidence in the shared demo story.',
+          description: 'The refund incident now has linked budget, SLA, regression, and notification evidence across the same seven-day demo story.',
           href: '/demo/budgets',
           cta: 'Open budgets',
         },
@@ -31,9 +31,9 @@ export default function DemoExecutivePage() {
         },
       ]}
       highlights={[
-        'Refund regressions were detected quickly, traced to prompt and policy changes, and validated through trace-derived experiments.',
+        'Refund regressions were detected mid-week, traced to prompt and policy changes, and validated through trace-derived experiments.',
         'The shared demo now covers investigation, improvement, and governance surfaces from one reusable scenario source.',
-        `The demo trace corpus includes ${demo.allTraces.length} traces with curated anchors plus realistic healthy background activity.`,
+        `The demo trace corpus includes ${demo.allTraces.length} traces with curated anchors plus realistic healthy background activity across a full week.`,
       ]}
     />
   );

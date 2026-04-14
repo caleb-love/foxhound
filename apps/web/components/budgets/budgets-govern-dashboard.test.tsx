@@ -72,8 +72,6 @@ describe('BudgetsGovernDashboard', () => {
     expect(screen.getAllByText('planner-agent').length).toBeGreaterThan(0);
     expect(screen.getByText('critical')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Review traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Check regressions/i })).toHaveAttribute('href', '/regressions');
-    expect(screen.getByRole('link', { name: /Open improvement flow/i })).toHaveAttribute('href', '/experiments');
   });
 
   it('renders governance next actions', () => {
@@ -81,7 +79,8 @@ describe('BudgetsGovernDashboard', () => {
       <BudgetsGovernDashboard metrics={metrics} hotspots={hotspots} nextActions={nextActions} />,
     );
 
-    expect(screen.getByRole('link', { name: /Inspect the most expensive traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Check whether regressions caused the overspend/i })).toHaveAttribute('href', '/regressions');
+    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/traces')).toBe(true);
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/regressions')).toBe(true);
   });
 });

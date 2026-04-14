@@ -10,7 +10,7 @@ export default function DemoRegressionsPage() {
         {
           label: 'Open regressions',
           value: String(demo.regressions.filter((item: (typeof demo.regressions)[number]) => item.severity !== 'healthy').length),
-          supportingText: 'The hero demo centers on refund behavior quality drift after a prompt rollout.',
+          supportingText: 'The hero demo centers on refund behavior quality drift after a mid-week prompt rollout.',
         },
         {
           label: 'Replay targets',
@@ -19,19 +19,19 @@ export default function DemoRegressionsPage() {
         },
         {
           label: 'Affected prompt families',
-          value: '1',
-          supportingText: 'support-reply is the primary prompt family implicated in the hero story.',
+          value: '2',
+          supportingText: 'support-reply and refund-policy-check are both implicated as the week-long incident unfolds.',
         },
         {
           label: 'Validated recoveries',
           value: String(demo.regressions.filter((item: (typeof demo.regressions)[number]) => item.severity === 'healthy').length),
-          supportingText: 'One recovery path is already validated for promotion review.',
+          supportingText: 'One recovery is already validated and another is supported by the broader weekly evidence.',
         },
       ]}
       activeRegressions={demo.regressions.map((regression: (typeof demo.regressions)[number]) => ({
         title: regression.title,
         severity: regression.severity,
-        changedAt: regression.severity === 'healthy' ? 'after v19 validation' : 'after support-reply v18 rollout',
+        changedAt: regression.severity === 'healthy' ? 'late week after v19 validation' : 'mid-week after support-reply v18 rollout',
         description: regression.summary,
         traceHref: `/demo/traces/${regression.traceId}`,
         diffHref: (() => {

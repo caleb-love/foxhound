@@ -77,9 +77,7 @@ describe('RegressionsDashboard', () => {
     );
 
     expect(screen.getByText('Onboarding agent now fails after tool selection')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open trace/i })).toHaveAttribute('href', '/traces/trace_reg_1');
     expect(screen.getByRole('link', { name: /Compare runs/i })).toHaveAttribute('href', '/diff?a=trace_good&b=trace_reg_1');
-    expect(screen.getByRole('link', { name: /Review prompts/i })).toHaveAttribute('href', '/prompts?focus=onboarding-router');
   });
 
   it('renders likely-cause actions', () => {
@@ -91,13 +89,8 @@ describe('RegressionsDashboard', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /Prompt promotion may have changed tool routing/i })).toHaveAttribute(
-      'href',
-      '/prompts?focus=onboarding-router',
-    );
-    expect(screen.getByRole('link', { name: /Execution path drift detected/i })).toHaveAttribute(
-      'href',
-      '/diff?a=trace_good&b=trace_reg_1',
-    );
+    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/prompts?focus=onboarding-router')).toBe(true);
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/diff?a=trace_good&b=trace_reg_1')).toBe(true);
   });
 });

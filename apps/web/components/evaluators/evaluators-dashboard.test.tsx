@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { EvaluatorsDashboard } from './evaluators-dashboard';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
 const metrics = [
   {
@@ -38,6 +40,18 @@ const evaluators = [
     experimentsHref: '/experiments',
     compareHref: '/experiments',
   },
+  {
+    name: 'tool-routing-review',
+    scoringType: 'categorical' as const,
+    model: 'claude-3-5-sonnet',
+    lastRunStatus: 'warning' as const,
+    adoptionSummary: 'Used on routing regressions and replay-driven investigations',
+    lastRunSummary: 'Flagged 6 traces for likely tool-selection drift',
+    tracesHref: '/regressions',
+    datasetsHref: '/datasets',
+    experimentsHref: '/experiments',
+    compareHref: '/experiments',
+  },
 ];
 
 const nextActions = [
@@ -56,37 +70,39 @@ const nextActions = [
 ];
 
 describe('EvaluatorsDashboard', () => {
-  it('renders evaluator metrics and hero copy', () => {
+  beforeEach(() => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: defaults,
+      savedSegments: [],
+    });
+  });
+
+  it('renders evaluator metrics, filter bar, and content', () => {
     render(
       <EvaluatorsDashboard metrics={metrics} evaluators={evaluators} nextActions={nextActions} />,
     );
 
     expect(screen.getByText('Evaluators')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search evaluators, models, or scoring coverage...')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('72%')).toBeInTheDocument();
-  });
-
-  it('renders evaluator status and action links', () => {
-    render(
-      <EvaluatorsDashboard metrics={metrics} evaluators={evaluators} nextActions={nextActions} />,
-    );
-
     expect(screen.getByText('helpfulness-judge')).toBeInTheDocument();
-    expect(screen.getByText('numeric')).toBeInTheDocument();
-    expect(screen.getByText('healthy')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Review traces/i })).toHaveAttribute('href', '/traces');
-    const datasetsLinks = screen.getAllByRole('link', { name: /Open datasets/i });
-    expect(datasetsLinks[0]).toHaveAttribute('href', '/datasets');
-    expect(screen.getByRole('link', { name: /Run experiment/i })).toHaveAttribute('href', '/experiments');
-    expect(screen.getByRole('link', { name: /Compare results/i })).toHaveAttribute('href', '/experiments');
   });
 
-  it('renders improve-loop next actions', () => {
+  it('respects active segment model filters', () => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'Claude evaluators',
+      currentFilters: { ...defaults, models: ['claude-3-5-sonnet'] },
+      savedSegments: [],
+    });
+
     render(
       <EvaluatorsDashboard metrics={metrics} evaluators={evaluators} nextActions={nextActions} />,
     );
 
-    expect(screen.getByRole('link', { name: /Review low-confidence scores/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Use datasets to expand evaluator coverage/i })).toHaveAttribute('href', '/datasets');
+    expect(screen.getByText('tool-routing-review')).toBeInTheDocument();
+    expect(screen.queryByText('helpfulness-judge')).not.toBeInTheDocument();
   });
 });

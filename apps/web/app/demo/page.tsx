@@ -13,18 +13,18 @@ export default function DemoOverviewPage() {
 
   const changeFeed: OverviewFeedItem[] = [
     {
-      title: 'support-reply v18 rollout introduced refund regressions',
-      description: 'The shared demo story anchors refund quality drift to the v18 rollout and connects it to diff, replay, datasets, and experiments.',
+      title: 'support-reply v18 rollout introduced mid-week refund regressions',
+      description: 'The shared demo story now follows a full week of operations: stable baseline, rollout drift, incident fallout, and recovery across diff, replay, datasets, and experiments.',
       status: 'critical',
     },
     {
       title: 'v19 recovery candidate validated on refund edge cases',
-      description: 'The leading recovery path now looks promotion-ready after trace-derived evaluation and experiment review.',
+      description: 'The leading recovery path now looks promotion-ready after trace-derived evaluation across the week’s refund edge cases.',
       status: 'healthy',
     },
     {
       title: 'Knowledge-base timeout cluster increased latency',
-      description: 'Support-rag-agent remains near SLA and budget limits while fallback behavior stabilizes.',
+      description: 'Support-rag-agent remains near SLA and budget limits after a late-week timeout cluster and fallback stabilization.',
       status: 'warning',
     },
   ];
@@ -50,7 +50,7 @@ export default function DemoOverviewPage() {
   const nextActions: OverviewActionItem[] = [
     {
       title: 'Open traces',
-      description: `Review the seeded trace corpus with ${demo.allTraces.length} shared demo traces.`,
+      description: `Review the seeded trace corpus with ${demo.allTraces.length} shared demo traces spanning a realistic seven-day operating window.`,
       href: '/demo/traces',
       cta: 'Open traces',
     },

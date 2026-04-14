@@ -10,12 +10,12 @@ export default function DemoDatasetsPage() {
         {
           label: 'Datasets',
           value: String(demo.datasets.length),
-          supportingText: 'The hero story starts with a trace-derived refund edge-case dataset.',
+          supportingText: 'The hero story starts with a trace-derived refund dataset, then expands into supporting weekly datasets.',
         },
         {
           label: 'Total cases',
           value: String(demo.datasets.reduce((sum: number, dataset: (typeof demo.datasets)[number]) => sum + dataset.itemCount, 0)),
-          supportingText: 'Enough cases to validate recovery candidates before promotion.',
+          supportingText: 'Enough weekly cases to validate recovery candidates before promotion.',
         },
         {
           label: 'Source traces',
@@ -32,7 +32,7 @@ export default function DemoDatasetsPage() {
         name: dataset.name,
         itemCount: dataset.itemCount,
         sourceSummary: dataset.description,
-        lastUpdated: 'today',
+        lastUpdated: 'this week',
         scoreSignal: demo.evaluators[0]?.name ?? 'evaluator pending',
         traceHref: `/demo/traces/${dataset.sourceTraceIds[0]}`,
         evaluatorsHref: '/demo/experiments',
