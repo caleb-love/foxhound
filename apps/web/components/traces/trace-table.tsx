@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GitCompare } from 'lucide-react';
 import { useFilterStore } from '@/lib/stores/filter-store';
+import { useSegmentStore } from '@/lib/stores/segment-store';
 import { useCompareStore } from '@/lib/stores/compare-store';
 import { getDemoSessionHref } from '@/lib/demo-routes';
 
@@ -25,7 +26,9 @@ interface TraceTableProps {
 }
 
 export function TraceTable({ initialData }: TraceTableProps) {
-  const { status, agentIds, dateRange, searchQuery } = useFilterStore();
+  const legacyFilters = useFilterStore();
+  const segmentFilters = useSegmentStore((state) => state.currentFilters);
+  const { status, agentIds, dateRange, searchQuery } = segmentFilters ?? legacyFilters;
   const { selectedTraceIds, toggleTrace, clearSelection, canCompare } = useCompareStore();
   const pathname = usePathname();
   const router = useRouter();

@@ -1,5 +1,6 @@
 'use client';
 
+import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -126,21 +127,20 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
             <CardTitle>Recommended investigation actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <a href={compareHref} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
+            <SegmentAwareLink href={compareHref} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
               <div className="font-medium">Compare against another run</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Open Run Diff and compare this trace with a healthy or newer execution.
               </p>
-            </a>
-            <a href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
+            </SegmentAwareLink>
+            <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
               <div className="font-medium">Review trace timeline</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Inspect execution state changes and identify the transition point before failure directly in the trace timeline.
               </p>
-            </a>
-            <a
+            </SegmentAwareLink>
+            <SegmentAwareLink
               href={promptHref ?? '#'}
-              aria-disabled={!promptHref}
               className={`rounded-lg border p-3 transition-colors ${promptHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
             >
               <div className="font-medium">Inspect prompt history</div>
@@ -149,10 +149,9 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
                   ? `Prompt ${promptName}${promptVersion ? ` (version ${promptVersion})` : ''} is linked to this trace. Use prompt history to verify whether the failure aligns with a recent prompt change.`
                   : 'Prompt metadata is not attached to this trace yet.'}
               </p>
-            </a>
-            <a
+            </SegmentAwareLink>
+            <SegmentAwareLink
               href={promptDiffHref ?? '#'}
-              aria-disabled={!promptDiffHref}
               className={`rounded-lg border p-3 transition-colors ${promptDiffHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
             >
               <div className="font-medium">Compare prompt versions</div>
@@ -161,13 +160,13 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
                   ? `Open prompt diff around version ${promptVersion} to inspect the likely change that influenced this run.`
                   : 'Prompt version data is required before comparing prompt revisions.'}
               </p>
-            </a>
-            <a href={`${baseHref}/datasets?sourceTrace=${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
+            </SegmentAwareLink>
+            <SegmentAwareLink href={`${baseHref}/datasets?sourceTrace=${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
               <div className="font-medium">Add to evaluation workflow</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Use this failure pattern to seed a dataset, then move into evaluator and experiment workflows.
               </p>
-            </a>
+            </SegmentAwareLink>
           </CardContent>
         </Card>
       </div>

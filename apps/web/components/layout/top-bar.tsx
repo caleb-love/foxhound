@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Settings } from 'lucide-react';
 import { OperatorCommandPalette } from './operator-command-palette';
+import { SegmentSwitcher } from './segment-switcher';
 
 interface TopBarProps {
   user: {
@@ -29,6 +30,7 @@ export function TopBar({ user }: TopBarProps) {
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <SegmentSwitcher />
         <OperatorCommandPalette />
         <DropdownMenu>
           <DropdownMenuTrigger>

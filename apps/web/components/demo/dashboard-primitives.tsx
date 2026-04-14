@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
+import { useSegmentStore } from '@/lib/stores/segment-store';
 import { cn } from '@/lib/utils';
 
 export const tenantStyles = {
@@ -28,11 +30,16 @@ export function DashboardPage({ eyebrow, title, description, children }: {
   description: string;
   children: ReactNode;
 }) {
+  const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <div className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-accent)' }}>
-          {eyebrow}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-accent)' }}>
+            {eyebrow}
+          </div>
+          <Badge variant="outline">Segment: {currentSegmentName}</Badge>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight" style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}>{title}</h1>
         <p className="max-w-3xl text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>{description}</p>
@@ -110,9 +117,9 @@ export function PremiumActions({ children }: { children: ReactNode }) {
 
 export function PremiumActionLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="rounded-xl border px-3 py-2 transition-colors" style={tenantStyles.action}>
-      {children}
-    </a>
+    <SegmentAwareLink href={href} className="rounded-xl border px-3 py-2 transition-colors" >
+      <span style={tenantStyles.action}>{children}</span>
+    </SegmentAwareLink>
   );
 }
 

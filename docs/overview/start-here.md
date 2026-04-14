@@ -6,7 +6,7 @@ For the durable explanation of how the three-stage context model works, see [`ha
 
 ## What Foxhound Is
 
-Compliance-grade observability platform for AI agent fleets. TypeScript/Node.js monorepo with Fastify API, BullMQ worker, Drizzle/Postgres, typed clients and SDKs. Multi-tenant and security-sensitive by default.
+Open-source observability platform for AI agent fleets. TypeScript/Node.js monorepo with Fastify API, BullMQ worker, Drizzle/Postgres, typed clients and SDKs. Multi-tenant and security-sensitive by default.
 
 ## Read This First, In This Order
 
@@ -136,10 +136,11 @@ Do not load skills by ritual. Load them when they materially improve the odds of
 
 ## Documentation Rules
 
-- append to one session note per day: `docs/sessions/session-YYYY-MM-DD.md`
+- append to one session note per day: prefer `docs/sessions/session-YYYY-MM-DD.md`; if a handoff file variant already exists for the day, append there instead of creating a competing second daily note
 - create plans only for substantial or cross-session work
 - update durable docs only when truth changed
 - keep `docs/overview/`, `docs/reference/`, and `docs/roadmap/` updated after milestone-level state changes
+- for GTM, brand, positioning, and outreach work, prefer `docs/reference/foxhound-gtm-source-of-truth.md` over older launch/brand/website drafts when they conflict
 
 ## Useful Commands
 
@@ -168,7 +169,7 @@ For Foxhound web dev specifically, several workspace packages export compiled fi
 Recover in this order:
 1. direct task files
 2. active plan
-3. latest relevant session note
+3. latest relevant session note or handoff file for the day
 4. current diff / recent commits
 5. `docs/overview/current-status.md` / `docs/overview/project-overview.md` / `docs/reference/engineering-notes.md`
 

@@ -58,17 +58,31 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 
 **Error responses:** Fastify error handler returns `{error: {code, message, details}}`. Use HTTP status codes correctly (400 = bad request, 404 = not found, 500 = server error).
 
+## Session Recovery Patterns
+
+**Current-work truth must be recovered from active artifacts first:** If `docs/overview/*` or milestone summaries imply completion, do not trust them alone for next-step selection. Before planning or continuing substantial work, cross-check in this order: relevant task files → `docs/plans/active/` → latest `docs/sessions/session-YYYY-MM-DD*.md` handoff/note → `git log --oneline -20` → only then broader overview/state docs. This prevents planning off stale summaries when active work is still in flight.
+
+**State-doc conflict rule:** When overview/current-status docs disagree with active plans, recent session notes, or current commits, treat the active plan + recent session evidence as source of truth and queue the stale overview doc for cleanup after the implementation slice. Do not spend the whole session re-reading contradictory state docs.
+
+**Session-analysis artifact rule:** If a session analysis already exists as HTML or markdown under `docs/sessions/`, summarize its highest-leverage lessons into the latest daily session note or handoff file. That gives future agents a lightweight recovery path instead of forcing another full transcript pass.
+
+**One-day, one-session-file rule:** Prefer a single daily session artifact family. If the repo already has `session-YYYY-MM-DD-*.md` for the current day, append to the most relevant existing session note or handoff instead of creating a competing `session-YYYY-MM-DD.md` just because the default filename came to mind. Duplicate same-day session files fragment recovery context and burn retrieval time.
+
 ## Frontend Patterns
 
 **Wireframe-first dashboard work:** Treat the current dashboard as a functional wireframe. Optimize for behavioral correctness, auth boundaries, empty/loading/error states, and future restyling. Do not overfit to current page-specific Tailwind structure.
 
 **Reusable page states:** If multiple pages need warning/error/empty shells, extract shared state components instead of duplicating page-local alert boxes. Future visual redesign should be a component swap, not a page-by-page rewrite.
 
+**Reusable chart-system rule:** For dashboard/chart work in `apps/web`, do not design graphs page-by-page. Prefer a small shared chart primitive layer (metric tile, trend chart, breakdown chart, top-N list, distribution chart, diff scorecard, event timeline) and shape page data into those contracts. If a new chart appears only once and cannot be generalized by metric/scope/compare props, treat it as a smell and justify it explicitly.
+
 **Behavior-focused tests:** Frontend tests should assert redirects, messages, disabled states, retries, and recovery behavior. Avoid coupling tests to exact class lists or fragile DOM structure unless the class is itself the behavior.
 
 **Dashboard handoff links must be real, not decorative:** If a page adds query-param context to a link (for example `focus`, `baseline`, `comparison`, or `sourceTrace`), the destination page must actually parse and apply that context before the link ships. Do not create “connected” flows that only look wired together.
 
 **Stable launcher rule:** Quick-jump menus, command palettes, and dashboard launchers should point at stable real routes, not fabricated placeholder entity IDs. If live data is not available, prefer a list/workbench route over a guessed detail route.
+
+**Dashboard artifact-to-plan rule:** If a substantial dashboard brainstorm, IA artifact, or HTML review deck is created during a session, convert it into an implementation-facing plan or backlog before context switching. Strategy-only artifacts are easy to admire and easy to strand; durable follow-through requires a plan file with named slices.
 
 ## Testing Patterns
 
@@ -95,6 +109,8 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 **Workspace type-surface drift:** When changing exported function signatures or types in workspace packages like `@foxhound/db`, rebuild the producer package first and clear stale incremental/build artifacts in consuming packages before assuming the consumer code is wrong. In practice: rebuild the producer (`pnpm --filter @foxhound/db build`), remove stale `dist` / `*.tsbuildinfo` in the consumer if needed, then rerun the consumer typecheck.
 
 **Launcher-only vs persistent-nav rule:** If a dashboard page is meant for recurring operator or stakeholder use, it should be discoverable in persistent navigation, not only through a quick-jump launcher. Launcher-only is acceptable for rare utilities, not for routine summary surfaces.
+
+**Next.js 15 App Router prop rule:** In `apps/web/app/**/page.tsx`, treat dynamic `params` and `searchParams` as async route props and resolve them with `await`, matching the working route pattern already used in this repo. Do not introduce synchronous `{ id: string }` / plain-object `searchParams` page props on server routes, even if TypeScript appears happy — this can produce runtime misreads where query params or dynamic IDs appear missing.
 
 **API route test caveat:** Do not assume route-config introspection is safe by directly importing API route modules. In this repo, direct route imports can pull real DB client initialization and other environment-sensitive dependencies. Prefer behavior tests with mocks. If route-config assertions become important, add a documented mocked app-factory helper first instead of ad hoc Fastify introspection.
 
@@ -152,7 +168,9 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 
 **Don't use `--grep` with Vitest:** Vitest uses `-t` or `--testNamePattern` for test filtering, not `--grep` (that's Jest syntax).
 
-**Don't use ambiguous exact-text edit anchors:** When using exact-match editing tools, anchor replacements with the nearest unique context such as the enclosing `describe(...)`, `it(...)`, or function signature. Repeated fixture blocks and duplicated mocks in test files will cause patch failures if the anchor text is too generic.
+**Don't use ambiguous exact-text edit anchors:** When using exact-match editing tools, anchor replacements with the nearest unique context such as the enclosing `describe(...)`, `it(...)`, route declaration, or function signature. Repeated fixture blocks and duplicated mocks in test files will cause patch failures if the anchor text is too generic.
+
+**Re-read before patching repeated structures:** If a file contains duplicated mocks, fixtures, route objects, or similar repeated blocks, re-read the file immediately before editing and use the smallest unique anchor that still names the enclosing structure. This is cheaper than recovering from a failed exact-match patch attempt later.
 
 ## GitHub Actions Patterns
 

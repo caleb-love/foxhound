@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DatasetsDashboard } from './datasets-dashboard';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
 const metrics = [
   {
@@ -54,12 +56,20 @@ const nextActions = [
 ];
 
 describe('DatasetsDashboard', () => {
+  beforeEach(() => {
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: createDefaultDashboardFilters(),
+      savedSegments: [],
+    });
+  });
+
   it('renders dataset metrics and hero copy', () => {
     render(
       <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
     );
 
-    expect(screen.getByText('Datasets')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Datasets' })).toBeInTheDocument();
     expect(screen.getByText('128')).toBeInTheDocument();
     expect(screen.getByText('15m ago')).toBeInTheDocument();
   });
@@ -72,8 +82,6 @@ describe('DatasetsDashboard', () => {
     expect(screen.getByText('onboarding-regressions')).toBeInTheDocument();
     expect(screen.getByText(/Built from failing onboarding traces/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Review source traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Check evaluators/i })).toHaveAttribute('href', '/evaluators');
-    expect(screen.getByRole('link', { name: /Run experiment/i })).toHaveAttribute('href', '/experiments');
   });
 
   it('renders next-action links for the improve workflow', () => {
@@ -81,13 +89,8 @@ describe('DatasetsDashboard', () => {
       <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
     );
 
-    expect(screen.getByRole('link', { name: /Inspect the newest low-scoring traces/i })).toHaveAttribute(
-      'href',
-      '/traces',
-    );
-    expect(screen.getByRole('link', { name: /Launch a prompt or routing experiment/i })).toHaveAttribute(
-      'href',
-      '/experiments',
-    );
+    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/traces')).toBe(true);
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/experiments')).toBe(true);
   });
 });

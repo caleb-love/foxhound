@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Charts & Dashboard Brainstorm</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-elev: rgba(15, 23, 42, 0.72);
+      --panel: rgba(255, 255, 255, 0.06);
+      --panel-strong: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #e8ecf8;
+      --muted: #aab3c9;
+      --heading: #f8fbff;
+      --accent: #87e6ff;
+      --accent-2: #b388ff;
+      --accent-3: #7ef0c5;
+      --danger: #ff8a9b;
+      --warn: #ffd36e;
+      --success: #71f7bf;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background:
+        radial-gradient(circle at top left, rgba(135, 230, 255, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(179, 136, 255, 0.18), transparent 32%),
+        radial-gradient(circle at bottom center, rgba(126, 240, 197, 0.12), transparent 26%),
+        linear-gradient(180deg, #0a1022 0%, #0b1020 42%, #070b16 100%);
+      min-height: 100vh;
+      letter-spacing: -0.01em;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 88%);
+      opacity: 0.35;
+    }
+    .shell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 56px; position: relative; z-index: 1; }
+    .topbar {
+      position: sticky; top: 18px; z-index: 10; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      background: rgba(11, 16, 32, 0.7); border: 1px solid var(--border); border-radius: 999px; padding: 10px 14px;
+      box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, rgba(135,230,255,.26), rgba(179,136,255,.26));
+      border: 1px solid rgba(255,255,255,.16); display: grid; place-items: center; font-size: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .brand-copy h1 { color: var(--heading); font-size: 1rem; line-height: 1.1; margin-bottom: 2px; font-weight: 700; }
+    .brand-copy p { color: var(--muted); font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: .86rem; padding: 10px 14px; border-radius: 999px; transition: 160ms ease; border: 1px solid transparent; }
+    .nav a:hover { color: var(--heading); background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); }
+    .hero {
+      padding: 42px; border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(135,230,255,.08), rgba(179,136,255,.08)), rgba(255,255,255,.04);
+      border: 1px solid var(--border); box-shadow: var(--shadow); backdrop-filter: blur(18px); overflow: hidden; position: relative;
+    }
+    .hero::after { content: ""; position: absolute; inset: auto -10% -55% 30%; height: 380px; background: radial-gradient(circle, rgba(135,230,255,.18), transparent 58%); pointer-events: none; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: var(--accent); font-size: .82rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .9fr); gap: 28px; align-items: end; position: relative; z-index: 1; }
+    .hero h2 { font-size: clamp(2.2rem, 4.6vw, 4.5rem); line-height: .95; color: var(--heading); margin-bottom: 18px; letter-spacing: -.04em; }
+    .hero p { color: #c5cee3; font-size: 1.04rem; max-width: 66ch; }
+    .hero-card { border-radius: 24px; border: 1px solid rgba(255,255,255,.12); background: rgba(8,13,27,.62); padding: 22px; backdrop-filter: blur(16px); }
+    .hero-card h3 { font-size: .88rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+    .stat-list { display: grid; gap: 12px; }
+    .stat-row { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+    .stat-row span:first-child { color: var(--muted); font-size: .92rem; }
+    .stat-row strong { color: var(--heading); font-size: 1rem; }
+    .section { margin-top: 26px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow); backdrop-filter: blur(18px); overflow: hidden; }
+    .section-head { padding: 28px 30px 18px; border-bottom: 1px solid rgba(255,255,255,.07); background: linear-gradient(180deg, rgba(255,255,255,.04), transparent); }
+    .section-head .kicker { color: var(--accent); text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; font-weight: 700; margin-bottom: 10px; }
+    .section-head h3 { color: var(--heading); font-size: 1.7rem; line-height: 1.05; margin-bottom: 8px; }
+    .section-head p { color: var(--muted); max-width: 78ch; }
+    .section-body { padding: 26px 30px 30px; }
+    .grid-2, .grid-3, .grid-4, .metric-grid, .compare { display: grid; gap: 18px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4, .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card, .metric, .callout, .table-wrap, .timeline, .panel {
+      border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .card, .panel { padding: 20px; }
+    .card h4, .panel h4 { color: var(--heading); font-size: 1.02rem; margin-bottom: 8px; }
+    .card p, .card li, .panel p, .panel li, .callout p { color: var(--muted); }
+    .card ul, .panel ul, .callout ul, .timeline ul { margin-left: 18px; }
+    .card li + li, .panel li + li, .callout li + li, .timeline li + li { margin-top: 6px; }
+    .metric { padding: 20px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), rgba(255,255,255,.04); }
+    .metric .label { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: .74rem; font-weight: 700; margin-bottom: 10px; }
+    .metric .value { color: var(--heading); font-size: 2rem; line-height: 1; margin-bottom: 8px; font-weight: 750; }
+    .metric p { color: var(--muted); font-size: .92rem; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: var(--text); font-size: .9rem; }
+    .status { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 7px 12px; font-size: .84rem; font-weight: 650; border: 1px solid transparent; }
+    .ok { background: rgba(113,247,191,.12); color: var(--success); border-color: rgba(113,247,191,.2); }
+    .warn { background: rgba(255,211,110,.12); color: var(--warn); border-color: rgba(255,211,110,.22); }
+    .bad { background: rgba(255,138,155,.12); color: var(--danger); border-color: rgba(255,138,155,.22); }
+    .info { background: rgba(135,230,255,.12); color: var(--accent); border-color: rgba(135,230,255,.22); }
+    .callout { padding: 18px 20px; }
+    .callout strong { color: var(--heading); display: block; margin-bottom: 6px; }
+    .timeline { padding: 20px; display: grid; gap: 14px; }
+    .step { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: start; }
+    .step-index { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, rgba(135,230,255,.2), rgba(179,136,255,.2)); border: 1px solid rgba(255,255,255,.12); color: var(--heading); font-weight: 700; font-size: .88rem; }
+    .step h4 { color: var(--heading); margin-bottom: 4px; font-size: 1rem; }
+    .step p, .step li { color: var(--muted); }
+    .table-wrap { overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.08); }
+    th { color: var(--heading); font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; background: rgba(255,255,255,.04); }
+    td { color: var(--muted); font-size: .95rem; }
+    tr:last-child td { border-bottom: none; }
+    .footer-note { text-align: center; color: var(--muted); font-size: .92rem; padding: 18px; }
+    @media (max-width: 1100px) { .hero-grid, .grid-4, .metric-grid, .grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 860px) {
+      .topbar { border-radius: 28px; align-items: flex-start; flex-direction: column; }
+      .nav { width: 100%; justify-content: flex-start; }
+      .hero-grid, .grid-2, .grid-3, .grid-4, .metric-grid, .compare { grid-template-columns: 1fr; }
+      .hero, .section-body, .section-head { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">📊</div>
+        <div class="brand-copy">
+          <h1>Foxhound chart system brainstorm</h1>
+          <p>Surface-exhaustive strategy pass · competitor-inspired, Foxhound-specific, reusable by design</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#competitors">Competitors</a>
+        <a href="#catalog">Chart catalog</a>
+        <a href="#dashboards">Dashboards</a>
+        <a href="#system">Reuse system</a>
+        <a href="#roadmap">Roadmap</a>
+      </nav>
+    </div>
+
+    <section class="hero" id="overview">
+      <div class="eyebrow">Foxhound dashboard strategy</div>
+      <div class="hero-grid">
+        <div>
+          <h2>Build a reusable chart language for the operating console AI agent teams actually need.</h2>
+          <p>
+            LangSmith, Langfuse, Arize, and Confident all cluster around traces, evals, experiments, and quality metrics. Foxhound’s opportunity is bigger: take the same base observability primitives, then reuse them across session replay, run diff, prompts, budgets, SLAs, regressions, and agent fleet operations. The goal is not “more charts.” It is a chart system that keeps answering the same four operator questions: what broke, what changed, what is this costing, and what should I do next.
+          </p>
+          <div class="badge-row">
+            <div class="badge">Competitor-inspired, not competitor-cloned</div>
+            <div class="badge">Cross-feature reusable chart primitives</div>
+            <div class="badge">Dashboard customization should be first-class</div>
+            <div class="badge">Foxhound moat = diff + replay + governance</div>
+          </div>
+        </div>
+        <aside class="hero-card">
+          <h3>What this recommends</h3>
+          <div class="stat-list">
+            <div class="stat-row"><span>Core reusable chart families</span><strong>12</strong></div>
+            <div class="stat-row"><span>Essential named charts/widgets</span><strong>45+</strong></div>
+            <div class="stat-row"><span>Dashboard surfaces</span><strong>7</strong></div>
+            <div class="stat-row"><span>Priority principle</span><strong>Reuse before inventing</strong></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Executive summary</div>
+        <h3>The big move</h3>
+        <p>Foxhound should standardize around a small number of visual primitives, then compose them into workflow dashboards: Overview, Investigate, Improve, Govern, plus role-specific variants.</p>
+      </div>
+      <div class="section-body">
+        <div class="metric-grid">
+          <div class="metric"><div class="label">Must win on</div><div class="value">Change visibility</div><p>Foxhound should make deltas obvious: before/after, baseline/current, expected/actual, safe/risky.</p></div>
+          <div class="metric"><div class="label">Base layer</div><div class="value">Time series</div><p>Almost every product uses trend lines. Foxhound should make them reusable across cost, latency, evals, SLAs, and regressions.</p></div>
+          <div class="metric"><div class="label">Hero differentiator</div><div class="value">Diff views</div><p>Run diff, prompt diff, replay diff, regression delta, and experiment uplift should all share one comparison grammar.</p></div>
+          <div class="metric"><div class="label">Dashboard strategy</div><div class="value">Composable</div><p>Users should be able to pin, filter, scope, and save widget layouts by org, agent, prompt, evaluator, team, or environment.</p></div>
+        </div>
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="callout info"><strong>What to avoid</strong><p>Feature-specific one-off charts that only work on a single page. They create visual drift, duplicate logic, and kill dashboard customization.</p></div>
+          <div class="callout"><strong>Default mental model</strong><p>Every visualization should map to one of five semantic jobs: volume, quality, speed, cost, or change. If a chart does not fit one of those, it probably wants to be a table, event feed, or replay UI.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="competitors">
+      <div class="section-head">
+        <div class="kicker">Competitive scan</div>
+        <h3>What the category leaders teach you</h3>
+        <p>This is a product-pattern synthesis, not a claim that every product exposes every exact widget the same way. The point is the visualization grammar they train users to expect.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="card">
+            <h4>LangSmith</h4>
+            <div class="status info">Best known for: trace-debugging fluency</div>
+            <ul>
+              <li>Trace trees and step timelines are the core habit loop.</li>
+              <li>Dataset/evaluation/experiment views reinforce “trace → eval → iterate.”</li>
+              <li>Strong use of score distributions, pass/fail summaries, and run comparison.</li>
+              <li>Usually artifact-centric: traces, runs, prompts, eval results.</li>
+              <li>Weak spot for Foxhound to attack: production operations and governance feel less first-class than debugging.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Langfuse</h4>
+            <div class="status info">Best known for: broad observability + cost/token analytics</div>
+            <ul>
+              <li>Token, cost, latency, and trace metrics are surfaced aggressively.</li>
+              <li>Good use of KPI tiles + trends + breakdowns by model, environment, or project.</li>
+              <li>Tends to normalize observability around dashboards and tracing more than deep replay/diff narratives.</li>
+              <li>Charts often answer “what is happening at fleet level?” before “what changed?”</li>
+              <li>Foxhound opportunity: keep the fleet lens, then add stronger causal investigation and operational action.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Arize AI / Phoenix</h4>
+            <div class="status warn">Best known for: ML-style quality, drift, and slice analysis</div>
+            <ul>
+              <li>Heavy emphasis on distributions, cohorts, drift detection, segment comparison, and eval analytics.</li>
+              <li>Useful reminder that not every issue is a trace issue; many are population-shift issues.</li>
+              <li>Strong with trends over time, score distributions, confusion-like breakdowns, and segment filters.</li>
+              <li>Foxhound should steal the idea of slice-aware quality and regression charts, especially by agent version, prompt label, tool chain, and customer segment.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Confident AI / DeepEval-style products</h4>
+            <div class="status ok">Best known for: eval-first quality reporting</div>
+            <ul>
+              <li>Leaderboard, benchmark, score trend, evaluator breakdown, and pass/fail heatmaps matter more than tracing chrome.</li>
+              <li>Great reminder that product trust comes from longitudinal quality evidence, not only raw traces.</li>
+              <li>Foxhound should support scorecards that can be reused for evals, SLA conformance, regression severity, and release gates.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:18px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Likely chart strengths</th>
+                <th>What users learn to expect</th>
+                <th>Foxhound counter-position</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>LangSmith</td>
+                <td>Trace tree, run comparison, eval tables, experiment scoring</td>
+                <td>Debug one run deeply</td>
+                <td>Debug one run deeply <em>and</em> connect it to replay, diff, cost, SLA, and regression workflows</td>
+              </tr>
+              <tr>
+                <td>Langfuse</td>
+                <td>Metrics tiles, token/cost trends, fleet observability</td>
+                <td>Monitor usage and performance globally</td>
+                <td>Keep that global monitoring, but make issue diagnosis and next action tighter</td>
+              </tr>
+              <tr>
+                <td>Arize</td>
+                <td>Distributions, cohorts, drift, segmentation</td>
+                <td>Compare slices and detect population-level shifts</td>
+                <td>Apply slice analysis to agent versions, prompt labels, tool paths, and user cohorts</td>
+              </tr>
+              <tr>
+                <td>Confident</td>
+                <td>Leaderboards, benchmark summaries, score trends</td>
+                <td>Trust quality metrics over anecdotes</td>
+                <td>Make eval evidence visible everywhere, not trapped in an eval page</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Foxhound positioning</div>
+        <h3>Where Foxhound should go beyond them</h3>
+        <p>Repo context already points this direction: Session Replay, Run Diff, budgets, SLAs, and regressions are the differentiated surfaces. The chart system should make those feel native, not bolted-on.</p>
+      </div>
+      <div class="section-body">
+        <div class="timeline">
+          <div class="step">
+            <div class="step-index">1</div>
+            <div>
+              <h4>Make “change” a first-class visual dimension</h4>
+              <p>Not just current value or historical trend. Show baseline vs current, version A vs B, prompt X vs Y, pre-incident vs post-incident, within-budget vs projected-overrun.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">2</div>
+            <div>
+              <h4>Unify debugging and governance</h4>
+              <p>Most competitors split them. Foxhound should let a cost spike click into the exact traces, replay state, and diff explaining why the spike happened.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">3</div>
+            <div>
+              <h4>Elevate fleet operations from “metrics page” to “operator cockpit”</h4>
+              <p>Overview should answer: what needs attention, what changed, where spend is drifting, what is breaching policy, and what investigation should happen next.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">4</div>
+            <div>
+              <h4>Reuse one chart grammar across features</h4>
+              <p>If a user learns how to read a trend + threshold + anomaly band on SLAs, the same visual logic should work for evaluator health, budget burn, regression severity, and prompt rollout safety.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="catalog">
+      <div class="section-head">
+        <div class="kicker">Reusable chart system</div>
+        <h3>The 12 core chart families Foxhound should standardize</h3>
+        <p>Everything below can be implemented as a small reusable set of React chart components with consistent props, legends, threshold rules, drilldowns, and compare mode.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-3">
+          <div class="card"><h4>1. KPI tiles with sparkline</h4><p>Use for success rate, avg latency, total cost, active incidents, failing eval rate. This is your top summary component everywhere.</p></div>
+          <div class="card"><h4>2. Time-series line / area chart</h4><p>Use for trends over time: latency, spend, score, throughput, SLA attainment, regression counts.</p></div>
+          <div class="card"><h4>3. Stacked area / stacked bar</h4><p>Use for composition over time: cost by model, traffic by agent, error type mix, span type mix, evaluator outcome mix.</p></div>
+          <div class="card"><h4>4. Distribution histogram</h4><p>Use for latency distribution, token size distribution, score distribution, trace duration buckets, tool call count buckets.</p></div>
+          <div class="card"><h4>5. Percentile band chart</h4><p>Use for p50/p95/p99 latency, step count variance, time-to-resolution, or score spread over time.</p></div>
+          <div class="card"><h4>6. Heatmap matrix</h4><p>Use for evaluator by agent, prompt version by dataset, hour-of-day incidents, version vs SLA breaches, tool vs failure mode.</p></div>
+          <div class="card"><h4>7. Waterfall / funnel</h4><p>Use for execution stage drop-off, session completion, workflow conversion, guardrail interception, dataset curation funnel.</p></div>
+          <div class="card"><h4>8. Treemap / ranked bar</h4><p>Use for top cost drivers, hottest prompts, noisiest agents, largest datasets, most frequent tool failures.</p></div>
+          <div class="card"><h4>9. Scatter / bubble plot</h4><p>Use for cost vs latency, quality vs cost, success rate vs throughput, incident severity vs blast radius.</p></div>
+          <div class="card"><h4>10. Diff view component</h4><p>Use for run diff, prompt diff, replay state diff, baseline vs candidate metric diff, budget drift vs plan. This is a signature primitive.</p></div>
+          <div class="card"><h4>11. Timeline / event stream</h4><p>Use for trace spans, deployment changes, incidents, alerts, replay steps, regression detections, notifications fired.</p></div>
+          <div class="card"><h4>12. Geo-free topology / graph mini-map</h4><p>Use sparingly for tool graph, agent handoff graph, dependency graph, or multi-agent coordination graph where relationships matter more than time.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Essential chart inventory</div>
+        <h3>The concrete charts Foxhound should have</h3>
+        <p>These are named, reusable widgets. Many should appear in multiple features with different scopes.</p>
+      </div>
+      <div class="section-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Chart / widget</th>
+                <th>Primary question answered</th>
+                <th>Primary features</th>
+                <th>Reusable elsewhere?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Fleet health KPI strip</td><td>Is the fleet healthy right now?</td><td>Overview, incidents</td><td>Yes — role homepages, org summary, weekly reports</td></tr>
+              <tr><td>Trace volume trend</td><td>Is traffic changing?</td><td>Overview, traces</td><td>Yes — prompts, experiments, environments</td></tr>
+              <tr><td>Success/failure trend</td><td>Is reliability degrading?</td><td>Overview, SLAs, regressions</td><td>Yes</td></tr>
+              <tr><td>Latency percentile chart</td><td>Where is tail latency moving?</td><td>SLAs, traces</td><td>Yes — budgets, regressions</td></tr>
+              <tr><td>Cost burn trend with threshold</td><td>Are we on track to exceed budget?</td><td>Budgets</td><td>Yes — overview, agent detail, prompt detail</td></tr>
+              <tr><td>Projected end-of-period spend</td><td>What will this likely cost if current trend continues?</td><td>Budgets, overview</td><td>Yes</td></tr>
+              <tr><td>Cost by model/agent/prompt stacked area</td><td>What is driving spend?</td><td>Budgets, overview</td><td>Yes</td></tr>
+              <tr><td>Top cost hotspots ranked bars</td><td>Where should I investigate first?</td><td>Budgets, overview</td><td>Yes — regressions, prompts</td></tr>
+              <tr><td>Error type composition chart</td><td>What kinds of failures dominate?</td><td>Overview, traces, incidents</td><td>Yes</td></tr>
+              <tr><td>Trace duration histogram</td><td>Are slow traces concentrated or broad?</td><td>Traces, SLAs</td><td>Yes</td></tr>
+              <tr><td>Span composition chart</td><td>Where is run time spent across LLM/tool/agent spans?</td><td>Trace detail</td><td>Yes — agent detail, version comparison</td></tr>
+              <tr><td>Trace timeline bars</td><td>What happened inside this run?</td><td>Trace detail</td><td>Yes — replay, compare mode</td></tr>
+              <tr><td>Replay state diff panel</td><td>What changed at this step?</td><td>Session replay</td><td>Yes — prompt rollout diff, incident RCA</td></tr>
+              <tr><td>Run diff summary scorecard</td><td>How did these two runs differ?</td><td>Run diff</td><td>Yes — experiments, regressions, releases</td></tr>
+              <tr><td>Execution path divergence map</td><td>Where did behavior fork?</td><td>Run diff, regressions</td><td>Yes</td></tr>
+              <tr><td>Prompt version compare chart</td><td>Which version improved quality/cost/speed?</td><td>Prompts</td><td>Yes — experiments, releases</td></tr>
+              <tr><td>Evaluator score trend</td><td>Is quality improving or degrading?</td><td>Evaluators, overview</td><td>Yes — prompts, regressions</td></tr>
+              <tr><td>Score distribution histogram</td><td>Are results stable or wildly spread?</td><td>Evaluators, experiments</td><td>Yes</td></tr>
+              <tr><td>Pass/fail stacked trend</td><td>Is failure rate trending up?</td><td>Evaluators, release gates</td><td>Yes</td></tr>
+              <tr><td>Evaluator x agent heatmap</td><td>Which agent is failing which evaluator?</td><td>Evaluators, overview</td><td>Yes — prompt labels, datasets</td></tr>
+              <tr><td>Experiment leaderboard</td><td>Which candidate won?</td><td>Experiments</td><td>Yes — prompt compare, release decisions</td></tr>
+              <tr><td>Lift vs cost scatterplot</td><td>Which variant improved quality efficiently?</td><td>Experiments</td><td>Yes — model comparison, prompt iteration</td></tr>
+              <tr><td>Dataset coverage chart</td><td>How representative is my eval corpus?</td><td>Datasets</td><td>Yes — governance, releases</td></tr>
+              <tr><td>Failure-to-dataset funnel</td><td>Are production issues becoming test cases?</td><td>Datasets, improve workflow</td><td>Yes — executive reporting</td></tr>
+              <tr><td>SLA attainment trend</td><td>Are we staying in compliance over time?</td><td>SLAs</td><td>Yes — overview, releases</td></tr>
+              <tr><td>SLA breach heatmap</td><td>When and where do breaches cluster?</td><td>SLAs</td><td>Yes — incident review</td></tr>
+              <tr><td>Regression severity timeline</td><td>Are behavior regressions increasing?</td><td>Regressions</td><td>Yes — overview</td></tr>
+              <tr><td>Version shift compare chart</td><td>What changed after release?</td><td>Regressions</td><td>Yes — prompts, experiments</td></tr>
+              <tr><td>Alert feed with counters</td><td>What needs triage right now?</td><td>Overview, notifications</td><td>Yes — role dashboards</td></tr>
+              <tr><td>Agent handoff / tool graph</td><td>How are agents and tools interacting?</td><td>Multi-agent flows</td><td>Yes — replay, incident RCA</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">By feature area</div>
+        <h3>What each Foxhound product surface should show</h3>
+        <p>The point is not to overload each page. Pick the 3–6 charts that best answer the job on that page.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-3">
+          <div class="card">
+            <h4>Overview / Fleet</h4>
+            <ul>
+              <li>Health KPI strip</li>
+              <li>Success/failure trend</li>
+              <li>Latency percentile trend</li>
+              <li>Cost burn + projected spend</li>
+              <li>Top regressions / top cost hotspots</li>
+              <li>Alert feed + action queue</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Traces</h4>
+            <ul>
+              <li>Trace volume trend</li>
+              <li>Error composition</li>
+              <li>Duration histogram</li>
+              <li>Trace timeline</li>
+              <li>Span composition</li>
+              <li>Inline compare CTA</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Session Replay</h4>
+            <ul>
+              <li>Step timeline</li>
+              <li>State diff card</li>
+              <li>Tool/decision event feed</li>
+              <li>Optional branch/divergence markers</li>
+              <li>Cost/latency accumulation by step</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Run Diff</h4>
+            <ul>
+              <li>Delta scorecard</li>
+              <li>Execution path divergence view</li>
+              <li>Duration/cost delta bars</li>
+              <li>Prompt/tool output diff snippets</li>
+              <li>Evaluator delta badges</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Prompts</h4>
+            <ul>
+              <li>Version performance trend</li>
+              <li>Prompt compare scorecard</li>
+              <li>Rollback safety summary</li>
+              <li>Traffic share by version/label</li>
+              <li>Cost/quality scatter by version</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Evaluators / Experiments</h4>
+            <ul>
+              <li>Score trends</li>
+              <li>Pass/fail mix</li>
+              <li>Distribution histogram</li>
+              <li>Evaluator-agent heatmap</li>
+              <li>Leaderboard + lift vs cost scatter</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Datasets</h4>
+            <ul>
+              <li>Coverage by failure type / segment / prompt / tool</li>
+              <li>Ingestion funnel from production traces</li>
+              <li>Staleness trend</li>
+              <li>Label distribution</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Budgets</h4>
+            <ul>
+              <li>Burn-down / burn-up line</li>
+              <li>Projected overrun curve</li>
+              <li>Cost composition stacked area</li>
+              <li>Hotspot ranking</li>
+              <li>Anomaly markers</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>SLAs / Regressions</h4>
+            <ul>
+              <li>SLA attainment trend</li>
+              <li>Breach heatmap</li>
+              <li>Regression severity timeline</li>
+              <li>Version shift compare card</li>
+              <li>Linked trace / replay / diff evidence</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="dashboards">
+      <div class="section-head">
+        <div class="kicker">Dashboard customization</div>
+        <h3>Yes — Foxhound should absolutely support customizable dashboards</h3>
+        <p>But do it with a strong default IA first. Users should start with great opinionated dashboards, then pin, rearrange, scope, and save views.</p>
+      </div>
+      <div class="section-body">
+        <div class="compare">
+          <div class="card">
+            <h4>Opinionated defaults you should ship first</h4>
+            <ul>
+              <li><strong>Executive / Overview dashboard:</strong> fleet health, incidents, spend, regressions.</li>
+              <li><strong>Investigation dashboard:</strong> failing traces, recent changes, run diff queue, replay targets.</li>
+              <li><strong>Quality dashboard:</strong> evaluator trends, pass rate, experiment leaderboard, failing slices.</li>
+              <li><strong>Governance dashboard:</strong> budget risk, SLA breaches, regression severity, notifications.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Customization capabilities to add</h4>
+            <ul>
+              <li>Drag-and-drop widget layout</li>
+              <li>Per-widget saved filters</li>
+              <li>Scope by org / environment / agent / prompt / dataset / evaluator / time range</li>
+              <li>Save personal and team dashboards</li>
+              <li>Shareable deep links</li>
+              <li>"Pin this chart" from any page</li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="callout info"><strong>Best model</strong><p>Think Notion/Figma-like saved views, not a totally blank BI tool. Most users want 80% canned value and 20% customization.</p></div>
+          <div class="callout"><strong>What to persist</strong><p>Layout, widget size, scope/filter state, compare baseline, thresholds, favorite drilldowns, and notification bindings.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Widget architecture</div>
+        <h3>How to make charts reusable across features</h3>
+        <p>The component architecture matters as much as the visual design. Reuse comes from data contracts and semantic props, not just a common chart library.</p>
+      </div>
+      <div class="section-body">
+        <div class="timeline">
+          <div class="step">
+            <div class="step-index">1</div>
+            <div>
+              <h4>Define semantic widget types, not page-specific ones</h4>
+              <p>Examples: <code>MetricTile</code>, <code>TrendChart</code>, <code>BreakdownChart</code>, <code>DistributionChart</code>, <code>HeatmapChart</code>, <code>DiffScorecard</code>, <code>EventTimeline</code>, <code>TopNList</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">2</div>
+            <div>
+              <h4>Normalize scopes</h4>
+              <p>Every widget should accept the same scoping grammar: time range, environment, org, agent, prompt version, evaluator, dataset, model, tool, customer segment.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">3</div>
+            <div>
+              <h4>Normalize compare mode</h4>
+              <p>Baseline vs current should work across prompts, runs, experiments, releases, and budgets. A single compare model unlocks many pages.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">4</div>
+            <div>
+              <h4>Standardize threshold logic</h4>
+              <p>Threshold line, warning band, anomaly marker, and “delta from baseline” badge should be common UX across latency, cost, eval scores, SLA, and regression severity.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-index">5</div>
+            <div>
+              <h4>Every chart needs a drilldown contract</h4>
+              <p>Click data point → open traces, runs, prompts, or incidents filtered to that slice. Charts should not be dead pictures.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="system">
+      <div class="section-head">
+        <div class="kicker">Cross-feature reuse map</div>
+        <h3>Same chart, different surface</h3>
+        <p>This is where Foxhound gets leverage. If you nail these reuse patterns, adding new surfaces becomes much faster.</p>
+      </div>
+      <div class="section-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Reusable primitive</th>
+                <th>Use it in</th>
+                <th>How it changes by surface</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TrendChart</td>
+                <td>Overview, budgets, SLAs, evaluators, prompts, regressions</td>
+                <td>Only metric series and thresholds change</td>
+              </tr>
+              <tr>
+                <td>DiffScorecard</td>
+                <td>Run diff, prompt compare, release compare, regression RCA, experiment results</td>
+                <td>Compares duration/cost/quality/success deltas with the same layout</td>
+              </tr>
+              <tr>
+                <td>BreakdownChart</td>
+                <td>Cost by model, failures by type, traffic by agent, score outcomes by evaluator</td>
+                <td>Dimension selection changes; rendering stays the same</td>
+              </tr>
+              <tr>
+                <td>DistributionChart</td>
+                <td>Latency, tokens, evaluator scores, trace duration, tool usage count</td>
+                <td>X-axis metric changes; bucket logic stays standard</td>
+              </tr>
+              <tr>
+                <td>HeatmapChart</td>
+                <td>Evaluator × agent, version × failure mode, hour × breach count, prompt × dataset slice</td>
+                <td>Rows/columns change; interaction stays the same</td>
+              </tr>
+              <tr>
+                <td>EventTimeline</td>
+                <td>Trace detail, replay, incidents, deployments, alert history</td>
+                <td>Event type iconography changes; timeline frame stays the same</td>
+              </tr>
+              <tr>
+                <td>TopNList</td>
+                <td>Hotspots, failing traces, slowest agents, expensive prompts, highest-severity regressions</td>
+                <td>Ranking metric changes; card/table shell stays the same</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Dashboard blueprints</div>
+        <h3>The seven dashboards I’d actually ship</h3>
+        <p>These align with the repo’s Monitor / Investigate / Improve / Govern direction and add role specificity where helpful.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-3">
+          <div class="card"><h4>1. Fleet Overview</h4><p>Default landing page. Health strip, success/failure trend, latency percentile chart, cost burn, top alerts, top regressions, top hotspots.</p></div>
+          <div class="card"><h4>2. Incident / Investigation Queue</h4><p>Failing traces, recent deploy/prompt changes, linked regressions, compare shortcuts, replay candidates.</p></div>
+          <div class="card"><h4>3. Quality Command Center</h4><p>Evaluator score trend, pass/fail mix, failing slices heatmap, leaderboard, dataset coverage, recent experiment outcomes.</p></div>
+          <div class="card"><h4>4. Prompt Operations</h4><p>Traffic share by version, score delta by prompt version, cost vs quality scatter, rollback candidates, rollout safety.</p></div>
+          <div class="card"><h4>5. Budget / FinOps</h4><p>Spend trend, projected overrun, model and agent cost composition, top hotspots, anomaly feed.</p></div>
+          <div class="card"><h4>6. Reliability / SLA</h4><p>SLA attainment trend, p95 latency, breach heatmap, at-risk agents, linked traces and versions.</p></div>
+          <div class="card"><h4>7. Regression Radar</h4><p>Severity timeline, change correlation feed, before/after scorecards, blast radius ranking, confirm or dismiss workflow.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Chart design rules</div>
+        <h3>Interaction and visual standards to keep the system coherent</h3>
+        <p>If you want charts to feel premium and trustworthy, these details matter.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="panel">
+            <h4>Visual rules</h4>
+            <ul>
+              <li>Use consistent colors by semantic meaning, not by page: quality = green, risk = amber, failure = red, comparison = violet/cyan.</li>
+              <li>Thresholds and projected lines should always look the same.</li>
+              <li>Default to calm, infrastructure-grade design; save flashy visuals for diff/replay hero moments.</li>
+              <li>Support compact and expanded modes for the same widget.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h4>Interaction rules</h4>
+            <ul>
+              <li>Every chart should have hover detail, drilldown, and empty-state guidance.</li>
+              <li>Every chart that can compare should expose compare mode the same way.</li>
+              <li>Saved filters should be visible and editable, not hidden in modal hell.</li>
+              <li>Allow pinning to dashboard from trace, prompt, budget, and evaluator pages.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="callout warning"><strong>Important</strong><p>Don’t overuse complex graph/network diagrams. They look powerful but are often worse than ranked bars, timelines, or diff cards for real operator work.</p></div>
+          <div class="callout info"><strong>Signature Foxhound visual</strong><p>Trace timeline + replay step diff + run diff scorecard. That trio should become as recognizable for Foxhound as trace trees are for LangSmith.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <div class="kicker">Prioritization</div>
+        <h3>MVP first, then deepen the moat</h3>
+        <p>You do not need every chart on day one. You need the ones that teach the right product story and unlock reuse.</p>
+      </div>
+      <div class="section-body">
+        <div class="compare">
+          <div class="card">
+            <h4>MVP chart pack</h4>
+            <ul>
+              <li>KPI tiles with sparkline</li>
+              <li>Trend line / area chart</li>
+              <li>Top-N ranked bars</li>
+              <li>Duration histogram</li>
+              <li>Trace timeline</li>
+              <li>Diff scorecard</li>
+              <li>Event timeline / alert feed</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Phase 2 chart pack</h4>
+            <ul>
+              <li>Heatmaps</li>
+              <li>Scatterplots</li>
+              <li>Funnel/waterfall</li>
+              <li>Coverage and cohort analysis</li>
+              <li>Projected spend / forecast components</li>
+              <li>Advanced slice comparison</li>
+            </ul>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:18px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Why it matters</th>
+                <th>What it unlocks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>P0 — KPI + trends + top lists</td>
+                <td>Every dashboard needs these immediately</td>
+                <td>Overview, budgets, SLAs, evals, prompts</td>
+              </tr>
+              <tr>
+                <td>P0 — Trace timeline + diff scorecard</td>
+                <td>These communicate Foxhound’s differentiation fastest</td>
+                <td>Investigate, replay, run diff, regressions</td>
+              </tr>
+              <tr>
+                <td>P1 — Distribution charts + heatmaps</td>
+                <td>Needed for deeper quality and slice analysis</td>
+                <td>Evaluators, experiments, regressions, SLA pattern analysis</td>
+              </tr>
+              <tr>
+                <td>P1 — Forecasting widgets</td>
+                <td>Turns budgets into a proactive control surface</td>
+                <td>FinOps and governance differentiation</td>
+              </tr>
+              <tr>
+                <td>P2 — Network/coordination graph</td>
+                <td>Useful for multi-agent storytelling, but niche</td>
+                <td>Advanced replay, demos, specialized operator debugging</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="kicker">Bottom line</div>
+        <h3>My strongest recommendation</h3>
+        <p>Do not design charts page-by-page. Design a reusable visualization operating system for Foxhound.</p>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="callout success">
+            <strong>If you only do three things next</strong>
+            <ul>
+              <li>Standardize the 7 MVP widget types.</li>
+              <li>Ship Fleet Overview, Investigation Queue, and Budget/SLA dashboards as opinionated defaults.</li>
+              <li>Make compare mode universal across runs, prompts, regressions, and releases.</li>
+            </ul>
+          </div>
+          <div class="callout danger">
+            <strong>Main risk</strong>
+            <p>If Foxhound ships lots of feature pages with bespoke charts, it may still look complete, but it won’t feel like a coherent operating console. Reuse is what will make the product feel mature fast.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Grounded in repo strategy docs: dashboard IA, agent-first positioning, and existing differentiated surfaces including Session Replay, Run Diff, budgets, SLAs, and regressions. Deliverable path: <code>docs/plans/testing/2026-04-14-foxhound-chart-dashboard-brainstorm.html</code>
+    </div>
+  </div>
+</body>
+</html>

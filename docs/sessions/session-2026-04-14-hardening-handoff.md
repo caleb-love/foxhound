@@ -161,3 +161,141 @@ For the next conversation:
 ## Recommended Next Prompt
 
 > Continue from the repo hardening pass. Hygiene enforcement, CLI tests, and DB query decomposition are in place. First recover git state, confirm intentional deletions/artifact cleanup, rerun `pnpm check:hygiene`, DB typecheck, and CLI coverage, then continue DB integration coverage expansion unless verification exposes a different priority.
+
+## Auto-analysis addendum — 2026-04-14
+
+High-leverage repeat preventers identified from prior session artifacts:
+
+1. **Do not plan from overview docs alone.**
+   - `docs/overview/*` can lag active work.
+   - Recovery order for substantial work: task files → `docs/plans/active/` → latest session note/handoff → `git log --oneline -20` → overview docs.
+
+2. **When state docs conflict, active work wins.**
+   - If overview/current-status says “done” but active plans or recent commits show open work, treat the active plan + session evidence as source of truth.
+   - Queue state-doc cleanup after the implementation slice instead of burning the session reconciling docs first.
+
+3. **Exact-text edit failures are usually anchor failures, not repo complexity.**
+   - In repeated test/setup files, re-read immediately before patching and anchor to the enclosing `describe(...)`, route declaration, or function signature.
+
+4. **Summarize transcript-analysis output into current handoff files.**
+   - The HTML analysis from 2026-04-13 had useful lessons, but they were expensive to recover from unless opened directly.
+   - Keep the short lessons here so the next agent does not need another transcript pass to avoid the same wrong turn.
+
+## Addendum — 2026-04-14 Dashboard chart/filter/segmentation system
+
+### Scope completed in this session cluster
+Substantial `apps/web` product work completed around reusable dashboard primitives, product-wide segmentation, and segment-aware navigation.
+
+### What was implemented
+
+#### 1. Shared chart system foundation
+Added under `apps/web/components/charts/`:
+- `chart-types.ts`
+- `chart-shell.tsx`
+- `metric-tile.tsx`
+- `trend-chart.tsx`
+- `top-n-list.tsx`
+- `event-timeline.tsx`
+- `diff-scorecard.tsx`
+
+#### 2. Shared dashboard filter + segmentation system
+Added / updated:
+- `apps/web/lib/stores/dashboard-filter-types.ts`
+- `apps/web/lib/stores/dashboard-filter-presets.ts`
+- `apps/web/lib/stores/filter-store.ts`
+- `apps/web/lib/stores/segment-store.ts`
+- `apps/web/lib/stores/segment-persistence.ts`
+- `apps/web/lib/dashboard-segmentation.ts`
+- `apps/web/lib/segment-url.ts`
+- `apps/web/components/dashboard/dashboard-filter-bar.tsx`
+- `apps/web/components/layout/segment-switcher.tsx`
+- `apps/web/components/layout/segment-persistence-bridge.tsx`
+- `apps/web/components/layout/segment-aware-link.tsx`
+
+Capabilities now include:
+- current active segment scope
+- saved named segments
+- local persistence across reloads
+- URL segment hydration with `?segment=<name>`
+- config-driven reusable filter bars
+- segment-aware action links and navigation
+
+#### 3. Shared page chrome now shows current segment
+Updated:
+- `apps/web/components/demo/dashboard-primitives.tsx`
+
+All `DashboardPage` surfaces now show a `Segment: ...` badge in the page chrome.
+
+#### 4. Shared action/navigation continuity
+Segment context is now preserved through:
+- `PremiumActionLink` via `SegmentAwareLink`
+- command palette navigation
+- sidebar navigation
+- raw investigation/detail action cards in trace detail and replay detail views
+
+#### 5. Segment-aware surfaces now working across workflows
+Overview:
+- Fleet Overview
+- Executive Summary
+
+Investigate:
+- Traces (segment-first read path)
+- Prompts
+- Regressions
+- Trace detail action links
+- Replay detail action links
+
+Improve:
+- Datasets
+- Evaluators
+- Experiments
+
+Govern:
+- Budgets
+- SLAs
+
+### Verification completed
+Focused passing Vitest runs completed for:
+- filter store + dashboard filter bar
+- segment store
+- segment persistence + persistence bridge
+- segment URL helpers
+- segment-aware link helper
+- sidebar + command palette segment-aware navigation
+- Fleet Overview / Executive Summary / Budgets / SLAs / Regressions / Datasets / Evaluators / Experiments
+- Trace table
+- Trace detail view
+- Replay detail view
+
+### Important hardening notes
+1. **Shared filter bar nesting bug fixed.**
+   - `DashboardFilterBar` originally rendered a nested button inside the popover trigger, which caused hydration-risk warnings.
+   - This is fixed by styling the `PopoverTrigger` directly instead of nesting a `Button` inside it.
+
+2. **Segment store is the effective active scope source.**
+   - `useSegmentStore.currentFilters` is now the primary active scope for migrated surfaces.
+   - `useFilterStore` remains as a compatibility bridge for legacy surfaces like traces while migration continues.
+
+3. **Persisted date ranges are revived as real `Date` objects.**
+   - `segment-persistence.ts` now serializes dates explicitly and revives them on load.
+   - This prevents subtle date-filter bugs after reload.
+
+### Highest-value remaining work
+1. **Reduce dual-store compatibility debt**
+   - Continue moving remaining surfaces to read segment scope directly.
+   - Long-term goal: minimize dependence on `useFilterStore` except where still required by legacy components.
+
+2. **Org/user-backed segments**
+   - Current saved segments are localStorage-backed only.
+   - Next meaningful product step is server-backed saved segments per org/user.
+
+3. **Richer segment shareability only if needed**
+   - Current URL model is intentionally lightweight: `?segment=<name>`.
+   - Avoid jumping to full serialized filter-state URLs unless product needs it.
+
+4. **Sweep remaining raw links**
+   - Most high-value navigation surfaces now preserve segment context.
+   - If any raw `<a href>` surfaces remain outside shared primitives or detail cards, convert them to `SegmentAwareLink` as they are touched.
+
+### Safe next-start prompt
+> Continue from the dashboard chart/filter/segmentation work. The shared chart system, dashboard filter bar, segment store/persistence, segment URL handling, segment-aware links, and segment-preserving command palette/sidebar are in place. First recover current git state, then run focused `apps/web` vitest checks around any touched surfaces, and continue either reducing remaining dual-store compatibility or moving saved segments to org/user-backed persistence.

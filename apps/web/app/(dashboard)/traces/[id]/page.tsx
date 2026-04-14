@@ -7,9 +7,10 @@ import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/dem
 export default async function TraceDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await getDashboardSessionOrDemo();
+  const { id } = await params;
 
   let trace = null;
   let error = null;
@@ -17,7 +18,7 @@ export default async function TraceDetailPage({
   try {
     if (isDashboardDemoModeEnabled()) {
       trace = {
-        id: params.id,
+        id,
         agentId: 'demo-agent',
         sessionId: 'demo-session',
         startTimeMs: 0,
@@ -28,7 +29,7 @@ export default async function TraceDetailPage({
         },
         spans: [
           {
-            traceId: params.id,
+            traceId: id,
             spanId: 'demo-span-1',
             name: 'plan',
             kind: 'llm_call' as const,
@@ -39,7 +40,7 @@ export default async function TraceDetailPage({
             events: [],
           },
           {
-            traceId: params.id,
+            traceId: id,
             spanId: 'demo-span-2',
             name: 'tool-select',
             kind: 'tool_call' as const,
@@ -53,7 +54,7 @@ export default async function TraceDetailPage({
       };
     } else {
       const client = getAuthenticatedClient(session.user.token);
-      trace = await client.getTrace(params.id);
+      trace = await client.getTrace(id);
     }
   } catch (e) {
     error = 'Unable to load this trace right now.';

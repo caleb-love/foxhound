@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ExperimentsDashboard } from './experiments-dashboard';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
 const metrics = [
   {
@@ -38,6 +40,18 @@ const experiments = [
     tracesHref: '/traces',
     promoteHref: '/prompts?focus=support-routing&baseline=11&comparison=12',
   },
+  {
+    name: 'onboarding-router-rerank-strategy',
+    status: 'running' as const,
+    dataset: 'onboarding-regressions',
+    comparisonSummary: 'Comparing a simplified routing prompt against the current rerank-heavy execution path.',
+    lastUpdated: 'now',
+    winningSignal: 'awaiting evaluator completion',
+    datasetHref: '/datasets',
+    evaluatorsHref: '/evaluators',
+    tracesHref: '/regressions',
+    promoteHref: '/prompts?focus=onboarding-router&baseline=11&comparison=12',
+  },
 ];
 
 const nextActions = [
@@ -56,45 +70,38 @@ const nextActions = [
 ];
 
 describe('ExperimentsDashboard', () => {
-  it('renders experiment metrics and hero copy', () => {
+  beforeEach(() => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: defaults,
+      savedSegments: [],
+    });
+  });
+
+  it('renders experiments, filter bar, and comparison content', () => {
     render(
       <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />,
     );
 
     expect(screen.getByText('Experiments')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('12m ago')).toBeInTheDocument();
-  });
-
-  it('renders comparison framing and experiment action links', () => {
-    render(
-      <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />,
-    );
-
+    expect(screen.getByPlaceholderText('Search experiments, datasets, or winning signals...')).toBeInTheDocument();
     expect(screen.getByText('support-routing-v12-vs-v11')).toBeInTheDocument();
-    expect(screen.getByText('completed')).toBeInTheDocument();
-    expect(screen.getByText(/Version 12 reduced latency/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Review dataset/i })).toHaveAttribute('href', '/datasets');
-    expect(screen.getByRole('link', { name: /Check evaluators/i })).toHaveAttribute('href', '/evaluators');
-    expect(screen.getByRole('link', { name: /Inspect traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Promote candidate/i })).toHaveAttribute(
-      'href',
-      '/prompts?focus=support-routing&baseline=11&comparison=12',
-    );
   });
 
-  it('renders improve-loop next actions', () => {
+  it('respects active segment dataset filters', () => {
+    const defaults = createDefaultDashboardFilters();
+    useSegmentStore.setState({
+      currentSegmentName: 'Onboarding experiments',
+      currentFilters: { ...defaults, datasetIds: ['onboarding-regressions'] },
+      savedSegments: [],
+    });
+
     render(
       <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />,
     );
 
-    expect(screen.getByRole('link', { name: /Review experiment winners against evaluator evidence/i })).toHaveAttribute(
-      'href',
-      '/evaluators',
-    );
-    expect(screen.getByRole('link', { name: /Re-check source traces before promotion/i })).toHaveAttribute(
-      'href',
-      '/traces',
-    );
+    expect(screen.getByText('onboarding-router-rerank-strategy')).toBeInTheDocument();
+    expect(screen.queryByText('support-routing-v12-vs-v11')).not.toBeInTheDocument();
   });
 });

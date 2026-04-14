@@ -10,7 +10,7 @@ export default function DemoExperimentsPage() {
         {
           label: 'Experiments',
           value: String(demo.experiments.length),
-          supportingText: 'The first shared demo-domain slice ships with the hero recovery experiment.',
+          supportingText: 'The week-long shared demo story includes the hero recovery experiment plus supporting optimization experiments.',
         },
         {
           label: 'Completed wins',
@@ -25,7 +25,7 @@ export default function DemoExperimentsPage() {
         {
           label: 'Promotion-ready candidates',
           value: String(demo.experiments.filter((experiment: (typeof demo.experiments)[number]) => Boolean(experiment.winningCandidate)).length),
-          supportingText: 'Version 19 is the current recommended recovery candidate.',
+          supportingText: 'Multiple recovery candidates are now visible, with support-reply v19 still leading.',
         },
       ]}
       experiments={demo.experiments.map((experiment: (typeof demo.experiments)[number]) => ({
@@ -33,7 +33,7 @@ export default function DemoExperimentsPage() {
         status: experiment.status === 'completed' ? 'completed' : experiment.status === 'running' ? 'running' : 'warning',
         dataset: demo.datasets.find((dataset: (typeof demo.datasets)[number]) => dataset.id === experiment.datasetId)?.name ?? experiment.datasetId,
         comparisonSummary: experiment.summary,
-        lastUpdated: 'today',
+        lastUpdated: 'this week',
         winningSignal: experiment.winningCandidate ?? 'No winner yet',
         datasetHref: '/demo/datasets',
         evaluatorsHref: '/demo/datasets',

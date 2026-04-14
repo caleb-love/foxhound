@@ -17,7 +17,7 @@ It is intentionally opinionated about boundaries, data ownership, and migration 
 
 ## 1. Executive Summary
 
-Foxhound is a **compliance-grade observability platform for AI agent fleets**.
+Foxhound is an **open-source observability platform for AI agent fleets**.
 
 Today, the system is built as a **TypeScript/Node.js monorepo** with:
 - **Fastify API** for ingestion, auth, product APIs, and orchestration

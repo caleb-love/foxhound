@@ -1,11 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Sidebar } from './sidebar';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
 const usePathname = vi.fn();
 
+const useSearchParams = vi.fn();
+
 vi.mock('next/navigation', () => ({
   usePathname: () => usePathname(),
+  useSearchParams: () => useSearchParams(),
 }));
 
 vi.mock('next/link', () => ({
@@ -17,6 +22,15 @@ vi.mock('next/link', () => ({
 }));
 
 describe('Sidebar', () => {
+  beforeEach(() => {
+    useSearchParams.mockReturnValue(new URLSearchParams(''));
+    useSegmentStore.setState({
+      currentSegmentName: 'Planner agent',
+      currentFilters: createDefaultDashboardFilters(),
+      savedSegments: [],
+    });
+  });
+
   it('renders workflow section labels', () => {
     usePathname.mockReturnValue('/');
     render(<Sidebar />);
@@ -32,15 +46,15 @@ describe('Sidebar', () => {
     usePathname.mockReturnValue('/');
     render(<Sidebar />);
 
-    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: /Executive Summary/i })).toHaveAttribute('href', '/executive');
-    expect(screen.getByRole('link', { name: /Traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/prompts');
-    expect(screen.getByRole('link', { name: /Session Replay/i })).toHaveAttribute('href', '/replay');
-    expect(screen.getByRole('link', { name: /Evaluators/i })).toHaveAttribute('href', '/evaluators');
-    expect(screen.getByRole('link', { name: /Experiments/i })).toHaveAttribute('href', '/experiments');
-    expect(screen.getByRole('link', { name: /Budgets/i })).toHaveAttribute('href', '/budgets');
-    expect(screen.getByRole('link', { name: /Notifications/i })).toHaveAttribute('href', '/notifications');
+    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Executive Summary/i })).toHaveAttribute('href', '/executive?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Traces/i })).toHaveAttribute('href', '/traces?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/prompts?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Session Replay/i })).toHaveAttribute('href', '/replay?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Evaluators/i })).toHaveAttribute('href', '/evaluators?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Experiments/i })).toHaveAttribute('href', '/experiments?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Budgets/i })).toHaveAttribute('href', '/budgets?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Notifications/i })).toHaveAttribute('href', '/notifications?segment=Planner+agent');
   });
 
   it('marks the matching item active for nested routes', () => {
@@ -48,15 +62,16 @@ describe('Sidebar', () => {
     render(<Sidebar />);
 
     const promptsLink = screen.getByRole('link', { name: /Prompts/i });
-    expect(promptsLink.className).toContain('bg-primary/12');
-    expect(promptsLink.className).toContain('text-primary');
+    expect(promptsLink).toHaveStyle({
+      color: 'var(--tenant-accent)',
+    });
   });
 
   it('uses demo-prefixed links in demo mode', () => {
     usePathname.mockReturnValue('/demo/prompts');
     render(<Sidebar />);
 
-    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/demo');
-    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/demo/prompts');
+    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/demo?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/demo/prompts?segment=Planner+agent');
   });
 });

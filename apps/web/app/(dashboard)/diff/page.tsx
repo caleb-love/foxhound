@@ -4,16 +4,16 @@ import { PageErrorState, PageWarningState } from '@/components/ui/page-state';
 import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/demo-auth';
 
 interface DiffPageProps {
-  searchParams: {
+  searchParams: Promise<{
     a?: string;
     b?: string;
-  };
+  }>;
 }
 
 export default async function DiffPage({ searchParams }: DiffPageProps) {
   const session = await getDashboardSessionOrDemo();
 
-  const { a, b } = searchParams;
+  const { a, b } = await searchParams;
   
   if (!a || !b) {
     return (

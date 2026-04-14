@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TraceTable } from './trace-table';
 import { useFilterStore } from '@/lib/stores/filter-store';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 import { useCompareStore } from '@/lib/stores/compare-store';
 
 const push = vi.fn();
@@ -41,14 +43,30 @@ describe('TraceTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usePathnameMock.mockReturnValue('/traces');
+    const defaults = createDefaultDashboardFilters();
+    defaults.dateRange = {
+      start: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      end: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: defaults,
+      savedSegments: [],
+    });
     useFilterStore.setState({
-      status: 'all',
-      agentIds: [],
-      dateRange: {
-        start: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        end: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-      searchQuery: '',
+      status: defaults.status,
+      severity: defaults.severity,
+      agentIds: defaults.agentIds,
+      environments: defaults.environments,
+      promptIds: defaults.promptIds,
+      promptVersionIds: defaults.promptVersionIds,
+      evaluatorIds: defaults.evaluatorIds,
+      datasetIds: defaults.datasetIds,
+      models: defaults.models,
+      toolNames: defaults.toolNames,
+      tags: defaults.tags,
+      dateRange: defaults.dateRange,
+      searchQuery: defaults.searchQuery,
     });
     useCompareStore.setState({ selectedTraceIds: [] });
   });
@@ -61,6 +79,7 @@ describe('TraceTable', () => {
   });
 
   it('renders filtered empty state when filters exclude all traces', () => {
+    useSegmentStore.getState().updateCurrentFilters({ searchQuery: 'does-not-match' });
     useFilterStore.setState({ searchQuery: 'does-not-match' });
     render(<TraceTable initialData={traces as never} />);
 

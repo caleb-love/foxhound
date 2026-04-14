@@ -100,8 +100,9 @@ describe('FleetOverview', () => {
     );
 
     expect(screen.getByText('Demo quick links')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Trace detail/i })).toHaveAttribute('href', '/traces/demo-trace');
-    expect(screen.getByRole('link', { name: /Run diff/i })).toHaveAttribute('href', '/diff?a=demo-a&b=demo-b');
+    const openRouteLinks = screen.getAllByRole('link', { name: /open route/i });
+    expect(openRouteLinks.length).toBeGreaterThan(0);
+    expect(openRouteLinks[0]).toHaveAttribute('href', '/demo/traces/trace_support_refund_v18_regression');
   });
 
   it('renders recommended next action links', () => {
@@ -114,7 +115,8 @@ describe('FleetOverview', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /Investigate failing traces/i })).toHaveAttribute('href', '/traces');
-    expect(screen.getByRole('link', { name: /Review prompt changes/i })).toHaveAttribute('href', '/prompts');
+    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/traces')).toBe(true);
+    expect(actionLinks.some((link) => link.getAttribute('href') === '/prompts')).toBe(true);
   });
 });

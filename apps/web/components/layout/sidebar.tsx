@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { upsertSegmentInUrl } from '@/lib/segment-url';
 import { cn } from '@/lib/utils';
 import {
   Activity,
@@ -90,9 +92,12 @@ function isItemActive(pathname: string, fullHref: string, baseHref: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
 
   const isDemo = pathname.startsWith('/demo');
   const baseHref = isDemo ? '/demo' : '';
+  const currentSearch = searchParams?.toString() ?? '';
 
   return (
     <aside
@@ -122,12 +127,13 @@ export function Sidebar() {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const fullHref = `${baseHref}${item.href === '/' ? '' : item.href}` || baseHref || '/';
+                const navigableHref = upsertSegmentInUrl(`${fullHref}${currentSearch ? `?${currentSearch}` : ''}`, currentSegmentName);
                 const isActive = isItemActive(pathname, fullHref, baseHref);
 
                 return (
                   <Link
                     key={`${section.title}-${item.href}`}
-                    href={fullHref}
+                    href={navigableHref}
                     className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all')}
                     style={isActive
                       ? {

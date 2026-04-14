@@ -10,7 +10,7 @@ export default function DemoNotificationsPage() {
         {
           label: 'Notification channels',
           value: String(demo.notifications.length),
-          supportingText: 'The first shared demo-domain slice includes the platform-ops routing path for critical refund incidents.',
+          supportingText: 'The week-long shared demo story includes the platform-ops routing path for critical refund incidents plus premium-support monitoring.',
         },
         {
           label: 'Warning routes',
@@ -19,8 +19,8 @@ export default function DemoNotificationsPage() {
         },
         {
           label: 'Critical story sources',
-          value: '3',
-          supportingText: 'Budgets, SLAs, and regressions all point into the same refund-policy-agent incident narrative.',
+          value: '4',
+          supportingText: 'Budgets, SLAs, regressions, and premium-support escalation all point into the same incident week narrative.',
         },
         {
           label: 'Healthy channels',
@@ -33,7 +33,7 @@ export default function DemoNotificationsPage() {
         type: item.kind,
         status: item.status,
         routingSummary: item.summary,
-        lastDelivery: item.status === 'warning' ? '4 minutes ago (one recent failure)' : '2 minutes ago',
+        lastDelivery: item.status === 'warning' ? '4 minutes ago (one recent failure this week)' : '2 minutes ago',
         alertsHref: '/demo/budgets',
         regressionsHref: '/demo/regressions',
         slasHref: '/demo/slas',
