@@ -18,7 +18,7 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
   if (!a || !b) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Run Diff</h1>
+        <h1 className="text-4xl font-semibold tracking-[-0.035em]" style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}>Run Diff</h1>
         <PageWarningState
           title="Select two traces"
           message="Please select two traces to compare from the traces list."
@@ -74,7 +74,7 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
   if (error || !traceA || !traceB) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Run Diff</h1>
+        <h1 className="text-4xl font-semibold tracking-[-0.035em]" style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}>Run Diff</h1>
         <PageErrorState
           title="Unable to load run diff"
           message={error ?? 'One or both traces could not be loaded.'}

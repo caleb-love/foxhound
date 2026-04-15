@@ -94,6 +94,19 @@ export function SessionReplay({ trace }: SessionReplayProps) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Playback Controls */}
       <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+              Playback controls
+            </div>
+            <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+              Scrub the run to inspect state transitions and isolate the exact step where behavior diverged.
+            </div>
+          </div>
+          <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+            Replay-first workflow
+          </div>
+        </div>
         <div className="flex items-center gap-4">
           {/* Play/Pause */}
           <Button
@@ -206,7 +219,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-5xl space-y-6">
           {/* Current Span Highlight */}
-          <div className="rounded-lg border-2 p-5" style={{ borderColor: 'var(--tenant-accent)', background: 'var(--tenant-accent-soft)' }}>
+          <div className="rounded-[var(--tenant-radius-panel)] border-2 p-5" style={{ borderColor: 'var(--tenant-accent)', background: 'var(--tenant-accent-soft)' }}>
             <div className="mb-2 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--tenant-accent)' }}>
               Currently Executing
             </div>
@@ -257,7 +270,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
               <h3 className="mb-3 text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
                 Current Step Attributes
               </h3>
-              <div className="rounded-lg p-4" style={tenantStyles.panelAlt}>
+              <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
                 <pre className="overflow-x-auto text-xs font-mono" style={{ color: 'var(--tenant-text-secondary)' }}>
                   {JSON.stringify(currentSpan.attributes, null, 2)}
                 </pre>

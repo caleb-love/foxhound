@@ -1,11 +1,11 @@
 import { TraceTable } from '@/components/traces/trace-table';
 import { TraceFilters } from '@/components/traces/trace-filters';
 import { PageContainer, PageHeader } from '@/components/system/page';
+import { getRequestUrl } from '@/lib/server-url';
 import type { Trace } from '@foxhound/types';
 
 export default async function SandboxTracesPage() {
-  // Fetch from our demo API endpoint
-  const response = await fetch('http://localhost:3001/api/sandbox/traces', {
+  const response = await fetch(await getRequestUrl('/api/sandbox/traces'), {
     cache: 'no-store',
   });
   
@@ -20,10 +20,10 @@ export default async function SandboxTracesPage() {
       <PageHeader
         eyebrow="Investigate"
         title="Traces"
-        description={`Review ${traces.length} seeded sandbox traces across 7 days, compare failures against baselines, and move directly into detail views.`}
+        description={`Review ${traces.length} seeded sandbox traces across 7 days, with realistic agent names, case stories, prompt context, and linked investigation paths.`}
       >
         <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
-          {uniqueAgents.length} agent types
+          {uniqueAgents.length} named agents
         </span>
       </PageHeader>
       <TraceFilters availableAgents={uniqueAgents} />

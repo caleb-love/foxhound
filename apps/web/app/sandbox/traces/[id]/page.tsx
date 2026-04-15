@@ -1,6 +1,7 @@
 import type { Trace } from '@foxhound/types';
 import { TraceDetailView } from '@/components/traces/trace-detail-view';
 import { PageErrorState } from '@/components/ui/page-state';
+import { getRequestUrl } from '@/lib/server-url';
 
 export default async function SandboxTraceDetailPage({
   params,
@@ -9,7 +10,7 @@ export default async function SandboxTraceDetailPage({
 }) {
   const { id } = await params;
 
-  const response = await fetch(`http://localhost:3001/api/sandbox/traces/${id}`, {
+  const response = await fetch(await getRequestUrl(`/api/sandbox/traces/${id}`), {
     cache: 'no-store',
   });
 

@@ -46,11 +46,12 @@ pnpm dev:demo
 
 Then open routes like:
 - `http://localhost:3001/` ← redirects to `/sandbox` when sandbox mode is enabled
-- `http://localhost:3001/sandbox`
+- `http://localhost:3001/sandbox` ← start here for local review
+- `http://localhost:3001/sandbox/traces` ← canonical seeded traces review surface
 - `http://localhost:3001/sandbox/executive`
-- `http://localhost:3001/sandbox/traces/trace_support_refund_v18_regression`
-- `http://localhost:3001/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression`
-- `http://localhost:3001/sandbox/replay/trace_support_refund_v18_regression`
+- `http://localhost:3001/sandbox/traces/trace_returns_exception_v18_regression`
+- `http://localhost:3001/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression`
+- `http://localhost:3001/sandbox/replay/trace_returns_exception_v18_regression`
 - `http://localhost:3001/sandbox/budgets`
 - `http://localhost:3001/sandbox/slas`
 - `http://localhost:3001/sandbox/regressions`
@@ -62,6 +63,8 @@ Then open routes like:
 - `pnpm dev:demo` is the simplest way to launch the local dashboard sandbox.
 - Some pages use seeded example data in this mode so the workflow can be reviewed without a live API session.
 - `/sandbox` is the canonical preview surface.
+- `/sandbox/traces` is the canonical seeded traces workbench for local review. Prefer validating seeded-trace UX there before debugging `/traces` in dashboard-demo mode.
+- If the browser UI disagrees with the page header or seeded counts, check the live runtime first: confirm port `3001`, fetch the route HTML, then compare server-rendered content vs post-hydration client state.
 - If Next reports `Module not found` for a workspace package like `@foxhound/demo-domain` or `@foxhound/api-client`, debug in this order:
   1. verify the workspace package is actually linked under `apps/web/node_modules/@foxhound/`
   2. verify the package exposes the expected `exports` entry

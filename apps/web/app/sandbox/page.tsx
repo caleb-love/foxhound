@@ -13,36 +13,36 @@ export default function SandboxOverviewPage() {
 
   const changeFeed: OverviewFeedItem[] = [
     {
-      title: 'support-reply v18 rollout introduced mid-week refund regressions',
-      description: 'The shared sandbox story now follows a full week of operations: stable baseline, rollout drift, incident fallout, and recovery across diff, replay, datasets, and experiments.',
+      title: 'Returns Resolution Copilot regressed after the compressed support-reply v18 rollout',
+      description: 'The sandbox now tells a specific weekly story: a real-looking returns agent got cheaper and faster, but started denying damaged-shipment exceptions incorrectly.',
       status: 'critical',
     },
     {
-      title: 'v19 recovery candidate validated on refund edge cases',
-      description: 'The leading recovery path now looks promotion-ready after trace-derived evaluation across the week’s refund edge cases.',
+      title: 'support-reply v19 recovered the flagship refund exception workflow',
+      description: 'The recovery candidate is now backed by a larger trace-derived returns dataset, clearer labels, and a promotion-ready experiment narrative.',
       status: 'healthy',
     },
     {
-      title: 'Knowledge-base timeout cluster increased latency',
-      description: 'Support-rag-agent remains near SLA and budget limits after a late-week timeout cluster and fallback stabilization.',
+      title: 'Shipping Delay Resolution stayed near the edge after a logistics timeout cluster',
+      description: 'The shipping story now includes fallback recovery, SLA pressure, and budget drift tied to the same week of seeded operational data.',
       status: 'warning',
     },
   ];
 
   const actionQueue: OverviewFeedItem[] = [
     {
-      title: 'Investigate refund-policy-agent regression',
-      description: 'Start with the hero regression trace and compare it with the baseline and recovery runs.',
+      title: 'Investigate the Returns Resolution Copilot regression story',
+      description: 'Start with the hero regression trace and compare it with the baseline and recovery runs for the same refund exception case.',
       status: 'critical',
     },
     {
-      title: 'Review support-rag-agent cost and latency drift',
-      description: 'Timeout recovery improved quality, but the main support path still needs governance review.',
+      title: 'Review Shipping Delay Resolution cost and latency drift',
+      description: 'The timeout recovery improved quality, but the logistics workflow still sits close to its SLA and budget limits.',
       status: 'warning',
     },
     {
-      title: 'Validate alert routing for platform ops',
-      description: 'One recent warning-route delivery failure is included in the notifications story.',
+      title: 'Validate alert routing across returns and platform operations',
+      description: 'Notification routing now includes team-specific channels like #returns-watch and the shared #platform-ops feed.',
       status: 'warning',
     },
   ];
@@ -50,14 +50,14 @@ export default function SandboxOverviewPage() {
   const nextActions: OverviewActionItem[] = [
     {
       title: 'Open traces',
-      description: `Review the seeded trace corpus with ${demo.allTraces.length} shared sandbox traces spanning a realistic seven-day operating window.`,
+      description: `Review ${demo.allTraces.length} seeded traces spanning a dense seven-day operating window across returns, shipping, billing, account recovery, fraud, and operator reporting stories.`,
       href: '/sandbox/traces',
       cta: 'Open traces',
     },
     {
       title: 'Compare hero regression',
-      description: 'Use run diff to see why v18 got cheaper and faster but worse on refund quality.',
-      href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression',
+      description: 'Use run diff to see why the compressed v18 rollout got cheaper and faster but worse on the damaged-shipment refund exception.',
+      href: '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression',
       cta: 'Open run diff',
     },
     {

@@ -102,7 +102,7 @@ describe('FleetOverview', () => {
     expect(screen.getByText('Sandbox quick links')).toBeInTheDocument();
     const openRouteLinks = screen.getAllByRole('link', { name: /open route/i });
     expect(openRouteLinks.length).toBeGreaterThan(0);
-    expect(openRouteLinks[0]).toHaveAttribute('href', '/sandbox/traces/trace_support_refund_v18_regression');
+    expect(openRouteLinks[0]).toHaveAttribute('href', '/sandbox/traces/trace_returns_exception_v18_regression');
   });
 
   it('renders recommended next action links', () => {

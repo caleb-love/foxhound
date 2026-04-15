@@ -42,7 +42,7 @@ export default function SandboxDatasetsPage() {
         {
           title: 'Review the regression source traces',
           description: 'Start with the traces that fed the refund edge-case dataset so the improve loop stays tied to production evidence.',
-          href: '/sandbox/traces/trace_support_refund_v18_regression',
+          href: '/sandbox/traces/trace_returns_exception_v18_regression',
           cta: 'Open failing trace',
         },
         {

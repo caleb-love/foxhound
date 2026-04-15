@@ -109,16 +109,21 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
 
         {/* Agent Filter */}
         <Popover open={isAgentPopoverOpen} onOpenChange={setIsAgentPopoverOpen}>
-          <PopoverTrigger>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Agents
-              {agentIds.length > 0 && (
-                <Badge variant="secondary" className="ml-1 rounded-full px-1.5">
-                  {agentIds.length}
-                </Badge>
-              )}
-            </Button>
+          <PopoverTrigger
+            className="inline-flex h-7 items-center gap-2 rounded-[min(var(--radius-md),12px)] border px-2.5 text-[0.8rem] font-medium transition-all outline-none"
+            style={{
+              borderColor: 'var(--tenant-panel-stroke)',
+              background: 'var(--tenant-panel)',
+              color: 'var(--tenant-text-primary)',
+            }}
+          >
+            <Filter className="h-4 w-4" />
+            Agents
+            {agentIds.length > 0 && (
+              <Badge variant="secondary" className="ml-1 rounded-full px-1.5">
+                {agentIds.length}
+              </Badge>
+            )}
           </PopoverTrigger>
           <PopoverContent className="w-80" align="start">
             <div className="space-y-2">

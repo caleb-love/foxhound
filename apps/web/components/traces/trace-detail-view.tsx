@@ -75,10 +75,10 @@ function getPromptDiffHref(baseHref: string, promptName?: string, promptVersion?
 function getSuggestedCompareHref(baseHref: string, trace: Trace): string {
   const traceId = trace.id;
   const comparisons: Record<string, string> = {
-    trace_support_refund_v17_baseline: 'trace_support_refund_v18_regression',
-    trace_support_refund_v18_regression: 'trace_support_refund_v19_fix',
-    trace_support_refund_v19_fix: 'trace_support_refund_v18_regression',
-    trace_damage_receipt_v18_hallucination: 'trace_support_refund_v17_baseline',
+    trace_returns_exception_v17_baseline: 'trace_returns_exception_v18_regression',
+    trace_returns_exception_v18_regression: 'trace_returns_exception_v19_fix',
+    trace_returns_exception_v19_fix: 'trace_returns_exception_v18_regression',
+    trace_damage_receipt_v18_hallucination: 'trace_returns_exception_v17_baseline',
     trace_vip_chargeback_v18_missed_escalation: 'trace_vip_chargeback_v19_restored_escalation',
     trace_vip_chargeback_v19_restored_escalation: 'trace_vip_chargeback_v18_missed_escalation',
     trace_kb_timeout_failed: 'trace_kb_timeout_recovered',
@@ -104,16 +104,26 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
   const promptDiffHref = getPromptDiffHref(baseHref, promptName, promptVersion);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-3">
+    <div className="space-y-6 lg:space-y-8">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
+        <div className="space-y-4">
           <DetailHeader
-            title="Trace investigation"
-            subtitle="Use this view to understand what happened, identify the likely source of behavior changes, and jump directly into comparison or prompt review workflows."
+            title={typeof trace.metadata?.story_label === 'string' ? trace.metadata.story_label : 'Trace investigation'}
+            subtitle={typeof trace.metadata?.story_summary === 'string'
+              ? trace.metadata.story_summary
+              : 'Use this view to understand what happened, identify the most likely source of behavior change, and jump directly into comparison, prompt review, or evaluation follow-up.'}
             primaryBadge={<StatusBadge status={hasError ? 'Error path' : 'Healthy path'} variant={hasError ? 'critical' : 'healthy'} />}
             secondaryBadge={<StatusBadge status={trace.agentId} variant="neutral" />}
           />
-          <div className="font-mono text-sm text-muted-foreground">{trace.id}</div>
+          <div
+            className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
+            style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+              Trace id
+            </div>
+            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
+          </div>
         </div>
 
         <DetailActionPanel title="Recommended investigation actions">
@@ -156,16 +166,24 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
         <SummaryStatCard label="Total spans" value={String(trace.spans.length)} supportingText={`${llmCallCount} LLM · ${toolCallCount} tool`} />
         <SummaryStatCard label="Errors" value={String(errorCount)} supportingText="Spans with error status in this execution." />
         <SummaryStatCard label="Estimated cost" value={`$${totalCost.toFixed(4)}`} supportingText="Derived from span-level cost attributes." />
-        <SummaryStatCard label="Prompt context" value={promptName ? promptName : 'No prompt metadata'} supportingText={promptVersion ? `Version ${promptVersion}` : 'Prompt version unavailable'} />
+        <SummaryStatCard
+          label="Prompt context"
+          value={promptName ? promptName : 'No prompt metadata'}
+          supportingText={promptVersion
+            ? `Version ${promptVersion}${typeof trace.metadata?.status_label === 'string' ? ` · ${trace.metadata.status_label}` : ''}`
+            : typeof trace.metadata?.status_label === 'string'
+              ? String(trace.metadata.status_label)
+              : 'Prompt version unavailable'}
+        />
       </div>
 
       <Tabs defaultValue="timeline" className="space-y-4">
-        <TabsList>
+        <TabsList className="rounded-[var(--tenant-radius-panel)] border px-1.5 py-1.5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>
         <TabsContent value="timeline">
-          <Card>
+          <Card className="app-panel-surface">
             <CardHeader>
               <CardTitle>Execution Timeline</CardTitle>
             </CardHeader>
@@ -175,12 +193,12 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
           </Card>
         </TabsContent>
         <TabsContent value="metadata">
-          <Card>
+          <Card className="app-panel-surface">
             <CardHeader>
               <CardTitle>Trace Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="overflow-auto rounded-lg p-4 text-sm" style={{ background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}>
+              <pre className="overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-4 text-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-inset)', color: 'var(--tenant-text-secondary)' }}>
                 {JSON.stringify(trace.metadata, null, 2)}
               </pre>
             </CardContent>

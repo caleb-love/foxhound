@@ -72,22 +72,30 @@ export function MetricsDelta({
     : 'color-mix(in srgb, var(--tenant-danger) 10%, white)';
 
   return (
-    <div className="p-4" style={tenantStyles.panel}>
-      <div className="mb-3 text-sm font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>{label}</div>
-      
-      <div className="space-y-2">
-        {/* Values */}
-        <div className="flex items-baseline justify-between text-sm">
-          <span style={{ color: 'var(--tenant-text-muted)' }}>Trace A:</span>
-          <span className="font-mono font-medium">{formatValue(valueA)}</span>
+    <div className="p-4 md:p-5" style={tenantStyles.panel}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
+          <div className="mt-2 text-2xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueB)}</div>
         </div>
-        <div className="flex items-baseline justify-between text-sm">
-          <span style={{ color: 'var(--tenant-text-muted)' }}>Trace B:</span>
-          <span className="font-mono font-medium">{formatValue(valueB)}</span>
+        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+          B vs A
+        </div>
+      </div>
+      
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
+            <div style={{ color: 'var(--tenant-text-muted)' }}>Baseline</div>
+            <div className="mt-1 font-mono font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueA)}</div>
+          </div>
+          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
+            <div style={{ color: 'var(--tenant-text-muted)' }}>Comparison</div>
+            <div className="mt-1 font-mono font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueB)}</div>
+          </div>
         </div>
         
-        {/* Delta */}
-        <div className={cn('mt-3 rounded-lg p-3')} style={{ background: bgColor }}>
+        <div className={cn('mt-1 rounded-[var(--tenant-radius-panel-tight)] p-3')} style={{ background: bgColor }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div style={{ color: colorClass }}>{icon}</div>

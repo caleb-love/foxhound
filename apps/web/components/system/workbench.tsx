@@ -35,11 +35,11 @@ export function SelectionSummaryBar({
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--tenant-radius-panel)] border px-4 py-3 md:px-5"
       style={{
-        borderColor: 'var(--tenant-panel-stroke)',
-        background: 'var(--tenant-panel-alt)',
-        boxShadow: 'inset 0 1px 0 color-mix(in srgb, white 4%, transparent)',
+        borderColor: 'var(--tenant-panel-stroke-strong)',
+        background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel-strong) 88%, transparent), color-mix(in srgb, var(--tenant-accent-soft) 82%, var(--tenant-panel-strong)))',
+        boxShadow: 'inset 0 1px 0 color-mix(in srgb, white 38%, transparent)',
       }}
     >
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -68,7 +68,7 @@ export function TableShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border" style={surfaceStyles.panel}>
+    <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={surfaceStyles.panel}>
       {children}
       {footer ? (
         <div className="border-t px-4 py-3 text-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-text-secondary)' }}>

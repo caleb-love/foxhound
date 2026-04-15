@@ -199,24 +199,47 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
         : 'Use the span-level diff below to understand how behavior changed between the baseline and comparison runs.';
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex items-start gap-4">
-          <Link href={backHref}>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Traces
-            </Button>
-          </Link>
-          <div className="space-y-2">
-            <DetailHeader
-              title="Run Diff"
-              subtitle={narrative}
-              primaryBadge={<StatusBadge status="Baseline vs comparison" variant="neutral" />}
+    <div className="space-y-6 lg:space-y-8">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
+        <div className="space-y-4">
+          <div className="flex items-start gap-4">
+            <Link href={backHref}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Traces
+              </Button>
+            </Link>
+            <div className="space-y-2">
+              <DetailHeader
+                title="Run Diff"
+                subtitle={narrative}
+                primaryBadge={<StatusBadge status="Baseline vs comparison" variant="neutral" />}
+              />
+              <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+                Comparing {traceA.agentId} runs to explain what changed, why it mattered, and which realistic support story this diff belongs to.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <CompareContextCard
+              label="Baseline (A)"
+              id={typeof traceA.metadata?.story_label === 'string' ? String(traceA.metadata.story_label) : traceA.id}
+              meta={[
+                `Agent: ${traceA.agentId}`,
+                typeof traceA.metadata?.status_label === 'string' ? `Story status: ${traceA.metadata.status_label}` : `Trace ID: ${traceA.id}`,
+                promptNameA ? `Prompt: ${promptNameA}${promptVersionA ? ` · v${promptVersionA}` : ''}` : 'Prompt context unavailable',
+              ]}
             />
-            <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
-              Comparing {traceA.agentId} traces to explain what changed and what to inspect next.
-            </p>
+            <CompareContextCard
+              label="Comparison (B)"
+              id={typeof traceB.metadata?.story_label === 'string' ? String(traceB.metadata.story_label) : traceB.id}
+              meta={[
+                `Agent: ${traceB.agentId}`,
+                typeof traceB.metadata?.status_label === 'string' ? `Story status: ${traceB.metadata.status_label}` : `Trace ID: ${traceB.id}`,
+                promptNameB ? `Prompt: ${promptNameB}${promptVersionB ? ` · v${promptVersionB}` : ''}` : 'Prompt context unavailable',
+              ]}
+            />
           </div>
         </div>
 
@@ -250,27 +273,8 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
         </DetailActionPanel>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <CompareContextCard
-          label="Baseline (A)"
-          id={traceA.id}
-          meta={[
-            `Agent: ${traceA.agentId}`,
-            promptNameA ? `Prompt: ${promptNameA}${promptVersionA ? ` · v${promptVersionA}` : ''}` : 'Prompt context unavailable',
-          ]}
-        />
-        <CompareContextCard
-          label="Comparison (B)"
-          id={traceB.id}
-          meta={[
-            `Agent: ${traceB.agentId}`,
-            promptNameB ? `Prompt: ${promptNameB}${promptVersionB ? ` · v${promptVersionB}` : ''}` : 'Prompt context unavailable',
-          ]}
-        />
-      </div>
-      
       {/* Metrics Comparison */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricsDelta
           label="Cost"
           valueA={metrics.cost.valueA}

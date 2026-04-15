@@ -34,21 +34,21 @@ export default function SandboxSLAsPage() {
         successRate: `${(item.observedSuccessRate * 100).toFixed(1)}% vs ${(item.minSuccessRate * 100).toFixed(1)}% target`,
         latency: `${(item.observedDurationMs / 1000).toFixed(1)}s vs ${(item.maxDurationMs / 1000).toFixed(1)}s target`,
         description: item.summary,
-        tracesHref: '/sandbox/traces/trace_support_refund_v18_regression',
+        tracesHref: '/sandbox/traces/trace_returns_exception_v18_regression',
         regressionsHref: '/sandbox/regressions',
-        replayHref: '/sandbox/replay/trace_support_refund_v18_regression',
+        replayHref: '/sandbox/replay/trace_returns_exception_v18_regression',
       }))}
       nextActions={[
         {
           title: 'Replay the breaching run',
           description: 'Use session replay to inspect where the refund workflow slowed down and quality degraded.',
-          href: '/sandbox/replay/trace_support_refund_v18_regression',
+          href: '/sandbox/replay/trace_returns_exception_v18_regression',
           cta: 'Open replay',
         },
         {
           title: 'Compare against the validated recovery',
           description: 'Use run diff to see how the late-week v19 fix reduces SLA pressure while restoring correctness.',
-          href: '/sandbox/diff?a=trace_support_refund_v18_regression&b=trace_support_refund_v19_fix',
+          href: '/sandbox/diff?a=trace_returns_exception_v18_regression&b=trace_returns_exception_v19_fix',
           cta: 'Open recovery diff',
         },
       ]}

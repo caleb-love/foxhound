@@ -9,7 +9,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
@@ -173,24 +173,43 @@ export function BudgetsGovernDashboard({
       <PageHeader
         eyebrow="Govern"
         title="Cost Budgets"
-        description="Monitor overspend risk, identify the most expensive agent workflows, and route operators into traces, regressions, and improvement workflows before spend compounds."
-      />
+        description="Track cost pressure across the agent fleet, identify the workflows most likely to overspend, and move directly into traces, regressions, and improvement loops before burn compounds into a broader incident."
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Cost governance
+        </div>
+      </PageHeader>
 
-      <DashboardFilterBar definitions={budgetFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
+        <SectionPanel
+          title="Read spend before it becomes a budget incident"
+          description="This page should explain cost pressure as an operational problem. Show the posture first, then the hotspots, then the action routes that reduce burn without damaging quality."
+        >
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
+            ))}
+          </section>
+        </SectionPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-        ))}
+        <SectionPanel
+          title="Filter budget posture"
+          description="Slice by severity, agent, or model to isolate accidental burn before widening the investigation."
+        >
+          <DashboardFilterBar definitions={budgetFilters} />
+        </SectionPanel>
       </section>
 
       <WorkbenchPanel
         title="Budget pressure workbench"
-        description="Use this surface to identify overspend hotspots, connect budget risk back to real traces, and open the improvement workflow before cost compounds."
+        description="Use this workbench to connect spend spikes back to real execution evidence, separate intentional investment from accidental burn, and route operators into the right cost-reduction workflow quickly."
       >
         <TrendChart
           title="Budget pressure trend"
-          description="A shared trend view for burn and risk signals that can be reused across budgets, SLAs, and overview dashboards."
+          description="A shared governance trend view for burn and risk movement, so budget drift reads with the same clarity as SLA and regression signals."
           series={budgetTrendSeries}
         />
 
@@ -198,18 +217,41 @@ export function BudgetsGovernDashboard({
           main={
             <EventTimeline
               title="Spend hotspots"
-              description="The highest-risk or highest-cost agent workflows to review right now."
+              description="The workflows creating the strongest cost pressure right now, ordered for investigation rather than passive reporting."
               items={toHotspotTimelineItems(filteredHotspots)}
             />
           }
           side={
             <TopNList
               title="Recommended next actions"
-              description="Bring cost back under control without losing sight of behavior quality."
+              description="Take the next highest-leverage actions to reduce spend without accidentally degrading behavior quality or operator confidence."
               items={toActionItems(filteredNextActions)}
             />
           }
         />
+
+        <SectionPanel
+          title="Budget triage framing"
+          description="A compact explanation layer between metrics and traces, so operators can see which agents are drifting, what is likely causing the burn, and where to intervene first."
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {filteredHotspots.map((hotspot) => (
+              <div
+                key={hotspot.agent}
+                className="rounded-[var(--tenant-radius-panel)] border p-4"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {hotspot.spend} / {hotspot.budget}
+                </div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{hotspot.agent}</div>
+                <div className="mt-3">
+                  <RecordBody>{hotspot.description}</RecordBody>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
       </WorkbenchPanel>
     </PageContainer>
   );

@@ -57,6 +57,7 @@ export function ChartRecord({
     <PremiumRecord>
       <PremiumRecordHeader title={title} meta={meta} badge={resolvedBadge} />
       {description ? <div className="text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>{description}</div> : null}
+      {description ? <div className="mt-3 h-px w-full" style={{ background: 'color-mix(in srgb, var(--tenant-panel-stroke) 92%, transparent)' }} /> : null}
       {href && cta ? (
         <PremiumActions>
           <PremiumActionLink href={href}>{cta}</PremiumActionLink>

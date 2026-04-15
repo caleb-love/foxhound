@@ -13,6 +13,8 @@ import {
   MetricGrid,
   SplitPanelLayout,
 } from '@/components/sandbox/primitives';
+import { PremiumPanel, PremiumRecord, PremiumRecordHeader } from '@/components/sandbox/primitives';
+import { RecordBody, SectionPanel } from '@/components/system/page';
 
 export interface ExecutiveMetric {
   label: string;
@@ -118,20 +120,32 @@ export function ExecutiveSummaryDashboard({
     <DashboardPage
       eyebrow="Executive Summary"
       title="Leadership Overview"
-      description="A stakeholder-oriented summary of platform health, operational risk, and the most important decisions needed right now across reliability, spend, and change management."
+      description="A stakeholder-facing summary of platform health, operational risk, and the decisions that matter right now across reliability, spend, and change management."
     >
-      <DashboardFilterBar definitions={executiveFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.28fr)_minmax(320px,0.72fr)]">
+        <SectionPanel
+          title="Read the business posture fast"
+          description="This surface is for leaders who need signal compression, not implementation detail. Show posture first, decisions second, and detailed evidence only when it changes the call."
+        >
+          <MetricGrid>
+            {metrics.map((metric) => (
+              <MetricTile
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                supportingText={metric.supportingText}
+              />
+            ))}
+          </MetricGrid>
+        </SectionPanel>
 
-      <MetricGrid>
-        {metrics.map((metric) => (
-          <MetricTile
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-            supportingText={metric.supportingText}
-          />
-        ))}
-      </MetricGrid>
+        <SectionPanel
+          title="Executive filter"
+          description="Narrow the summary to the risk slice, team slice, or search context you want to discuss."
+        >
+          <DashboardFilterBar definitions={executiveFilters} />
+        </SectionPanel>
+      </section>
 
       <SplitPanelLayout
         main={
@@ -149,6 +163,20 @@ export function ExecutiveSummaryDashboard({
           />
         }
       />
+
+      <PremiumPanel
+        title="Decision framing"
+        description="A tighter layer between metrics and workflow navigation so leadership can see what is on track, what needs attention, and where to drill in."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          {filteredDecisions.map((decision) => (
+            <PremiumRecord key={decision.title}>
+              <PremiumRecordHeader title={decision.title} />
+              <RecordBody>{decision.description}</RecordBody>
+            </PremiumRecord>
+          ))}
+        </div>
+      </PremiumPanel>
     </DashboardPage>
   );
 }

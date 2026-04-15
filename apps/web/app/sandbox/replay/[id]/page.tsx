@@ -2,6 +2,7 @@ import type { Trace } from '@foxhound/types';
 import { ReplayDetailView } from '@/components/replay/replay-detail-view';
 import { PageErrorState } from '@/components/ui/page-state';
 import { PageContainer } from '@/components/system/page';
+import { getRequestUrl } from '@/lib/server-url';
 
 export default async function SandboxReplayDetailPage({
   params,
@@ -10,7 +11,7 @@ export default async function SandboxReplayDetailPage({
 }) {
   const { id } = await params;
 
-  const response = await fetch(`http://localhost:3001/api/sandbox/traces/${id}`, {
+  const response = await fetch(await getRequestUrl(`/api/sandbox/traces/${id}`), {
     cache: 'no-store',
   });
 

@@ -54,7 +54,7 @@ export default function SandboxRegressionsPage() {
         {
           title: 'Prompt compression reduced refund nuance',
           description: 'Version 18 made the response path cheaper and faster, but removed enough policy nuance to trigger incorrect refund handling.',
-          href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression',
+          href: '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression',
           cta: 'Compare baseline vs regression',
         },
         {

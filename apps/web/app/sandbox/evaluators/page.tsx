@@ -44,7 +44,7 @@ export default function SandboxEvaluatorsPage() {
         {
           title: 'Inspect failing refund evidence',
           description: 'Start with the traces and diff pair behind the refund-policy correctness failures.',
-          href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression',
+          href: '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression',
           cta: 'Open hero diff',
         },
         {

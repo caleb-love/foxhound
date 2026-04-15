@@ -32,8 +32,10 @@ export default async function SandboxSessionDetailPage({
     <SandboxPage>
       <SandboxHero
         eyebrow="Investigate · Session"
-        title={`Session ${id}`}
-        description="Review all traces attached to this sandbox session and jump into replay, trace detail, and prompt investigation from one place."
+        title={typeof primaryTrace.metadata?.story_label === 'string' ? primaryTrace.metadata.story_label : `Session ${id}`}
+        description={typeof primaryTrace.metadata?.story_summary === 'string'
+          ? primaryTrace.metadata.story_summary
+          : 'Review all traces attached to this sandbox session and jump into replay, trace detail, and prompt investigation from one place.'}
       >
         <SandboxPill>{traces.length} trace{traces.length === 1 ? '' : 's'}</SandboxPill>
         <SandboxPill>{primaryTrace.agentId}</SandboxPill>
@@ -50,8 +52,13 @@ export default async function SandboxSessionDetailPage({
               <div key={trace.id} className="rounded-2xl border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
-                    <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>{trace.agentId} · {trace.spans.length} spans</div>
+                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+                      {typeof trace.metadata?.story_label === 'string' ? trace.metadata.story_label : trace.id}
+                    </div>
+                    <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+                      {trace.agentId} · {typeof trace.metadata?.status_label === 'string' ? trace.metadata.status_label : `${trace.spans.length} spans`}
+                    </div>
+                    <div className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{trace.id}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-sm">
                     <a href={`/sandbox/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', color: 'var(--tenant-text-primary)' }}>Trace</a>

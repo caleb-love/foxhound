@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { TopBar } from '@/components/layout/top-bar';
 import { SegmentPersistenceBridge } from '@/components/layout/segment-persistence-bridge';
@@ -59,13 +59,19 @@ export function AppShell({
 
   const shell = (
     <div className={bodyClassName}>
-      <Sidebar />
+      <Suspense fallback={null}>
+        <Sidebar />
+      </Suspense>
       <div className={contentClassName}>
         {mode === 'dashboard' ? (
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.26),transparent_40%)]" />
         ) : null}
         {modeBanner}
-        {showSegmentPersistence ? <SegmentPersistenceBridge /> : null}
+        {showSegmentPersistence ? (
+          <Suspense fallback={null}>
+            <SegmentPersistenceBridge />
+          </Suspense>
+        ) : null}
         {user ? (
           <TopBar user={user} mode={mode} leadingContent={<ShellModeHeader mode={mode} />} />
         ) : mode === 'sandbox' ? (

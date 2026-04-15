@@ -18,26 +18,25 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 
-export interface NotificationMetric {
+export interface SettingsMetric {
   label: string;
   value: string;
   supportingText: string;
 }
 
-export interface NotificationChannelRecord {
+export interface SettingsControlRecord {
   name: string;
-  type: string;
+  category: string;
   status: 'healthy' | 'warning' | 'critical';
-  routingSummary: string;
-  lastDelivery: string;
-  alertsHref: string;
-  regressionsHref: string;
-  slasHref: string;
+  summary: string;
+  lastChanged: string;
+  href: string;
+  owner: string;
 }
 
-interface NotificationsGovernDashboardProps {
-  metrics: NotificationMetric[];
-  channels: NotificationChannelRecord[];
+interface SettingsGovernDashboardProps {
+  metrics: SettingsMetric[];
+  controls: SettingsControlRecord[];
   nextActions: Array<{
     title: string;
     description: string;
@@ -46,12 +45,12 @@ interface NotificationsGovernDashboardProps {
   }>;
 }
 
-const notificationFilters: DashboardFilterDefinition[] = [
+const settingsFilters: DashboardFilterDefinition[] = [
   {
     key: 'searchQuery',
     kind: 'search',
     label: 'Search',
-    placeholder: 'Search channels, routes, or escalations...',
+    placeholder: 'Search settings, controls, or owners...',
   },
   {
     key: 'severity',
@@ -67,59 +66,58 @@ const notificationFilters: DashboardFilterDefinition[] = [
   {
     key: 'agentIds',
     kind: 'multi-select',
-    label: 'Channel group',
+    label: 'Owner',
     options: [
-      { value: 'ops', label: 'ops' },
-      { value: 'engineering', label: 'engineering' },
-      { value: 'executive', label: 'executive' },
+      { value: 'platform-ops', label: 'platform-ops' },
+      { value: 'reliability-team', label: 'reliability-team' },
+      { value: 'security-review', label: 'security-review' },
     ],
   },
 ];
 
-export function NotificationsGovernDashboard({
+export function SettingsGovernDashboard({
   metrics,
-  channels,
+  controls,
   nextActions,
-}: NotificationsGovernDashboardProps) {
+}: SettingsGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
-  const filteredChannels = filterByDashboardScope(channels, filters, {
-    searchableText: (item) => `${item.name} ${item.type} ${item.routingSummary} ${item.lastDelivery}`,
+  const filteredControls = filterByDashboardScope(controls, filters, {
+    searchableText: (item) => `${item.name} ${item.category} ${item.summary} ${item.owner}`,
     severity: (item) => item.status,
     status: (item) => item.status,
-    agentIds: (item) =>
-      item.name.includes('exec') ? ['executive'] : item.name.includes('engineering') ? ['engineering'] : ['ops'],
+    agentIds: (item) => [item.owner],
   });
 
   const filteredNextActions = filterByDashboardScope(nextActions, filters, {
     searchableText: (item) => `${item.title} ${item.description}`,
     agentIds: (item) =>
-      item.title.toLowerCase().includes('sla')
-        ? ['ops']
-        : item.title.toLowerCase().includes('budget')
-          ? ['engineering']
-          : ['executive'],
+      item.title.toLowerCase().includes('security')
+        ? ['security-review']
+        : item.title.toLowerCase().includes('reliability')
+          ? ['reliability-team']
+          : ['platform-ops'],
   });
 
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Govern"
-        title="Notifications"
-        description="Review alert routing health, understand which channels carry the highest-signal incidents, and verify that escalation paths still match how operators actually respond."
+        title="Settings and Controls"
+        description="Review the operational controls that shape alerting, reliability guardrails, routing, and access policy, then jump directly into the surfaces that need adjustment before drift becomes an incident."
       >
         <div
           className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
           style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
         >
-          Escalation governance
+          Control governance
         </div>
       </PageHeader>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
         <SectionPanel
-          title="Read routing health before alert trust erodes"
-          description="This page should frame notifications as an operational trust system. Show channel posture first, then route health, then the actions that reduce noise and protect escalation confidence."
+          title="Read control posture before drift becomes policy debt"
+          description="This page should frame settings as live operational control surfaces, not as a leftover admin appendix. Show the control posture first, then the drift, then the next intervention path."
         >
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
@@ -129,28 +127,28 @@ export function NotificationsGovernDashboard({
         </SectionPanel>
 
         <SectionPanel
-          title="Filter routing posture"
-          description="Slice by status or channel group before widening the alert-routing review."
+          title="Filter control posture"
+          description="Slice by status or owner before widening the governance review."
         >
-          <DashboardFilterBar definitions={notificationFilters} />
+          <DashboardFilterBar definitions={settingsFilters} />
         </SectionPanel>
       </section>
 
       <WorkbenchPanel
-        title="Alert routing workbench"
-        description="Use this surface to inspect channel health, validate delivery confidence, and tighten escalation paths before the next high-severity incident."
+        title="Governance controls workbench"
+        description="Use this surface to understand which controls are healthy, which guardrails are drifting, and where operators should intervene first."
       >
         <SplitPanelLayout
           main={
             <PremiumPanel
-              title="Channel status"
-              description="Operational channels framed as active routing surfaces, not just static configuration entries."
+              title="Control status"
+              description="The highest-leverage governance controls, grouped as operational artifacts instead of a generic settings placeholder."
             >
-              {filteredChannels.map((channel) => (
-                <PremiumRecord key={channel.name}>
+              {filteredControls.map((control) => (
+                <PremiumRecord key={control.name}>
                   <PremiumRecordHeader
-                    title={channel.name}
-                    meta={`Last delivery ${channel.lastDelivery}`}
+                    title={control.name}
+                    meta={`Last changed ${control.lastChanged}`}
                     badge={
                       <div className="flex items-center gap-2">
                         <span
@@ -161,17 +159,18 @@ export function NotificationsGovernDashboard({
                             background: 'var(--tenant-panel)',
                           }}
                         >
-                          {channel.type}
+                          {control.category}
                         </span>
-                        <PremiumStatusBadge status={channel.status} variant={channel.status} />
+                        <PremiumStatusBadge status={control.status} variant={control.status} />
                       </div>
                     }
                   />
-                  <PremiumBody>{channel.routingSummary}</PremiumBody>
+                  <PremiumBody>{control.summary}</PremiumBody>
+                  <div className="mt-3 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                    Owner: {control.owner}
+                  </div>
                   <PremiumActions>
-                    <PremiumActionLink href={channel.alertsHref}>Review alert source</PremiumActionLink>
-                    <PremiumActionLink href={channel.regressionsHref}>Open regressions</PremiumActionLink>
-                    <PremiumActionLink href={channel.slasHref}>Open SLAs</PremiumActionLink>
+                    <PremiumActionLink href={control.href}>Review surface</PremiumActionLink>
                   </PremiumActions>
                 </PremiumRecord>
               ))}
@@ -180,7 +179,7 @@ export function NotificationsGovernDashboard({
           side={
             <PremiumPanel
               title="Recommended next actions"
-              description="Reduce alert noise, protect escalation trust, and keep the highest-signal routes visible to the right operators."
+              description="Resolve drift in the order that best protects operators, responders, and customer-facing reliability."
             >
               {filteredNextActions.map((action) => (
                 <PremiumRecord key={action.title}>
@@ -196,22 +195,22 @@ export function NotificationsGovernDashboard({
         />
 
         <SectionPanel
-          title="Routing triage framing"
-          description="A compact interpretation layer between posture metrics and channel evidence, so operators can see which routes matter, where trust is weakening, and where escalation tuning should begin."
+          title="Control triage framing"
+          description="A compact interpretation layer between posture metrics and control records, so operators can see where policy drift matters, who owns it, and where to intervene first."
         >
           <div className="grid gap-4 md:grid-cols-3">
-            {filteredChannels.map((channel) => (
+            {filteredControls.map((control) => (
               <div
-                key={channel.name}
+                key={control.name}
                 className="rounded-[var(--tenant-radius-panel)] border p-4"
                 style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
               >
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
-                  {channel.lastDelivery}
+                  {control.lastChanged}
                 </div>
-                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{channel.name}</div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{control.name}</div>
                 <div className="mt-3">
-                  <RecordBody>{channel.routingSummary}</RecordBody>
+                  <RecordBody>{control.summary}</RecordBody>
                 </div>
               </div>
             ))}

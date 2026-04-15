@@ -8,7 +8,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
@@ -100,14 +100,33 @@ export function DatasetsDashboard({
         eyebrow="Improve"
         title="Datasets"
         description="Turn production failures and low-scoring traces into reusable evaluation cases, then push them into experiment workflows to improve prompts, routing, and agent behavior."
-      />
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Evidence workbench
+        </div>
+      </PageHeader>
 
-      <DashboardFilterBar definitions={datasetFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
+        <SectionPanel
+          title="Read dataset posture before you trust the experiment loop"
+          description="This page should frame datasets as the evidence backbone of the Improve family. Show collection posture first, then filtering, then the strongest signals and next build paths."
+        >
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
+            ))}
+          </section>
+        </SectionPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-        ))}
+        <SectionPanel
+          title="Filter dataset posture"
+          description="Slice by dataset lineage before widening the evaluation and experiment review."
+        >
+          <DashboardFilterBar definitions={datasetFilters} />
+        </SectionPanel>
       </section>
 
       <WorkbenchPanel
@@ -130,6 +149,32 @@ export function DatasetsDashboard({
             />
           }
         />
+
+        <SectionPanel
+          title="Dataset triage framing"
+          description="A compact interpretation layer between posture metrics and dataset records, so operators can see what evidence is strongest, what signal produced it, and where to route it next."
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {filteredDatasets.map((dataset) => (
+              <div
+                key={dataset.name}
+                className="rounded-[var(--tenant-radius-panel)] border p-4"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {dataset.itemCount} cases · {dataset.lastUpdated}
+                </div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{dataset.name}</div>
+                <div className="mt-3">
+                  <RecordBody>{dataset.sourceSummary}</RecordBody>
+                </div>
+                <div className="mt-3 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                  Primary signal: {dataset.scoreSignal}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
       </WorkbenchPanel>
     </PageContainer>
   );

@@ -106,13 +106,15 @@ export function MetricCard({
   label,
   value,
   supportingText,
+  className,
 }: {
   label: string;
   value: string;
   supportingText: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded-3xl p-5 backdrop-blur-xl" style={surfaceStyles.panel}>
+    <div className={cn('flex h-full flex-col rounded-3xl p-5 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
       <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
       <div className="mt-3 text-3xl font-semibold tracking-tight" style={{ color: 'var(--tenant-text-primary)' }}>{value}</div>
       <p className="mt-3 text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>{supportingText}</p>

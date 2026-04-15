@@ -17,7 +17,7 @@ import {
   PremiumRecord,
   PremiumRecordHeader,
 } from '@/components/sandbox/primitives';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 
 export interface OverviewMetric {
   label: string;
@@ -192,20 +192,70 @@ export function FleetOverview({
       <PageHeader
         eyebrow="Overview"
         title="Fleet Overview"
-        description="A premium command surface for understanding fleet health, recent change impact, and the highest-priority operator actions."
-      />
-      <DashboardFilterBar definitions={overviewFilters} />
+        description="Read platform posture in one pass, isolate the changes that matter, and move straight from top-line signal into investigation or governance action."
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Live command surface
+        </div>
+      </PageHeader>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
+        <SectionPanel
+          title="What changed, what matters, what to do next"
+          description="Foxhound should help operators read the moment quickly, not just present another wall of cards. This lead surface compresses posture, active risk, and immediate investigation routes."
+        >
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(300px,0.82fr)]">
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {metrics.map((metric) => (
+                  <MetricTile
+                    key={metric.label}
+                    label={metric.label}
+                    value={metric.value}
+                    supportingText={metric.supportingText}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <PremiumPanel
+                title="Operator focus"
+                description="The shortest path from current posture to action."
+              >
+                <div className="space-y-3">
+                  {filteredActionQueue.slice(0, 3).map((item) => (
+                    <PremiumRecord key={item.title}>
+                      <PremiumRecordHeader title={item.title} />
+                      <RecordBody>{item.description}</RecordBody>
+                    </PremiumRecord>
+                  ))}
+                </div>
+              </PremiumPanel>
+            </div>
+          </div>
+        </SectionPanel>
+
+        <SectionPanel
+          title="Filter the command surface"
+          description="Narrow the overview by severity, agent, or recent change before jumping deeper into traces, prompts, or governance surfaces."
+        >
+          <DashboardFilterBar definitions={overviewFilters} />
+        </SectionPanel>
+      </section>
 
       {demoMode ? (
         <PremiumPanel
           title="Sandbox quick links"
-          description="Jump straight to the key seeded dashboard surfaces without needing auth or a live API session."
+          description="Jump straight to seeded hero routes without auth or a live API session."
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Hero regression trace', href: '/sandbox/traces/trace_support_refund_v18_regression' },
-              { label: 'Hero run diff', href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression' },
-              { label: 'Session replay', href: '/sandbox/replay/trace_support_refund_v18_regression' },
+              { label: 'Hero regression trace', href: '/sandbox/traces/trace_returns_exception_v18_regression' },
+              { label: 'Hero run diff', href: '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression' },
+              { label: 'Session replay', href: '/sandbox/replay/trace_returns_exception_v18_regression' },
               { label: 'Executive summary', href: '/sandbox/executive' },
             ].map((item) => (
               <PremiumRecord key={item.href}>
@@ -219,22 +269,19 @@ export function FleetOverview({
         </PremiumPanel>
       ) : null}
 
-      <MetricGrid>
-        {metrics.map((metric) => (
-          <MetricTile
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-            supportingText={metric.supportingText}
-          />
-        ))}
-      </MetricGrid>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
+        <TrendChart
+          title="Trend snapshot"
+          description="Health and budget signals should read like instrumentation, not a detached reporting widget."
+          series={overviewTrendSeries}
+        />
 
-      <TrendChart
-        title="Trend snapshot"
-        description="A compact shared trend surface for health and risk signals that can be reused across overview, governance, and quality dashboards."
-        series={overviewTrendSeries}
-      />
+        <TopNList
+          title="Recommended next actions"
+          description="Jump directly into the workflows most likely to move reliability, cost, and behavior."
+          items={toTopListItems(filteredNextActions)}
+        />
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <EventTimeline
@@ -249,12 +296,6 @@ export function FleetOverview({
           items={toTimelineItems(filteredActionQueue)}
         />
       </section>
-
-      <TopNList
-        title="Recommended next actions"
-        description="Jump directly into the workflows most likely to move reliability, cost, and behavior."
-        items={toTopListItems(filteredNextActions)}
-      />
     </PageContainer>
   );
 }

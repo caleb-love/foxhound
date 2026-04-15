@@ -7,7 +7,9 @@ export async function GET(
 ) {
   const { id } = await params;
   const demo = buildLocalReviewDemo();
-  const trace = demo.curatedTraces.find((item: (typeof demo.curatedTraces)[number]) => item.id === id)?.trace;
+  const trace =
+    demo.allTraces.find((item: (typeof demo.allTraces)[number]) => item.id === id) ??
+    demo.curatedTraces.find((item: (typeof demo.curatedTraces)[number]) => item.id === id)?.trace;
 
   if (!trace) {
     return NextResponse.json({ error: "Trace not found" }, { status: 404 });

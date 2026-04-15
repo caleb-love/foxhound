@@ -9,7 +9,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
@@ -156,24 +156,43 @@ export function SlasGovernDashboard({
       <PageHeader
         eyebrow="Govern"
         title="SLA Monitoring"
-        description="Track which agent workflows are drifting beyond latency or success-rate targets and move directly into investigation surfaces before reliability incidents reach users."
-      />
+        description="Track reliability drift across critical agent workflows, identify where latency or success rates are moving out of bounds, and jump directly into the investigation surfaces that explain why."
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Reliability governance
+        </div>
+      </PageHeader>
 
-      <DashboardFilterBar definitions={slaFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
+        <SectionPanel
+          title="Read reliability before it becomes a customer incident"
+          description="This page should frame SLA drift as an operational posture problem. Show the health picture first, then the breach pressure, then the best route into traces, replay, and regression analysis."
+        >
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
+            ))}
+          </section>
+        </SectionPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-        ))}
+        <SectionPanel
+          title="Filter reliability posture"
+          description="Slice by severity or agent to isolate breach pressure before widening the investigation."
+        >
+          <DashboardFilterBar definitions={slaFilters} />
+        </SectionPanel>
       </section>
 
       <WorkbenchPanel
         title="SLA triage workbench"
-        description="Use this surface to understand reliability drift, identify the most at-risk workflows, and move directly into traces, replay, and regression analysis."
+        description="Use this workbench to read reliability drift as an operator problem, isolate the workflows most likely to breach commitments, and move directly into traces, replay, and regression analysis."
       >
         <TrendChart
           title="Reliability drift trend"
-          description="A shared trend view for SLA health and latency movement that can be reused across overview, SLAs, and regressions."
+          description="A shared governance trend view for SLA health and latency movement, so reliability risk reads with the same visual clarity as cost and behavior drift."
           series={slaTrendSeries}
         />
 
@@ -181,18 +200,41 @@ export function SlasGovernDashboard({
           main={
             <EventTimeline
               title="At-risk agents"
-              description="Workflows trending toward or already breaching their reliability targets."
+              description="The workflows trending toward or already breaching their reliability targets, prioritized for immediate investigation."
               items={toAtRiskTimelineItems(filteredAtRiskAgents)}
             />
           }
           side={
             <TopNList
               title="Recommended next actions"
-              description="Use the investigation and improvement workflow to recover reliability before breaching commitments."
+              description="Use the linked investigation and improvement flows to recover reliability before a drifting workflow turns into a customer-visible incident."
               items={toActionItems(filteredNextActions)}
             />
           }
         />
+
+        <SectionPanel
+          title="SLA triage framing"
+          description="A compact explanation layer between metrics and evidence, so operators can quickly see who is breaching, what is drifting, and where the recovery workflow should start."
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {filteredAtRiskAgents.map((agent) => (
+              <div
+                key={agent.agent}
+                className="rounded-[var(--tenant-radius-panel)] border p-4"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {agent.successRate} · {agent.latency}
+                </div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{agent.agent}</div>
+                <div className="mt-3">
+                  <RecordBody>{agent.description}</RecordBody>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
       </WorkbenchPanel>
     </PageContainer>
   );

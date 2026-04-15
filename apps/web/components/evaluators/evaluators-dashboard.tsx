@@ -8,7 +8,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
@@ -115,14 +115,33 @@ export function EvaluatorsDashboard({
         eyebrow="Improve"
         title="Evaluators"
         description="Monitor evaluator health, understand scoring adoption, and keep the improve loop moving from production traces to datasets, experiments, and release decisions."
-      />
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Scoring workbench
+        </div>
+      </PageHeader>
 
-      <DashboardFilterBar definitions={evaluatorFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
+        <SectionPanel
+          title="Read evaluator posture before you trust the scores"
+          description="This page should frame evaluators as scoring infrastructure, not just configuration. Show evaluator health first, then filtering, then coverage and the strongest next route into datasets, experiments, and traces."
+        >
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
+            ))}
+          </section>
+        </SectionPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-        ))}
+        <SectionPanel
+          title="Filter evaluator posture"
+          description="Slice by severity or model before widening the scoring review."
+        >
+          <DashboardFilterBar definitions={evaluatorFilters} />
+        </SectionPanel>
       </section>
 
       <WorkbenchPanel
@@ -145,6 +164,32 @@ export function EvaluatorsDashboard({
             />
           }
         />
+
+        <SectionPanel
+          title="Evaluator triage framing"
+          description="A compact interpretation layer between posture metrics and evaluator records, so operators can see which scoring systems are reliable, which are drifting, and where to intervene next."
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {filteredEvaluators.map((evaluator) => (
+              <div
+                key={evaluator.name}
+                className="rounded-[var(--tenant-radius-panel)] border p-4"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {evaluator.model} · {evaluator.scoringType}
+                </div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{evaluator.name}</div>
+                <div className="mt-3">
+                  <RecordBody>{evaluator.lastRunSummary}</RecordBody>
+                </div>
+                <div className="mt-3 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {evaluator.adoptionSummary}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
       </WorkbenchPanel>
     </PageContainer>
   );

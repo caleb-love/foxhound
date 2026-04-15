@@ -9,7 +9,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader } from '@/components/system/page';
+import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
@@ -166,24 +166,43 @@ export function RegressionsDashboard({
       <PageHeader
         eyebrow="Govern"
         title="Behavior Regressions"
-        description="Track where agent behavior changed, prioritize the highest-risk regressions, and jump directly into traces, replay, diffs, and prompt review to understand root cause."
-      />
+        description="Track where agent behavior changed, prioritize the regressions most likely to matter operationally, and jump directly into traces, replay, run diff, and prompt review to understand root cause."
+      >
+        <div
+          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}
+        >
+          Governance workbench
+        </div>
+      </PageHeader>
 
-      <DashboardFilterBar definitions={regressionFilters} />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
+        <SectionPanel
+          title="Read drift before it becomes incident response"
+          description="This view should feel like operational triage, not passive reporting. Show the current behavior posture first, then the highest-likelihood causes, then the routes into evidence."
+        >
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
+            ))}
+          </section>
+        </SectionPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-        ))}
+        <SectionPanel
+          title="Filter regression posture"
+          description="Slice by severity, agent, or prompt target before widening the investigation."
+        >
+          <DashboardFilterBar definitions={regressionFilters} />
+        </SectionPanel>
       </section>
 
       <WorkbenchPanel
         title="Regression triage workbench"
-        description="Use this surface to compare current behavior with the stable baseline, identify the strongest likely causes, and move directly into deeper investigation."
+        description="Use this workbench to compare current behavior with the stable baseline, separate signal from noise, and move directly into the investigation surfaces that explain what changed."
       >
         <DiffScorecard
           title="Regression delta summary"
-          description="A shared compare view that summarizes how current behavior differs from the expected stable baseline."
+          description="A shared governance compare view that frames behavioral drift against the expected stable baseline before deeper investigation begins."
           metrics={buildRegressionDiffMetrics(filteredRegressions)}
         />
 
@@ -191,18 +210,41 @@ export function RegressionsDashboard({
           main={
             <EventTimeline
               title="Active regressions"
-              description="The most important behavior shifts to investigate right now."
+              description="The behavior shifts most likely to matter right now, framed as active investigation targets instead of a passive issue list."
               items={toRegressionTimelineItems(filteredRegressions)}
             />
           }
           side={
             <TopNList
               title="Likely causes to review"
-              description="Follow the strongest leads before widening investigation scope."
+              description="Follow the strongest causal leads first, then widen investigation only if the evidence says you need to."
               items={toLikelyCauseItems(filteredLikelyCauses)}
             />
           }
         />
+
+        <SectionPanel
+          title="Triage framing"
+          description="A compact explanation layer between metrics and investigation links, so operators can see what changed, why it likely changed, and what to inspect first."
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {filteredRegressions.map((regression) => (
+              <div
+                key={regression.title}
+                className="rounded-[var(--tenant-radius-panel)] border p-4"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  {regression.changedAt}
+                </div>
+                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{regression.title}</div>
+                <div className="mt-3">
+                  <RecordBody>{regression.description}</RecordBody>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
       </WorkbenchPanel>
     </PageContainer>
   );

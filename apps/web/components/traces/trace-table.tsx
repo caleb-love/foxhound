@@ -3,8 +3,9 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import type { Trace } from '@foxhound/types';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 import {
   Table,
   TableBody,
@@ -60,10 +61,15 @@ export function TraceTable({ initialData }: TraceTableProps) {
     }
 
     // Date range filter
-    filtered = filtered.filter((trace) => {
-      const traceDate = new Date(trace.startTimeMs);
-      return traceDate >= dateRange.start && traceDate <= dateRange.end;
-    });
+    const allTracesAreFutureDated =
+      initialData.length > 0 && initialData.every((trace) => Number(trace.startTimeMs) > dateRange.end.getTime());
+
+    if (!(isSandbox && allTracesAreFutureDated)) {
+      filtered = filtered.filter((trace) => {
+        const traceDate = new Date(trace.startTimeMs);
+        return traceDate >= dateRange.start && traceDate <= dateRange.end;
+      });
+    }
 
     // Search filter
     if (searchQuery) {
@@ -82,9 +88,16 @@ export function TraceTable({ initialData }: TraceTableProps) {
     return filtered;
   }, [initialData, status, agentIds, dateRange, searchQuery]);
 
-  const hasFilters = status !== 'all' || agentIds.length > 0 || searchQuery;
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasDateFilter =
+    Math.abs(dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
+
+  const hasFilters = status !== 'all' || agentIds.length > 0 || searchQuery || hasDateFilter;
 
   if (traces.length === 0) {
+    const isTrulyEmpty = initialData.length === 0;
+
     return (
       <WorkbenchPanel
         title="Trace workbench"
@@ -92,12 +105,12 @@ export function TraceTable({ initialData }: TraceTableProps) {
       >
         <div className="rounded-lg p-12 text-center" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
           <p className="text-lg font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
-            {hasFilters ? 'No traces match your filters' : 'No traces yet'}
+            {isTrulyEmpty || !hasFilters ? 'No traces yet' : 'No traces match your filters'}
           </p>
           <p className="mt-2 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
-            {hasFilters
-              ? 'Try adjusting your filters or clearing them to see more results.'
-              : 'Traces will appear here once your agents start sending data.'}
+            {isTrulyEmpty || !hasFilters
+              ? 'Traces will appear here once your agents start sending data.'
+              : 'Try adjusting your filters or clearing them to see more results.'}
           </p>
         </div>
       </WorkbenchPanel>
@@ -109,12 +122,26 @@ export function TraceTable({ initialData }: TraceTableProps) {
       title="Trace workbench"
       description="Select two runs to compare, inspect recent failures, and move from evidence to investigation without leaving this surface."
     >
-      <div className="flex items-center justify-between">
-        <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
-          Showing <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
-          {traces.length !== initialData.length && (
-            <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
-          )}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
+        <div className="flex items-center justify-between">
+          <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+            Showing <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
+            {traces.length !== initialData.length && (
+              <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+        >
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            Compare guidance
+          </div>
+          <p className="mt-2 text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
+            Pick the failing trace first, then the healthy or newer run second. That preserves the clearest before-versus-after investigation path when you jump into Run Diff.
+          </p>
         </div>
       </div>
 
@@ -129,7 +156,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>
-              Tip: select the failing run first, then the healthy or newer run second, to preserve the clearest comparison story.
+              Tip: start with the run that broke, then add the baseline or proposed fix. Keep the compare story obvious.
             </span>
             {selectedTraceIds.length === 0 ? <span>No traces selected yet.</span> : <span>{selectedTraceIds.length} selected for compare flow.</span>}
           </div>
@@ -162,7 +189,8 @@ export function TraceTable({ initialData }: TraceTableProps) {
                 <TableRow
                   key={trace.id}
                   data-state={isSelected ? 'selected' : undefined}
-                  style={isSelected ? { background: 'var(--tenant-accent-soft)' } : undefined}
+                  className="[&_td]:py-3"
+                  style={isSelected ? { background: 'color-mix(in srgb, var(--tenant-accent-soft) 82%, white)' } : undefined}
                 >
                   <TableCell>
                     <input
@@ -175,12 +203,17 @@ export function TraceTable({ initialData }: TraceTableProps) {
                     />
                   </TableCell>
                   <TableCell>
-                    <Badge variant={hasError ? 'destructive' : 'default'}>
+                    <Badge variant={hasError ? 'destructive' : 'default'} className="rounded-[var(--tenant-radius-control-tight)] px-2 py-1 text-[10px] uppercase tracking-[0.14em]">
                       {hasError ? 'Error' : 'Success'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[200px] font-mono text-sm truncate">
-                    {trace.agentId}
+                  <TableCell className="max-w-[240px]">
+                    <div className="truncate font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+                      {trace.agentId}
+                    </div>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                      {hasError ? 'Needs investigation' : 'Healthy execution'}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {trace.sessionId ? (
@@ -205,27 +238,41 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       <span style={{ color: 'var(--tenant-text-muted)' }}>-</span>
                     )}
                   </TableCell>
-                  <TableCell>{duration}s</TableCell>
+                  <TableCell>
+                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{duration}s</div>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                      runtime
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{trace.spans.length}</span>
+                      <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{trace.spans.length}</span>
                       <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
                         ({trace.spans.filter((s) => s.kind === 'llm_call').length} LLM)
                       </span>
                     </div>
-                  </TableCell>
-                  <TableCell style={{ color: 'var(--tenant-text-muted)' }}>
-                    {formatDistanceToNow(new Date(trace.startTimeMs), {
-                      addSuffix: true,
-                    })}
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                      total spans
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`${baseHref}/traces/${trace.id}`}
-                      className="text-sm text-indigo-600 hover:underline"
-                    >
-                      View
-                    </Link>
+                    <div style={{ color: 'var(--tenant-text-secondary)' }}>
+                      {format(new Date(trace.startTimeMs), 'yyyy-MM-dd HH:mm')}
+                    </div>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                      started
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <Link
+                        href={`${baseHref}/traces/${trace.id}`}
+                        className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
+                        style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-accent-strong)' }}
+                      >
+                        Inspect
+                      </Link>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

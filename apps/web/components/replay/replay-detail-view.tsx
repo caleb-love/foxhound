@@ -42,16 +42,24 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
       : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-3">
+    <div className="space-y-6 lg:space-y-8">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
+        <div className="space-y-4">
           <DetailHeader
             title="Session Replay"
             subtitle="Step through execution in order to see how agent state evolved, where attributes changed, and what happened immediately before a failure or unexpected behavior shift."
             primaryBadge={<StatusBadge status={hasError ? 'Error path' : 'Healthy path'} variant={hasError ? 'critical' : 'healthy'} />}
             secondaryBadge={<StatusBadge status={trace.agentId} variant="neutral" />}
           />
-          <div className="font-mono text-sm text-muted-foreground">{trace.id}</div>
+          <div
+            className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
+            style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+              Replay id
+            </div>
+            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
+          </div>
         </div>
 
         <DetailActionPanel title="Replay context and next actions">
@@ -107,7 +115,7 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
         />
       </div>
 
-      <EvidenceCard title="Replay timeline" contentClassName="p-0">
+      <EvidenceCard title="Replay timeline" contentClassName="p-0 app-panel-surface">
         <div className="h-[720px]">
           <SessionReplay trace={trace} />
         </div>

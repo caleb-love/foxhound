@@ -79,7 +79,7 @@ describe('OperatorCommandPalette', () => {
     fireEvent.click(screen.getByText('Run Diff'));
 
     expect(push).toHaveBeenCalledWith(
-      '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression&segment=Planner+agent',
+      '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression&segment=Planner+agent',
     );
   });
 });

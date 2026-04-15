@@ -87,15 +87,19 @@ describe('TraceTable', () => {
     expect(screen.getByText('Try adjusting your filters or clearing them to see more results.')).toBeInTheDocument();
   });
 
-  it('shows compare CTA only when exactly two traces are selected', () => {
+  it('enables compare CTA only when exactly two traces are selected', () => {
     render(<TraceTable initialData={traces as never} />);
+
+    expect(screen.queryByRole('button', { name: /Compare/i })).not.toBeInTheDocument();
 
     const checkboxes = screen.getAllByRole('checkbox');
     fireEvent.click(checkboxes[0]!);
-    expect(screen.queryByRole('button', { name: /Compare/i })).not.toBeInTheDocument();
+
+    const compareButton = screen.getByRole('button', { name: /Compare/i });
+    expect(compareButton).toBeDisabled();
 
     fireEvent.click(checkboxes[1]!);
-    expect(screen.getByRole('button', { name: /Compare/i })).toBeInTheDocument();
+    expect(compareButton).toBeEnabled();
     expect(screen.getByText('2 selected')).toBeInTheDocument();
   });
 
@@ -158,5 +162,40 @@ describe('TraceTable', () => {
     fireEvent.click(checkboxes[2]!);
 
     expect(useCompareStore.getState().selectedTraceIds).toEqual(['trace_b', 'trace_c']);
+  });
+
+  it('renders future-dated sandbox traces instead of filtering out the seeded demo corpus', () => {
+    usePathnameMock.mockReturnValue('/sandbox/traces');
+
+    const futureTraces = [
+      {
+        id: 'trace_future_a',
+        agentId: 'future-agent-a',
+        sessionId: 'future_session_a',
+        startTimeMs: Date.now() + 3 * 24 * 60 * 60 * 1000,
+        endTimeMs: Date.now() + 3 * 24 * 60 * 60 * 1000 + 1_000,
+        spans: [
+          { spanId: 'future_s1', status: 'ok', kind: 'agent_step', startTimeMs: 1, endTimeMs: 2, name: 'future-step', traceId: 'trace_future_a', attributes: {}, events: [] },
+        ],
+        metadata: { workflow: 'future-flow-a' },
+      },
+      {
+        id: 'trace_future_b',
+        agentId: 'future-agent-b',
+        sessionId: 'future_session_b',
+        startTimeMs: Date.now() + 4 * 24 * 60 * 60 * 1000,
+        endTimeMs: Date.now() + 4 * 24 * 60 * 60 * 1000 + 1_000,
+        spans: [
+          { spanId: 'future_s2', status: 'error', kind: 'llm_call', startTimeMs: 1, endTimeMs: 2, name: 'future-llm', traceId: 'trace_future_b', attributes: {}, events: [] },
+        ],
+        metadata: { workflow: 'future-flow-b' },
+      },
+    ];
+
+    render(<TraceTable initialData={futureTraces as never} />);
+
+    expect(screen.getByText('future-agent-a')).toBeInTheDocument();
+    expect(screen.getByText('future-agent-b')).toBeInTheDocument();
+    expect(screen.queryByText('No traces yet')).not.toBeInTheDocument();
   });
 });

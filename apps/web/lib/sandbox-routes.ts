@@ -39,8 +39,8 @@ export function getSandboxPromptDiffHref(
 }
 
 export function getSandboxRunDiffHref(
-  traceA: string = 'trace_support_refund_v17_baseline',
-  traceB: string = 'trace_support_refund_v18_regression',
+  traceA: string = 'trace_returns_exception_v17_baseline',
+  traceB: string = 'trace_returns_exception_v18_regression',
 ): string {
   return getSandboxHref(`/diff?a=${encodeURIComponent(traceA)}&b=${encodeURIComponent(traceB)}`);
 }

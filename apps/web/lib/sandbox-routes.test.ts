@@ -47,7 +47,7 @@ describe('sandbox-routes', () => {
 
   it('builds replay, diff, and session hrefs', () => {
     expect(getSandboxReplayHref('trace_123')).toBe('/sandbox/replay/trace_123');
-    expect(getSandboxRunDiffHref()).toBe('/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression');
+    expect(getSandboxRunDiffHref()).toBe('/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression');
     expect(getSandboxRunDiffHref('trace_a', 'trace_b')).toBe('/sandbox/diff?a=trace_a&b=trace_b');
     expect(getSandboxSessionHref('session_123')).toBe('/sandbox/sessions/session_123');
   });

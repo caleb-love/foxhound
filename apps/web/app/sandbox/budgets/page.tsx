@@ -34,7 +34,7 @@ export default function SandboxBudgetsPage() {
         spend: `$${item.currentSpendUsd.toLocaleString()}`,
         budget: `$${item.budgetUsd.toLocaleString()} / month`,
         description: item.summary,
-        tracesHref: '/sandbox/traces/trace_support_refund_v18_regression',
+        tracesHref: '/sandbox/traces/trace_returns_exception_v18_regression',
         regressionsHref: '/sandbox/regressions',
         improveHref: '/sandbox/experiments',
       }))}
@@ -42,7 +42,7 @@ export default function SandboxBudgetsPage() {
         {
           title: 'Inspect the expensive regression run',
           description: 'Open the refund regression trace and compare it against the baseline to see why cost and quality both worsened.',
-          href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression',
+          href: '/sandbox/diff?a=trace_returns_exception_v17_baseline&b=trace_returns_exception_v18_regression',
           cta: 'Open run diff',
         },
         {

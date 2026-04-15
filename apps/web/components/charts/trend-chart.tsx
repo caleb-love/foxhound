@@ -27,7 +27,7 @@ export function TrendChart({
     <ChartPanel title={title} description={description}>
       <div className="space-y-4">
         {series.map((entry) => (
-          <div key={entry.id} className="space-y-2 rounded-2xl border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+          <div key={entry.id} className="space-y-3 rounded-[var(--tenant-radius-panel)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
                 {entry.label}
@@ -40,7 +40,7 @@ export function TrendChart({
               {entry.values.map((point) => (
                 <div key={`${entry.id}-${point.label}`} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                   <div
-                    className={`w-full rounded-t-md ${toneClasses(entry.tone)}`}
+                    className={`w-full rounded-t-[var(--tenant-radius-control-tight)] ${toneClasses(entry.tone)}`}
                     style={{ height: `${Math.max(12, (point.value / peak) * 120)}px` }}
                     title={`${point.label}: ${point.value}`}
                   />

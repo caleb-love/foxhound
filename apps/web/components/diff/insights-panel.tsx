@@ -112,17 +112,22 @@ export function InsightsPanel({
   };
   
   return (
-    <div className="rounded-lg p-6" style={tenantStyles.panel}>
-      <div className="mb-4 flex items-center gap-2">
-        <Lightbulb className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />
-        <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Insights</h3>
+    <div className="p-6" style={tenantStyles.panel}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Insights</h3>
+        </div>
+        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+          Comparison summary
+        </div>
       </div>
       
       <div className="space-y-3">
         {insights.map((insight, index) => (
           <div
             key={index}
-            className="flex items-start gap-3 rounded-lg border p-3"
+            className="flex items-start gap-3 rounded-[var(--tenant-radius-panel-tight)] border p-3.5"
             style={{
               background: insight.type === 'success'
                 ? 'color-mix(in srgb, var(--tenant-success) 10%, white)'

@@ -22,9 +22,9 @@ interface AttributeDiff {
 export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
   if (!previousSpan) {
     return (
-      <div className="rounded-lg p-4" style={tenantStyles.panelAlt}>
+      <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
         <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
-          First step - no previous state to compare
+          First step, no previous state to compare.
         </p>
       </div>
     );
@@ -37,9 +37,9 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
 
   if (diffs.length === 0) {
     return (
-      <div className="rounded-lg p-4" style={tenantStyles.panelAlt}>
+      <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
         <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
-          No attribute changes from previous step
+          No attribute changes from previous step.
         </p>
       </div>
     );
@@ -50,7 +50,7 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
       <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
         State Changes from Previous Step
       </h3>
-      <div className="divide-y overflow-hidden rounded-lg" style={tenantStyles.panel}>
+      <div className="divide-y overflow-hidden rounded-[var(--tenant-radius-panel)]" style={tenantStyles.panel}>
         {diffs.map((diff, i) => (
           <DiffRow key={i} diff={diff} />
         ))}

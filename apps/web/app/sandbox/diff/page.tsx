@@ -1,6 +1,7 @@
 import type { Trace } from '@foxhound/types';
 import { RunDiffView } from '@/components/diff/run-diff-view';
 import { PageErrorState, PageWarningState } from '@/components/ui/page-state';
+import { getRequestUrl } from '@/lib/server-url';
 
 interface DiffPageProps {
   searchParams: Promise<{
@@ -11,7 +12,7 @@ interface DiffPageProps {
 
 async function getTrace(id: string): Promise<Trace | null> {
   try {
-    const response = await fetch(`http://localhost:3001/api/sandbox/traces/${id}`, {
+    const response = await fetch(await getRequestUrl(`/api/sandbox/traces/${id}`), {
       cache: 'no-store',
     });
     

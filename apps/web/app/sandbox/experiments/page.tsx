@@ -44,7 +44,7 @@ export default function SandboxExperimentsPage() {
         {
           title: 'Compare the hero traces',
           description: 'See the exact behavior change that the recovery experiment is validating.',
-          href: '/sandbox/diff?a=trace_support_refund_v18_regression&b=trace_support_refund_v19_fix',
+          href: '/sandbox/diff?a=trace_returns_exception_v18_regression&b=trace_returns_exception_v19_fix',
           cta: 'Open recovery diff',
         },
         {
