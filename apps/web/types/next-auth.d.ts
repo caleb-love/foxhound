@@ -4,6 +4,8 @@
 
 import "next-auth";
 
+declare var pendo: any;
+
 declare module "next-auth" {
   interface User {
     id: string;
