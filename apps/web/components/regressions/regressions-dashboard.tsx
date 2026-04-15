@@ -232,7 +232,7 @@ export function RegressionsDashboard({
               <div
                 key={regression.title}
                 className="rounded-[var(--tenant-radius-panel)] border p-4"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel-alt) 94%, transparent)' }}
               >
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
                   {regression.changedAt}

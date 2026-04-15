@@ -2,6 +2,7 @@ import { getAuthenticatedClient } from '@/lib/api-client';
 import { RunDiffView } from '@/components/diff/run-diff-view';
 import { PageErrorState, PageWarningState } from '@/components/ui/page-state';
 import { getDashboardSessionOrSandbox, isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
+import { getRequestUrl } from '@/lib/server-url';
 
 interface DiffPageProps {
   searchParams: Promise<{
@@ -31,36 +32,28 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
 
   let traceA;
   let traceB;
+  let availableTraces = [];
   let error: string | null = null;
 
   try {
     if (isDashboardSandboxModeEnabled()) {
-      traceA = {
-        id: a,
-        agentId: 'demo-agent',
-        sessionId: 'demo-a',
-        startTimeMs: 0,
-        endTimeMs: 5000,
-        metadata: { prompt_name: 'demo-prompt', prompt_version: 2 },
-        spans: [
-          { traceId: a, spanId: 'a1', name: 'search', kind: 'tool_call' as const, startTimeMs: 0, endTimeMs: 1000, status: 'ok' as const, attributes: { cost: 0.01 }, events: [] },
-          { traceId: a, spanId: 'a2', name: 'llm', kind: 'llm_call' as const, startTimeMs: 1000, endTimeMs: 5000, status: 'ok' as const, attributes: { cost: 0.02 }, events: [] },
-        ],
-      };
-      traceB = {
-        id: b,
-        agentId: 'demo-agent',
-        sessionId: 'demo-b',
-        startTimeMs: 0,
-        endTimeMs: 3200,
-        metadata: { prompt_name: 'demo-prompt', prompt_version: 3 },
-        spans: [
-          { traceId: b, spanId: 'b1', name: 'search', kind: 'tool_call' as const, startTimeMs: 0, endTimeMs: 800, status: 'ok' as const, attributes: { cost: 0.005 }, events: [] },
-          { traceId: b, spanId: 'b2', name: 'llm', kind: 'llm_call' as const, startTimeMs: 800, endTimeMs: 3000, status: 'error' as const, attributes: { cost: 0.01 }, events: [] },
-          { traceId: b, spanId: 'b3', name: 'rerank', kind: 'tool_call' as const, startTimeMs: 3000, endTimeMs: 3200, status: 'ok' as const, attributes: { cost: 0 }, events: [] },
-        ],
-      };
+      const [traceAResponse, traceBResponse, tracesResponse] = await Promise.all([
+        fetch(await getRequestUrl(`/api/sandbox/traces/${a}`), { cache: 'no-store' }),
+        fetch(await getRequestUrl(`/api/sandbox/traces/${b}`), { cache: 'no-store' }),
+        fetch(await getRequestUrl('/api/sandbox/traces'), { cache: 'no-store' }),
+      ]);
+
+      if (!traceAResponse.ok || !traceBResponse.ok || !tracesResponse.ok) {
+        error = 'Unable to load one or both traces for comparison right now.';
+      } else {
+        traceA = await traceAResponse.json();
+        traceB = await traceBResponse.json();
+        const tracesPayload = await tracesResponse.json();
+        availableTraces = tracesPayload.data || [];
+      }
     } else {
+      const tracesResponse = await client.searchTraces({ limit: 50 });
+      availableTraces = tracesResponse.data || [];
       [traceA, traceB] = await Promise.all([
         client.getTrace(a),
         client.getTrace(b),
@@ -84,5 +77,5 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
     );
   }
 
-  return <RunDiffView traceA={traceA} traceB={traceB} backHref="/traces" />;
+  return <RunDiffView traceA={traceA} traceB={traceB} backHref="/traces" availableTraces={availableTraces} />;
 }

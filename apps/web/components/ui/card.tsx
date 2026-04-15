@@ -15,7 +15,11 @@ function Card({
         "group/card flex flex-col gap-4 overflow-hidden rounded-2xl border py-4 text-sm text-card-foreground backdrop-blur has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
         className
       )}
-      style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', boxShadow: 'var(--tenant-shadow-panel)' }}
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: 'var(--card)',
+        boxShadow: 'var(--tenant-shadow-panel)',
+      }}
       {...props}
     />
   )
@@ -88,7 +92,10 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
         "flex items-center rounded-b-2xl border-t p-5 group-data-[size=sm]/card:p-3",
         className
       )}
-      style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+      }}
       {...props}
     />
   )

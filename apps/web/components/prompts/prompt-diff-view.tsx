@@ -42,6 +42,11 @@ export function PromptDiffView({
     return `${baseHref ? `${baseHref}/prompts` : ''}?${query.toString()}`;
   }, [baseHref, selectedA, selectedB]);
 
+  const releaseReviewHref = useMemo(() => {
+    if (!selectedA || !selectedB) return `${baseHref}/prompts`;
+    return `${baseHref}/prompts?baseline=${encodeURIComponent(selectedA)}&comparison=${encodeURIComponent(selectedB)}&focus=${encodeURIComponent(promptName)}`;
+  }, [baseHref, promptName, selectedA, selectedB]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -104,6 +109,11 @@ export function PromptDiffView({
             href={`${baseHref}/traces`}
             title="Reconnect to traces"
             description="Return to traces to validate whether these prompt changes correlate with an observed regression or recovery."
+          />
+          <ActionCard
+            href={releaseReviewHref}
+            title="Carry this pair into release review"
+            description="Reopen the prompt family with the same baseline and comparison versions preserved so release controls and label decisions stay anchored to this exact comparison."
           />
         </DetailActionPanel>
       </div>

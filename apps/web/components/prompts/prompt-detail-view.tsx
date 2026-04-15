@@ -56,11 +56,37 @@ export function PromptDetailView({ prompt, versions, baseHref = '' }: PromptDeta
         </DetailActionPanel>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryStatCard label="Prompt ID" value={prompt.id} supportingText="Stable prompt family identifier." />
         <SummaryStatCard label="Latest version" value={latestVersion ? `v${latestVersion.version}` : 'None yet'} supportingText="Most recent version available in this prompt family." />
         <SummaryStatCard label="Total versions" value={String(sortedVersions.length)} supportingText="Available versions for comparison and change review." />
+        <SummaryStatCard
+          label="Release posture"
+          value={latestVersion?.labels?.length ? latestVersion.labels.join(', ') : 'No active labels'}
+          supportingText="Current labels on the newest known version. Use labels to make release state explicit."
+        />
       </div>
+
+      <DetailActionPanel title="Release decision framing">
+        <ActionCard
+          href={compareHref ?? '#'}
+          title="Review latest candidate against baseline"
+          description={compareHref
+            ? `Compare the newest version against the previous version before deciding whether a label like production or staging should move.`
+            : 'At least two versions are required before a meaningful release review is available.'}
+          disabled={!compareHref}
+        />
+        <ActionCard
+          href={`${baseHref}/regressions`}
+          title="Re-check regressions before relabeling"
+          description="Use the regression workbench to confirm that a prompt change does not align with structural drift elsewhere in the system."
+        />
+        <ActionCard
+          href={`${baseHref}/experiments`}
+          title="Review experiment evidence"
+          description="Use experiments as the evidence layer before changing prompt labels or release posture."
+        />
+      </DetailActionPanel>
 
       {sortedVersions.length === 0 ? (
         <PageWarningState

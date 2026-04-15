@@ -28,11 +28,11 @@ const SPAN_KIND_LABELS: Record<string, string> = {
 };
 
 const SPAN_KIND_BADGE_BG: Record<string, string> = {
-  llm_call: 'color-mix(in srgb, var(--tenant-accent) 14%, white)',
-  tool_call: 'color-mix(in srgb, var(--tenant-success) 14%, white)',
-  agent_step: 'color-mix(in srgb, var(--tenant-accent) 10%, white)',
-  workflow: 'color-mix(in srgb, var(--tenant-text-muted) 12%, white)',
-  custom: 'var(--tenant-panel-alt)',
+  llm_call: 'color-mix(in srgb, var(--tenant-accent) 14%, var(--card))',
+  tool_call: 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))',
+  agent_step: 'color-mix(in srgb, var(--tenant-accent) 10%, var(--card))',
+  workflow: 'color-mix(in srgb, var(--tenant-text-muted) 12%, var(--card))',
+  custom: 'color-mix(in srgb, var(--card) 88%, var(--background))',
 };
 
 const SPAN_KIND_ACCENT: Record<string, string> = {
@@ -67,8 +67,8 @@ function EvidenceRow({
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
         background: tone === 'accent'
-          ? 'color-mix(in srgb, var(--tenant-accent-soft) 68%, white)'
-          : 'color-mix(in srgb, var(--tenant-panel-alt) 96%, white)',
+          ? 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))'
+          : 'color-mix(in srgb, var(--card) 88%, var(--background))',
       }}
     >
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
@@ -120,7 +120,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
         className="w-[min(96vw,760px)] overflow-y-auto border-l p-0 sm:w-[min(88vw,760px)] sm:max-w-none"
         style={{
           borderColor: 'var(--tenant-panel-stroke)',
-          background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel) 99%, white), color-mix(in srgb, var(--tenant-panel-strong) 99%, white))',
+          background: 'linear-gradient(180deg, color-mix(in srgb, var(--card) 98%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))',
           boxShadow: '-24px 0 72px color-mix(in srgb, black 18%, transparent)',
         }}
       >
@@ -128,7 +128,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           className="border-b px-5 py-5 sm:px-6 sm:py-6"
           style={{
             borderColor: 'var(--tenant-panel-stroke)',
-            background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel) 98%, white), color-mix(in srgb, var(--tenant-panel-strong) 97%, white))',
+            background: 'linear-gradient(180deg, color-mix(in srgb, var(--card) 98%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))',
           }}
         >
           <div className="space-y-5 pr-12 sm:pr-10">
@@ -164,7 +164,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                   </span>
                   <span
                     className="max-w-full overflow-hidden rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 font-mono text-sm"
-                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-primary)' }}
+                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-primary)' }}
                   >
                     {span.spanId}
                   </span>
@@ -187,7 +187,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
 
         <div className="space-y-6 px-5 py-5 sm:px-6 sm:py-6">
           {(isLlmCall || isToolCall) && (
-            <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+            <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
               <div className="mb-4">
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Focus details</h3>
                 <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
@@ -213,7 +213,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
             </section>
           )}
 
-          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Attributes</h3>
@@ -226,7 +226,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 size="sm"
                 onClick={() => handleCopy(jsonAttributes, 'attributes')}
                 className="gap-2 rounded-[var(--tenant-radius-control-tight)] border"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
               >
                 {copiedField === 'attributes' ? (
                   <>
@@ -249,7 +249,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
             </pre>
           </section>
 
-          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
             <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timing</h3>
             <div className="mt-4 grid gap-3">
               <EvidenceRow label="Started" value={formatDateTime(span.startTimeMs)} />
@@ -257,7 +257,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
             </div>
           </section>
 
-          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
             <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Actions</h3>
             <div className="mt-4 flex flex-col gap-2.5">
               <Button

@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Sidebar } from './sidebar';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
@@ -23,6 +23,23 @@ vi.mock('next/link', () => ({
 
 describe('Sidebar', () => {
   beforeEach(() => {
+    const localStorageState = new Map<string, string>();
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: (key: string) => localStorageState.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          localStorageState.set(key, value);
+        },
+        removeItem: (key: string) => {
+          localStorageState.delete(key);
+        },
+        clear: () => {
+          localStorageState.clear();
+        },
+      },
+      configurable: true,
+    });
+
     useSearchParams.mockReturnValue(new URLSearchParams(''));
     useSegmentStore.setState({
       currentSegmentName: 'Planner agent',
@@ -90,5 +107,18 @@ describe('Sidebar', () => {
 
     expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/?segment=Planner+agent');
     expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/prompts?segment=Planner+agent');
+  });
+
+  it('collapses to icon-only navigation and still keeps links usable', () => {
+    usePathname.mockReturnValue('/traces');
+    render(<Sidebar />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Collapse sidebar/i }));
+
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Traces/i })).toHaveAttribute('href', '/traces?segment=Planner+agent');
+    expect(window.localStorage.getItem('foxhound.sidebar.collapsed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Expand sidebar/i })).toBeInTheDocument();
   });
 });

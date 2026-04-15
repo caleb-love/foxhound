@@ -29,7 +29,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
   if (traceA.spans.length === 0 && traceB.spans.length === 0) {
     return (
       <div className="overflow-hidden rounded-[var(--tenant-radius-panel)]" style={tenantStyles.panel}>
-        <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timeline Comparison</h3>
           <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>Side-by-side span execution order</p>
         </div>
@@ -52,11 +52,11 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
   const getDiffBadge = (type: string) => {
     switch (type) {
       case 'added':
-        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, white)', color: 'var(--tenant-success)' }}>Added</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))', color: 'var(--tenant-success)' }}>Added</Badge>;
       case 'removed':
-        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, white)', color: 'var(--tenant-danger)' }}>Removed</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, var(--card))', color: 'var(--tenant-danger)' }}>Removed</Badge>;
       case 'modified':
-        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 14%, white)', color: 'var(--tenant-accent)' }}>Modified</Badge>;
+        return <Badge className="text-xs" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 14%, var(--card))', color: 'var(--tenant-accent)' }}>Modified</Badge>;
       default:
         return null;
     }
@@ -86,7 +86,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
     
     if (!shouldShow) {
       return (
-        <div key={span.spanId} className="flex h-16 items-center justify-center border-b" style={{ background: 'var(--tenant-panel-alt)', borderColor: 'var(--tenant-panel-stroke)' }}>
+        <div key={span.spanId} className="flex h-16 items-center justify-center border-b" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', borderColor: 'var(--tenant-panel-stroke)' }}>
           <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>—</span>
         </div>
       );
@@ -121,7 +121,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
 
   return (
     <div className="overflow-hidden rounded-[var(--tenant-radius-panel)]" style={tenantStyles.panel}>
-      <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+      <div className="border-b p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timeline Comparison</h3>
@@ -129,7 +129,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
               Side-by-side span execution order and execution-path differences.
             </p>
           </div>
-          <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+          <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
             Added · removed · modified
           </div>
         </div>
@@ -138,7 +138,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
       <div className="grid grid-cols-2 divide-x">
         {/* Trace A */}
         <div>
-          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
             <div className="text-xs font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Trace A (Baseline)</div>
             <div className="mt-0.5 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{spansA.length} spans</div>
           </div>
@@ -149,7 +149,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
         
         {/* Trace B */}
         <div>
-          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+          <div className="sticky top-0 border-b px-4 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
             <div className="text-xs font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Trace B (Comparison)</div>
             <div className="mt-0.5 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{spansB.length} spans</div>
           </div>
@@ -160,7 +160,7 @@ export function TimelineDiff({ traceA, traceB, spanDiff }: TimelineDiffProps) {
       </div>
       
       {/* Legend */}
-      <div className="border-t p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+      <div className="border-t p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
         <div className="flex flex-wrap items-center gap-6 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
           <div className="flex items-center gap-2">
             <div className="h-3 w-1" style={{ background: 'var(--tenant-success)' }} />

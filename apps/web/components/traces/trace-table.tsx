@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import type { Trace } from '@foxhound/types';
+import { Button } from '@/components/ui/button';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 import {
   Table,
@@ -19,17 +20,40 @@ import { useFilterStore } from '@/lib/stores/filter-store';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { useCompareStore } from '@/lib/stores/compare-store';
 import { WorkbenchPanel, SelectionSummaryBar, TableShell } from '@/components/system/workbench';
-import { getSandboxRootHref, getSandboxSessionHref, isSandboxPath } from '@/lib/sandbox-routes';
+import {
+  getSandboxPromptDetailHref,
+  getSandboxReplayHref,
+  getSandboxRootHref,
+  getSandboxSessionHref,
+  isSandboxPath,
+} from '@/lib/sandbox-routes';
 
 interface TraceTableProps {
   initialData: Trace[];
+}
+
+function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
+  const promptName = typeof trace.metadata?.prompt_name === 'string'
+    ? trace.metadata.prompt_name
+    : typeof trace.metadata?.promptName === 'string'
+      ? trace.metadata.promptName
+      : undefined;
+
+  const promptVersion =
+    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
+      ? trace.metadata.prompt_version
+      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
+        ? trace.metadata.promptVersion
+        : undefined;
+
+  return { promptName, promptVersion };
 }
 
 export function TraceTable({ initialData }: TraceTableProps) {
   const legacyFilters = useFilterStore();
   const segmentFilters = useSegmentStore((state) => state.currentFilters);
   const { status, agentIds, dateRange, searchQuery } = segmentFilters ?? legacyFilters;
-  const { selectedTraceIds, toggleTrace, clearSelection, canCompare } = useCompareStore();
+  const { selectedTraceIds, toggleTrace, clearSelection, canCompare, setTraceSlot, setComparePair } = useCompareStore();
   const pathname = usePathname();
   const router = useRouter();
   
@@ -39,7 +63,21 @@ export function TraceTable({ initialData }: TraceTableProps) {
   const handleCompare = () => {
     if (canCompare()) {
       const [traceA, traceB] = selectedTraceIds;
+      setComparePair(traceA!, traceB!);
       router.push(`${baseHref}/diff?a=${traceA}&b=${traceB}`);
+    }
+  };
+
+  const handleSetCompareSlot = (slot: 'a' | 'b', traceId: string) => {
+    const otherTraceId = slot === 'a' ? selectedTraceIds.find((id) => id !== traceId) : selectedTraceIds.find((id) => id !== traceId);
+    setTraceSlot(slot, traceId);
+
+    if (slot === 'a' && otherTraceId) {
+      setComparePair(traceId, otherTraceId);
+    }
+
+    if (slot === 'b' && otherTraceId) {
+      setComparePair(otherTraceId, traceId);
     }
   };
 
@@ -184,13 +222,20 @@ export function TraceTable({ initialData }: TraceTableProps) {
                 : '-';
               const hasError = trace.spans.some((s) => s.status === 'error');
               const isSelected = selectedTraceIds.includes(trace.id);
+              const { promptName, promptVersion } = getPromptMetadata(trace);
+              const replayHref = isSandbox ? getSandboxReplayHref(trace.id) : `${baseHref}/replay/${trace.id}`;
+              const promptHref = promptName
+                ? isSandbox
+                  ? getSandboxPromptDetailHref(promptName)
+                  : `${baseHref}/prompts?focus=${encodeURIComponent(promptName)}`
+                : null;
 
               return (
                 <TableRow
                   key={trace.id}
                   data-state={isSelected ? 'selected' : undefined}
                   className="[&_td]:py-3"
-                  style={isSelected ? { background: 'color-mix(in srgb, var(--tenant-accent-soft) 82%, white)' } : undefined}
+                  style={isSelected ? { background: 'color-mix(in srgb, var(--tenant-accent-soft) 72%, var(--tenant-panel))' } : undefined}
                 >
                   <TableCell>
                     <input
@@ -208,9 +253,15 @@ export function TraceTable({ initialData }: TraceTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-[240px]">
-                    <div className="truncate font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
-                      {trace.agentId}
-                    </div>
+                    <Link
+                      href={`${baseHref}/traces/${trace.id}`}
+                      className="block transition-colors hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="truncate font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+                        {trace.agentId}
+                      </div>
+                    </Link>
                     <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
                       {hasError ? 'Needs investigation' : 'Healthy execution'}
                     </div>
@@ -220,7 +271,8 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       isSandbox ? (
                         <Link
                           href={getSandboxSessionHref(trace.sessionId)}
-                          className="font-mono text-sm text-indigo-300 hover:underline"
+                          className="font-mono text-sm hover:underline"
+                          style={{ color: 'var(--tenant-accent)' }}
                           onClick={(e) => e.stopPropagation()}
                         >
                           {trace.sessionId.slice(0, 8)}
@@ -228,7 +280,8 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       ) : (
                         <Link
                           href={`${baseHref}/sessions/${trace.sessionId}`}
-                          className="font-mono text-sm text-indigo-600 hover:underline"
+                          className="font-mono text-sm hover:underline"
+                          style={{ color: 'var(--tenant-accent)' }}
                           onClick={(e) => e.stopPropagation()}
                         >
                           {trace.sessionId.slice(0, 8)}
@@ -264,7 +317,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-3 text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
                       <Link
                         href={`${baseHref}/traces/${trace.id}`}
                         className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
@@ -272,6 +325,28 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       >
                         Inspect
                       </Link>
+                      <Link
+                        href={replayHref}
+                        className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
+                        style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-text-primary)' }}
+                      >
+                        Replay
+                      </Link>
+                      {promptHref ? (
+                        <Link
+                          href={promptHref}
+                          className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
+                          style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-text-primary)' }}
+                        >
+                          Prompt{promptVersion !== undefined ? ` v${promptVersion}` : ''}
+                        </Link>
+                      ) : null}
+                      <Button variant="outline" size="xs" onClick={() => handleSetCompareSlot('a', trace.id)}>
+                        Set A
+                      </Button>
+                      <Button variant="outline" size="xs" onClick={() => handleSetCompareSlot('b', trace.id)}>
+                        Set B
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

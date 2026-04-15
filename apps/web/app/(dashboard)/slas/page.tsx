@@ -1,82 +1,119 @@
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { SlasGovernDashboard, type SlaMetric, type SlaRiskRecord } from '@/components/slas/slas-govern-dashboard';
+import { ConfigureSlaDialog } from '@/components/govern/govern-create-actions';
+import { authOptions } from '@/lib/auth';
+import { getAuthenticatedClient } from '@/lib/api-client';
 
-const metrics: SlaMetric[] = [
-  {
-    label: 'Tracked SLAs',
-    value: '5',
-    supportingText: 'Critical production workflows currently monitored for reliability drift.',
-  },
-  {
-    label: 'Breaching now',
-    value: '1',
-    supportingText: 'One workflow is already beyond its success-rate or latency target.',
-  },
-  {
-    label: 'At-risk agents',
-    value: '2',
-    supportingText: 'Two workflows are trending in the wrong direction and need investigation.',
-  },
-  {
-    label: 'Longest drift',
-    value: 'planner-agent',
-    supportingText: 'Planner reliability has been unstable since the latest prompt and routing change.',
-  },
-];
+async function configureSlaAction(formData: FormData) {
+  'use server';
 
-const atRiskAgents: SlaRiskRecord[] = [
-  {
-    agent: 'planner-agent',
-    status: 'critical',
-    successRate: '91.2%',
-    latency: '4.8s p95',
-    description: 'Latency and failure rate both regressed after the latest rerank behavior change.',
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { ok: false, error: 'You must be signed in to configure SLAs.' };
+  }
+
+  const agentId = String(formData.get('agentId') ?? '').trim();
+  const maxDurationMsRaw = String(formData.get('maxDurationMs') ?? '').trim();
+  const minSuccessRateRaw = String(formData.get('minSuccessRate') ?? '').trim();
+  const evaluationWindowMsRaw = String(formData.get('evaluationWindowMs') ?? '').trim();
+  const minSampleSizeRaw = String(formData.get('minSampleSize') ?? '').trim();
+
+  if (!agentId || (!maxDurationMsRaw && !minSuccessRateRaw)) {
+    return { ok: false, error: 'Agent id and at least one SLA threshold are required.' };
+  }
+
+  const maxDurationMs = maxDurationMsRaw ? Number(maxDurationMsRaw) : undefined;
+  const minSuccessRate = minSuccessRateRaw ? Number(minSuccessRateRaw) : undefined;
+  const evaluationWindowMs = evaluationWindowMsRaw ? Number(evaluationWindowMsRaw) : undefined;
+  const minSampleSize = minSampleSizeRaw ? Number(minSampleSizeRaw) : undefined;
+
+  try {
+    const client = getAuthenticatedClient(session.user.token);
+    await client.setSla(agentId, {
+      maxDurationMs,
+      minSuccessRate,
+      evaluationWindowMs,
+      minSampleSize,
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unable to configure SLA right now.' };
+  }
+}
+
+export default async function SLAsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const client = getAuthenticatedClient(session.user.token);
+  const slasResponse = await client.listSlas({ limit: 50 });
+  const slaEntities = slasResponse.data;
+
+  const metrics: SlaMetric[] = [
+    {
+      label: 'Tracked SLAs',
+      value: String(slaEntities.length),
+      supportingText: 'Critical production workflows currently monitored for reliability drift.',
+    },
+    {
+      label: 'Latency-bound',
+      value: String(slaEntities.filter((sla) => sla.maxDurationMs !== null).length),
+      supportingText: 'Agent workflows currently carrying an explicit latency threshold.',
+    },
+    {
+      label: 'Success-rate bound',
+      value: String(slaEntities.filter((sla) => sla.minSuccessRate !== null).length),
+      supportingText: 'Agent workflows currently carrying an explicit minimum success target.',
+    },
+    {
+      label: 'Largest SLA surface',
+      value: slaEntities[0]?.agentId ?? 'No agents',
+      supportingText: 'First configured SLA agent in the current workspace inventory.',
+    },
+  ];
+
+  const atRiskAgents: SlaRiskRecord[] = slaEntities.map((sla) => ({
+    agent: sla.agentId,
+    status: sla.minSuccessRate && Number(sla.minSuccessRate) < 0.95 ? 'warning' : sla.maxDurationMs && sla.maxDurationMs > 4000 ? 'warning' : 'healthy',
+    successRate: sla.minSuccessRate ? `${(Number(sla.minSuccessRate) * 100).toFixed(1)}% target` : 'no success target',
+    latency: sla.maxDurationMs ? `${(sla.maxDurationMs / 1000).toFixed(1)}s target` : 'no latency target',
+    description: `Evaluation window ${sla.evaluationWindowMs ?? 86400000}ms with minimum sample size ${sla.minSampleSize ?? 10}. Use traces and replay to validate whether this guardrail is realistic.`,
     tracesHref: '/traces',
     regressionsHref: '/regressions',
-    replayHref: '/replay/trace_reg_1',
-  },
-  {
-    agent: 'support-agent',
-    status: 'warning',
-    successRate: '95.4%',
-    latency: '3.1s p95',
-    description: 'Support remains within tolerance today but is drifting after the latest prompt promotion.',
-    tracesHref: '/traces',
-    regressionsHref: '/prompts?focus=support-routing',
-    replayHref: '/replay/trace_reg_2',
-  },
-  {
-    agent: 'onboarding-router',
-    status: 'healthy',
-    successRate: '98.8%',
-    latency: '1.9s p95',
-    description: 'Currently within SLA, but still worth monitoring after the newest routing experiment.',
-    tracesHref: '/traces',
-    regressionsHref: '/regressions',
-    replayHref: '/replay/trace_reg_3',
-  },
-];
+    replayHref: '/replay',
+  }));
 
-const nextActions = [
-  {
-    title: 'Inspect the failing trace cluster',
-    description: 'Review the specific executions driving the latest SLA breach.',
-    href: '/traces',
-    cta: 'Open traces',
-  },
-  {
-    title: 'Check for behavior regressions first',
-    description: 'Use regression analysis to confirm whether the SLA drift came from a recent behavior change.',
-    href: '/regressions',
-    cta: 'Open regressions',
-  },
-  {
-    title: 'Replay the breach path step-by-step',
-    description: 'Open Session Replay to find the exact transition point before the SLA started failing.',
-    href: '/replay/trace_reg_1',
-    cta: 'Open replay',
-  },
-];
+  const nextActions = [
+    {
+      title: 'Inspect the failing trace cluster',
+      description: 'Review the specific executions driving the latest SLA breach.',
+      href: '/traces',
+      cta: 'Open traces',
+    },
+    {
+      title: 'Check for behavior regressions first',
+      description: 'Use regression analysis to confirm whether the SLA drift came from a recent behavior change.',
+      href: '/regressions',
+      cta: 'Open regressions',
+    },
+    {
+      title: 'Replay the breach path step-by-step',
+      description: 'Open Session Replay to find the exact transition point before the SLA started failing.',
+      href: '/replay',
+      cta: 'Open replay',
+    },
+  ];
 
-export default function SLAsPage() {
-  return <SlasGovernDashboard metrics={metrics} atRiskAgents={atRiskAgents} nextActions={nextActions} />;
+  return (
+    <>
+      <div className="flex justify-end">
+        <ConfigureSlaDialog configureSlaAction={configureSlaAction} />
+      </div>
+      <SlasGovernDashboard metrics={metrics} atRiskAgents={atRiskAgents} nextActions={nextActions} />
+    </>
+  );
 }

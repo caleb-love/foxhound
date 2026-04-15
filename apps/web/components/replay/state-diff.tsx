@@ -68,9 +68,9 @@ function DiffRow({ diff }: { diff: AttributeDiff }) {
   };
 
   const badges = {
-    added: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, white)', color: 'var(--tenant-success)' }}>Added</Badge>,
-    removed: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, white)', color: 'var(--tenant-danger)' }}>Removed</Badge>,
-    changed: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-accent) 14%, white)', color: 'var(--tenant-accent)' }}>Changed</Badge>,
+    added: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))', color: 'var(--tenant-success)' }}>Added</Badge>,
+    removed: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, var(--card))', color: 'var(--tenant-danger)' }}>Removed</Badge>,
+    changed: <Badge style={{ background: 'color-mix(in srgb, var(--tenant-accent) 14%, var(--card))', color: 'var(--tenant-accent)' }}>Changed</Badge>,
     unchanged: <Badge variant="secondary">Unchanged</Badge>,
   };
 
@@ -86,11 +86,11 @@ function DiffRow({ diff }: { diff: AttributeDiff }) {
         </div>
         {diff.type === 'changed' && (
           <div className="flex items-center gap-2 text-xs">
-            <span className="rounded px-2 py-1 font-mono line-through" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 10%, white)', color: 'var(--tenant-danger)' }}>
+            <span className="rounded px-2 py-1 font-mono line-through" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 12%, var(--card))', color: 'var(--tenant-danger)' }}>
               {formatValue(diff.oldValue)}
             </span>
             <ArrowRight className="h-3 w-3" style={{ color: 'var(--tenant-text-muted)' }} />
-            <span className="rounded px-2 py-1 font-mono" style={{ background: 'color-mix(in srgb, var(--tenant-success) 10%, white)', color: 'var(--tenant-success)' }}>
+            <span className="rounded px-2 py-1 font-mono" style={{ background: 'color-mix(in srgb, var(--tenant-success) 12%, var(--card))', color: 'var(--tenant-success)' }}>
               {formatValue(diff.newValue)}
             </span>
           </div>

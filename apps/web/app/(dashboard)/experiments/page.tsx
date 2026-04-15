@@ -1,87 +1,150 @@
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { ExperimentsDashboard, type ExperimentMetric, type ExperimentRecord } from '@/components/experiments/experiments-dashboard';
+import { CreateExperimentDialog } from '@/components/improve/improve-create-actions';
+import { authOptions } from '@/lib/auth';
+import { getAuthenticatedClient } from '@/lib/api-client';
 
-const metrics: ExperimentMetric[] = [
-  {
-    label: 'Active experiments',
-    value: '3',
-    supportingText: 'Candidate prompt and routing tests currently in flight or recently completed.',
-  },
-  {
-    label: 'Ready to promote',
-    value: '1',
-    supportingText: 'One candidate has enough evaluator evidence to move forward.',
-  },
-  {
-    label: 'Blocked by coverage',
-    value: '1',
-    supportingText: 'One experiment still needs stronger evaluator coverage before a decision.',
-  },
-  {
-    label: 'Latest comparison',
-    value: '12m ago',
-    supportingText: 'Recent experiment results are fresh enough to support shipping decisions.',
-  },
-];
+function formatRelativeDayLabel(createdAt: string) {
+  const timestamp = new Date(createdAt).getTime();
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
 
-const experiments: ExperimentRecord[] = [
-  {
-    name: 'support-routing-v12-vs-v11',
-    status: 'completed',
-    dataset: 'support-latency-outliers',
-    comparisonSummary: 'Version 12 reduced latency but slightly increased cost on long-context traces.',
-    lastUpdated: '12 minutes ago',
-    winningSignal: 'latency improved without quality regression',
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
+function mapExperimentStatus(status: string): ExperimentRecord['status'] {
+  if (status === 'completed') return 'completed';
+  if (status === 'running' || status === 'pending') return 'running';
+  return 'warning';
+}
+
+async function createExperimentAction(formData: FormData) {
+  'use server';
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { ok: false, error: 'You must be signed in to create an experiment.' };
+  }
+
+  const name = String(formData.get('name') ?? '').trim();
+  const datasetId = String(formData.get('datasetId') ?? '').trim();
+  const configRaw = String(formData.get('config') ?? '').trim();
+
+  if (!name || !datasetId || !configRaw) {
+    return { ok: false, error: 'Name, dataset, and config JSON are required.' };
+  }
+
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(configRaw) as Record<string, unknown>;
+  } catch {
+    return { ok: false, error: 'Experiment config must be valid JSON.' };
+  }
+
+  try {
+    const client = getAuthenticatedClient(session.user.token);
+    await client.createExperiment({ name, datasetId, config });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unable to create experiment right now.' };
+  }
+}
+
+export default async function ExperimentsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const client = getAuthenticatedClient(session.user.token);
+  const experimentsResponse = await client.listExperiments();
+  const experimentEntities = experimentsResponse.data;
+  const experimentDetails = await Promise.all(experimentEntities.map((experiment) => client.getExperiment(experiment.id)));
+
+  const datasetsResponse = await client.listDatasets();
+  const datasetsById = new Map(datasetsResponse.data.map((dataset) => [dataset.id, dataset.name]));
+
+  const metrics: ExperimentMetric[] = [
+    {
+      label: 'Active experiments',
+      value: String(experimentDetails.length),
+      supportingText: 'Candidate prompt and routing tests currently in flight or recently completed.',
+    },
+    {
+      label: 'Completed',
+      value: String(experimentDetails.filter((experiment) => experiment.status === 'completed').length),
+      supportingText: 'Experiments that already finished their current run lifecycle.',
+    },
+    {
+      label: 'Running or pending',
+      value: String(experimentDetails.filter((experiment) => experiment.status === 'running' || experiment.status === 'pending').length),
+      supportingText: 'Experiments still moving through queued or active execution.',
+    },
+    {
+      label: 'Latest experiment',
+      value: experimentDetails[0] ? formatRelativeDayLabel(experimentDetails[0].createdAt) : 'No experiments',
+      supportingText: 'Most recent experiment creation time in the current workspace.',
+    },
+  ];
+
+  const experiments: ExperimentRecord[] = experimentDetails.map((experiment) => ({
+    name: experiment.name,
+    status: mapExperimentStatus(experiment.status),
+    dataset: datasetsById.get(experiment.datasetId) ?? experiment.datasetId,
+    comparisonSummary: `Experiment currently ${experiment.status}. ${experiment.runs.length} run(s) are attached, so review dataset coverage and the resulting outputs before promotion decisions.`,
+    lastUpdated: formatRelativeDayLabel(experiment.createdAt),
+    winningSignal: experiment.status === 'completed'
+      ? `completed_runs_available (${experiment.runs.length})`
+      : experiment.status === 'failed'
+        ? 'failed_run_needs_operator_attention'
+        : `awaiting_run_completion (${experiment.runs.length} queued)` ,
     datasetHref: '/datasets',
     evaluatorsHref: '/evaluators',
-    tracesHref: '/traces',
-    promoteHref: '/prompts?focus=support-routing&baseline=11&comparison=12',
-  },
-  {
-    name: 'onboarding-router-rerank-strategy',
-    status: 'running',
-    dataset: 'onboarding-regressions',
-    comparisonSummary: 'Comparing a simplified routing prompt against the current rerank-heavy execution path.',
-    lastUpdated: 'now',
-    winningSignal: 'awaiting evaluator completion',
-    datasetHref: '/datasets',
-    evaluatorsHref: '/evaluators',
-    tracesHref: '/regressions',
-    promoteHref: '/prompts?focus=onboarding-router&baseline=11&comparison=12',
-  },
-  {
-    name: 'planner-tool-order-baseline-check',
-    status: 'warning',
-    dataset: 'planner-behavior-drift',
-    comparisonSummary: 'Initial run suggests behavior improvement, but evaluator coverage is not broad enough yet.',
-    lastUpdated: 'today',
-    winningSignal: 'expand dataset coverage before promotion',
-    datasetHref: '/datasets',
-    evaluatorsHref: '/evaluators',
-    tracesHref: '/replay/trace_reg_1',
-  },
-];
+    tracesHref: `/experiments/${experiment.id}`,
+    promoteHref: '/prompts',
+  }));
 
-const nextActions = [
-  {
-    title: 'Review experiment winners against evaluator evidence',
-    description: 'Confirm the candidate with the best scores is also safe on real production traces.',
-    href: '/evaluators',
-    cta: 'Open evaluators',
-  },
-  {
-    title: 'Inspect the source dataset before promotion',
-    description: 'Make sure the experiment still reflects the real failures and low-scoring traces you are trying to fix.',
-    href: '/datasets',
-    cta: 'Open datasets',
-  },
-  {
-    title: 'Re-check source traces before promotion',
-    description: 'Validate that the experiment outcome matches the real production failures that inspired it.',
-    href: '/traces',
-    cta: 'Open traces',
-  },
-];
+  const nextActions = [
+    {
+      title: 'Inspect experiment run outputs directly',
+      description: 'Open an experiment detail surface and verify that run output, latency, and cost look plausible before promotion decisions.',
+      href: experimentDetails[0] ? `/experiments/${experimentDetails[0].id}` : '/experiments',
+      cta: 'Open experiment detail',
+    },
+    {
+      title: 'Review evaluator evidence before promotion',
+      description: 'Confirm that experiment outcomes are supported by the right evaluator coverage before changing production prompts or routing.',
+      href: '/evaluators',
+      cta: 'Open evaluators',
+    },
+    {
+      title: 'Inspect source datasets before trusting experiment output',
+      description: 'Make sure the experiment is still grounded in the right production failures and comparison cases.',
+      href: experimentDetails[0] ? `/datasets/${experimentDetails[0].datasetId}` : '/datasets',
+      cta: 'Open source dataset',
+    },
+    {
+      title: 'Re-check source traces and regressions',
+      description: 'Validate that experiment outcomes still line up with the production behavior you are trying to change.',
+      href: '/regressions',
+      cta: 'Open regressions',
+    },
+  ];
 
-export default function ExperimentsPage() {
-  return <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />;
+  return (
+    <>
+      <div className="flex justify-end">
+        <CreateExperimentDialog
+          datasets={datasetsResponse.data.map((dataset) => ({ id: dataset.id, name: dataset.name }))}
+          createExperimentAction={createExperimentAction}
+        />
+      </div>
+      <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />
+    </>
+  );
 }

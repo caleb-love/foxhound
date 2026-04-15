@@ -79,7 +79,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
         className="rounded-[var(--tenant-radius-panel)] border px-4 py-4"
         style={{
           borderColor: 'var(--tenant-panel-stroke)',
-          background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel-strong) 94%, white), color-mix(in srgb, var(--tenant-panel) 96%, white))',
+          background: 'linear-gradient(180deg, color-mix(in srgb, var(--card) 98%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))',
         }}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -100,7 +100,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
               <div
                 key={label}
                 className="rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2.5"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
               >
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
                 <div className="mt-1 text-base font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{value}</div>
@@ -126,8 +126,8 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
               style={{
                 borderColor: isSelected ? 'color-mix(in srgb, var(--tenant-accent) 42%, var(--tenant-panel-stroke))' : 'var(--tenant-panel-stroke)',
                 background: isSelected
-                  ? 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-accent-soft) 72%, white), color-mix(in srgb, var(--tenant-panel-strong) 96%, white))'
-                  : 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel-strong) 94%, white), color-mix(in srgb, var(--tenant-panel) 96%, white))',
+                  ? 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-accent) 14%, var(--card)), color-mix(in srgb, var(--card) 92%, var(--background)))'
+                  : 'linear-gradient(180deg, color-mix(in srgb, var(--card) 98%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))',
                 boxShadow: isSelected
                   ? '0 0 0 1px color-mix(in srgb, var(--tenant-accent) 16%, transparent), 0 18px 42px color-mix(in srgb, var(--tenant-accent) 10%, transparent)'
                   : '0 8px 24px color-mix(in srgb, black 3%, transparent)',
@@ -136,23 +136,23 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
               <div className="min-w-0 space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--tenant-radius-control-tight)] border text-[11px] font-semibold"
-                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}
+                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-muted)' }}
                   >
                     {index + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{span.name}</div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+                      <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
                         {SPAN_KIND_LABELS[span.kind] || span.kind}
                       </Badge>
-                      <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 60%, white)' }}>
+                      <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 80%, var(--background))' }}>
                         {offsetLabel}
                       </Badge>
                       {span.status === 'error' ? (
                         <Badge variant="destructive" className="rounded-[var(--tenant-radius-control-tight)] text-[10px] uppercase tracking-[0.14em]">Error</Badge>
                       ) : (
-                        <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'color-mix(in srgb, var(--tenant-success) 24%, var(--tenant-panel-stroke))', background: 'color-mix(in srgb, var(--tenant-success) 8%, white)', color: 'color-mix(in srgb, var(--tenant-success) 75%, var(--tenant-text-primary))' }}>
+                        <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'color-mix(in srgb, var(--tenant-success) 24%, var(--tenant-panel-stroke))', background: 'color-mix(in srgb, var(--tenant-success) 10%, var(--card))', color: 'color-mix(in srgb, var(--tenant-success) 75%, var(--tenant-text-primary))' }}>
                           Stable
                         </Badge>
                       )}
@@ -168,7 +168,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
                   </div>
                   <div className="text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>{formatSpanDuration(duration)}</div>
                 </div>
-                <div className="relative h-14 overflow-hidden rounded-[var(--tenant-radius-panel-tight)] border px-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel-inset) 92%, white), color-mix(in srgb, var(--tenant-panel-alt) 90%, white))' }}>
+                <div className="relative h-14 overflow-hidden rounded-[var(--tenant-radius-panel-tight)] border px-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'linear-gradient(180deg, color-mix(in srgb, var(--card) 84%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))' }}>
                   <div className="absolute inset-y-0 left-0 right-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--tenant-panel-stroke)_65%,transparent)_1px,transparent_1px)] bg-[length:12.5%_100%] opacity-50" />
                   <div className="absolute inset-y-3 left-3 right-3 rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-panel-stroke) 18%, transparent)' }} />
                   <button
@@ -177,7 +177,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
                     style={{
                       left: `max(${offset}%, 12px)`,
                       width: `max(${Math.max(width, 3)}%, 44px)`,
-                      background: `linear-gradient(90deg, ${accent}, color-mix(in srgb, ${accent} 82%, white))`,
+                      background: `linear-gradient(90deg, ${accent}, color-mix(in srgb, ${accent} 82%, var(--card)))`,
                       boxShadow: span.status === 'error'
                         ? '0 0 0 2px color-mix(in srgb, white 92%, transparent), 0 0 0 5px color-mix(in srgb, var(--tenant-danger) 18%, transparent), 0 16px 32px color-mix(in srgb, var(--tenant-danger) 18%, transparent)'
                         : isSelected
@@ -195,7 +195,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
 
               <div className="flex flex-col items-start gap-2 md:items-end">
                 <div className="rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2 text-right"
-                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
+                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
                 >
                   <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>Duration</div>
                   <div className="mt-1 text-base font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{formatSpanDuration(duration)}</div>

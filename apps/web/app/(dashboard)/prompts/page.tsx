@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { getAuthenticatedClient } from '@/lib/api-client';
 import { PromptListView } from '@/components/prompts/prompt-list-view';
+import { CreatePromptDialog } from '@/components/prompts/prompt-actions';
 import { PageErrorState } from '@/components/ui/page-state';
 
 interface PromptsPageProps {
@@ -12,6 +13,28 @@ interface PromptsPageProps {
     baseline?: string;
     comparison?: string;
   }>;
+}
+
+async function createPromptAction(formData: FormData) {
+  'use server';
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { ok: false, error: 'You must be signed in to create a prompt.' };
+  }
+
+  const name = String(formData.get('name') ?? '').trim();
+  if (!name) {
+    return { ok: false, error: 'Prompt name is required.' };
+  }
+
+  try {
+    const client = getAuthenticatedClient(session.user.token);
+    await client.createPrompt(name);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unable to create prompt right now.' };
+  }
 }
 
 export default async function PromptsPage({ searchParams }: PromptsPageProps) {
@@ -69,5 +92,12 @@ export default async function PromptsPage({ searchParams }: PromptsPageProps) {
     redirect(`/prompts/${focusedPrompt.id}`);
   }
 
-  return <PromptListView prompts={promptsData} focusedPromptName={focusedPromptName} />;
+  return (
+    <>
+      <div className="flex justify-end">
+        <CreatePromptDialog createPromptAction={createPromptAction} />
+      </div>
+      <PromptListView prompts={promptsData} focusedPromptName={focusedPromptName} />
+    </>
+  );
 }

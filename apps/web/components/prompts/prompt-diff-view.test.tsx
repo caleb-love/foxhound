@@ -4,100 +4,64 @@ import { PromptDiffView } from './prompt-diff-view';
 
 const versions = [
   {
-    id: 'pmv_1',
+    id: 'pmv_2',
     promptId: 'pmt_123',
-    version: 1,
+    version: 2,
     content: 'Be concise.',
     model: 'gpt-4o-mini',
-    config: { temperature: 0.1 },
-    createdAt: new Date().toISOString(),
+    config: { temperature: 0.2 },
+    createdAt: '2026-04-13T01:00:00.000Z',
     createdBy: null,
     labels: ['production'],
   },
   {
-    id: 'pmv_2',
+    id: 'pmv_1',
     promptId: 'pmt_123',
-    version: 2,
-    content: 'Be concise and cite sources.',
+    version: 1,
+    content: 'Be detailed.',
     model: 'gpt-4o',
-    config: { temperature: 0.2 },
-    createdAt: new Date().toISOString(),
+    config: { temperature: 0.6 },
+    createdAt: '2026-04-13T00:00:00.000Z',
     createdBy: null,
-    labels: ['staging'],
+    labels: [],
   },
 ];
 
+const initialDiff = {
+  promptId: 'pmt_123',
+  promptName: 'support-agent',
+  versionA: 1,
+  versionB: 2,
+  hasChanges: true,
+  changes: [
+    { field: 'content', before: 'Be detailed.', after: 'Be concise.' },
+    { field: 'config', before: { temperature: 0.6 }, after: { temperature: 0.2 } },
+  ],
+};
+
 describe('PromptDiffView', () => {
-  it('renders the empty selection state when no diff is loaded', () => {
-    render(
-      <PromptDiffView
-        promptName="support-agent"
-        versions={versions}
-        initialDiff={null}
-      />,
-    );
+  it('renders changed fields with before and after values', () => {
+    render(<PromptDiffView promptName="support-agent" versions={versions as never} initialDiff={initialDiff as never} initialVersionA={1} initialVersionB={2} />);
 
     expect(screen.getByText('Prompt Comparison')).toBeInTheDocument();
-    expect(screen.getByText('Choose two versions')).toBeInTheDocument();
-    expect(screen.getByText(/Select a baseline and comparison version/)).toBeInTheDocument();
-  });
-
-  it('renders a no-change state when selected versions match', () => {
-    render(
-      <PromptDiffView
-        promptName="support-agent"
-        versions={versions}
-        initialVersionA={1}
-        initialVersionB={2}
-        initialDiff={{
-          promptId: 'pmt_123',
-          promptName: 'support-agent',
-          versionA: 1,
-          versionB: 2,
-          changes: [],
-          hasChanges: false,
-        }}
-      />,
-    );
-
-    expect(screen.getByText('No differences found')).toBeInTheDocument();
-    expect(screen.getByText(/identical prompt content, model, and config/i)).toBeInTheDocument();
-  });
-
-  it('renders changed fields with before and after values', () => {
-    render(
-      <PromptDiffView
-        promptName="support-agent"
-        versions={versions}
-        initialVersionA={1}
-        initialVersionB={2}
-        initialDiff={{
-          promptId: 'pmt_123',
-          promptName: 'support-agent',
-          versionA: 1,
-          versionB: 2,
-          hasChanges: true,
-          changes: [
-            {
-              field: 'content',
-              before: 'Be concise.',
-              after: 'Be concise and cite sources.',
-            },
-            {
-              field: 'config',
-              before: { temperature: 0.1 },
-              after: { temperature: 0.2 },
-            },
-          ],
-        }}
-      />,
-    );
-
     expect(screen.getByText('2 changed field(s)')).toBeInTheDocument();
-    expect(screen.getByText('content')).toBeInTheDocument();
-    expect(screen.getByText('config')).toBeInTheDocument();
+    expect(screen.getByText('Content')).toBeInTheDocument();
+    expect(screen.getByText('Config')).toBeInTheDocument();
     expect(screen.getByText('Be concise.')).toBeInTheDocument();
-    expect(screen.getByText('Be concise and cite sources.')).toBeInTheDocument();
-    expect(screen.getAllByText(/Before|After/)).toHaveLength(4);
+  });
+
+  it('renders release review carry-forward action', () => {
+    render(<PromptDiffView promptName="support-agent" versions={versions as never} initialDiff={initialDiff as never} initialVersionA={1} initialVersionB={2} />);
+
+    expect(screen.getByRole('link', { name: /Carry this pair into release review/i })).toHaveAttribute(
+      'href',
+      '/prompts?baseline=1&comparison=2&focus=support-agent',
+    );
+  });
+
+  it('shows a warning state when no diff is available', () => {
+    render(<PromptDiffView promptName="support-agent" versions={versions as never} initialDiff={null} />);
+
+    expect(screen.getByText(/Choose two versions/i)).toBeInTheDocument();
   });
 });

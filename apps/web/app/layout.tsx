@@ -47,7 +47,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${outfit.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
+    >
       <body className="min-h-full">
         <Providers>{children}</Providers>
       </body>

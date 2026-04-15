@@ -10,18 +10,20 @@ export const surfaceStyles = {
   panel: {
     borderRadius: 'calc(var(--tenant-radius-panel) + 0.25rem)',
     border: '1px solid var(--tenant-panel-stroke)',
-    background: 'var(--tenant-panel)',
+    background: 'var(--card)',
     boxShadow: 'var(--tenant-shadow-panel)',
   } as const,
   panelAlt: {
     borderRadius: 'calc(var(--tenant-radius-panel) - 0.25rem)',
     border: '1px solid var(--tenant-panel-stroke)',
-    background: 'var(--tenant-panel-alt)',
+    background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
   } as const,
   action: {
+    display: 'inline-flex',
+    alignItems: 'center',
     borderRadius: 'var(--tenant-radius-button)',
     border: '1px solid var(--tenant-panel-stroke)',
-    background: 'var(--tenant-panel-alt)',
+    background: 'color-mix(in srgb, var(--card) 84%, var(--background))',
     color: 'var(--tenant-text-primary)',
   } as const,
 };
@@ -50,7 +52,7 @@ export function PageHeader({
           className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
           style={{
             borderColor: 'var(--tenant-panel-stroke)',
-            background: 'var(--tenant-panel-alt)',
+            background: 'color-mix(in srgb, var(--card) 84%, var(--background))',
             color: 'var(--tenant-accent)',
           }}
         >
@@ -128,8 +130,7 @@ export function RecordCard({ children, className, style }: { children: ReactNode
       className={cn('rounded-2xl border p-4 transition-colors', className)}
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
-        background: 'var(--tenant-panel-alt)',
-        boxShadow: 'inset 0 1px 0 color-mix(in srgb, white 4%, transparent)',
+        background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
         ...style,
       }}
     >
@@ -160,7 +161,7 @@ export function ActionsRow({ children }: { children: ReactNode }) {
 
 export function ActionLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
   return (
-    <SegmentAwareLink href={href} className={cn('rounded-xl border px-3 py-2 transition-colors', className)}>
+    <SegmentAwareLink href={href} className={cn('rounded-xl border px-3 py-2 transition-colors hover:bg-muted/30', className)}>
       <span style={surfaceStyles.action}>{children}</span>
     </SegmentAwareLink>
   );

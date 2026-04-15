@@ -48,7 +48,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
   };
 
   return (
-    <div className="space-y-4 rounded-3xl border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+    <div className="space-y-4 rounded-3xl border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
       <div className="flex flex-wrap items-center gap-3">
         {definitions.map((definition) => {
           if (definition.kind === 'search') {
@@ -128,7 +128,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
 
           return (
             <Popover key={definition.key} open={openKey === definition.key} onOpenChange={(open) => setOpenKey(open ? definition.key : null)}>
-              <PopoverTrigger className="group/button inline-flex h-7 items-center justify-center gap-2 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50">
+              <PopoverTrigger className="group/button inline-flex h-7 items-center justify-center gap-2 rounded-[min(var(--radius-md),12px)] border px-2.5 text-[0.8rem] font-medium whitespace-nowrap transition-all outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
                 <Filter className="h-4 w-4" />
                 {definition.label}
                 {selectedValues.length > 0 ? (
@@ -142,7 +142,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
                     {definition.options.map((option) => {
                       const isSelected = selectedValues.includes(option.value);
                       return (
-                        <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5">
+                        <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40">
                           <input
                             type="checkbox"
                             checked={isSelected}

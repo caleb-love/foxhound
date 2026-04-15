@@ -42,6 +42,7 @@ describe('TraceTable', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    push.mockReset();
     usePathnameMock.mockReturnValue('/traces');
     const defaults = createDefaultDashboardFilters();
     defaults.dateRange = {
@@ -68,7 +69,7 @@ describe('TraceTable', () => {
       dateRange: defaults.dateRange,
       searchQuery: defaults.searchQuery,
     });
-    useCompareStore.setState({ selectedTraceIds: [] });
+    useCompareStore.setState({ selectedTraceIds: [], traceAId: null, traceBId: null });
   });
 
   it('renders empty state when there are no traces', () => {
@@ -162,6 +163,25 @@ describe('TraceTable', () => {
     fireEvent.click(checkboxes[2]!);
 
     expect(useCompareStore.getState().selectedTraceIds).toEqual(['trace_b', 'trace_c']);
+  });
+
+  it('renders direct replay and compare-slot actions for each trace', () => {
+    render(<TraceTable initialData={traces as never} />);
+
+    expect(screen.getByRole('link', { name: /Replay/i })).toHaveAttribute('href', '/replay/trace_a');
+    expect(screen.getByRole('button', { name: /Set A/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Set B/i })).toBeInTheDocument();
+  });
+
+  it('updates compare slots explicitly from trace actions', () => {
+    render(<TraceTable initialData={traces as never} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Set A/i })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /Set B/i })[1]!);
+
+    expect(useCompareStore.getState().traceAId).toBe('trace_a');
+    expect(useCompareStore.getState().traceBId).toBe('trace_b');
+    expect(useCompareStore.getState().selectedTraceIds).toEqual(['trace_a', 'trace_b']);
   });
 
   it('renders future-dated sandbox traces instead of filtering out the seeded demo corpus', () => {

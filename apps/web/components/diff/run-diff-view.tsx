@@ -1,20 +1,24 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Trace, Span } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { DetailActionPanel, DetailHeader, CompareContextCard, ActionCard, StatusBadge } from '@/components/system/detail';
 import { getSandboxRootHref } from '@/lib/sandbox-routes';
+import { useCompareStore } from '@/lib/stores/compare-store';
 import { MetricsDelta } from './metrics-delta';
 import { TimelineDiff } from './timeline-diff';
 import { InsightsPanel } from './insights-panel';
+import { DiffTracePicker } from './diff-trace-picker';
 
 interface RunDiffViewProps {
   traceA: Trace;
   traceB: Trace;
   backHref?: string;
+  availableTraces?: Trace[];
 }
 
 type SpanFingerprint = {
@@ -86,7 +90,17 @@ function getPromptDiffHref(basePrefix: string, promptName?: string, versionA?: s
   return promptId ? `${basePrefix}/prompts/${promptId}/diff?versionA=${encodeURIComponent(String(versionA))}&versionB=${encodeURIComponent(String(versionB))}` : null;
 }
 
-export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffViewProps) {
+export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTraces = [] }: RunDiffViewProps) {
+  const router = useRouter();
+  const { setComparePair, setTraceSlot, swapComparePair } = useCompareStore();
+  const [localTraceAId, setLocalTraceAId] = useState(traceA.id);
+  const [localTraceBId, setLocalTraceBId] = useState(traceB.id);
+
+  useEffect(() => {
+    setLocalTraceAId(traceA.id);
+    setLocalTraceBId(traceB.id);
+    setComparePair(traceA.id, traceB.id);
+  }, [traceA.id, traceB.id, setComparePair]);
   // Calculate metrics
   const metrics = useMemo(() => {
     // Cost calculation
@@ -198,6 +212,28 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
         ? 'The comparison run is cheaper and faster, suggesting an improvement worth validating before promotion.'
         : 'Use the span-level diff below to understand how behavior changed between the baseline and comparison runs.';
 
+  const navigateToPair = (nextTraceAId: string, nextTraceBId: string) => {
+    const params = new URLSearchParams({ a: nextTraceAId, b: nextTraceBId });
+    router.push(`${basePrefix}/diff?${params.toString()}`);
+  };
+
+  const handleSelectTraceA = (nextTraceAId: string) => {
+    setLocalTraceAId(nextTraceAId);
+    setTraceSlot('a', nextTraceAId);
+    navigateToPair(nextTraceAId, localTraceBId);
+  };
+
+  const handleSelectTraceB = (nextTraceBId: string) => {
+    setLocalTraceBId(nextTraceBId);
+    setTraceSlot('b', nextTraceBId);
+    navigateToPair(localTraceAId, nextTraceBId);
+  };
+
+  const handleSwap = () => {
+    swapComparePair();
+    navigateToPair(localTraceBId, localTraceAId);
+  };
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
@@ -273,6 +309,17 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
         </DetailActionPanel>
       </div>
       
+      {availableTraces.length > 0 ? (
+        <DiffTracePicker
+          traces={availableTraces}
+          traceAId={localTraceAId}
+          traceBId={localTraceBId}
+          onSelectTraceA={handleSelectTraceA}
+          onSelectTraceB={handleSelectTraceB}
+          onSwap={handleSwap}
+        />
+      ) : null}
+
       {/* Metrics Comparison */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricsDelta

@@ -1,12 +1,15 @@
 'use client';
 
 import { SandboxHero, SandboxPage, SandboxPill } from '@/components/sandbox/theme';
+import { ThemeModeSettings } from '@/components/theme/theme-mode-settings';
 import { ThemePreviewCard } from '@/components/theme/theme-preview-card';
 import { useTenantTheme } from '@/components/theme/tenant-theme-provider';
+import { useThemeMode } from '@/components/theme/theme-mode-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SandboxSettingsPage() {
   const { theme, themes, setThemeById } = useTenantTheme();
+  const { mode, resolvedMode } = useThemeMode();
 
   return (
     <SandboxPage>
@@ -17,27 +20,42 @@ export default function SandboxSettingsPage() {
       >
         <SandboxPill>Active theme: {theme.name}</SandboxPill>
         <SandboxPill>Brand label: {theme.brandLabel}</SandboxPill>
+        <SandboxPill>Appearance mode: {mode === 'system' ? `System (${resolvedMode})` : mode}</SandboxPill>
       </SandboxHero>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="backdrop-blur-xl" style={{ color: 'var(--tenant-text-primary)', borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', boxShadow: 'var(--tenant-shadow-panel)' }}>
-          <CardHeader>
-            <CardTitle>Theme presets</CardTitle>
-            <CardDescription style={{ color: 'var(--tenant-text-muted)' }}>
-              Switch between reusable presets to preview how the shell, panels, and dashboard primitives respond to tenant branding.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {themes.map((preset) => (
-              <ThemePreviewCard
-                key={preset.id}
-                theme={preset}
-                active={preset.id === theme.id}
-                onSelect={() => setThemeById(preset.id)}
-              />
-            ))}
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid gap-4">
+          <Card className="backdrop-blur-xl" style={{ color: 'var(--tenant-text-primary)', borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', boxShadow: 'var(--tenant-shadow-panel)' }}>
+            <CardHeader>
+              <CardTitle>Appearance mode</CardTitle>
+              <CardDescription style={{ color: 'var(--tenant-text-muted)' }}>
+                Choose whether the operator workspace stays light, stays dark, or follows the system preference.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThemeModeSettings />
+            </CardContent>
+          </Card>
+
+          <Card className="backdrop-blur-xl" style={{ color: 'var(--tenant-text-primary)', borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', boxShadow: 'var(--tenant-shadow-panel)' }}>
+            <CardHeader>
+              <CardTitle>Theme presets</CardTitle>
+              <CardDescription style={{ color: 'var(--tenant-text-muted)' }}>
+                Switch between reusable presets to preview how the shell, panels, and dashboard primitives respond to tenant branding.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              {themes.map((preset) => (
+                <ThemePreviewCard
+                  key={preset.id}
+                  theme={preset}
+                  active={preset.id === theme.id}
+                  onSelect={() => setThemeById(preset.id)}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="backdrop-blur-xl" style={{ color: 'var(--tenant-text-primary)', borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', boxShadow: 'var(--tenant-shadow-panel)' }}>
           <CardHeader>

@@ -93,7 +93,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Playback Controls */}
-      <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
@@ -103,7 +103,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
               Scrub the run to inspect state transitions and isolate the exact step where behavior diverged.
             </div>
           </div>
-          <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+          <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
             Replay-first workflow
           </div>
         </div>
@@ -148,7 +148,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
             <span className="text-xs font-mono whitespace-nowrap" style={{ color: 'var(--tenant-text-muted)' }}>
               Step {safeSpanIndex + 1} / {spans.length}
             </span>
-            <div className="relative h-2 w-full rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 12%, white)' }}>
+            <div className="relative h-2 w-full rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))' }}>
               <div
                 className="absolute left-0 top-0 h-full rounded-full transition-all duration-200"
                 style={{ width: `${progress}%`, background: 'var(--tenant-accent)' }}
@@ -172,7 +172,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
                 key={speed}
                 onClick={() => setSpeed(speed)}
                 className="px-2.5 py-1 text-xs font-mono rounded border transition-colors"
-                style={state.playbackSpeed === speed ? { background: 'var(--tenant-accent)', color: 'var(--tenant-panel)', borderColor: 'var(--tenant-accent)' } : { background: 'var(--tenant-panel)', color: 'var(--tenant-text-secondary)', borderColor: 'var(--tenant-panel-stroke)' }}
+                style={state.playbackSpeed === speed ? { background: 'var(--tenant-accent)', color: 'var(--background)', borderColor: 'var(--tenant-accent)' } : { background: 'var(--card)', color: 'var(--tenant-text-secondary)', borderColor: 'var(--tenant-panel-stroke)' }}
               >
                 {speed}x
               </button>
@@ -182,7 +182,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
       </div>
 
       {/* Timeline Scrubber with Markers */}
-      <div className="border-b px-6 py-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+      <div className="border-b px-6 py-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
         <div className="relative h-16">
           {/* Span markers */}
           <div className="absolute inset-x-0 top-0 flex items-start gap-px">
@@ -197,7 +197,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
                   className={cn(
                     'flex-1 h-8 rounded-sm transition-all border-2'
                   )}
-                  style={isActive ? { borderColor: 'var(--tenant-accent)', background: 'var(--tenant-accent-soft)', boxShadow: '0 0 0 2px color-mix(in srgb, var(--tenant-accent) 28%, transparent)' } : isCompleted ? { background: 'color-mix(in srgb, var(--tenant-accent) 12%, white)', borderColor: 'var(--tenant-panel-stroke)' } : { background: 'var(--tenant-panel)', borderColor: 'var(--tenant-panel-stroke)' }}
+                  style={isActive ? { borderColor: 'var(--tenant-accent)', background: 'color-mix(in srgb, var(--tenant-accent) 16%, var(--card))', boxShadow: '0 0 0 2px color-mix(in srgb, var(--tenant-accent) 28%, transparent)' } : isCompleted ? { background: 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))', borderColor: 'var(--tenant-panel-stroke)' } : { background: 'var(--card)', borderColor: 'var(--tenant-panel-stroke)' }}
                   title={`${span.name} (${span.kind})`}
                 />
               );
@@ -219,7 +219,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-5xl space-y-6">
           {/* Current Span Highlight */}
-          <div className="rounded-[var(--tenant-radius-panel)] border-2 p-5" style={{ borderColor: 'var(--tenant-accent)', background: 'var(--tenant-accent-soft)' }}>
+          <div className="rounded-[var(--tenant-radius-panel)] border-2 p-5" style={{ borderColor: 'var(--tenant-accent)', background: 'color-mix(in srgb, var(--tenant-accent) 14%, var(--card))' }}>
             <div className="mb-2 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--tenant-accent)' }}>
               Currently Executing
             </div>
@@ -236,7 +236,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
                 <Badge
                   variant={currentSpan.status === 'ok' ? 'default' : 'destructive'}
                   className={currentSpan.status === 'ok' ? '' : ''}
-                  style={currentSpan.status === 'ok' ? { background: 'color-mix(in srgb, var(--tenant-success) 14%, white)', color: 'var(--tenant-success)' } : undefined}
+                  style={currentSpan.status === 'ok' ? { background: 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))', color: 'var(--tenant-success)' } : undefined}
                 >
                   {currentSpan.status}
                 </Badge>

@@ -24,9 +24,9 @@ interface TraceFiltersProps {
 }
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; color: string }[] = [
-  { value: 'all', label: 'All', color: 'var(--tenant-panel-alt)' },
-  { value: 'success', label: 'Success', color: 'color-mix(in srgb, var(--tenant-success) 14%, white)' },
-  { value: 'error', label: 'Error', color: 'color-mix(in srgb, var(--tenant-danger) 14%, white)' },
+  { value: 'all', label: 'All', color: 'color-mix(in srgb, var(--card) 88%, var(--background))' },
+  { value: 'success', label: 'Success', color: 'color-mix(in srgb, var(--tenant-success) 18%, var(--card))' },
+  { value: 'error', label: 'Error', color: 'color-mix(in srgb, var(--tenant-danger) 18%, var(--card))' },
 ];
 
 const DATE_PRESETS = [
@@ -98,7 +98,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
               key={option.value}
               onClick={() => setStatus(option.value)}
               className="rounded-full px-3 py-1 text-sm font-medium transition-colors"
-              style={status === option.value ? { background: option.color, color: option.value === 'success' ? 'var(--tenant-success)' : option.value === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-text-primary)' } : { background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}
+              style={status === option.value ? { background: option.color, color: option.value === 'success' ? 'var(--tenant-success)' : option.value === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-text-primary)', border: '1px solid var(--tenant-panel-stroke)' } : { background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}
             >
               {option.label}
             </button>
@@ -113,7 +113,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
             className="inline-flex h-7 items-center gap-2 rounded-[min(var(--radius-md),12px)] border px-2.5 text-[0.8rem] font-medium transition-all outline-none"
             style={{
               borderColor: 'var(--tenant-panel-stroke)',
-              background: 'var(--tenant-panel)',
+              background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
               color: 'var(--tenant-text-primary)',
             }}
           >
@@ -132,7 +132,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
                 {availableAgents.map((agentId) => (
                   <label
                     key={agentId}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40"
                     style={{ background: 'transparent' }}
                   >
                     <input

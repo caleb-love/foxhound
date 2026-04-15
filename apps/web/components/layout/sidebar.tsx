@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -21,6 +22,8 @@ import {
   PlaySquare,
   CheckSquare,
   Bell,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
@@ -92,7 +95,10 @@ function isItemActive(pathname: string, fullHref: string, baseHref: string) {
   return pathname === fullHref || pathname.startsWith(`${fullHref}/`);
 }
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'foxhound.sidebar.collapsed';
+
 export function Sidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
@@ -112,46 +118,86 @@ export function Sidebar() {
   preservedSearch.delete('versionB');
   const preservedSearchString = preservedSearch.toString();
 
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
+    if (storedValue === 'true') {
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  function toggleCollapsed() {
+    setIsCollapsed((currentValue) => {
+      const nextValue = !currentValue;
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(nextValue));
+      return nextValue;
+    });
+  }
+
   return (
     <aside
-      className="flex w-72 flex-col border-r backdrop-blur-2xl transition-colors duration-300"
+      className={cn(
+        'flex flex-col border-r backdrop-blur-2xl transition-[width,background-color,color] duration-200 ease-out',
+        isCollapsed ? 'w-20' : 'w-72',
+      )}
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
-        background: 'color-mix(in srgb, var(--tenant-panel) 78%, transparent)',
+        background: 'var(--sidebar)',
       }}
+      aria-label="Primary"
+      data-collapsed={isCollapsed ? 'true' : 'false'}
     >
-      <div className="flex h-24 items-center border-b px-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <Link href={isSandbox ? getSandboxRootHref() : '/'} className="group flex items-center gap-3">
+      <div className={cn('border-b', isCollapsed ? 'flex h-28 flex-col items-center justify-start px-1 py-3' : 'flex h-24 items-center justify-between px-4')} style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+        <Link href={isSandbox ? getSandboxRootHref() : '/'} className={cn('group flex items-center', isCollapsed ? 'justify-center' : 'gap-3')} aria-label="Foxhound home">
           <Image
             src="/icon.png"
             alt="Foxhound logo"
             width={192}
             height={192}
             priority
-            className="h-20 w-20 object-contain drop-shadow-[0_0_22px_rgba(24,144,255,0.28)] transition-transform duration-200 group-hover:scale-[1.03]"
+            className={cn(
+              'object-contain drop-shadow-[0_0_22px_rgba(24,144,255,0.28)] transition-transform duration-200 ease-out group-hover:scale-[1.03]',
+              'h-20 w-20',
+            )}
           />
-          <div className="flex flex-col justify-center leading-none">
-            <span
-              className="text-[1.05rem] font-semibold tracking-[0.16em]"
-              style={{ color: '#1890FF', fontFamily: 'var(--font-heading)' }}
-            >
-              FOXHOUND
-            </span>
-            <span
-              className="mt-1 text-[0.62rem] font-medium uppercase tracking-[0.22em]"
-              style={{ color: 'color-mix(in srgb, #1890FF 62%, white 38%)' }}
-            >
-              Agent Ops Console
-            </span>
-          </div>
+          {!isCollapsed ? (
+            <div className="flex flex-col justify-center leading-none">
+              <span
+                className="text-[1.05rem] font-semibold tracking-[0.16em]"
+                style={{ color: '#1890FF', fontFamily: 'var(--font-heading)' }}
+              >
+                FOXHOUND
+              </span>
+              <span
+                className="mt-1 text-[0.62rem] font-medium uppercase tracking-[0.22em]"
+                style={{ color: 'color-mix(in srgb, #1890FF 62%, white 38%)' }}
+              >
+                Agent Ops Console
+              </span>
+            </div>
+          ) : null}
         </Link>
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className={cn(
+            'inline-flex items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 ease-out hover:bg-[color:var(--sidebar-accent)] active:scale-95',
+            isCollapsed ? 'mt-1 h-6 w-6' : 'h-8 w-8',
+          )}
+          style={{ color: 'var(--tenant-text-secondary)' }}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-pressed={isCollapsed}
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
-      <nav className="flex-1 space-y-6 px-4 py-5">
+      <nav className={cn('flex-1 py-5 transition-[padding] duration-200 ease-out', isCollapsed ? 'space-y-4 px-1' : 'space-y-6 px-4')}>
         {navSections.map((section) => (
           <div key={section.title} className="space-y-1.5">
-            <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--tenant-text-muted)' }}>
-              {section.title}
-            </div>
+            {!isCollapsed ? (
+              <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                {section.title}
+              </div>
+            ) : null}
             <div className="space-y-1">
               {section.items.map((item) => {
                 const Icon = item.icon;
@@ -165,19 +211,24 @@ export function Sidebar() {
                   <Link
                     key={`${section.title}-${item.href}`}
                     href={navigableHref}
-                    className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all')}
+                    className={cn(
+                      'flex text-sm font-medium transition-[padding,gap,background-color,color,box-shadow,border-radius,width,height] duration-200 ease-out',
+                      isCollapsed ? 'mx-auto h-12 w-12 items-center justify-center rounded-full p-0' : 'items-center gap-3 rounded-xl px-3 py-2.5',
+                    )}
                     style={isActive
                       ? {
-                          background: 'var(--tenant-accent-soft)',
-                          color: 'var(--tenant-accent)',
-                          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--tenant-accent) 18%, transparent)',
+                          background: 'color-mix(in srgb, var(--tenant-accent) 18%, var(--sidebar))',
+                          color: 'var(--foreground)',
+                          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--tenant-accent) 42%, transparent)',
                         }
                       : {
                           color: 'var(--tenant-text-secondary)',
                         }}
+                    aria-label={item.label}
+                    title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon className="h-5 w-5" />
-                    {item.label}
+                    <Icon className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out" />
+                    {!isCollapsed ? item.label : <span className="sr-only">{item.label}</span>}
                   </Link>
                 );
               })}
@@ -186,9 +237,15 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="border-t p-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <div className="rounded-2xl border p-3 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-          <p className="text-xs font-medium" style={{ color: 'var(--tenant-text-primary)' }}>Agent operating console</p>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--tenant-text-muted)' }}>Overview · Investigate · Improve · Govern</p>
+        <div className={cn('rounded-2xl border shadow-sm backdrop-blur transition-[padding] duration-200 ease-out', isCollapsed ? 'flex justify-center p-2' : 'p-3')} style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--sidebar-accent) 72%, var(--sidebar))' }}>
+          {isCollapsed ? (
+            <LayoutDashboard className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} aria-hidden="true" />
+          ) : (
+            <>
+              <p className="text-xs font-medium" style={{ color: 'var(--tenant-text-primary)' }}>Agent operating console</p>
+              <p className="mt-1 text-[11px]" style={{ color: 'var(--tenant-text-muted)' }}>Overview · Investigate · Improve · Govern</p>
+            </>
+          )}
         </div>
       </div>
     </aside>

@@ -117,7 +117,7 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
           />
           <div
             className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
-            style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
+            style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
           >
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
               Trace id
@@ -178,7 +178,7 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
       </div>
 
       <Tabs defaultValue="timeline" className="space-y-4">
-        <TabsList className="rounded-[var(--tenant-radius-panel)] border px-1.5 py-1.5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
+        <TabsList className="rounded-[var(--tenant-radius-panel)] border px-1.5 py-1.5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>

@@ -66,10 +66,10 @@ export function MetricsDelta({
     : 'var(--tenant-danger)';
   
   const bgColor = isNeutral
-    ? 'var(--tenant-panel-alt)'
+    ? 'color-mix(in srgb, var(--card) 88%, var(--background))'
     : isImprovement
-    ? 'color-mix(in srgb, var(--tenant-success) 10%, white)'
-    : 'color-mix(in srgb, var(--tenant-danger) 10%, white)';
+    ? 'color-mix(in srgb, var(--tenant-success) 12%, var(--card))'
+    : 'color-mix(in srgb, var(--tenant-danger) 12%, var(--card))';
 
   return (
     <div className="p-4 md:p-5" style={tenantStyles.panel}>
@@ -78,18 +78,18 @@ export function MetricsDelta({
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
           <div className="mt-2 text-2xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueB)}</div>
         </div>
-        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
           B vs A
         </div>
       </div>
       
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
+          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
             <div style={{ color: 'var(--tenant-text-muted)' }}>Baseline</div>
             <div className="mt-1 font-mono font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueA)}</div>
           </div>
-          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
+          <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
             <div style={{ color: 'var(--tenant-text-muted)' }}>Comparison</div>
             <div className="mt-1 font-mono font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{formatValue(valueB)}</div>
           </div>

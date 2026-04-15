@@ -1,6 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { RunDiffView } from './run-diff-view';
+
+const push = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
 
 const traceA = {
   id: 'trace_a',
@@ -80,6 +86,9 @@ const traceB = {
 };
 
 describe('RunDiffView', () => {
+  beforeEach(() => {
+    push.mockReset();
+  });
   it('renders trace identifiers and comparison sections', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
@@ -116,5 +125,32 @@ describe('RunDiffView', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} backHref="/sandbox/traces" />);
 
     expect(screen.getByRole('link', { name: /back to traces/i })).toHaveAttribute('href', '/sandbox/traces');
+  });
+
+  it('renders an in-place compare picker when available traces are provided', () => {
+    render(
+      <RunDiffView
+        traceA={traceA as never}
+        traceB={traceB as never}
+        availableTraces={[traceA, traceB] as never}
+      />,
+    );
+
+    expect(screen.getByText('Compare picker')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Swap A ↔ B/i })).toBeInTheDocument();
+  });
+
+  it('navigates to a new diff pair when a replacement trace is selected', () => {
+    render(
+      <RunDiffView
+        traceA={traceA as never}
+        traceB={traceB as never}
+        availableTraces={[traceA, traceB] as never}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Set A/i }));
+
+    expect(push).toHaveBeenCalledWith('/diff?a=trace_a&b=trace_b');
   });
 });

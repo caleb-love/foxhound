@@ -2,11 +2,12 @@ import { TraceTable } from '@/components/traces/trace-table';
 import { TraceFilters } from '@/components/traces/trace-filters';
 import { PageContainer, PageHeader } from '@/components/system/page';
 import { buildLocalReviewDemo } from '@foxhound/demo-domain';
+import type { Trace } from '@foxhound/types';
 import { SandboxTraceFilterSync } from './sandbox-trace-filter-sync';
 
 export default function SandboxTracesPage() {
   const demo = buildLocalReviewDemo();
-  const traces = demo.allTraces;
+  const traces = demo.allTraces as unknown as Trace[];
 
   const startTimeMs = Math.min(...traces.map((trace) => Number(trace.startTimeMs)));
   const endTimeMs = Math.max(...traces.map((trace) => Number(trace.startTimeMs)));

@@ -102,11 +102,11 @@ export function OperatorCommandPalette() {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors"
-        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', color: 'var(--tenant-text-muted)' }}
+        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}
         aria-label="Open operator command palette"
       >
         Quick jump
-        <span className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}>
+        <span className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
           ⌘K
         </span>
       </button>

@@ -3,6 +3,7 @@ import { TraceDetailView } from '@/components/traces/trace-detail-view';
 import { PageErrorState } from '@/components/ui/page-state';
 import { notFound } from 'next/navigation';
 import { getDashboardSessionOrSandbox, isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
+import { getRequestUrl } from '@/lib/server-url';
 
 export default async function TraceDetailPage({
   params,
@@ -17,41 +18,15 @@ export default async function TraceDetailPage({
 
   try {
     if (isDashboardSandboxModeEnabled()) {
-      trace = {
-        id,
-        agentId: 'sandbox-agent',
-        sessionId: 'sandbox-session',
-        startTimeMs: 0,
-        endTimeMs: 4200,
-        metadata: {
-          prompt_name: 'sandbox-prompt',
-          prompt_version: 3,
-        },
-        spans: [
-          {
-            traceId: id,
-            spanId: 'sandbox-span-1',
-            name: 'plan',
-            kind: 'llm_call' as const,
-            startTimeMs: 0,
-            endTimeMs: 1800,
-            status: 'ok' as const,
-            attributes: { cost: 0.012 },
-            events: [],
-          },
-          {
-            traceId: id,
-            spanId: 'sandbox-span-2',
-            name: 'tool-select',
-            kind: 'tool_call' as const,
-            startTimeMs: 1800,
-            endTimeMs: 4200,
-            status: 'error' as const,
-            attributes: { cost: 0.004 },
-            events: [],
-          },
-        ],
-      };
+      const response = await fetch(await getRequestUrl(`/api/sandbox/traces/${id}`), {
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        error = 'Unable to load this trace right now.';
+      } else {
+        trace = await response.json();
+      }
     } else {
       const client = getAuthenticatedClient(session.user.token);
       trace = await client.getTrace(id);

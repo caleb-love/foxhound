@@ -51,7 +51,7 @@ export function AppShell({
 }: AppShellProps) {
   const bodyClassName = mode === 'sandbox'
     ? 'flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,var(--tenant-app-bg-accent-a),transparent_26%),radial-gradient(circle_at_top_right,var(--tenant-app-bg-accent-b),transparent_20%),var(--tenant-app-bg)] text-[var(--tenant-text-primary)] transition-colors duration-300'
-    : 'flex h-screen overflow-hidden bg-transparent text-foreground';
+    : 'flex h-screen overflow-hidden bg-background text-foreground';
 
   const contentClassName = mode === 'dashboard'
     ? 'relative flex flex-1 flex-col overflow-hidden'
@@ -64,7 +64,12 @@ export function AppShell({
       </Suspense>
       <div className={contentClassName}>
         {mode === 'dashboard' ? (
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.26),transparent_40%)]" />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: 'radial-gradient(circle at top, color-mix(in oklab, var(--primary) 8%, transparent), transparent 30%)',
+            }}
+          />
         ) : null}
         {modeBanner}
         {showSegmentPersistence ? (

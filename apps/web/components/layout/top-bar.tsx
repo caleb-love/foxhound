@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Settings } from 'lucide-react';
+import { ThemeModeToggleButton, ThemeModeToggleMenuItem } from '@/components/theme/theme-mode-toggle';
 import { OperatorCommandPalette } from './operator-command-palette';
 import { SegmentSwitcher } from './segment-switcher';
 
@@ -26,27 +27,34 @@ interface TopBarProps {
 export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps) {
   const defaultLeadingContent = mode === 'sandbox'
     ? (
-      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}>
+      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
         Shared sandbox workspace · themeable operator shell
       </div>
     )
     : (
-      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}>
+      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
         Operator Console · live workspace
       </div>
     );
 
   return (
-    <header className="relative z-10 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 82%, transparent)' }}>
+    <header
+      className="relative z-10 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl"
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: 'var(--background)',
+      }}
+    >
       <div className="flex-1">
         {leadingContent ?? defaultLeadingContent}
       </div>
       <div className="flex items-center gap-3">
         <SegmentSwitcher />
         <OperatorCommandPalette />
+        <ThemeModeToggleButton />
         <DropdownMenu>
           <DropdownMenuTrigger>
-            <Button variant="ghost" className="flex items-center gap-2 rounded-full border px-2.5 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+            <Button variant="ghost" className="flex items-center gap-2 rounded-full border px-2.5 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
               <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: 'var(--tenant-accent-soft)', color: 'var(--tenant-accent)' }}>
                 <User className="h-4 w-4" />
               </div>
@@ -65,6 +73,7 @@ export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
+            <ThemeModeToggleMenuItem />
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: '/login' })}
               style={{ color: 'var(--tenant-danger)' }}

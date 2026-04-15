@@ -118,7 +118,7 @@ export function InsightsPanel({
           <Lightbulb className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />
           <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Insights</h3>
         </div>
-        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)', color: 'var(--tenant-text-secondary)' }}>
+        <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
           Comparison summary
         </div>
       </div>
@@ -130,15 +130,15 @@ export function InsightsPanel({
             className="flex items-start gap-3 rounded-[var(--tenant-radius-panel-tight)] border p-3.5"
             style={{
               background: insight.type === 'success'
-                ? 'color-mix(in srgb, var(--tenant-success) 10%, white)'
+                ? 'color-mix(in srgb, var(--tenant-success) 12%, var(--card))'
                 : insight.type === 'warning'
-                  ? 'color-mix(in srgb, var(--tenant-warning) 12%, white)'
-                  : 'color-mix(in srgb, var(--tenant-accent) 10%, white)',
+                  ? 'color-mix(in srgb, var(--tenant-warning) 12%, var(--card))'
+                  : 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))',
               borderColor: insight.type === 'success'
-                ? 'color-mix(in srgb, var(--tenant-success) 24%, white)'
+                ? 'color-mix(in srgb, var(--tenant-success) 28%, var(--tenant-panel-stroke))'
                 : insight.type === 'warning'
-                  ? 'color-mix(in srgb, var(--tenant-warning) 24%, white)'
-                  : 'color-mix(in srgb, var(--tenant-accent) 24%, white)',
+                  ? 'color-mix(in srgb, var(--tenant-warning) 28%, var(--tenant-panel-stroke))'
+                  : 'color-mix(in srgb, var(--tenant-accent) 28%, var(--tenant-panel-stroke))',
             }}
           >
             <div className="mt-0.5">{getIcon(insight.type)}</div>
