@@ -4,6 +4,7 @@
  */
 
 import type { Trace } from "@foxhound/types";
+import { createApiHttpClient } from "./http.js";
 import type {
   FoxhoundApiConfig,
   TraceListResponse,
@@ -61,6 +62,7 @@ import type {
 } from "@foxhound/types";
 
 export * from "./types.js";
+export { createApiHttpClient } from "./http.js";
 
 // ── Utilities ─────────────────────────────────────────────────────────────
 
@@ -78,24 +80,12 @@ export function toEpochMs(value: string): number {
 export class FoxhoundApiClient {
   private readonly endpoint: string;
   private readonly apiKey: string;
+  private readonly http: ReturnType<typeof createApiHttpClient>;
 
   constructor(config: FoxhoundApiConfig) {
-    let endpoint = config.endpoint;
-    while (endpoint.endsWith("/")) endpoint = endpoint.slice(0, -1);
-
-    // Enforce HTTPS for non-localhost endpoints
-    if (
-      !endpoint.startsWith("https://") &&
-      !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(endpoint)
-    ) {
-      throw new Error(
-        "Non-localhost endpoints must use HTTPS. " +
-          "Use https:// or connect to localhost for development.",
-      );
-    }
-
-    this.endpoint = endpoint;
-    this.apiKey = config.apiKey;
+    this.http = createApiHttpClient(config);
+    this.endpoint = this.http.endpoint;
+    this.apiKey = this.http.apiKey;
   }
 
   // ── Traces ──────────────────────────────────────────────────────────────
@@ -652,27 +642,6 @@ export class FoxhoundApiClient {
     path: string,
     body?: Record<string, unknown>,
   ): Promise<T> {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiKey}`,
-      Accept: "application/json",
-    };
-
-    const init: RequestInit = { method, headers };
-
-    if (body !== undefined) {
-      headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(`${this.endpoint}${path}`, init);
-
-    if (!response.ok) {
-      const raw = await response.text().catch(() => "");
-      // Truncate long error bodies (e.g. HTML error pages) to avoid leaking server internals
-      const text = raw.length > 500 ? raw.slice(0, 500) + "…" : raw;
-      throw new Error(`Foxhound API ${response.status}: ${text || response.statusText}`);
-    }
-
-    return response.json() as Promise<T>;
+    return this.http.request(method, path, body);
   }
 }

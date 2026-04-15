@@ -69,4 +69,26 @@ if [[ ${#bad_paths[@]} -gt 0 ]]; then
   exit 1
 fi
 
+docs_warnings=()
+active_plan_count=$(find docs/plans/active -maxdepth 1 -type f ! -name 'README.md' | wc -l | tr -d ' ')
+if [[ ${active_plan_count} -gt 8 ]]; then
+  docs_warnings+=("docs/plans/active contains ${active_plan_count} files (target: <= 8 active plans)")
+fi
+
+while IFS= read -r path; do
+  [[ -z "$path" ]] && continue
+  docs_warnings+=("active plan artifact should be archived or moved: ${path}")
+done < <(find docs/plans/active -maxdepth 1 -type f \( -name '*.html' -o -name '*.json' \) | sort)
+
+while IFS= read -r path; do
+  [[ -z "$path" ]] && continue
+  docs_warnings+=("supporting template/research artifact should usually not stay active: ${path}")
+done < <(find docs/plans/active -maxdepth 1 -type f \( -iname '*template*' -o -iname '*tracker*' -o -iname '*interview-guide*' \) | sort)
+
+if [[ ${#docs_warnings[@]} -gt 0 ]]; then
+  echo "Repo hygiene check passed with docs warnings:" >&2
+  printf ' - %s\n' "${docs_warnings[@]}" >&2
+  exit 0
+fi
+
 echo "Repo hygiene check passed."
