@@ -91,8 +91,8 @@ var FoxhoundApiClient = class {
   async createAlertRule(params) {
     return this.post("/v1/notifications/rules", params);
   }
-  async deleteAlertRule(ruleId) {
-    return this.del(`/v1/notifications/rules/${encodeURIComponent(ruleId)}`);
+  async deleteAlertRule(_ruleId) {
+    throw new Error("deleteAlertRule is not supported by the current Foxhound API. Remove the rule directly in the dashboard or implement the backend route before using this client method.");
   }
   // ── Notification Channels ─────────────────────────────────────────────
   async listChannels() {
@@ -108,8 +108,8 @@ var FoxhoundApiClient = class {
       severity: params?.severity ?? "high"
     });
   }
-  async deleteChannel(channelId) {
-    return this.del(`/v1/notifications/channels/${encodeURIComponent(channelId)}`);
+  async deleteChannel(_channelId) {
+    throw new Error("deleteChannel is not supported by the current Foxhound API. Remove the channel directly in the dashboard or implement the backend route before using this client method.");
   }
   // ── API Keys ──────────────────────────────────────────────────────────
   async listApiKeys() {

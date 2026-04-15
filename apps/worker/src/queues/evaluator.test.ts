@@ -232,6 +232,30 @@ describe("processEvaluatorJob (via processor)", () => {
     );
   });
 
+  it("skips already completed runs that already have a score", async () => {
+    startEvaluatorWorker(conn);
+    const processor = getProcessorForQueue(EVALUATOR_QUEUE_NAME);
+
+    vi.mocked(dbInternal.getEvaluatorRun).mockResolvedValue({
+      id: RUN_ID,
+      evaluatorId: EVALUATOR_ID,
+      traceId: TRACE_ID,
+      status: "completed",
+      scoreId: "scr_existing",
+    } as never);
+    vi.mocked(dbInternal.getEvaluatorById).mockResolvedValue({
+      id: EVALUATOR_ID,
+      orgId: ORG_ID,
+    } as never);
+
+    await processor(fakeJob({ runId: RUN_ID }));
+
+    expect(db.isLlmEvaluationEnabled).not.toHaveBeenCalled();
+    expect(db.getTraceWithSpans).not.toHaveBeenCalled();
+    expect(db.createScore).not.toHaveBeenCalled();
+    expect(db.updateEvaluatorRunStatus).not.toHaveBeenCalledWith(RUN_ID, ORG_ID, "running");
+  });
+
   it("marks run as failed when LLM evaluation is not enabled (consent gate)", async () => {
     startEvaluatorWorker(conn);
     const processor = getProcessorForQueue(EVALUATOR_QUEUE_NAME);

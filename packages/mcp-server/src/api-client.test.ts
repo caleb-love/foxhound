@@ -17,7 +17,7 @@ describe("FoxhoundApiClient", () => {
 
   function makeClient(): FoxhoundApiClient {
     return new FoxhoundApiClient({
-      endpoint: "https://api.foxhound.dev",
+      endpoint: "https://api.foxhound.caleb-love.com",
       apiKey: "fox_test_key",
     });
   }
@@ -37,7 +37,7 @@ describe("FoxhoundApiClient", () => {
 
     expect(mockFetch).toHaveBeenCalledOnce();
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://api.foxhound.dev/v1/traces?agentId=my-agent&limit=10");
+    expect(url).toBe("https://api.foxhound.caleb-love.com/v1/traces?agentId=my-agent&limit=10");
     expect(opts.headers).toMatchObject({
       Authorization: "Bearer fox_test_key",
     });
@@ -61,7 +61,7 @@ describe("FoxhoundApiClient", () => {
     await client.getTrace("trace-123");
 
     const [url] = mockFetch.mock.calls[0] as [string];
-    expect(url).toBe("https://api.foxhound.dev/v1/traces/trace-123");
+    expect(url).toBe("https://api.foxhound.caleb-love.com/v1/traces/trace-123");
   });
 
   it("replaySpan fetches correct URL", async () => {
@@ -71,7 +71,7 @@ describe("FoxhoundApiClient", () => {
     await client.replaySpan("trace-1", "span-2");
 
     const [url] = mockFetch.mock.calls[0] as [string];
-    expect(url).toBe("https://api.foxhound.dev/v1/traces/trace-1/spans/span-2/replay");
+    expect(url).toBe("https://api.foxhound.caleb-love.com/v1/traces/trace-1/spans/span-2/replay");
   });
 
   it("diffRuns sends runA and runB as query params", async () => {
@@ -81,7 +81,7 @@ describe("FoxhoundApiClient", () => {
     await client.diffRuns("run-a", "run-b");
 
     const [url] = mockFetch.mock.calls[0] as [string];
-    expect(url).toBe("https://api.foxhound.dev/v1/runs/diff?runA=run-a&runB=run-b");
+    expect(url).toBe("https://api.foxhound.caleb-love.com/v1/runs/diff?runA=run-a&runB=run-b");
   });
 
   it("throws on non-OK response", async () => {
@@ -98,7 +98,7 @@ describe("FoxhoundApiClient", () => {
 
   it("strips trailing slashes from endpoint", async () => {
     const client = new FoxhoundApiClient({
-      endpoint: "https://api.foxhound.dev///",
+      endpoint: "https://api.foxhound.caleb-love.com///",
       apiKey: "key",
     });
     mockOk({ data: [] });
@@ -106,7 +106,7 @@ describe("FoxhoundApiClient", () => {
     await client.searchTraces({});
 
     const [url] = mockFetch.mock.calls[0] as [string];
-    expect(url.startsWith("https://api.foxhound.dev/v1/traces")).toBe(true);
+    expect(url.startsWith("https://api.foxhound.caleb-love.com/v1/traces")).toBe(true);
   });
 });
 
@@ -621,7 +621,7 @@ describe("evaluator tools", () => {
 
   function makeClient(): FoxhoundApiClient {
     return new FoxhoundApiClient({
-      endpoint: "https://api.foxhound.dev",
+      endpoint: "https://api.foxhound.caleb-love.com",
       apiKey: "fox_test_key",
     });
   }
@@ -667,7 +667,7 @@ describe("evaluator tools", () => {
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url] = mockFetch.mock.calls[0] as [string];
-      expect(url).toBe("https://api.foxhound.dev/v1/evaluators");
+      expect(url).toBe("https://api.foxhound.caleb-love.com/v1/evaluators");
 
       expect(response.data).toHaveLength(2);
       expect(response.data[0]).toMatchObject({
@@ -729,7 +729,7 @@ describe("evaluator tools", () => {
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe("https://api.foxhound.dev/v1/evaluator-runs");
+      expect(url).toBe("https://api.foxhound.caleb-love.com/v1/evaluator-runs");
       expect(opts.method).toBe("POST");
 
       const body = JSON.parse(opts.body as string);
@@ -798,7 +798,7 @@ describe("evaluator tools", () => {
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url] = mockFetch.mock.calls[0] as [string];
-      expect(url).toBe("https://api.foxhound.dev/v1/evaluator-runs/run-1");
+      expect(url).toBe("https://api.foxhound.caleb-love.com/v1/evaluator-runs/run-1");
 
       expect(run).toMatchObject({
         id: "run-1",
@@ -946,7 +946,7 @@ describe("scoring tools", () => {
 
   function makeClient(): FoxhoundApiClient {
     return new FoxhoundApiClient({
-      endpoint: "https://api.foxhound.dev",
+      endpoint: "https://api.foxhound.caleb-love.com",
       apiKey: "fox_test_key",
     });
   }
@@ -972,7 +972,7 @@ describe("scoring tools", () => {
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe("https://api.foxhound.dev/v1/scores");
+      expect(url).toBe("https://api.foxhound.caleb-love.com/v1/scores");
       expect(opts.method).toBe("POST");
       expect(opts.headers).toMatchObject({
         Authorization: "Bearer fox_test_key",
@@ -1074,7 +1074,7 @@ describe("scoring tools", () => {
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url] = mockFetch.mock.calls[0] as [string];
-      expect(url).toBe("https://api.foxhound.dev/v1/traces/trace-1/scores");
+      expect(url).toBe("https://api.foxhound.caleb-love.com/v1/traces/trace-1/scores");
 
       expect(response.data).toHaveLength(2);
       expect(response.data[0]).toMatchObject({
@@ -1154,7 +1154,7 @@ describe("scoring tools", () => {
 
         expect(mockFetch).toHaveBeenCalledOnce();
         const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect(url).toBe("https://api.foxhound.dev/v1/datasets");
+        expect(url).toBe("https://api.foxhound.caleb-love.com/v1/datasets");
         expect(opts.headers).toMatchObject({
           Authorization: "Bearer fox_test_key",
         });
@@ -1197,7 +1197,7 @@ describe("scoring tools", () => {
 
         expect(mockFetch).toHaveBeenCalledOnce();
         const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1");
+        expect(url).toBe("https://api.foxhound.caleb-love.com/v1/datasets/ds-1");
       });
 
       it("includes item count", async () => {
@@ -1234,7 +1234,7 @@ describe("scoring tools", () => {
 
         expect(mockFetch).toHaveBeenCalledOnce();
         const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1/items");
+        expect(url).toBe("https://api.foxhound.caleb-love.com/v1/datasets/ds-1/items");
         expect(opts.method).toBe("POST");
         expect(JSON.parse(opts.body as string)).toMatchObject({
           input: { query: "test" },
@@ -1281,7 +1281,7 @@ describe("scoring tools", () => {
 
         expect(mockFetch).toHaveBeenCalledOnce();
         const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect(url).toBe("https://api.foxhound.dev/v1/datasets/ds-1/items/from-traces");
+        expect(url).toBe("https://api.foxhound.caleb-love.com/v1/datasets/ds-1/items/from-traces");
         expect(opts.method).toBe("POST");
         expect(JSON.parse(opts.body as string)).toMatchObject({
           scoreName: "quality",

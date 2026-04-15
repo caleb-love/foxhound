@@ -377,9 +377,19 @@ class DatasetsNamespace {
       input: Record<string, unknown>;
       expectedOutput?: Record<string, unknown>;
       metadata?: Record<string, unknown>;
+      sourceTraceId?: string;
     }>,
-  ): Promise<unknown> {
-    return this.request("POST", `/v1/datasets/${encodeURIComponent(datasetId)}/items`, { items });
+  ): Promise<unknown[]> {
+    const results = await Promise.all(
+      items.map((item) =>
+        this.request(
+          "POST",
+          `/v1/datasets/${encodeURIComponent(datasetId)}/items`,
+          item,
+        ),
+      ),
+    );
+    return results;
   }
 
   async fromTraces(

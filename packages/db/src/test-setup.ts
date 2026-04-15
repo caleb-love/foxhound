@@ -164,7 +164,7 @@ export async function createTestUser(
   overrides: Partial<typeof schema.users.$inferInsert> = {},
 ): Promise<TestUserResult> {
   const id = overrides.id ?? nextId("usr");
-  const email = overrides.email ?? `${id}@test.foxhound.dev`;
+  const email = overrides.email ?? `${id}@test.foxhound.caleb-love.com`;
   const name = overrides.name ?? `Test User ${id}`;
 
   const [row] = await testDb

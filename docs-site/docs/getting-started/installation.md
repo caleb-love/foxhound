@@ -38,7 +38,7 @@ The Foxhound MCP server lets Claude Code, Cursor, Windsurf, and any other MCP-co
 
 ```bash
 # Install directly from npm
-claude mcp add foxhound -e FOXHOUND_API_KEY=fox_your_key -e FOXHOUND_ENDPOINT=https://api.foxhound.dev -- npx @foxhound-ai/mcp-server
+claude mcp add foxhound -e FOXHOUND_API_KEY=fox_your_key -e FOXHOUND_ENDPOINT=https://api.foxhound.caleb-love.com -- npx @foxhound-ai/mcp-server
 ```
 
 ### Cursor / Windsurf
@@ -53,7 +53,7 @@ Add to your MCP config (`.cursor/mcp.json` or equivalent):
       "args": ["@foxhound-ai/mcp-server"],
       "env": {
         "FOXHOUND_API_KEY": "fox_your_key",
-        "FOXHOUND_ENDPOINT": "https://api.foxhound.dev"
+        "FOXHOUND_ENDPOINT": "https://api.foxhound.caleb-love.com"
       }
     }
   }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
 import { registerAuth } from "../plugins/auth.js";
+import type { JwtPayload } from "../plugins/auth.js";
 import { annotationsRoutes } from "./annotations.js";
 
 vi.mock("@foxhound/db", () => ({
@@ -28,6 +29,11 @@ function buildApp() {
   registerAuth(app);
   void app.register(annotationsRoutes);
   return app;
+}
+
+async function getJwt(app: ReturnType<typeof buildApp>, payload: JwtPayload): Promise<string> {
+  await app.ready();
+  return app.jwt.sign(payload);
 }
 
 function mockApiKey(orgId = "org_1", scopes: string | null = null) {
@@ -304,17 +310,8 @@ describe("POST /v1/annotation-queues/:id/items", () => {
 describe("POST /v1/annotation-queues/:id/claim", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns 401 without JWT auth (no userId)", async () => {
+  it("returns 401 without JWT auth", async () => {
     mockApiKey();
-    vi.mocked(db.getAnnotationQueue).mockResolvedValue({
-      id: "anq_123",
-      orgId: "org_1",
-      name: "Review Queue",
-      description: null,
-      scoreConfigs: [],
-      createdAt: new Date(),
-    });
-
     const app = buildApp();
     const res = await app.inject({
       method: "POST",
@@ -325,28 +322,21 @@ describe("POST /v1/annotation-queues/:id/claim", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns 404 for missing queue", async () => {
-    mockApiKey();
-    // Simulate JWT auth by setting userId on the request
+  it("returns 404 for missing queue with JWT auth", async () => {
     vi.mocked(db.getAnnotationQueue).mockResolvedValue(null);
 
     const app = buildApp();
-    // Use API key auth — userId will be undefined, so it will 401 first.
-    // To properly test 404, we need to test the flow where userId is present
-    // but the queue is missing. Since API key auth doesn't set userId,
-    // we expect 401 when using API key auth for the claim endpoint.
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queues/anq_missing/claim",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
     });
 
-    // API key auth does not set userId, so this returns 401
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(404);
   });
 
-  it("returns 204 when queue is empty and userId is present", async () => {
-    mockApiKey();
+  it("returns 204 when queue is empty with JWT auth", async () => {
     vi.mocked(db.getAnnotationQueue).mockResolvedValue({
       id: "anq_123",
       orgId: "org_1",
@@ -358,29 +348,36 @@ describe("POST /v1/annotation-queues/:id/claim", () => {
     vi.mocked(db.claimAnnotationQueueItem).mockResolvedValue(null);
 
     const app = buildApp();
-    // Inject userId via a preHandler hook to simulate JWT-authenticated request
-    app.addHook("preHandler", (request, _reply, done) => {
-      if (request.url.includes("/claim")) {
-        request.userId = "user_1";
-      }
-      done();
-    });
-
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queues/anq_123/claim",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
     });
 
     expect(res.statusCode).toBe(204);
+    expect(db.claimAnnotationQueueItem).toHaveBeenCalledWith("anq_123", "org_1", "user_1");
   });
 });
 
 describe("POST /v1/annotation-queue-items/:id/submit", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("returns 401 without JWT auth", async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/annotation-queue-items/aqi_1/submit",
+      headers: { authorization: "Bearer sk-testkey123" },
+      payload: {
+        scores: [{ name: "accuracy", value: 0.9 }],
+      },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
   it("submits scores for an item", async () => {
-    mockApiKey();
     const item = {
       id: "aqi_1",
       queueId: "anq_123",
@@ -405,10 +402,11 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
     vi.mocked(db.completeAnnotationQueueItem).mockResolvedValue(null);
 
     const app = buildApp();
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queue-items/aqi_1/submit",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
       payload: {
         scores: [{ name: "accuracy", value: 0.9 }],
       },
@@ -422,14 +420,14 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
   });
 
   it("returns 404 for missing item", async () => {
-    mockApiKey();
     vi.mocked(db.getAnnotationQueueItem).mockResolvedValue(null);
 
     const app = buildApp();
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queue-items/aqi_missing/submit",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
       payload: {
         scores: [{ name: "accuracy", value: 0.8 }],
       },
@@ -439,7 +437,6 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
   });
 
   it("returns 400 for non-pending item", async () => {
-    mockApiKey();
     vi.mocked(db.getAnnotationQueueItem).mockResolvedValue({
       id: "aqi_1",
       queueId: "anq_123",
@@ -451,10 +448,11 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
     });
 
     const app = buildApp();
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queue-items/aqi_1/submit",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
       payload: {
         scores: [{ name: "accuracy", value: 0.8 }],
       },
@@ -468,8 +466,18 @@ describe("POST /v1/annotation-queue-items/:id/submit", () => {
 describe("POST /v1/annotation-queue-items/:id/skip", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("returns 401 without JWT auth", async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/annotation-queue-items/aqi_1/skip",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
   it("skips a pending item", async () => {
-    mockApiKey();
     vi.mocked(db.getAnnotationQueueItem).mockResolvedValue({
       id: "aqi_1",
       queueId: "anq_123",
@@ -491,10 +499,11 @@ describe("POST /v1/annotation-queue-items/:id/skip", () => {
     vi.mocked(db.skipAnnotationQueueItem).mockResolvedValue(updated);
 
     const app = buildApp();
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queue-items/aqi_1/skip",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
     });
 
     expect(res.statusCode).toBe(200);
@@ -503,14 +512,14 @@ describe("POST /v1/annotation-queue-items/:id/skip", () => {
   });
 
   it("returns 404 for missing item", async () => {
-    mockApiKey();
     vi.mocked(db.getAnnotationQueueItem).mockResolvedValue(null);
 
     const app = buildApp();
+    const token = await getJwt(app, { userId: "user_1", orgId: "org_1" });
     const res = await app.inject({
       method: "POST",
       url: "/v1/annotation-queue-items/aqi_missing/skip",
-      headers: { authorization: "Bearer sk-testkey123" },
+      headers: { authorization: `Bearer ${token}` },
     });
 
     expect(res.statusCode).toBe(404);

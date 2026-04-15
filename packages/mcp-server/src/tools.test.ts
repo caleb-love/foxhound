@@ -1211,52 +1211,50 @@ describe("foxhound_get_anomalies", () => {
 });
 
 describe("foxhound_delete_alert_rule", () => {
-  it("returns preview when confirm is omitted", async () => {
+  it("reports unsupported operation when invoked", async () => {
     const handler = getHandler("foxhound_delete_alert_rule");
 
     const result = await handler({ rule_id: "rule-42" });
     const text = getText(result);
 
-    expect(text).toContain("Preview");
+    expect(text).toContain("not supported");
     expect(text).toContain("rule-42");
-    expect(text).toContain("confirm: true");
     expect(mockApi["deleteAlertRule"]).not.toHaveBeenCalled();
   });
 
-  it("deletes when confirm is true", async () => {
+  it("still reports unsupported operation even when confirm is true", async () => {
     const handler = getHandler("foxhound_delete_alert_rule");
-    mockApi["deleteAlertRule"].mockResolvedValue({ success: true });
 
     const result = await handler({ rule_id: "rule-42", confirm: true });
     const text = getText(result);
 
-    expect(mockApi["deleteAlertRule"]).toHaveBeenCalledWith("rule-42");
+    expect(text).toContain("not supported");
     expect(text).toContain("rule-42");
-    expect(text).toContain("deleted");
+    expect(mockApi["deleteAlertRule"]).not.toHaveBeenCalled();
   });
 });
 
 describe("foxhound_delete_channel", () => {
-  it("returns preview when confirm is omitted", async () => {
+  it("reports unsupported operation when invoked", async () => {
     const handler = getHandler("foxhound_delete_channel");
 
     const result = await handler({ channel_id: "ch-1" });
     const text = getText(result);
 
-    expect(text).toContain("Preview");
+    expect(text).toContain("not supported");
     expect(text).toContain("ch-1");
     expect(mockApi["deleteChannel"]).not.toHaveBeenCalled();
   });
 
-  it("deletes when confirm is true", async () => {
+  it("still reports unsupported operation even when confirm is true", async () => {
     const handler = getHandler("foxhound_delete_channel");
-    mockApi["deleteChannel"].mockResolvedValue({ success: true });
 
     const result = await handler({ channel_id: "ch-1", confirm: true });
     const text = getText(result);
 
-    expect(mockApi["deleteChannel"]).toHaveBeenCalledWith("ch-1");
-    expect(text).toContain("deleted");
+    expect(text).toContain("not supported");
+    expect(text).toContain("ch-1");
+    expect(mockApi["deleteChannel"]).not.toHaveBeenCalled();
   });
 });
 

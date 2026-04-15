@@ -328,11 +328,13 @@ export const notificationLog = pgTable(
     traceId: text("trace_id"),
     status: text("status", { enum: ["sent", "failed"] }).notNull(),
     error: text("error"),
+    dedupeKey: text("dedupe_key"),
     sentAt: timestamp("sent_at").defaultNow().notNull(),
   },
   (table) => ({
     orgIdIdx: index("notification_log_org_id_idx").on(table.orgId),
     sentAtIdx: index("notification_log_sent_at_idx").on(table.sentAt),
+    dedupeKeyIdx: unique("notification_log_dedupe_key_unique").on(table.dedupeKey),
   }),
 );
 

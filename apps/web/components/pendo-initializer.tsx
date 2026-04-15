@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import Script from 'next/script';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
 declare global {
@@ -25,15 +26,18 @@ declare global {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const PENDO_API_KEY = '7b10f88b-a508-459b-9a28-20423560e563';
 
 export function PendoInitializer() {
   const { data: session, status } = useSession();
   const initializedRef = useRef(false);
   const identifiedRef = useRef(false);
+  const [scriptReady, setScriptReady] = useState(false);
+  const shouldLoadPendo = process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ENABLE_PENDO === 'true';
 
-  // Anonymous initialization on mount
+  // Anonymous initialization after script load
   useEffect(() => {
-    if (initializedRef.current) return;
+    if (!shouldLoadPendo || !scriptReady || initializedRef.current) return;
     initializedRef.current = true;
 
     if (typeof window !== 'undefined' && window.pendo) {
@@ -41,11 +45,11 @@ export function PendoInitializer() {
         visitor: { id: '' },
       });
     }
-  }, []);
+  }, [scriptReady, shouldLoadPendo]);
 
   // Identify with real user data after authentication
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.user || identifiedRef.current) return;
+    if (!shouldLoadPendo || !scriptReady || status !== 'authenticated' || !session?.user || identifiedRef.current) return;
     identifiedRef.current = true;
 
     async function identifyUser() {
@@ -88,7 +92,23 @@ export function PendoInitializer() {
     }
 
     identifyUser();
-  }, [status, session]);
+  }, [scriptReady, shouldLoadPendo, status, session]);
 
-  return null;
+  if (!shouldLoadPendo) {
+    return null;
+  }
+
+  return (
+    <Script
+      id="pendo-install"
+      strategy="afterInteractive"
+      onLoad={() => setScriptReady(true)}
+    >{`(function(apiKey){
+(function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];for(w=0,x=v.length;w<x;++w)(function(m){
+o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+})('${PENDO_API_KEY}');`}</Script>
+  );
 }

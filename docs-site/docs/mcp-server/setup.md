@@ -12,7 +12,7 @@ The Foxhound MCP server exposes your traces and observability data to Claude Cod
 ```bash
 claude mcp add foxhound \
   -e FOXHOUND_API_KEY=fox_your_key \
-  -e FOXHOUND_ENDPOINT=https://api.foxhound.dev \
+  -e FOXHOUND_ENDPOINT=https://api.foxhound.caleb-love.com \
   -- npx @foxhound-ai/mcp-server
 ```
 
@@ -34,7 +34,7 @@ Add to your MCP config (`.cursor/mcp.json` for Cursor, or the equivalent for Win
       "args": ["@foxhound-ai/mcp-server"],
       "env": {
         "FOXHOUND_API_KEY": "fox_your_key",
-        "FOXHOUND_ENDPOINT": "https://api.foxhound.dev"
+        "FOXHOUND_ENDPOINT": "https://api.foxhound.caleb-love.com"
       }
     }
   }
@@ -48,7 +48,7 @@ Restart your IDE after saving the config.
 Run the server directly via npx — any MCP client that supports the stdio transport can connect:
 
 ```bash
-FOXHOUND_API_KEY=fox_... FOXHOUND_ENDPOINT=https://api.foxhound.dev npx @foxhound-ai/mcp-server
+FOXHOUND_API_KEY=fox_... FOXHOUND_ENDPOINT=https://api.foxhound.caleb-love.com npx @foxhound-ai/mcp-server
 ```
 
 ## Environment Variables

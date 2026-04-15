@@ -83,6 +83,7 @@ export interface CreateNotificationLogInput {
   traceId?: string;
   status: "sent" | "failed";
   error?: string;
+  dedupeKey?: string;
 }
 
 export async function createNotificationLogEntry(input: CreateNotificationLogInput) {
@@ -99,7 +100,9 @@ export async function createNotificationLogEntry(input: CreateNotificationLogInp
       traceId: input.traceId ?? null,
       status: input.status,
       error: input.error ?? null,
+      dedupeKey: input.dedupeKey ?? null,
     })
+    .onConflictDoNothing({ target: notificationLog.dedupeKey })
     .returning();
-  return rows[0]!;
+  return rows[0] ?? null;
 }

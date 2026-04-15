@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { randomUUID, createHash } from "crypto";
+import { randomUUID, createHash, timingSafeEqual } from "crypto";
 import {
   getSsoConfigByOrg,
   upsertSsoConfig,
@@ -13,10 +13,6 @@ import {
 } from "@foxhound/db";
 import type { JwtPayload } from "../plugins/auth.js";
 import { trackPendoEvent } from "../lib/pendo.js";
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Zod schemas
-// ──────────────────────────────────────────────────────────────────────────────
 
 const SamlConfigSchema = z.object({
   provider: z.literal("saml"),
@@ -50,48 +46,6 @@ const EnforceSsoSchema = z.object({
   enforce: z.boolean(),
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
-// SAML assertion parser (minimal — parses base64 XML response)
-// ──────────────────────────────────────────────────────────────────────────────
-
-interface SamlAssertion {
-  nameId: string;
-  sessionIndex?: string;
-  attributes: Record<string, string>;
-}
-
-function parseSamlResponse(base64Response: string): SamlAssertion {
-  const xml = Buffer.from(base64Response, "base64").toString("utf-8");
-
-  // Extract NameID
-  const nameIdMatch = xml.match(/<(?:saml2?:)?NameID[^>]*>([^<]+)<\/(?:saml2?:)?NameID>/);
-  if (!nameIdMatch?.[1]) {
-    throw new Error("SAML response missing NameID");
-  }
-
-  // Extract SessionIndex from AuthnStatement
-  const sessionMatch = xml.match(/SessionIndex="([^"]+)"/);
-
-  // Extract common attributes
-  const attributes: Record<string, string> = {};
-  const attrRegex =
-    /<(?:saml2?:)?Attribute\s+Name="([^"]+)"[^>]*>\s*<(?:saml2?:)?AttributeValue[^>]*>([^<]+)<\/(?:saml2?:)?AttributeValue>/g;
-  let match: RegExpExecArray | null;
-  while ((match = attrRegex.exec(xml)) !== null) {
-    attributes[match[1]!] = match[2]!;
-  }
-
-  return {
-    nameId: nameIdMatch[1],
-    sessionIndex: sessionMatch?.[1],
-    attributes,
-  };
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// OIDC token exchange helper
-// ──────────────────────────────────────────────────────────────────────────────
-
 interface OidcTokenResponse {
   access_token: string;
   id_token: string;
@@ -106,12 +60,81 @@ interface OidcUserInfo {
   preferred_username?: string;
 }
 
+const OIDC_STATE_TTL_MS = 10 * 60 * 1000;
+const oidcStateStore = new Map<string, { orgId: string; expiresAt: number }>();
+
+function base64UrlEncode(value: string): string {
+  return Buffer.from(value, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value: string): string {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  return Buffer.from(`${normalized}${padding}`, "base64").toString("utf-8");
+}
+
+function getOidcStateSecret(): string {
+  return process.env["OIDC_STATE_SECRET"] ?? process.env["JWT_SECRET"] ?? "foxhound-dev-state-secret";
+}
+
+function signOidcState(stateId: string, orgId: string): string {
+  return createHash("sha256")
+    .update(`${getOidcStateSecret()}:${stateId}:${orgId}`)
+    .digest("hex");
+}
+
+function createOidcState(orgId: string): string {
+  const stateId = randomUUID().replace(/-/g, "");
+  oidcStateStore.set(stateId, { orgId, expiresAt: Date.now() + OIDC_STATE_TTL_MS });
+  return base64UrlEncode(
+    JSON.stringify({ sid: stateId, orgId, sig: signOidcState(stateId, orgId) }),
+  );
+}
+
+function consumeOidcState(state: string): string {
+  let parsed: { sid?: string; orgId?: string; sig?: string };
+  try {
+    parsed = JSON.parse(base64UrlDecode(state)) as { sid?: string; orgId?: string; sig?: string };
+  } catch {
+    throw new Error("Invalid state parameter");
+  }
+
+  const stateId = parsed.sid;
+  const orgId = parsed.orgId;
+  const sig = parsed.sig;
+  if (!stateId || !orgId || !sig) {
+    throw new Error("Invalid state parameter");
+  }
+
+  const expectedSig = signOidcState(stateId, orgId);
+  const sigBuf = Buffer.from(sig, "hex");
+  const expectedBuf = Buffer.from(expectedSig, "hex");
+  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
+    throw new Error("Invalid state parameter");
+  }
+
+  const stored = oidcStateStore.get(stateId);
+  oidcStateStore.delete(stateId);
+  if (!stored || stored.orgId !== orgId || stored.expiresAt < Date.now()) {
+    throw new Error("Expired or unknown state parameter");
+  }
+
+  return orgId;
+}
+
+function buildSsoDisabledMessage(provider: "saml" | "oidc"): string {
+  return `${provider.toUpperCase()} SSO is temporarily disabled until secure assertion validation is implemented.`;
+}
+
 async function exchangeOidcCode(
   config: { issuer: string; clientId: string; clientSecret: string },
   code: string,
   redirectUri: string,
 ): Promise<{ tokenResponse: OidcTokenResponse; userInfo: OidcUserInfo }> {
-  // Discover token endpoint from OIDC well-known config
   const wellKnownUrl = `${config.issuer}/.well-known/openid-configuration`;
   const discovery = await fetch(wellKnownUrl);
   if (!discovery.ok) {
@@ -122,7 +145,6 @@ async function exchangeOidcCode(
     userinfo_endpoint: string;
   };
 
-  // Exchange authorization code for tokens
   const tokenRes = await fetch(discoveryData.token_endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -142,7 +164,6 @@ async function exchangeOidcCode(
 
   const tokenResponse = (await tokenRes.json()) as OidcTokenResponse;
 
-  // Fetch user info
   const userInfoRes = await fetch(discoveryData.userinfo_endpoint, {
     headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
   });
@@ -155,28 +176,15 @@ async function exchangeOidcCode(
   return { tokenResponse, userInfo };
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Route registration
-// ──────────────────────────────────────────────────────────────────────────────
-
 export function ssoRoutes(fastify: FastifyInstance): void {
   const baseUrl = process.env["APP_BASE_URL"] ?? "http://localhost:3001";
 
-  // ────────────────────────────────────────────
-  // SSO Config Management (JWT-authenticated, admin/owner only)
-  // ────────────────────────────────────────────
-
-  /**
-   * GET /v1/sso/config
-   * Get the current SSO config for the authenticated user's org.
-   */
   fastify.get("/v1/sso/config", { preHandler: [fastify.authenticate] }, async (request, reply) => {
     const config = await getSsoConfigByOrg(request.orgId);
     if (!config) {
       return reply.code(200).send({ configured: false });
     }
-    // Redact secrets from response
-    const safeConfig = { ...config.config };
+    const safeConfig = { ...(config.config as Record<string, unknown>) };
     if (config.provider === "oidc") {
       safeConfig["clientSecret"] = "••••••••";
     }
@@ -190,10 +198,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     });
   });
 
-  /**
-   * PUT /v1/sso/config
-   * Create or update SSO config for the org.
-   */
   fastify.put("/v1/sso/config", { preHandler: [fastify.authenticate] }, async (request, reply) => {
     const result = SsoConfigSchema.safeParse(request.body);
     if (!result.success) {
@@ -209,14 +213,11 @@ export function ssoRoutes(fastify: FastifyInstance): void {
       enforceSso,
     });
 
-    trackPendoEvent({
+    void trackPendoEvent({
       event: "sso_config_created",
       visitorId: request.userId ?? "system",
       accountId: request.orgId,
-      properties: {
-        provider,
-        enforceSso,
-      },
+      properties: { provider, enforceSso },
       context: { ip: request.ip },
     });
 
@@ -228,74 +229,43 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     });
   });
 
-  /**
-   * DELETE /v1/sso/config
-   * Remove SSO config for the org.
-   */
-  fastify.delete(
-    "/v1/sso/config",
-    { preHandler: [fastify.authenticate] },
-    async (request, reply) => {
-      const deleted = await deleteSsoConfig(request.orgId);
-      if (!deleted) {
-        return reply.code(404).send({ error: "Not Found", message: "No SSO config found" });
-      }
-      return reply.code(200).send({ deleted: true });
-    },
-  );
+  fastify.delete("/v1/sso/config", { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const deleted = await deleteSsoConfig(request.orgId);
+    if (!deleted) {
+      return reply.code(404).send({ error: "Not Found", message: "No SSO config found" });
+    }
+    return reply.code(200).send({ deleted: true });
+  });
 
-  /**
-   * PATCH /v1/sso/enforce
-   * Toggle SSO enforcement for the org.
-   */
-  fastify.patch(
-    "/v1/sso/enforce",
-    { preHandler: [fastify.authenticate] },
-    async (request, reply) => {
-      const result = EnforceSsoSchema.safeParse(request.body);
-      if (!result.success) {
-        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-      }
+  fastify.patch("/v1/sso/enforce", { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const result = EnforceSsoSchema.safeParse(request.body);
+    if (!result.success) {
+      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+    }
 
-      const config = await updateSsoEnforcement(request.orgId, result.data.enforce);
-      if (!config) {
-        return reply
-          .code(404)
-          .send({ error: "Not Found", message: "Configure SSO before enabling enforcement" });
-      }
+    const config = await updateSsoEnforcement(request.orgId, result.data.enforce);
+    if (!config) {
+      return reply
+        .code(404)
+        .send({ error: "Not Found", message: "Configure SSO before enabling enforcement" });
+    }
 
-      trackPendoEvent({
-        event: "sso_enforcement_toggled",
-        visitorId: request.userId ?? "system",
-        accountId: request.orgId,
-        properties: {
-          enforce: result.data.enforce,
-        },
-        context: { ip: request.ip },
-      });
+    void trackPendoEvent({
+      event: "sso_enforcement_toggled",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: { enforce: result.data.enforce },
+      context: { ip: request.ip },
+    });
 
-      return reply.code(200).send({
-        enforceSso: config.enforceSso,
-        updatedAt: config.updatedAt,
-      });
-    },
-  );
+    return reply.code(200).send({ enforceSso: config.enforceSso, updatedAt: config.updatedAt });
+  });
 
-  // ────────────────────────────────────────────
-  // SSO Login Initiation
-  // ────────────────────────────────────────────
-
-  /**
-   * GET /v1/sso/login/:orgSlug
-   * Initiate SSO login. Redirects to IdP.
-   */
   fastify.get(
     "/v1/sso/login/:orgSlug",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
       const { orgSlug } = request.params as { orgSlug: string };
-
-      // Look up org by slug to find SSO config
       const org = await getOrganizationBySlug(orgSlug);
 
       if (!org) {
@@ -313,8 +283,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         const config = ssoConfig.config as { entryPoint: string; issuer: string };
         const callbackUrl = `${baseUrl}/v1/sso/callback/saml`;
         const relayState = Buffer.from(JSON.stringify({ orgId: org.id })).toString("base64");
-
-        // Build SAML AuthnRequest redirect URL
         const samlRequest = Buffer.from(
           `<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ` +
             `ID="_${randomUUID()}" Version="2.0" IssueInstant="${new Date().toISOString()}" ` +
@@ -332,12 +300,7 @@ export function ssoRoutes(fastify: FastifyInstance): void {
       }
 
       if (ssoConfig.provider === "oidc") {
-        const config = ssoConfig.config as {
-          issuer: string;
-          clientId: string;
-        };
-
-        // Discover authorization endpoint
+        const config = ssoConfig.config as { issuer: string; clientId: string };
         const wellKnownUrl = `${config.issuer}/.well-known/openid-configuration`;
         const discovery = await fetch(wellKnownUrl);
         if (!discovery.ok) {
@@ -347,16 +310,7 @@ export function ssoRoutes(fastify: FastifyInstance): void {
           authorization_endpoint: string;
         };
 
-        const state = createHash("sha256")
-          .update(`${org.id}:${randomUUID()}`)
-          .digest("hex")
-          .slice(0, 32);
-
-        // Store state → orgId mapping in a signed cookie or query param
-        const statePayload = Buffer.from(JSON.stringify({ orgId: org.id, nonce: state })).toString(
-          "base64",
-        );
-
+        const statePayload = createOidcState(org.id);
         const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
         const authUrl =
           `${authorization_endpoint}?response_type=code` +
@@ -372,14 +326,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     },
   );
 
-  // ────────────────────────────────────────────
-  // SAML Callback
-  // ────────────────────────────────────────────
-
-  /**
-   * POST /v1/sso/callback/saml
-   * Handles SAML assertion from IdP. JIT provisions user, creates session, returns JWT.
-   */
   fastify.post(
     "/v1/sso/callback/saml",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
@@ -389,9 +335,7 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
       }
 
-      const { SAMLResponse, RelayState } = result.data;
-
-      // Decode RelayState to get orgId
+      const { RelayState } = result.data;
       let orgId: string;
       try {
         const relayData = JSON.parse(Buffer.from(RelayState ?? "", "base64").toString("utf-8")) as {
@@ -402,7 +346,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         return reply.code(400).send({ error: "Bad Request", message: "Invalid RelayState" });
       }
 
-      // Verify SSO config exists for this org
       const ssoConfig = await getSsoConfigByOrg(orgId);
       if (!ssoConfig || ssoConfig.provider !== "saml") {
         return reply
@@ -410,78 +353,13 @@ export function ssoRoutes(fastify: FastifyInstance): void {
           .send({ error: "Bad Request", message: "SAML not configured for this org" });
       }
 
-      // Parse SAML assertion
-      let assertion: SamlAssertion;
-      try {
-        assertion = parseSamlResponse(SAMLResponse);
-      } catch (err) {
-        return reply.code(400).send({
-          error: "Bad Request",
-          message: `Invalid SAML response: ${(err as Error).message}`,
-        });
-      }
-
-      // Extract user info from assertion
-      const email =
-        assertion.attributes["email"] ??
-        assertion.attributes[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-        ] ??
-        assertion.nameId;
-      const name =
-        assertion.attributes["displayName"] ??
-        assertion.attributes["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
-        assertion.attributes["firstName"] ??
-        email.split("@")[0] ??
-        "SSO User";
-
-      // JIT provision or find existing user
-      const { user } = await jitProvisionUser({
-        userId: `usr_${randomUUID().replace(/-/g, "")}`,
-        email,
-        name,
-        orgId,
+      return reply.code(503).send({
+        error: "Service Unavailable",
+        message: buildSsoDisabledMessage("saml"),
       });
-
-      // Create SSO session
-      const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
-      await deleteSsoSessionsByUser(user.id, orgId);
-      await createSsoSession({
-        id: sessionId,
-        userId: user.id,
-        orgId,
-        idpSessionId: assertion.sessionIndex,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      });
-
-      trackPendoEvent({
-        event: "sso_login_completed",
-        visitorId: user.id,
-        accountId: orgId,
-        properties: {
-          sso_provider: "saml",
-        },
-        context: { ip: request.ip },
-      });
-
-      // Issue JWT
-      const payload: JwtPayload = { userId: user.id, orgId };
-      const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
-
-      // Redirect to frontend with token (frontend will store it)
-      const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
-      return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
     },
   );
 
-  // ────────────────────────────────────────────
-  // OIDC Callback
-  // ────────────────────────────────────────────
-
-  /**
-   * GET /v1/sso/callback/oidc
-   * Handles OIDC authorization code callback. Exchanges code, JIT provisions, returns JWT.
-   */
   fastify.get(
     "/v1/sso/callback/oidc",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
@@ -492,19 +370,16 @@ export function ssoRoutes(fastify: FastifyInstance): void {
       }
 
       const { code, state } = result.data;
-
-      // Decode state to get orgId
       let orgId: string;
       try {
-        const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8")) as {
-          orgId: string;
-        };
-        orgId = stateData.orgId;
-      } catch {
-        return reply.code(400).send({ error: "Bad Request", message: "Invalid state parameter" });
+        orgId = consumeOidcState(state);
+      } catch (err) {
+        return reply.code(400).send({
+          error: "Bad Request",
+          message: (err as Error).message,
+        });
       }
 
-      // Verify SSO config
       const ssoConfig = await getSsoConfigByOrg(orgId);
       if (!ssoConfig || ssoConfig.provider !== "oidc") {
         return reply
@@ -518,12 +393,11 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         clientSecret: string;
       };
 
-      // Exchange code for tokens and get user info
       let userInfo: OidcUserInfo;
       try {
         const redirectUri = `${baseUrl}/v1/sso/callback/oidc`;
-        const result = await exchangeOidcCode(config, code, redirectUri);
-        userInfo = result.userInfo;
+        const exchange = await exchangeOidcCode(config, code, redirectUri);
+        userInfo = exchange.userInfo;
       } catch (err) {
         return reply.code(502).send({
           error: "Bad Gateway",
@@ -537,7 +411,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
           .send({ error: "Bad Request", message: "OIDC provider did not return email" });
       }
 
-      // JIT provision or find existing user
       const { user } = await jitProvisionUser({
         userId: `usr_${randomUUID().replace(/-/g, "")}`,
         email: userInfo.email,
@@ -549,7 +422,6 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         orgId,
       });
 
-      // Create SSO session
       const sessionId = `sso_${randomUUID().replace(/-/g, "")}`;
       await deleteSsoSessionsByUser(user.id, orgId);
       await createSsoSession({
@@ -560,22 +432,24 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
 
-      trackPendoEvent({
+      void trackPendoEvent({
         event: "sso_login_completed",
         visitorId: user.id,
         accountId: orgId,
-        properties: {
-          sso_provider: "oidc",
-        },
+        properties: { sso_provider: "oidc" },
         context: { ip: request.ip },
       });
 
-      // Issue JWT
       const payload: JwtPayload = { userId: user.id, orgId };
       const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
 
       const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
-      return reply.redirect(`${frontendUrl}/sso/complete?token=${token}`);
+      const isHttps = frontendUrl.startsWith("https://");
+      reply.header(
+        "Set-Cookie",
+        `foxhound_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${isHttps ? "; Secure" : ""}; Max-Age=86400`,
+      );
+      return reply.redirect(`${frontendUrl}/sso/complete`);
     },
   );
 }

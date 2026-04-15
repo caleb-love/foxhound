@@ -38,7 +38,7 @@ jobs:
         uses: ./.github/actions/quality-gate
         with:
           api-key: ${{ secrets.FOXHOUND_API_KEY }}
-          api-endpoint: https://api.foxhound.dev
+          api-endpoint: https://api.foxhound.caleb-love.com
           dataset-id: ds_abc123
           evaluator-ids: "eval_helpfulness,eval_accuracy"
           experiment-name: "pr-${{ github.event.pull_request.number }}"

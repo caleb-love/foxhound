@@ -52,6 +52,35 @@ function formatDateTime(value: number): string {
   return new Date(value).toLocaleString();
 }
 
+function EvidenceRow({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'accent';
+}) {
+  return (
+    <div
+      className="flex items-start justify-between gap-4 rounded-[var(--tenant-radius-panel-tight)] border px-4 py-3"
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: tone === 'accent'
+          ? 'color-mix(in srgb, var(--tenant-accent-soft) 68%, white)'
+          : 'color-mix(in srgb, var(--tenant-panel-alt) 96%, white)',
+      }}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+        {label}
+      </div>
+      <div className="min-w-0 text-right text-[15px] font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -78,7 +107,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
   const toolName = isToolCall && typeof span.attributes.tool === 'string' ? span.attributes.tool : null;
   const toolResults = isToolCall && typeof span.attributes.results === 'number' ? span.attributes.results : null;
 
-  const highlightedMetrics = [
+  const summaryRows = [
     { label: 'Duration', value: duration },
     { label: 'Status', value: span.status === 'error' ? 'Error' : span.status === 'ok' ? 'Ok' : span.status },
     { label: 'Kind', value: SPAN_KIND_LABELS[span.kind] || span.kind },
@@ -88,23 +117,29 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
-        className="w-[min(92vw,720px)] overflow-y-auto border-l p-0 sm:max-w-none"
+        className="w-[min(96vw,760px)] overflow-y-auto border-l p-0 sm:w-[min(88vw,760px)] sm:max-w-none"
         style={{
           borderColor: 'var(--tenant-panel-stroke)',
-          background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel) 96%, transparent), color-mix(in srgb, var(--tenant-panel-strong) 92%, transparent))',
-          boxShadow: '-24px 0 80px color-mix(in srgb, black 18%, transparent)',
+          background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel) 99%, white), color-mix(in srgb, var(--tenant-panel-strong) 99%, white))',
+          boxShadow: '-24px 0 72px color-mix(in srgb, black 18%, transparent)',
         }}
       >
-        <SheetHeader className="border-b px-6 py-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 72%, transparent)' }}>
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-start gap-3 pr-10">
+        <SheetHeader
+          className="border-b px-5 py-5 sm:px-6 sm:py-6"
+          style={{
+            borderColor: 'var(--tenant-panel-stroke)',
+            background: 'linear-gradient(180deg, color-mix(in srgb, var(--tenant-panel) 98%, white), color-mix(in srgb, var(--tenant-panel-strong) 97%, white))',
+          }}
+        >
+          <div className="space-y-5 pr-12 sm:pr-10">
+            <div className="flex items-start gap-4">
               <div
-                className="mt-1 h-3 w-3 rounded-full shadow-sm"
-                style={{ background: accent, boxShadow: `0 0 0 6px color-mix(in srgb, ${accent} 16%, transparent)` }}
+                className="mt-1.5 h-3 w-3 shrink-0 rounded-full"
+                style={{ background: accent, boxShadow: `0 0 0 7px color-mix(in srgb, ${accent} 14%, transparent)` }}
               />
-              <div className="min-w-0 flex-1 space-y-2">
+              <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <SheetTitle className="text-[1.35rem] font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>
+                  <SheetTitle className="text-[1.55rem] font-semibold tracking-[-0.03em] sm:text-[1.7rem]" style={{ color: 'var(--tenant-text-primary)' }}>
                     {span.name}
                   </SheetTitle>
                   <Badge
@@ -120,176 +155,133 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                     {span.status}
                   </Badge>
                 </div>
-                <SheetDescription className="text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
+                <SheetDescription className="max-w-2xl text-[15px] leading-7 sm:text-base" style={{ color: 'var(--tenant-text-secondary)' }}>
                   Trace the execution evidence for this span, inspect the structured attributes, and capture the exact unit you want to compare or escalate.
                 </SheetDescription>
-                <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
-                  <span>Span id</span>
-                  <span className="font-mono normal-case tracking-normal text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{span.spanId}</span>
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    Span id
+                  </span>
+                  <span
+                    className="max-w-full overflow-hidden rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 font-mono text-sm"
+                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-primary)' }}
+                  >
+                    {span.spanId}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {highlightedMetrics.map((item) => (
-                <div
+            <div className="grid gap-3">
+              {summaryRows.map((item, index) => (
+                <EvidenceRow
                   key={item.label}
-                  className="rounded-[var(--tenant-radius-panel-tight)] border p-3.5"
-                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
-                >
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
-                    {item.label}
-                  </div>
-                  <div className="mt-2 text-base font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
-                    {item.value}
-                  </div>
-                </div>
+                  label={item.label}
+                  value={item.value}
+                  tone={index === 0 ? 'accent' : 'default'}
+                />
               ))}
             </div>
           </div>
         </SheetHeader>
 
-        <div className="space-y-6 px-6 py-6">
+        <div className="space-y-6 px-5 py-5 sm:px-6 sm:py-6">
           {(isLlmCall || isToolCall) && (
-            <section className="rounded-[var(--tenant-radius-panel)] border p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Focus details</h3>
-                  <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
-                    Primary execution data surfaced first, so the side panel reads like an investigation workspace rather than a raw JSON dump.
-                  </p>
-                </div>
+            <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Focus details</h3>
+                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+                  Primary execution data surfaced first, so the inspector reads like evidence review, not a cramped admin form.
+                </p>
               </div>
 
               {isLlmCall ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {llmModel ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-accent) 8%, white)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Model</div>
-                      <div className="mt-2 font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{llmModel}</div>
-                    </div>
-                  ) : null}
-                  {inputTokens !== null ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Input tokens</div>
-                      <div className="mt-2 text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>{inputTokens.toLocaleString()}</div>
-                    </div>
-                  ) : null}
-                  {outputTokens !== null ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Output tokens</div>
-                      <div className="mt-2 text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>{outputTokens.toLocaleString()}</div>
-                    </div>
-                  ) : null}
-                  {cost !== null ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-accent) 9%, white)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Cost</div>
-                      <div className="mt-2 text-lg font-semibold" style={{ color: accent }}>${cost.toFixed(4)}</div>
-                    </div>
-                  ) : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {llmModel ? <EvidenceRow label="Model" value={llmModel} tone="accent" /> : null}
+                  {inputTokens !== null ? <EvidenceRow label="Input tokens" value={inputTokens.toLocaleString()} /> : null}
+                  {outputTokens !== null ? <EvidenceRow label="Output tokens" value={outputTokens.toLocaleString()} /> : null}
+                  {cost !== null ? <EvidenceRow label="Cost" value={`$${cost.toFixed(4)}`} /> : null}
                 </div>
               ) : null}
 
               {isToolCall ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {toolName ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-success) 9%, white)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Tool name</div>
-                      <div className="mt-2 font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{toolName}</div>
-                    </div>
-                  ) : null}
-                  {toolResults !== null ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Results</div>
-                      <div className="mt-2 text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>{toolResults}</div>
-                    </div>
-                  ) : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {toolName ? <EvidenceRow label="Tool name" value={toolName} tone="accent" /> : null}
+                  {toolResults !== null ? <EvidenceRow label="Results" value={String(toolResults)} /> : null}
                 </div>
               ) : null}
             </section>
           )}
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_220px]">
-            <div className="rounded-[var(--tenant-radius-panel)] border p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Attributes</h3>
-                  <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
-                    Full structured payload for debugging, export, and comparison.
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy(jsonAttributes, 'attributes')}
-                  className="gap-2 rounded-[var(--tenant-radius-control-tight)] border"
-                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
-                >
-                  {copiedField === 'attributes' ? (
-                    <>
-                      <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copy JSON
-                    </>
-                  )}
-                </Button>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Attributes</h3>
+                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+                  Full structured payload for debugging, export, and comparison.
+                </p>
               </div>
-              <pre
-                className="max-h-[28rem] overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-4 text-xs leading-6"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-inset)', color: 'var(--tenant-text-secondary)' }}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(jsonAttributes, 'attributes')}
+                className="gap-2 rounded-[var(--tenant-radius-control-tight)] border"
+                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}
               >
-                {jsonAttributes}
-              </pre>
+                {copiedField === 'attributes' ? (
+                  <>
+                    <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy JSON
+                  </>
+                )}
+              </Button>
             </div>
+            <pre
+              className="max-h-[28rem] overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-[11px] leading-6 sm:p-4 sm:text-xs"
+              style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-inset)', color: 'var(--tenant-text-secondary)' }}
+            >
+              {jsonAttributes}
+            </pre>
+          </section>
 
-            <div className="space-y-6">
-              <section className="rounded-[var(--tenant-radius-panel)] border p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timing</h3>
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-                    <div style={{ color: 'var(--tenant-text-muted)' }}>Started</div>
-                    <div className="mt-1 font-mono" style={{ color: 'var(--tenant-text-primary)' }}>{formatDateTime(span.startTimeMs)}</div>
-                  </div>
-                  {span.endTimeMs ? (
-                    <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-                      <div style={{ color: 'var(--tenant-text-muted)' }}>Ended</div>
-                      <div className="mt-1 font-mono" style={{ color: 'var(--tenant-text-primary)' }}>{formatDateTime(span.endTimeMs)}</div>
-                    </div>
-                  ) : null}
-                </div>
-              </section>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timing</h3>
+            <div className="mt-4 grid gap-3">
+              <EvidenceRow label="Started" value={formatDateTime(span.startTimeMs)} />
+              {span.endTimeMs ? <EvidenceRow label="Ended" value={formatDateTime(span.endTimeMs)} /> : null}
+            </div>
+          </section>
 
-              <section className="rounded-[var(--tenant-radius-panel)] border p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Actions</h3>
-                <div className="mt-4 flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleCopy(span.spanId, 'spanId')}
-                    className="justify-start gap-2 rounded-[var(--tenant-radius-control-tight)]"
-                  >
-                    {copiedField === 'spanId' ? (
-                      <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                    Copy Span ID
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="justify-start gap-2 rounded-[var(--tenant-radius-control-tight)]"
-                    disabled
-                    title="Coming in Phase 4"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add to Dataset
-                    <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
-                  </Button>
-                </div>
-              </section>
+          <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Actions</h3>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <Button
+                variant="outline"
+                onClick={() => handleCopy(span.spanId, 'spanId')}
+                className="justify-start gap-2 rounded-[var(--tenant-radius-control-tight)]"
+              >
+                {copiedField === 'spanId' ? (
+                  <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                Copy Span ID
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 rounded-[var(--tenant-radius-control-tight)]"
+                disabled
+                title="Coming in Phase 4"
+              >
+                <Plus className="h-4 w-4" />
+                Add to Dataset
+                <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
+              </Button>
             </div>
           </section>
         </div>

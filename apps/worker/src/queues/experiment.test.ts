@@ -21,6 +21,7 @@ vi.mock("@foxhound/db", () => ({
   createScore: vi.fn(),
   listEvaluators: vi.fn(),
   getExperimentRun: vi.fn(),
+  isLlmEvaluationEnabled: vi.fn(),
 }));
 
 vi.mock("../logger.js", () => ({
@@ -149,6 +150,8 @@ describe("processExperimentJob (via processor)", () => {
 
   beforeEach(() => {
     // Default happy-path mocks
+    vi.mocked(db.isLlmEvaluationEnabled).mockResolvedValue(true);
+
     vi.mocked(db.getExperiment).mockResolvedValue({
       id: "exp_1",
       orgId: "org_1",
@@ -190,6 +193,15 @@ describe("processExperimentJob (via processor)", () => {
     vi.mocked(db.createScore).mockResolvedValue(
       undefined as unknown as Awaited<ReturnType<typeof db.createScore>>,
     );
+  });
+
+  it("fails immediately when org consent is disabled", async () => {
+    vi.mocked(db.isLlmEvaluationEnabled).mockResolvedValue(false);
+    const processor = setupProcessor();
+
+    await expect(processor(makeJob())).rejects.toThrow("LLM evaluation is not enabled");
+    expect(db.updateExperimentStatus).toHaveBeenCalledWith("exp_1", "org_1", "failed");
+    expect(db.getExperiment).not.toHaveBeenCalled();
   });
 
   // 1. Status lifecycle: running -> completed
@@ -270,6 +282,25 @@ describe("processExperimentJob (via processor)", () => {
     expect(lastStatusCall).toEqual(["exp_1", "org_1", "failed"]);
   });
 
+  it("does not re-execute runs that already have successful output", async () => {
+    vi.mocked(db.listExperimentRuns).mockResolvedValue([
+      {
+        id: "run_1",
+        datasetItemId: "item_1",
+        output: { content: "already-complete" },
+      },
+    ] as Awaited<ReturnType<typeof db.listExperimentRuns>>);
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const processor = setupProcessor();
+    await processor(makeJob());
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(db.updateExperimentRun).not.toHaveBeenCalled();
+  });
+
   // 5. Auto-scoring when evaluators exist
   it("auto-scores runs when enabled evaluators exist", async () => {
     mockFetchSuccess("Answer: 4");
@@ -324,6 +355,50 @@ describe("processExperimentJob (via processor)", () => {
         comment: expect.stringContaining("experiment:exp_1"),
       }),
     );
+  });
+
+  it("does not auto-score runs that were already completed before this worker pass", async () => {
+    vi.mocked(db.listExperimentRuns).mockResolvedValue([
+      {
+        id: "run_1",
+        datasetItemId: "item_1",
+        output: { content: "already-complete" },
+      },
+    ] as Awaited<ReturnType<typeof db.listExperimentRuns>>);
+
+    vi.mocked(db.listEvaluators).mockResolvedValue([
+      {
+        id: "eval_1",
+        orgId: "org_1",
+        name: "correctness",
+        promptTemplate: "Rate: {{output}}",
+        model: "gpt-4o",
+        scoringType: "numeric",
+        labels: null,
+        enabled: true,
+        createdAt: new Date(),
+      },
+    ] as Awaited<ReturnType<typeof db.listEvaluators>>);
+
+    vi.mocked(db.getExperimentRun).mockResolvedValue({
+      id: "run_1",
+      experimentId: "exp_1",
+      datasetItemId: "item_1",
+      output: { content: "already-complete" },
+      latencyMs: 100,
+      tokenCount: 10,
+      cost: 0.001,
+      createdAt: new Date(),
+    } as Awaited<ReturnType<typeof db.getExperimentRun>>);
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const processor = setupProcessor();
+    await processor(makeJob());
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(db.createScore).not.toHaveBeenCalled();
   });
 
   // 6. Skips scoring for runs with error output

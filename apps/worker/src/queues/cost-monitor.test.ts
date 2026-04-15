@@ -115,7 +115,7 @@ describe("cost-monitor", () => {
     ]);
     mockListNotificationChannels.mockResolvedValue([{ id: "ch_1", type: "slack" }]);
     mockDispatchAlert.mockResolvedValue(undefined);
-    mockCreateNotificationLogEntry.mockResolvedValue(undefined);
+    mockCreateNotificationLogEntry.mockResolvedValue({ id: "log_1" });
 
     await capturedProcessor({
       data: { orgId: "org_1", agentId: "agent_1", periodKey: "2024-01", level: "critical" },
@@ -138,6 +138,34 @@ describe("cost-monitor", () => {
       expect.any(Object),
     );
     expect(mockCreateNotificationLogEntry).toHaveBeenCalled();
+  });
+
+  it("does not dispatch or log when dedupe insert returns null", async () => {
+    const { startCostMonitorWorker } = await import("./cost-monitor.js");
+    startCostMonitorWorker({ host: "localhost", port: 6379 });
+
+    mockGetAgentConfig.mockResolvedValue({
+      costBudgetUsd: "100",
+      costAlertThresholdPct: 80,
+      budgetPeriod: "monthly",
+    });
+    mockSumSpanCosts.mockResolvedValue({
+      totalCost: 150,
+      totalSpans: 200,
+      unknownCostSpans: 5,
+    });
+    mockUpdateAgentConfigStatus.mockResolvedValue(undefined);
+    mockGetAlertRulesForOrg.mockResolvedValue([
+      { id: "rule_1", eventType: "cost_budget_exceeded", channelId: "ch_1" },
+    ]);
+    mockListNotificationChannels.mockResolvedValue([{ id: "ch_1", type: "slack" }]);
+    mockCreateNotificationLogEntry.mockResolvedValue(null);
+
+    await capturedProcessor({
+      data: { orgId: "org_1", agentId: "agent_1", periodKey: "2024-01", level: "critical" },
+    });
+
+    expect(mockDispatchAlert).not.toHaveBeenCalled();
   });
 
   it("processor updates status to 'under' when within budget", async () => {

@@ -53,7 +53,7 @@ jobs:
         uses: ./.github/actions/quality-gate
         with:
           api-key: ${{ secrets.FOXHOUND_API_KEY }}
-          api-endpoint: https://api.foxhound.dev
+          api-endpoint: https://api.foxhound.caleb-love.com
           dataset-id: ds_abc123
           experiment-config: |
             {
@@ -72,7 +72,7 @@ Adding `baseline-experiment-id` enables regression detection. The gate compares 
         uses: ./.github/actions/quality-gate
         with:
           api-key: ${{ secrets.FOXHOUND_API_KEY }}
-          api-endpoint: https://api.foxhound.dev
+          api-endpoint: https://api.foxhound.caleb-love.com
           dataset-id: ds_abc123
           evaluator-ids: "eval_helpfulness_v2,eval_accuracy_v1"
           experiment-name: "pr-${{ github.event.pull_request.number }}"
@@ -91,7 +91,7 @@ Adding `baseline-experiment-id` enables regression detection. The gate compares 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `api-key` | Yes | — | Foxhound API key (`fox_...`), stored as a repository secret |
-| `api-endpoint` | Yes | — | Foxhound API base URL (`https://api.foxhound.dev`) |
+| `api-endpoint` | Yes | — | Foxhound API base URL (`https://api.foxhound.caleb-love.com`) |
 | `dataset-id` | Yes | — | Dataset ID to run evaluations against |
 | `evaluator-ids` | No | — | Comma-separated evaluator IDs. Omit to use all dataset evaluators |
 | `experiment-name` | No | — | Human-readable name for this experiment run |
@@ -138,7 +138,7 @@ jobs:
         id: baseline
         with:
           api-key: ${{ secrets.FOXHOUND_API_KEY }}
-          api-endpoint: https://api.foxhound.dev
+          api-endpoint: https://api.foxhound.caleb-love.com
           dataset-id: ds_abc123
           experiment-name: "baseline-${{ github.sha }}"
           experiment-config: |

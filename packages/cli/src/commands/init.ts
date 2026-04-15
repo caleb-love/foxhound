@@ -124,7 +124,7 @@ export function registerInitCommand(program: Command): void {
     .command("init")
     .description("Initialize Foxhound in the current project")
     .option("--api-key <key>", "API key (or set FOXHOUND_API_KEY)")
-    .option("--endpoint <url>", "API endpoint", "https://api.foxhound.dev")
+    .option("--endpoint <url>", "API endpoint", "https://api.foxhound.caleb-love.com")
     .action(async (opts: { apiKey?: string; endpoint: string }) => {
       const cwd = resolve(".");
       console.log(chalk.bold("Foxhound Init\n"));
@@ -141,7 +141,7 @@ export function registerInitCommand(program: Command): void {
       let apiKey = opts.apiKey ?? process.env["FOXHOUND_API_KEY"] ?? "";
       if (!apiKey) {
         const rl = createInterface({ input: stdin, output: stdout });
-        console.log("Get your API key at https://app.foxhound.dev/settings/api-keys\n");
+        console.log("Get your API key at https://app.foxhound.caleb-love.com/settings/api-keys\n");
         apiKey = await rl.question("API key: ");
         rl.close();
       }
@@ -179,6 +179,6 @@ export function registerInitCommand(program: Command): void {
       console.log(`\nNext steps:`);
       console.log(`  1. Set your API key: ${chalk.cyan("export FOXHOUND_API_KEY=<your_api_key>")}`);
       console.log(`  2. Import ${chalk.cyan(filename)} in your agent code and run it.`);
-      console.log("Your first trace should appear at https://app.foxhound.dev within seconds.\n");
+      console.log("Your first trace should appear at https://app.foxhound.caleb-love.com within seconds.\n");
     });
 }

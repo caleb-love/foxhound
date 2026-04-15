@@ -136,8 +136,8 @@ const config: Config = {
           title: "More",
           items: [
             {
-              label: "foxhound.dev",
-              href: "https://foxhound.dev",
+              label: "foxhound.caleb-love.com",
+              href: "https://foxhound.caleb-love.com",
             },
           ],
         },

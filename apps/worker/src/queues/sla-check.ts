@@ -128,17 +128,14 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
     const channelMap = new Map<string, NotificationChannel>(
       channels.map((c) => [c.id, c as unknown as NotificationChannel]),
     );
+    const windowBucket = Math.floor(now / windowMs);
     const matchingRules = rules.filter((r) => r.eventType === alert.type);
-    const alertLogger = {
-      error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
-    };
-    await dispatchAlert(event, matchingRules, channelMap, alertLogger);
-
-    await Promise.allSettled(
+    const eligibleRules = await Promise.all(
       matchingRules
         .filter((r) => channelMap.has(r.channelId))
-        .map((rule) =>
-          createNotificationLogEntry({
+        .map(async (rule) => {
+          const dedupeKey = `sla:${orgId}:${agentId}:${alert.type}:${windowBucket}:${rule.id}`;
+          const logEntry = await createNotificationLogEntry({
             id: randomUUID(),
             orgId,
             ruleId: rule.id,
@@ -147,9 +144,20 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
             severity: "high",
             agentId,
             status: "sent",
-          }),
-        ),
-    );
+            dedupeKey,
+          });
+          return logEntry ? rule : null;
+        }),
+    ).then((rows) => rows.filter((row): row is NonNullable<typeof row> => row !== null));
+
+    if (eligibleRules.length === 0) {
+      continue;
+    }
+
+    const alertLogger = {
+      error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
+    };
+    await dispatchAlert(event, eligibleRules, channelMap, alertLogger);
   }
 }
 

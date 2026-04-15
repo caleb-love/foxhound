@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Fastify from "fastify";
 import { ssoRoutes } from "./sso.js";
 import { registerAuth } from "../plugins/auth.js";
@@ -17,6 +17,9 @@ vi.mock("@foxhound/db", () => ({
   resolveApiKey: vi.fn(),
   touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
 }));
+
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 import * as db from "@foxhound/db";
 
@@ -75,6 +78,11 @@ const mockOidcConfig = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+afterEach(() => {
+  delete process.env["OIDC_STATE_SECRET"];
+  fetchMock.mockReset();
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 // SSO Config Management (JWT-authenticated)
@@ -163,6 +171,7 @@ describe("PUT /v1/sso/config", () => {
         cert: "MIIC...",
       },
     });
+    if (res.statusCode === 500) console.error(res.body);
     expect(res.statusCode).toBe(200);
     expect(res.json().provider).toBe("saml");
     expect(db.upsertSsoConfig).toHaveBeenCalledWith(
@@ -193,6 +202,7 @@ describe("PUT /v1/sso/config", () => {
         clientSecret: "secret-456",
       },
     });
+    if (res.statusCode === 500) console.error(res.body);
     expect(res.statusCode).toBe(200);
     expect(res.json().provider).toBe("oidc");
   });
@@ -269,6 +279,7 @@ describe("PATCH /v1/sso/enforce", () => {
       headers: { authorization: `Bearer ${token}` },
       body: { enforce: true },
     });
+    if (res.statusCode === 500) console.error(res.body);
     expect(res.statusCode).toBe(200);
     expect(res.json().enforceSso).toBe(true);
   });
@@ -353,39 +364,12 @@ describe("POST /v1/sso/callback/saml", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("JIT provisions user and redirects with token on valid SAML assertion", async () => {
+  it("returns 503 because insecure SAML callback flow is disabled", async () => {
     vi.mocked(db.getSsoConfigByOrg).mockResolvedValue(mockSsoConfig);
-    vi.mocked(db.jitProvisionUser).mockResolvedValue({
-      user: {
-        id: "usr_new",
-        email: "user@acme.com",
-        name: "user",
-        passwordHash: "sso-only:no-password-login",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      provisioned: true,
-    });
-    vi.mocked(db.deleteSsoSessionsByUser).mockResolvedValue(undefined);
-    vi.mocked(db.createSsoSession).mockResolvedValue({
-      id: "sso_sess_1",
-      userId: "usr_new",
-      orgId: "org_1",
-      idpSessionId: "saml-session-123",
-      expiresAt: new Date(Date.now() + 86400000),
-      createdAt: new Date(),
-    });
 
     const app = buildApp();
     const relayState = Buffer.from(JSON.stringify({ orgId: "org_1" })).toString("base64");
-    const samlXml =
-      '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol">' +
-      '<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">' +
-      '<saml:AuthnStatement SessionIndex="saml-session-123"/>' +
-      "<saml:NameID>user@acme.com</saml:NameID>" +
-      '<saml:Attribute Name="displayName"><saml:AttributeValue>Alice</saml:AttributeValue></saml:Attribute>' +
-      "</saml:Assertion></samlp:Response>";
-    const samlResponse = Buffer.from(samlXml).toString("base64");
+    const samlResponse = Buffer.from("<fake />").toString("base64");
 
     const res = await app.inject({
       method: "POST",
@@ -393,25 +377,10 @@ describe("POST /v1/sso/callback/saml", () => {
       body: { SAMLResponse: samlResponse, RelayState: relayState },
     });
 
-    expect(res.statusCode).toBe(302);
-    expect(res.headers.location).toContain("http://localhost:3000/sso/complete?token=");
-
-    // Verify JIT provision was called
-    expect(db.jitProvisionUser).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "user@acme.com",
-        orgId: "org_1",
-      }),
-    );
-
-    // Verify SSO session was created
-    expect(db.createSsoSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: "usr_new",
-        orgId: "org_1",
-        idpSessionId: "saml-session-123",
-      }),
-    );
+    expect(res.statusCode).toBe(503);
+    expect(res.json().message).toContain("temporarily disabled");
+    expect(db.jitProvisionUser).not.toHaveBeenCalled();
+    expect(db.createSsoSession).not.toHaveBeenCalled();
   });
 });
 
@@ -438,6 +407,91 @@ describe("GET /v1/sso/callback/oidc", () => {
       url: "/v1/sso/callback/oidc?code=abc123&state=invalid-base64",
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 400 when state was not issued by the server", async () => {
+    process.env["OIDC_STATE_SECRET"] = "test-oidc-state-secret";
+    const forgedState = Buffer.from(
+      JSON.stringify({ sid: "fake", orgId: "org_1", sig: "abcd" }),
+    )
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: `/v1/sso/callback/oidc?code=abc123&state=${forgedState}`,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("sets an HttpOnly cookie and redirects without query token on successful OIDC callback", async () => {
+    process.env["OIDC_STATE_SECRET"] = "test-oidc-state-secret";
+    vi.mocked(db.getOrganizationBySlug).mockResolvedValue(mockOrg);
+    vi.mocked(db.getSsoConfigByOrg).mockResolvedValue(mockOidcConfig);
+    vi.mocked(db.jitProvisionUser).mockResolvedValue({
+      user: {
+        id: "usr_oidc",
+        email: "user@acme.com",
+        name: "Alice",
+        passwordHash: "sso-only:no-password-login",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      provisioned: true,
+    });
+    vi.mocked(db.deleteSsoSessionsByUser).mockResolvedValue(undefined);
+    vi.mocked(db.createSsoSession).mockResolvedValue({
+      id: "sso_sess_2",
+      userId: "usr_oidc",
+      orgId: "org_1",
+      idpSessionId: "oidc-subject-1",
+      expiresAt: new Date(Date.now() + 86400000),
+      createdAt: new Date(),
+    });
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ authorization_endpoint: "https://issuer.example.com/auth" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          token_endpoint: "https://issuer.example.com/token",
+          userinfo_endpoint: "https://issuer.example.com/userinfo",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "access-token", id_token: "id-token", token_type: "Bearer" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sub: "oidc-subject-1", email: "user@acme.com", name: "Alice" }),
+      });
+
+    const app = buildApp();
+    const loginRes = await app.inject({ method: "GET", url: "/v1/sso/login/acme" });
+    expect(loginRes.statusCode).toBe(302);
+    const location = loginRes.headers.location as string;
+    const authUrl = new URL(location);
+    const state = authUrl.searchParams.get("state");
+    expect(state).toBeTruthy();
+
+    const callbackRes = await app.inject({
+      method: "GET",
+      url: `/v1/sso/callback/oidc?code=auth-code&state=${encodeURIComponent(state!)}`,
+    });
+
+    if (callbackRes.statusCode === 500) console.error(callbackRes.body);
+    expect(callbackRes.statusCode).toBe(302);
+    expect(callbackRes.headers.location).toBe("http://localhost:3000/sso/complete");
+    expect((callbackRes.headers["set-cookie"] as string) || "").toContain("foxhound_token=");
+    expect((callbackRes.headers["set-cookie"] as string) || "").toContain("HttpOnly");
+    expect(callbackRes.headers.location).not.toContain("token=");
   });
 
   it("returns 400 when OIDC not configured for org", async () => {

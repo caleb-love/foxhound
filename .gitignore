@@ -63,3 +63,5 @@ docs-site/build/
 # Local auth/registry helper files must never live in committed package paths
 packages/mcp-server/.mcpregistry_github_token
 packages/mcp-server/.mcpregistry_registry_token
+
+audit/

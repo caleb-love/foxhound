@@ -19,7 +19,7 @@
       "environmentVariables": [
         {
           "name": "FOXHOUND_API_KEY",
-          "description": "Your Foxhound API key (create at foxhound.dev)",
+          "description": "Your Foxhound API key (create at foxhound.caleb-love.com)",
           "isRequired": true,
           "isSecret": true,
           "format": "string"

@@ -177,7 +177,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/annotation-queues/:id/claim",
-    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
@@ -215,7 +218,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/annotation-queue-items/:id/submit",
-    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const result = SubmitScoresSchema.safeParse(request.body);
@@ -277,7 +283,10 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.post(
     "/v1/annotation-queue-items/:id/skip",
-    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const orgId = request.orgId;

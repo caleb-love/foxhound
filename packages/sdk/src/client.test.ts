@@ -160,6 +160,32 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
 // FoxhoundClient — onBudgetExceeded callback
 // ---------------------------------------------------------------------------
 
+describe("FoxhoundClient.datasets.addItems", () => {
+  it("submits one request per dataset item using the server-supported single-item contract", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "item-created" }),
+    });
+
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const result = await client.datasets.addItems("ds_1", [
+      { input: { prompt: "one" }, expectedOutput: { response: "1" } },
+      { input: { prompt: "two" }, expectedOutput: { response: "2" }, sourceTraceId: "trace_2" },
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const firstBody = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
+    const secondBody = JSON.parse(mockFetch.mock.calls[1]![1]!.body as string);
+    expect(firstBody).toEqual({ input: { prompt: "one" }, expectedOutput: { response: "1" } });
+    expect(secondBody).toEqual({
+      input: { prompt: "two" },
+      expectedOutput: { response: "2" },
+      sourceTraceId: "trace_2",
+    });
+  });
+});
+
 describe("FoxhoundClient.onBudgetExceeded callback", () => {
   function createMockResponse(headers: Record<string, string>): {
     ok: boolean;

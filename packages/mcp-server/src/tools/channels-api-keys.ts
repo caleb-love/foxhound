@@ -61,18 +61,17 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
       confirm: z.boolean().optional().describe("Set to true to confirm deletion. Omit to preview."),
     },
     async (params) => {
-      if (!params.confirm) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `**Preview:** Will delete channel **${params.channel_id}** and any alert rules routing to it.\n\nCall again with \`confirm: true\` to execute.`,
-            },
-          ],
-        };
-      }
-      await api.deleteChannel(params.channel_id);
-      return { content: [{ type: "text", text: `Channel **${params.channel_id}** deleted.` }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `Channel deletion is not supported by the current Foxhound API. ` +
+              `Do not rely on MCP for this operation until the backend route exists. ` +
+              `Requested channel: **${params.channel_id}**.`,
+          },
+        ],
+      };
     },
   );
 

@@ -1,16 +1,15 @@
 import { TraceTable } from '@/components/traces/trace-table';
 import { TraceFilters } from '@/components/traces/trace-filters';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { getRequestUrl } from '@/lib/server-url';
-import type { Trace } from '@foxhound/types';
+import { buildLocalReviewDemo } from '@foxhound/demo-domain';
+import { SandboxTraceFilterSync } from './sandbox-trace-filter-sync';
 
-export default async function SandboxTracesPage() {
-  const response = await fetch(await getRequestUrl('/api/sandbox/traces'), {
-    cache: 'no-store',
-  });
-  
-  const data = await response.json();
-  const traces: Trace[] = data.data || [];
+export default function SandboxTracesPage() {
+  const demo = buildLocalReviewDemo();
+  const traces = demo.allTraces;
+
+  const startTimeMs = Math.min(...traces.map((trace) => Number(trace.startTimeMs)));
+  const endTimeMs = Math.max(...traces.map((trace) => Number(trace.startTimeMs)));
 
   // Extract unique agents for filter
   const uniqueAgents = Array.from(new Set(traces.map((t) => t.agentId))).sort();
@@ -26,6 +25,7 @@ export default async function SandboxTracesPage() {
           {uniqueAgents.length} named agents
         </span>
       </PageHeader>
+      <SandboxTraceFilterSync startTimeMs={startTimeMs} endTimeMs={endTimeMs} />
       <TraceFilters availableAgents={uniqueAgents} />
       <TraceTable initialData={traces} />
     </PageContainer>

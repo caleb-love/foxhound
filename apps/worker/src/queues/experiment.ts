@@ -9,6 +9,7 @@ import {
   createScore,
   listEvaluators,
   getExperimentRun,
+  isLlmEvaluationEnabled,
 } from "@foxhound/db";
 import { randomUUID } from "crypto";
 import { logger } from "../logger.js";
@@ -162,6 +163,14 @@ async function invokeEvaluator(
 async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> {
   const { experimentId, orgId } = job.data;
 
+  const consentEnabled = await isLlmEvaluationEnabled(orgId);
+  if (!consentEnabled) {
+    await updateExperimentStatus(experimentId, orgId, "failed");
+    throw new Error(
+      "LLM evaluation is not enabled for this organization, experiment execution is blocked",
+    );
+  }
+
   await updateExperimentStatus(experimentId, orgId, "running");
 
   const experiment = await getExperiment(experimentId, orgId);
@@ -171,8 +180,14 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
 
   const runs = await listExperimentRuns(experimentId, orgId);
   let failedCount = 0;
+  const newlyCompletedRunIds = new Set<string>();
 
   for (const run of runs) {
+    if (run.output && !Object.prototype.hasOwnProperty.call(run.output, "error")) {
+      log.info("Skipping already completed experiment run", { runId: run.id, experimentId, orgId });
+      continue;
+    }
+
     try {
       const item = await getDatasetItem(run.datasetItemId, orgId);
       if (!item) {
@@ -196,6 +211,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
         tokenCount: result.tokenCount,
         cost: result.cost,
       });
+      newlyCompletedRunIds.add(run.id);
     } catch (err) {
       failedCount++;
       const sanitizedError = sanitizeErrorForStorage((err as Error).message);
@@ -217,8 +233,14 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
         evaluatorCount: active.length,
       });
       for (const run of runs) {
+        if (!newlyCompletedRunIds.has(run.id)) {
+          continue;
+        }
+
         const updatedRun = await getExperimentRun(run.id, orgId);
-        if (!updatedRun?.output || updatedRun.output.error) continue;
+        if (!updatedRun?.output || Object.prototype.hasOwnProperty.call(updatedRun.output, "error")) {
+          continue;
+        }
 
         const item = await getDatasetItem(run.datasetItemId, orgId);
         if (!item?.sourceTraceId) continue;

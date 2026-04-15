@@ -79,16 +79,12 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
     channels.map((c) => [c.id, c as unknown as NotificationChannel]),
   );
   const matchingRules = rules.filter((r) => r.eventType === "cost_budget_exceeded");
-  const alertLogger = {
-    error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
-  };
-  await dispatchAlert(event, matchingRules, channelMap, alertLogger);
-
-  await Promise.allSettled(
+  const eligibleRules = await Promise.all(
     matchingRules
       .filter((r) => channelMap.has(r.channelId))
-      .map((rule) =>
-        createNotificationLogEntry({
+      .map(async (rule) => {
+        const dedupeKey = `cost:${orgId}:${agentId}:${periodKey}:${level}:${rule.id}`;
+        const logEntry = await createNotificationLogEntry({
           id: randomUUID(),
           orgId,
           ruleId: rule.id,
@@ -97,9 +93,18 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
           severity: level,
           agentId,
           status: "sent",
-        }),
-      ),
-  );
+          dedupeKey,
+        });
+        return logEntry ? rule : null;
+      }),
+  ).then((rows) => rows.filter((row): row is NonNullable<typeof row> => row !== null));
+
+  if (eligibleRules.length === 0) return;
+
+  const alertLogger = {
+    error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
+  };
+  await dispatchAlert(event, eligibleRules, channelMap, alertLogger);
 }
 
 export function startCostMonitorWorker(connection: ConnectionOptions): Worker<CostAlertJobData> {

@@ -306,6 +306,11 @@ async function processEvaluatorJob(job: Job<EvaluatorJobData>): Promise<void> {
 
   const orgId = evaluator.orgId;
 
+  if (run.status === "completed" && run.scoreId) {
+    log.info("Skipping already completed evaluator run", { runId, scoreId: run.scoreId, orgId });
+    return;
+  }
+
   // Consent gate: check BEFORE marking as running to avoid unnecessary retries
   const consentEnabled = await isLlmEvaluationEnabled(orgId);
   if (!consentEnabled) {

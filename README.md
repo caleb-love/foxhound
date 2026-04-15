@@ -17,7 +17,7 @@ Trace every decision. Evaluate every response. Budget every dollar.
 </p>
 
 <p>
-  <a href="https://docs.foxhound.dev">Docs</a> ·
+  <a href="https://docs.foxhound.caleb-love.com">Docs</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#tooling">Tooling</a> ·
   <a href="#self-hosting">Self-Hosting</a> ·

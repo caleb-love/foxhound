@@ -3,7 +3,7 @@ import { FoxhoundApiClient, toEpochMs } from "./index.js";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
-const BASE_URL = "https://api.foxhound.dev";
+const BASE_URL = "https://api.foxhound.caleb-love.com";
 const API_KEY = "fox_test_key_abc123";
 
 const mockFetch = vi.fn();
@@ -81,12 +81,12 @@ describe("FoxhoundApiClient", () => {
 
   describe("constructor", () => {
     it("strips trailing slashes from endpoint", async () => {
-      const client = makeClient({ endpoint: "https://api.foxhound.dev///" });
+      const client = makeClient({ endpoint: "https://api.foxhound.caleb-love.com///" });
       mockOk({ data: [] });
 
       await client.searchTraces({});
 
-      expect(lastCallUrl()).toMatch(/^https:\/\/api\.foxhound\.dev\/v1\/traces/);
+      expect(lastCallUrl()).toMatch(/^https:\/\/api\.foxhound\.caleb-love\.com\/v1\/traces/);
       expect(lastCallUrl()).not.toMatch(/\/\/v1/);
     });
 
@@ -96,13 +96,13 @@ describe("FoxhoundApiClient", () => {
     });
 
     it("rejects non-localhost HTTP endpoints", () => {
-      expect(() => makeClient({ endpoint: "http://api.foxhound.dev" })).toThrow(
+      expect(() => makeClient({ endpoint: "http://api.foxhound.caleb-love.com" })).toThrow(
         "Non-localhost endpoints must use HTTPS",
       );
     });
 
     it("accepts HTTPS endpoints", () => {
-      expect(() => makeClient({ endpoint: "https://api.foxhound.dev" })).not.toThrow();
+      expect(() => makeClient({ endpoint: "https://api.foxhound.caleb-love.com" })).not.toThrow();
     });
   });
 
@@ -163,11 +163,11 @@ describe("FoxhoundApiClient", () => {
       expect(lastCallOpts().method).toBe("POST");
     });
 
-    it("uses DELETE for delete operations", async () => {
+    it("uses DELETE for supported delete operations", async () => {
       const client = makeClient();
       mockOk({ success: true });
 
-      await client.deleteAlertRule("rule-1");
+      await client.deleteScore("score-1");
 
       expect(lastCallOpts().method).toBe("DELETE");
     });
@@ -661,14 +661,11 @@ describe("FoxhoundApiClient", () => {
       expect(body.minSeverity).toBe("critical");
     });
 
-    it("deleteAlertRule uses DELETE method", async () => {
+    it("deleteAlertRule throws because the backend route is not supported", async () => {
       const client = makeClient();
-      mockOk({ success: true });
 
-      await client.deleteAlertRule("rule-1");
-
-      expect(lastCallOpts().method).toBe("DELETE");
-      expect(lastCallUrl()).toContain("/v1/notifications/rules/rule-1");
+      await expect(client.deleteAlertRule("rule-1")).rejects.toThrow("not supported");
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("createChannel sends name, kind, and config", async () => {
@@ -932,8 +929,8 @@ describe("FoxhoundApiClient", () => {
 
       await client.createCheckout({
         plan: "pro_monthly",
-        successUrl: "https://app.foxhound.dev/success",
-        cancelUrl: "https://app.foxhound.dev/cancel",
+        successUrl: "https://app.foxhound.caleb-love.com/success",
+        cancelUrl: "https://app.foxhound.caleb-love.com/cancel",
       });
 
       expect(lastCallUrl()).toBe(`${BASE_URL}/v1/billing/checkout`);
@@ -945,10 +942,10 @@ describe("FoxhoundApiClient", () => {
       const client = makeClient();
       mockOk({ url: "https://billing.stripe.com/xxx" });
 
-      await client.createPortalSession("https://app.foxhound.dev/settings");
+      await client.createPortalSession("https://app.foxhound.caleb-love.com/settings");
 
       const body = JSON.parse(lastCallOpts().body as string);
-      expect(body.returnUrl).toBe("https://app.foxhound.dev/settings");
+      expect(body.returnUrl).toBe("https://app.foxhound.caleb-love.com/settings");
     });
 
     it("getBillingStatus fetches status endpoint", async () => {
