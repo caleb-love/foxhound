@@ -277,6 +277,7 @@ Update `docs/README.md` when:
 - Use consistent date prefixes (YYYY-MM-DD)
 - Group related archived docs in topic subdirectories
 - Keep `active/` lean (< 5 files typically)
+- Move templates, interview guides, tracker blanks, and review HTML out of `active/` unless they are directly steering the current implementation slice
 - Update README.md after major changes
 
 ---

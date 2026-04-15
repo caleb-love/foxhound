@@ -8,9 +8,23 @@ import { Queue } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
 
 const EVALUATOR_QUEUE_NAME = "evaluator-runs";
+const EXPERIMENT_QUEUE_NAME = "experiment-runs";
+const COST_MONITOR_QUEUE = "cost-monitor";
+const SLA_SCHEDULER_QUEUE = "sla-scheduler";
+const REGRESSION_DETECTOR_QUEUE = "regression-detector";
 
-let evaluatorQueue: Queue | null = null;
-let initialized = false;
+interface QueueCache {
+  initialized: boolean;
+  queue: Queue | null;
+}
+
+const queueCaches: Record<string, QueueCache> = {
+  [EVALUATOR_QUEUE_NAME]: { initialized: false, queue: null },
+  [EXPERIMENT_QUEUE_NAME]: { initialized: false, queue: null },
+  [COST_MONITOR_QUEUE]: { initialized: false, queue: null },
+  [SLA_SCHEDULER_QUEUE]: { initialized: false, queue: null },
+  [REGRESSION_DETECTOR_QUEUE]: { initialized: false, queue: null },
+};
 
 function parseRedisUrl(url: string): ConnectionOptions {
   const parsed = new URL(url);
@@ -22,96 +36,40 @@ function parseRedisUrl(url: string): ConnectionOptions {
   };
 }
 
-export function getEvaluatorQueue(): Queue | null {
-  if (initialized) return evaluatorQueue;
-  initialized = true;
+function getQueue(queueName: string): Queue | null {
+  const cache = queueCaches[queueName];
+  if (!cache) return null;
+  if (cache.initialized) return cache.queue;
+  cache.initialized = true;
 
   const redisUrl = process.env["REDIS_URL"];
   if (!redisUrl) return null;
 
   try {
-    const connection = parseRedisUrl(redisUrl);
-    evaluatorQueue = new Queue(EVALUATOR_QUEUE_NAME, { connection });
+    cache.queue = new Queue(queueName, { connection: parseRedisUrl(redisUrl) });
   } catch {
-    // Redis not available — evaluator runs will stay in "pending" state
-    // until a worker picks them up via polling
+    // Redis not available — queue stays null and callers fall back to degraded behavior.
   }
 
-  return evaluatorQueue;
+  return cache.queue;
 }
 
-const EXPERIMENT_QUEUE_NAME = "experiment-runs";
-
-let experimentQueue: Queue | null = null;
-let experimentInitialized = false;
+export function getEvaluatorQueue(): Queue | null {
+  return getQueue(EVALUATOR_QUEUE_NAME);
+}
 
 export function getExperimentQueue(): Queue | null {
-  if (experimentInitialized) return experimentQueue;
-  experimentInitialized = true;
-
-  const redisUrl = process.env["REDIS_URL"];
-  if (!redisUrl) return null;
-
-  try {
-    const connection = parseRedisUrl(redisUrl);
-    experimentQueue = new Queue(EXPERIMENT_QUEUE_NAME, { connection });
-  } catch {
-    // Redis not available — experiment runs will stay in "pending" state
-  }
-
-  return experimentQueue;
+  return getQueue(EXPERIMENT_QUEUE_NAME);
 }
-
-const COST_MONITOR_QUEUE = "cost-monitor";
-
-let costMonitorQueue: Queue | null = null;
-let costMonitorInitialized = false;
 
 export function getCostMonitorQueue(): Queue | null {
-  if (costMonitorInitialized) return costMonitorQueue;
-  costMonitorInitialized = true;
-  const redisUrl = process.env["REDIS_URL"];
-  if (!redisUrl) return null;
-  try {
-    costMonitorQueue = new Queue(COST_MONITOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {
-    // Redis not available — queue stays null
-  }
-  return costMonitorQueue;
+  return getQueue(COST_MONITOR_QUEUE);
 }
-
-const SLA_SCHEDULER_QUEUE = "sla-scheduler";
-
-let slaSchedulerQueue: Queue | null = null;
-let slaSchedulerInitialized = false;
 
 export function getSlaSchedulerQueue(): Queue | null {
-  if (slaSchedulerInitialized) return slaSchedulerQueue;
-  slaSchedulerInitialized = true;
-  const redisUrl = process.env["REDIS_URL"];
-  if (!redisUrl) return null;
-  try {
-    slaSchedulerQueue = new Queue(SLA_SCHEDULER_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {
-    // Redis not available — queue stays null
-  }
-  return slaSchedulerQueue;
+  return getQueue(SLA_SCHEDULER_QUEUE);
 }
 
-const REGRESSION_DETECTOR_QUEUE = "regression-detector";
-
-let regressionQueue: Queue | null = null;
-let regressionInitialized = false;
-
 export function getRegressionDetectorQueue(): Queue | null {
-  if (regressionInitialized) return regressionQueue;
-  regressionInitialized = true;
-  const redisUrl = process.env["REDIS_URL"];
-  if (!redisUrl) return null;
-  try {
-    regressionQueue = new Queue(REGRESSION_DETECTOR_QUEUE, { connection: parseRedisUrl(redisUrl) });
-  } catch {
-    // Redis not available — queue stays null
-  }
-  return regressionQueue;
+  return getQueue(REGRESSION_DETECTOR_QUEUE);
 }

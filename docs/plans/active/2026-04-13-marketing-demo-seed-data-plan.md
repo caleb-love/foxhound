@@ -6,6 +6,12 @@
 
 ## Why this plan exists
 
+This is the primary active planning doc for demo-data strategy.
+
+Supporting active companions:
+- `docs/plans/active/2026-04-13-marketing-demo-scenario-catalog.md` — canonical scenario content
+- `docs/plans/active/2026-04-13-shared-demo-domain-module-plan.md` — package boundary / implementation direction
+
 The web app has grown beyond a basic traces UI. It now presents a fuller Foxhound story:
 
 - fleet overview and leadership summary

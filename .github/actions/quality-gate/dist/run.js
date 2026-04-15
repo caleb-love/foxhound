@@ -1,19 +1,63 @@
 #!/usr/bin/env node
 "use strict";
 
+// ../../../packages/api-client/dist/http.js
+function normalizeEndpoint(endpoint) {
+  let normalized = endpoint;
+  while (normalized.endsWith("/"))
+    normalized = normalized.slice(0, -1);
+  if (!normalized.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(normalized)) {
+    throw new Error("Non-localhost endpoints must use HTTPS. Use https:// or connect to localhost for development.");
+  }
+  return normalized;
+}
+function createApiHttpClient(config) {
+  const endpoint = normalizeEndpoint(config.endpoint);
+  const apiKey = config.apiKey;
+  function authHeaders(includeJsonContentType = false) {
+    return {
+      ...includeJsonContentType ? { "Content-Type": "application/json" } : {},
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json"
+    };
+  }
+  async function parseJsonResponse(response, errorPrefix = "Foxhound API") {
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      const text = raw.length > 500 ? `${raw.slice(0, 500)}\u2026` : raw;
+      throw new Error(`${errorPrefix} ${response.status}: ${text || response.statusText}`);
+    }
+    if (response.status === 204)
+      return void 0;
+    return response.json();
+  }
+  async function request(method, path, body, options) {
+    const init = {
+      method,
+      headers: authHeaders(body !== void 0),
+      ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+    };
+    const response = await fetch(`${endpoint}${path}`, init);
+    return parseJsonResponse(response, options?.errorPrefix ?? "Foxhound API");
+  }
+  return {
+    endpoint,
+    apiKey,
+    authHeaders,
+    parseJsonResponse,
+    request
+  };
+}
+
 // ../../../packages/api-client/dist/index.js
 var FoxhoundApiClient = class {
   endpoint;
   apiKey;
+  http;
   constructor(config) {
-    let endpoint = config.endpoint;
-    while (endpoint.endsWith("/"))
-      endpoint = endpoint.slice(0, -1);
-    if (!endpoint.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(endpoint)) {
-      throw new Error("Non-localhost endpoints must use HTTPS. Use https:// or connect to localhost for development.");
-    }
-    this.endpoint = endpoint;
-    this.apiKey = config.apiKey;
+    this.http = createApiHttpClient(config);
+    this.endpoint = this.http.endpoint;
+    this.apiKey = this.http.apiKey;
   }
   // ── Traces ──────────────────────────────────────────────────────────────
   async searchTraces(params) {
@@ -354,22 +398,7 @@ var FoxhoundApiClient = class {
    * is needed, add zod schemas per-endpoint.
    */
   async request(method, path, body) {
-    const headers = {
-      Authorization: `Bearer ${this.apiKey}`,
-      Accept: "application/json"
-    };
-    const init = { method, headers };
-    if (body !== void 0) {
-      headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(body);
-    }
-    const response = await fetch(`${this.endpoint}${path}`, init);
-    if (!response.ok) {
-      const raw = await response.text().catch(() => "");
-      const text = raw.length > 500 ? raw.slice(0, 500) + "\u2026" : raw;
-      throw new Error(`Foxhound API ${response.status}: ${text || response.statusText}`);
-    }
-    return response.json();
+    return this.http.request(method, path, body);
   }
 };
 

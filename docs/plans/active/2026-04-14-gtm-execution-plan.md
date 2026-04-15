@@ -10,6 +10,15 @@
 
 ---
 
+## Execution context
+
+This is the primary active GTM execution plan.
+
+Supporting materials have been archived because they are useful reference but not the main execution driver:
+- `docs/plans/archive/gtm/2026-04-14-gtm-message-testing.md`
+- `docs/plans/archive/gtm/2026-04-14-gtm-operating-tracker.md`
+- `docs/plans/archive/gtm/2026-04-14-gtm-synthesis-and-activation-plan.md`
+
 ## Audit depth
 
 This plan is based on a **surface-exhaustive** review of repo truth, product docs, roadmap, public README/docs, and package surfaces. It is **not** a file-by-file exhaustive market review.

@@ -12,6 +12,10 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 
 **Generated artifact hygiene is a repo invariant:** Build outputs, coverage artifacts, Turborepo caches, Docusaurus build/cache output, Python coverage files, `__pycache__`, `*.pyc`, `*.tsbuildinfo`, and OS noise like `.DS_Store` must never be treated as durable repo truth. If these appear in tracked changes, classify them as hygiene debt first before doing product work. Use `pnpm check:hygiene` to catch this drift quickly.
 
+**Audit proof artifacts are evidence, not active plans:** Large audit indexes or review decks (for example a machine-readable file audit JSON or an HTML audit deck) should be archived as evidence artifacts, not left in `docs/plans/active/`. Keep the distilled findings in durable docs or an execution plan, and keep the raw proof artifact available for later spot-checking.
+
+**Local tokens and helper creds must not live inside package paths:** Even if gitignored, local auth/helper files such as registry tokens, device-flow tokens, or service login state should not live under `packages/*`, `apps/*`, or other published/distributed surfaces. Store them in a user-level location outside the repo or an explicitly local operator directory.
+
 **Explicit exception:** `.github/actions/quality-gate/dist/run.js` is an intentionally committed runtime bundle for the composite GitHub Action. Treat it as a reviewed release artifact, not as a normal package build output. Other package-level `dist/` directories should not be committed.
 
 **Authored/generated boundary must stay crisp:** Do not place generated JS, declaration files, source maps, or build output inside authored source directories like `src/`. Generated artifacts belong in build output directories only. If a package mixes generated files into source trees, fix that before broad refactors so future diffs remain reviewable.
@@ -68,6 +72,8 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 
 **One-day, one-session-file rule:** Prefer a single daily session artifact family. If the repo already has `session-YYYY-MM-DD-*.md` for the current day, append to the most relevant existing session note or handoff instead of creating a competing `session-YYYY-MM-DD.md` just because the default filename came to mind. Duplicate same-day session files fragment recovery context and burn retrieval time.
 
+**Transcript-audit scope rule:** When asked to analyze the previous session transcript, use the current conversation/tool history plus the latest same-day session handoff/note as the primary evidence set. Do not widen into old HTML decks unless the current handoff lacks the needed lesson. This keeps transcript retrospectives high-signal and low-context.
+
 ## Frontend Patterns
 
 **Wireframe-first dashboard work:** Treat the current dashboard as a functional wireframe. Optimize for behavioral correctness, auth boundaries, empty/loading/error states, and future restyling. Do not overfit to current page-specific Tailwind structure.
@@ -106,7 +112,11 @@ Append lessons learned, recurring patterns, and non-obvious rules that future ag
 
 **Run changed-package checks before broad verification:** When fixing tests or package-local typing, run a narrow lint/typecheck loop on the changed package(s) first so guessed type fixes fail early instead of surfacing only in a later repo-wide verification pass.
 
+**Use existing tests as refactor migration checklists:** For large file splits or modularization passes, read the affected package's test file before refactoring and use the registered cases/tool names as the completeness checklist. Do not stop after moving only the "obvious" first module if the tests still cover many unported behaviors. In this repo, `packages/mcp-server/src/tools.test.ts` is the migration checklist for MCP tool splits.
+
 **Workspace type-surface drift:** When changing exported function signatures or types in workspace packages like `@foxhound/db`, rebuild the producer package first and clear stale incremental/build artifacts in consuming packages before assuming the consumer code is wrong. In practice: rebuild the producer (`pnpm --filter @foxhound/db build`), remove stale `dist` / `*.tsbuildinfo` in the consumer if needed, then rerun the consumer typecheck.
+
+**Producer-first verification for workspace packages:** If a consumer package suddenly cannot resolve a workspace dependency after a safe refactor, verify the producer package itself first (`typecheck`, then `build`) before editing the consumer. Missing declarations or stale `dist/` output in the producer are often the real failure source.
 
 **Launcher-only vs persistent-nav rule:** If a dashboard page is meant for recurring operator or stakeholder use, it should be discoverable in persistent navigation, not only through a quick-jump launcher. Launcher-only is acceptable for rare utilities, not for routine summary surfaces.
 

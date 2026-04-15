@@ -1043,20 +1043,24 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
   describe("Prompt management", () => {
     it("createPromptVersion increments versions atomically within one prompt", async () => {
       const org = await createTestOrg();
-      const prompt = await queries.createPrompt({ id: "prompt-1", orgId: org.id, name: "support" });
+      const createdPrompt = await queries.createPrompt({ id: "prompt-1", orgId: org.id, name: "support" });
+      expect(createdPrompt).toBeDefined();
+      const prompt = createdPrompt!;
 
-      const v1 = await queries.createPromptVersion({
+      const createdV1 = await queries.createPromptVersion({
         id: "pv-1",
         promptId: prompt.id,
         orgId: org.id,
         content: "Version 1",
       });
-      const v2 = await queries.createPromptVersion({
+      const createdV2 = await queries.createPromptVersion({
         id: "pv-2",
         promptId: prompt.id,
         orgId: org.id,
         content: "Version 2",
       });
+      const v1 = createdV1!;
+      const v2 = createdV2!;
 
       expect(v1.version).toBe(1);
       expect(v2.version).toBe(2);
@@ -1067,19 +1071,23 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
     it("setPromptLabel moves label between versions of the same prompt", async () => {
       const org = await createTestOrg();
-      const prompt = await queries.createPrompt({ id: "prompt-label", orgId: org.id, name: "router" });
-      const v1 = await queries.createPromptVersion({
+      const createdPrompt = await queries.createPrompt({ id: "prompt-label", orgId: org.id, name: "router" });
+      expect(createdPrompt).toBeDefined();
+      const prompt = createdPrompt!;
+      const createdV1 = await queries.createPromptVersion({
         id: "pv-label-1",
         promptId: prompt.id,
         orgId: org.id,
         content: "old",
       });
-      const v2 = await queries.createPromptVersion({
+      const createdV2 = await queries.createPromptVersion({
         id: "pv-label-2",
         promptId: prompt.id,
         orgId: org.id,
         content: "new",
       });
+      const v1 = createdV1!;
+      const v2 = createdV2!;
 
       await queries.setPromptLabel({
         id: "label-1",
@@ -1199,6 +1207,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       const org = await createTestOrg();
 
       const config = await queries.upsertAgentConfig({
+        id: "agent-config-1",
         orgId: org.id,
         agentId: "agent-a",
         costBudgetUsd: "25.00",
@@ -1214,6 +1223,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       expect(updatedConfig?.lastCostStatus).toEqual({ state: "warning" });
 
       const baseline = await queries.upsertBaseline({
+        id: "baseline-1",
         orgId: org.id,
         agentId: "agent-a",
         agentVersion: "v1",

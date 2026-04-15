@@ -2,11 +2,18 @@
 
 **Date:** 2026-04-13  
 **Status:** Active  
-**Companion strategy doc:** `docs/plans/active/2026-04-13-dashboard-strategy-world-class-ia.md`
+**Companion strategy doc:** `docs/plans/archive/dashboard/2026-04-13-dashboard-strategy-world-class-ia.md`
 
 ---
 
 ## 1. Purpose
+
+This roadmap is the primary execution plan for dashboard work.
+
+Supporting plans that now act as subordinate implementation detail or archived strategy context:
+- `docs/plans/archive/dashboard/2026-04-13-dashboard-strategy-world-class-ia.md`
+- `docs/plans/active/2026-04-14-dashboard-chart-system-plan.md`
+- `docs/plans/active/2026-04-14-dashboard-filter-system-plan.md`
 
 This roadmap translates the dashboard strategy into a multi-session execution plan.
 

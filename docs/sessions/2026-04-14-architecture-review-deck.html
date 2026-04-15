@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foxhound Architecture Review — 2026-04-14</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: #0b1630;
+      --panel: rgba(12, 22, 40, 0.72);
+      --panel-strong: rgba(10, 18, 34, 0.9);
+      --border: rgba(170, 210, 255, 0.16);
+      --text: #ecf4ff;
+      --muted: #9fb4d1;
+      --cyan: #64e6ff;
+      --violet: #8d7dff;
+      --mint: #67f7c1;
+      --amber: #ffcf70;
+      --red: #ff7a90;
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(100,230,255,0.10), transparent 22%),
+        radial-gradient(circle at top right, rgba(141,125,255,0.10), transparent 20%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+    }
+    .grid {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0.08;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(180deg, rgba(255,255,255,0.7), transparent);
+    }
+    .wrap { width: min(1200px, calc(100% - 40px)); margin: 0 auto; }
+    .nav {
+      position: sticky; top: 0; z-index: 20; backdrop-filter: blur(16px);
+      background: rgba(7,17,31,0.68); border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { display:flex; gap:14px; align-items:center; justify-content:space-between; padding:14px 0; }
+    .brand { font-weight: 700; letter-spacing: 0.02em; }
+    .links { display:flex; flex-wrap:wrap; gap:10px; }
+    .links a {
+      color: var(--muted); text-decoration:none; padding:8px 12px; border:1px solid transparent;
+      border-radius: 999px; background: rgba(255,255,255,0.03);
+    }
+    .links a:hover { color: var(--text); border-color: var(--border); }
+    header.hero { padding: 52px 0 28px; }
+    .hero-card, .card {
+      background: var(--panel); border:1px solid var(--border); box-shadow: var(--shadow);
+      border-radius: var(--radius); backdrop-filter: blur(14px);
+    }
+    .hero-card { padding: 28px; }
+    .eyebrow { color: var(--cyan); text-transform: uppercase; letter-spacing: 0.18em; font-size: 12px; font-weight: 700; }
+    h1 { font-size: clamp(34px, 5vw, 64px); line-height: 1.02; margin: 10px 0 14px; }
+    h2 { font-size: 28px; margin: 0 0 16px; }
+    h3 { font-size: 20px; margin: 0 0 10px; }
+    p { margin: 0 0 14px; color: var(--text); }
+    .muted { color: var(--muted); }
+    .pill {
+      display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:7px 12px;
+      border:1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--muted);
+      font-size: 13px; margin: 6px 8px 0 0;
+    }
+    .section { padding: 18px 0 12px; }
+    .cards, .metrics, .two, .three { display:grid; gap:16px; }
+    .metrics { grid-template-columns: repeat(4, minmax(0,1fr)); margin-top: 22px; }
+    .two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .cards { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .metric, .card { padding: 20px; }
+    .metric .k { font-size: 34px; font-weight: 800; margin-bottom: 6px; }
+    .metric .l { color: var(--muted); }
+    ul { margin: 10px 0 0 18px; padding: 0; }
+    li { margin: 6px 0; color: var(--text); }
+    .good { color: var(--mint); }
+    .warn { color: var(--amber); }
+    .bad { color: var(--red); }
+    .code, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    .quote {
+      padding: 18px 20px; border-left: 3px solid var(--cyan); background: rgba(100,230,255,0.06);
+      border-radius: 14px; color: #dff9ff;
+    }
+    table { width:100%; border-collapse: collapse; overflow: hidden; border-radius: 16px; }
+    th, td { text-align:left; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th { color: var(--cyan); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+    tr:last-child td { border-bottom: 0; }
+    .footer { padding: 26px 0 50px; color: var(--muted); }
+    @media (max-width: 900px) {
+      .metrics, .two, .three { grid-template-columns: 1fr; }
+      .wrap { width: min(100% - 24px, 1200px); }
+      .nav-inner { align-items:flex-start; flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid"></div>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand">Foxhound Architecture Review</div>
+      <div class="links code">
+        <a href="#summary">Summary</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#right">Got Right</a>
+        <a href="#wrong">Got Wrong</a>
+        <a href="#bloat">Bloat & Debt</a>
+        <a href="#restart">If Starting Over</a>
+        <a href="#evidence">Evidence</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap" id="summary">
+    <div class="hero-card">
+      <div class="eyebrow">Surface-exhaustive repo review • 2026-04-14</div>
+      <h1>Strong product architecture,<br/>moderate monorepo sprawl.</h1>
+      <p class="muted">Foxhound is fundamentally set up around the right core: a TypeScript monorepo, Fastify API, Drizzle/Postgres, BullMQ worker, typed clients/SDKs, and a clear multi-tenant security posture. The problems are less “wrong foundation” and more “too many surfaces grew at once, faster than consolidation.”</p>
+      <div>
+        <span class="pill">Verdict: <strong>good bones</strong></span>
+        <span class="pill">Main risk: <strong>surface-area inflation</strong></span>
+        <span class="pill">Biggest debt: <strong>process/doc sprawl + oversized modules</strong></span>
+        <span class="pill">Rebuild stance: <strong>evolution, not rewrite</strong></span>
+      </div>
+
+      <div class="metrics">
+        <div class="metric card">
+          <div class="k good">8/10</div>
+          <div class="l">Core architecture direction</div>
+        </div>
+        <div class="metric card">
+          <div class="k warn">5/10</div>
+          <div class="l">Current simplification / cohesion</div>
+        </div>
+        <div class="metric card">
+          <div class="k warn">6/10</div>
+          <div class="l">Execution hygiene</div>
+        </div>
+        <div class="metric card">
+          <div class="k bad">7/10</div>
+          <div class="l">Risk of future accidental bloat</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="section" id="architecture">
+      <div class="two">
+        <div class="card">
+          <h2>Architecture in plain English</h2>
+          <ul>
+            <li><strong>Apps:</strong> <span class="code">apps/api</span>, <span class="code">apps/worker</span>, <span class="code">apps/web</span></li>
+            <li><strong>Core runtime:</strong> Fastify API + BullMQ worker + Postgres/Neon + Redis/Upstash</li>
+            <li><strong>Shared packages:</strong> DB, API client, SDK, Python SDK, CLI, MCP server, billing, notifications, types, demo-domain</li>
+            <li><strong>Docs/public surfaces:</strong> internal <span class="code">docs/</span>, public <span class="code">docs-site/</span>, GitHub Action quality gate</li>
+            <li><strong>Design intent:</strong> one codebase serving product UI, ingestion, async compute, and external developer surfaces</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>System shape</h2>
+          <div class="quote code">
+SDK / CLI / MCP / Web / GitHub Action<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;↓<br/>
+Fastify API (auth, ingestion, CRUD, orchestration)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;↙&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘<br/>
+Postgres (system of record)&nbsp;&nbsp;&nbsp;Redis/BullMQ<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;↘&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↙<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Worker (evals, experiments, SLA, cost, regression)
+          </div>
+          <p class="muted" style="margin-top:14px">This is the right topology for a small-team observability product that needs both control-plane correctness and async analytics workflows.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="right">
+      <h2>What it got right</h2>
+      <div class="cards">
+        <div class="card">
+          <h3 class="good">1. Correct service split</h3>
+          <p>Separating API request handling from worker jobs was the right early decision. Evaluators, experiments, cost monitors, SLA checks, and regression detection belong off the request path.</p>
+        </div>
+        <div class="card">
+          <h3 class="good">2. Multi-tenant discipline is explicit</h3>
+          <p>The repo repeatedly encodes the <span class="code">org_id</span> rule in docs and code. That’s exactly what a security-sensitive infra product should do.</p>
+        </div>
+        <div class="card">
+          <h3 class="good">3. Drizzle + Postgres was the right starting store</h3>
+          <p>For the current product stage, Postgres is an excellent system of record for auth, config, billing, prompts, evaluations, datasets, and even early telemetry.</p>
+        </div>
+        <div class="card">
+          <h3 class="good">4. External surfaces are first-class</h3>
+          <p>Typed API client, SDKs, CLI, MCP server, docs site, and CI action all show good platform instincts. This is not “just an internal app.”</p>
+        </div>
+        <div class="card">
+          <h3 class="good">5. Thoughtful telemetry modeling</h3>
+          <p>The hybrid trace model—summary record plus normalized spans, with JSONB where flexibility helps—is pragmatic, not dogmatic.</p>
+        </div>
+        <div class="card">
+          <h3 class="good">6. Docs know the architecture’s real scaling limit</h3>
+          <p>The architecture docs correctly identify that Postgres is fine now but not the forever analytics engine. That’s unusually clear-headed.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="card">
+        <h3>Best architectural decision in the repo</h3>
+        <p class="quote">Treating Foxhound as a <strong>control plane + telemetry platform</strong>, not just a dashboard. The API, worker, SDK, MCP, CLI, and docs all reinforce that. That gives the product leverage.</p>
+      </div>
+    </section>
+
+    <section class="section" id="wrong">
+      <h2>What it got wrong or only half-right</h2>
+      <div class="cards">
+        <div class="card">
+          <h3 class="warn">1. Too many product surfaces at once</h3>
+          <p>The repo carries API, worker, web dashboard, TS SDK, Python SDK, CLI, MCP server, docs-site, GitHub Action, and demo-domain simultaneously. Ambitious, but expensive in maintenance and coherence.</p>
+        </div>
+        <div class="card">
+          <h3 class="warn">2. Monoliths re-emerged inside the monorepo</h3>
+          <p><span class="code">packages/db/src/queries.ts</span> is still a high-risk gravity well even after partial decomposition. Similar issue in large API/client/MCP entry files.</p>
+        </div>
+        <div class="card">
+          <h3 class="warn">3. Client logic is duplicated across packages</h3>
+          <p>The API client and SDK both implement raw fetch layers and overlapping endpoint wrappers. That increases drift risk and slows interface cleanup.</p>
+        </div>
+        <div class="card">
+          <h3 class="warn">4. Web layer is strategically ahead of backend maturity</h3>
+          <p>The dashboard is broad and thoughtful, but much of it still behaves like a wireframe/product shell. That’s fine, but it means the front-end surface area outpaced backend depth.</p>
+        </div>
+        <div class="card">
+          <h3 class="warn">5. Process artifacts are bleeding into repo truth</h3>
+          <p>There are many active plans, review HTMLs, session decks, and generated audit artifacts. Some are useful; together they create retrieval noise and “which document matters?” overhead.</p>
+        </div>
+        <div class="card">
+          <h3 class="warn">6. Telemetry persistence path is still transitional</h3>
+          <p>The architecture doc says the right thing about future ClickHouse/object storage, but the codebase still reflects a Postgres-first world with micro-batch buffering. That’s acceptable now, but clearly an upcoming fault line.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="bloat">
+      <h2>Bloat and tech debt inventory</h2>
+      <div class="three">
+        <div class="card">
+          <h3>Structural debt</h3>
+          <ul>
+            <li>Oversized query surface in DB package</li>
+            <li>Large MCP server entrypoint with many tools in one file</li>
+            <li>Large typed client surface in one file</li>
+            <li>SDK namespaces hand-roll transport instead of sharing more infrastructure</li>
+            <li>API app entrypoint manually registers many routes one by one</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Surface-area bloat</h3>
+          <ul>
+            <li>Too many near-simultaneous product/package bets</li>
+            <li>Dashboard breadth exceeds likely daily usage maturity</li>
+            <li>Docs-site + internal docs + session decks + plans all active</li>
+            <li>Demo-domain exists because product presentation needs are real, but it adds another axis to maintain</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Hygiene debt</h3>
+          <ul>
+            <li>Local generated artifacts in app trees (<span class="code">.next</span>, <span class="code">.turbo</span>, <span class="code">node_modules</span>)</li>
+            <li>Readmes that lag reality in places, especially around “in progress” vs already-shipped UI breadth</li>
+            <li>Too many active plans for one repo state snapshot</li>
+            <li>Mixed durable truth and review artifacts in nearby locations</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="card">
+        <h3>Important distinction: intentional scope vs bad bloat</h3>
+        <table>
+          <thead>
+            <tr><th>Area</th><th>My read</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>API + Worker</td><td class="good">Intentional</td><td>Needed split for product correctness and async work.</td></tr>
+            <tr><td>SDK + CLI + MCP</td><td class="good">Mostly intentional</td><td>These are strong GTM/distribution surfaces for this category.</td></tr>
+            <tr><td>Web dashboard breadth</td><td class="warn">Partly bloated</td><td>Good strategy, but some breadth likely exceeds current operator needs.</td></tr>
+            <tr><td>Docs + plans + session decks</td><td class="bad">Real bloat</td><td>Retrieval overhead is now non-trivial.</td></tr>
+            <tr><td>Generated local artifacts in tree</td><td class="bad">Noise, not product value</td><td>Even when ignored, they clutter audits and navigation.</td></tr>
+            <tr><td>Demo-domain package</td><td class="warn">Useful but should stay tiny</td><td>Valuable for demos/review, dangerous if it becomes a parallel product model.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="two">
+        <div class="card">
+          <h3>Top 5 tech-debt items I’d fix first</h3>
+          <ol>
+            <li>Finish decomposing DB query layer by domain and stop exporting giant grab-bags.</li>
+            <li>Split MCP tools into per-domain modules with a tiny registration index.</li>
+            <li>Unify transport/client primitives so SDK and API client share more code/contracts.</li>
+            <li>Prune active plans/review artifacts into a tighter “current truth vs archive” split.</li>
+            <li>Introduce a sharper control-plane vs telemetry-read boundary in code before adding more analytics features.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>What I would not call debt</h3>
+          <ul>
+            <li>Using Postgres today</li>
+            <li>Using BullMQ today</li>
+            <li>Having a monorepo</li>
+            <li>Having a Python SDK and TS SDK together</li>
+            <li>Having an MCP server at all</li>
+          </ul>
+          <p class="muted">Those are category-appropriate choices. The debt is mostly in <em>how much got layered on top without enough consolidation passes</em>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="restart">
+      <h2>If I were starting from scratch again</h2>
+      <div class="card">
+        <h3>My setup, knowing what this review revealed</h3>
+        <div class="three">
+          <div>
+            <h3 class="code">Phase 1: Ship the spine only</h3>
+            <ul>
+              <li>Monorepo still</li>
+              <li>Apps: API, worker</li>
+              <li>Packages: db, types, api-client, sdk, sdk-py</li>
+              <li>No CLI/MCP/docs-site/web until the core event model stabilizes</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="code">Phase 2: Add 1 operator surface</h3>
+            <ul>
+              <li>Add either MCP <em>or</em> web first, not both together</li>
+              <li>I’d probably add MCP before full dashboard</li>
+              <li>Use it to validate debugging workflows before visualizing every page</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="code">Phase 3: Add distribution layers</h3>
+            <ul>
+              <li>Docs-site after the public API/SDK contracts settle</li>
+              <li>CLI only if real user workflows justify it</li>
+              <li>GitHub Action after experiment/eval path is stable</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="two">
+        <div class="card">
+          <h3>Clean-slate architecture I’d choose</h3>
+          <ul>
+            <li><strong>Repo:</strong> pnpm + Turborepo monorepo</li>
+            <li><strong>Backend:</strong> Fastify + Zod + Drizzle</li>
+            <li><strong>DB:</strong> Postgres as system of record</li>
+            <li><strong>Jobs:</strong> Redis + BullMQ</li>
+            <li><strong>Analytics roadmap:</strong> explicit future ClickHouse lane from day 0, but not implemented until pain justifies it</li>
+            <li><strong>Package boundaries:</strong> <span class="code">domain-auth</span>, <span class="code">domain-traces</span>, <span class="code">domain-evals</span>, <span class="code">domain-prompts</span> style modules rather than giant query/util files</li>
+            <li><strong>Contracts:</strong> one canonical HTTP transport/shared schema layer used by SDK, CLI, and MCP</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What I’d consciously avoid</h3>
+          <ul>
+            <li>Building a broad dashboard before operator workflows are proven</li>
+            <li>Letting docs/plans/session decks all live as equally “active” truth</li>
+            <li>Hand-maintaining many large entry files</li>
+            <li>Shipping overlapping external surfaces without a shared contract core</li>
+            <li>Keeping telemetry analytics tightly coupled to Postgres query shapes for too long</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="card">
+        <h3>Rewrite or refactor?</h3>
+        <p><strong>Refactor.</strong> I would not restart this repo from zero unless the goal were explicitly to reduce product scope. The current repo already made many correct choices. The win is in <strong>consolidation</strong>, not reinvention.</p>
+        <p class="quote">If I were your principal engineer, I’d recommend a 3–5 week simplification campaign: collapse large modules, reduce documentation noise, tighten package contracts, and formalize the future telemetry split—without changing product direction.</p>
+      </div>
+    </section>
+
+    <section class="section" id="evidence">
+      <h2>Evidence trail</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Docs used</h3>
+          <ul class="code">
+            <li>docs/overview/start-here.md</li>
+            <li>docs/overview/project-overview.md</li>
+            <li>docs/overview/current-status.md</li>
+            <li>docs/architecture.md</li>
+            <li>docs/reference/engineering-notes.md</li>
+            <li>docs/README.md</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Configs sampled</h3>
+          <ul class="code">
+            <li>package.json</li>
+            <li>pnpm-workspace.yaml</li>
+            <li>turbo.json</li>
+            <li>apps/*/package.json</li>
+            <li>packages/*/package.json</li>
+            <li>docs-site/package.json</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Key code sampled</h3>
+          <ul class="code">
+            <li>apps/api/src/index.ts</li>
+            <li>apps/api/src/routes/otlp.ts</li>
+            <li>apps/api/src/queue.ts</li>
+            <li>apps/api/src/persistence.ts</li>
+            <li>apps/worker/src/index.ts</li>
+            <li>packages/db/src/schema.ts</li>
+            <li>packages/db/src/queries*.ts</li>
+            <li>packages/api-client/src/index.ts</li>
+            <li>packages/sdk/src/client.ts</li>
+            <li>packages/mcp-server/src/index.ts</li>
+            <li>apps/web/app + components + lib</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>Specific observations grounded in files</h3>
+        <table>
+          <thead>
+            <tr><th>Observation</th><th>Evidence</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>API and worker responsibilities are sensibly split</td><td class="code">apps/api/src/index.ts, apps/worker/src/index.ts</td></tr>
+            <tr><td>Telemetry ingest is already optimized for async-ish acceptance</td><td class="code">apps/api/src/routes/otlp.ts, apps/api/src/persistence.ts</td></tr>
+            <tr><td>Queue topology is explicit but repetitive</td><td class="code">apps/api/src/queue.ts</td></tr>
+            <tr><td>Tenant-scoped DB modeling is strong</td><td class="code">packages/db/src/schema.ts, queries-auth.ts, queries-traces.ts</td></tr>
+            <tr><td>DB layer still carries monolith pressure</td><td class="code">packages/db/src/queries.ts + many domain exports</td></tr>
+            <tr><td>API client is broad and centralized</td><td class="code">packages/api-client/src/index.ts</td></tr>
+            <tr><td>SDK duplicates transport ideas instead of fully reusing client</td><td class="code">packages/sdk/src/client.ts</td></tr>
+            <tr><td>MCP server has become a giant tool registry/implementation file</td><td class="code">packages/mcp-server/src/index.ts</td></tr>
+            <tr><td>Web app has broad operator/dashboard ambitions</td><td class="code">apps/web/components/*, apps/web/lib/*, apps/web/README.md</td></tr>
+            <tr><td>Repo has meaningful docs/process artifact sprawl</td><td class="code">docs/plans/active/*, docs/sessions/*</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="card">
+        <h3>Bottom line</h3>
+        <p>Foxhound is <strong>not an overengineered mess</strong>. It is a promising, strategically well-aimed platform that has accumulated the normal debt of a team building product, platform, and distribution at the same time. The answer is not a ground-up rewrite. The answer is to preserve the core architecture and run a hard consolidation pass.</p>
+      </div>
+    </section>
+
+    <div class="footer code">Generated from a surface-exhaustive architecture audit. Deliverable path: <span>docs/sessions/2026-04-14-architecture-review-deck.html</span></div>
+  </main>
+</body>
+</html>

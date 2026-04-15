@@ -67,15 +67,19 @@ When docs disagree, use this order:
 - [`reference/engineering-notes.md`](reference/engineering-notes.md)
 - [`reference/architecture-decisions.md`](reference/architecture-decisions.md)
 - [`reference/requirements-traceability.md`](reference/requirements-traceability.md)
+- [`reference/2026-04-14-audit-findings-summary.md`](reference/2026-04-14-audit-findings-summary.md)
 - [`../SECURITY.md`](../SECURITY.md)
 
 ### Roadmap and Plans
 - [`specs/2026-04-10-foxhound-strategic-roadmap-design.md`](specs/2026-04-10-foxhound-strategic-roadmap-design.md)
 - [`roadmap/milestones/m001/m001-summary.md`](roadmap/milestones/m001/m001-summary.md)
+- [`plans/active/README.md`](plans/active/README.md)
 - [`plans/active/2026-04-12-phase6-prompt-management-hardening.md`](plans/active/2026-04-12-phase6-prompt-management-hardening.md)
 - [`plans/active/2026-04-12-testing-qa-gap-analysis.md`](plans/active/2026-04-12-testing-qa-gap-analysis.md)
-- [`plans/active/2026-04-13-dashboard-strategy-world-class-ia.md`](plans/active/2026-04-13-dashboard-strategy-world-class-ia.md)
 - [`plans/active/2026-04-13-dashboard-implementation-roadmap.md`](plans/active/2026-04-13-dashboard-implementation-roadmap.md)
+- [`plans/active/2026-04-14-architecture-consolidation-plan.md`](plans/active/2026-04-14-architecture-consolidation-plan.md)
+- [`plans/active/2026-04-14-gtm-execution-plan.md`](plans/active/2026-04-14-gtm-execution-plan.md)
+- [`reference/2026-04-14-audit-findings-summary.md`](reference/2026-04-14-audit-findings-summary.md)
 
 ## Naming Conventions
 
@@ -93,11 +97,11 @@ When docs disagree, use this order:
 | Durable engineering reference | `docs/reference/` |
 | Strategic design specs | `docs/specs/` |
 | Milestone summaries and validation | `docs/roadmap/milestones/` |
-| Active implementation plans | `docs/plans/active/` |
+| Active implementation plans that are currently driving execution | `docs/plans/active/` |
 | Completed plans | `docs/plans/completed/` |
-| Archived/superseded plans | `docs/plans/archive/` |
+| Archived/superseded plans, templates, and review artifacts | `docs/plans/archive/` |
 | Testing guides and QA docs | `docs/plans/testing/` |
-| Session logs and evidence decks | `docs/sessions/` |
+| Session logs, HTML decks, and evidence artifacts | `docs/sessions/` |
 
 ## Cleanup Rules
 
@@ -105,4 +109,6 @@ When docs disagree, use this order:
 - Avoid introducing tool-specific folder names into durable docs structure.
 - Prefer updating existing reference docs over creating near-duplicates.
 - Keep `plans/active/` small and current.
+- `plans/active/` is for execution-driving plans only, not templates, review decks, or one-off audit artifacts.
+- Put session decks, audit HTML, and transcript-derived evidence in `docs/sessions/` unless they are still actively steering implementation.
 - Treat `sessions/` as evidence/history, not primary truth.
