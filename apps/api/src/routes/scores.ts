@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { createScore, queryScores, getScoresByTraceId, deleteScore, getTrace } from "@foxhound/db";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreateScoreSchema = z.object({
   traceId: z.string().min(1),
@@ -60,6 +61,21 @@ export function scoresRoutes(fastify: FastifyInstance): void {
       source,
       comment,
       userId: request.userId,
+    });
+
+    trackPendoEvent({
+      event: "score_created",
+      visitorId: request.userId ?? "system",
+      accountId: orgId,
+      properties: {
+        traceId,
+        spanId: spanId ?? null,
+        scoreName: name,
+        source,
+        hasValue: value !== undefined,
+        hasLabel: label !== undefined,
+        hasComment: !!comment,
+      },
     });
 
     return reply.code(201).send(score);

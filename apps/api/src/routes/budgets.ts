@@ -8,6 +8,7 @@ import {
   deleteAgentConfig,
 } from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const UpsertBudgetSchema = z.object({
   costBudgetUsd: z.number().positive(),
@@ -53,6 +54,19 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
       maxDurationMs: config.maxDurationMs,
       minSuccessRate: config.minSuccessRate ? Number(config.minSuccessRate) : null,
       evaluationWindowMs: config.evaluationWindowMs,
+    });
+
+    trackPendoEvent({
+      event: "budget_configured",
+      visitorId: request.userId ?? "system",
+      accountId: orgId,
+      properties: {
+        agentId,
+        costBudgetUsd: result.data.costBudgetUsd,
+        costAlertThresholdPct: result.data.costAlertThresholdPct,
+        budgetPeriod: result.data.budgetPeriod,
+        isCreate,
+      },
     });
 
     return reply.code(isCreate ? 201 : 200).send(config);

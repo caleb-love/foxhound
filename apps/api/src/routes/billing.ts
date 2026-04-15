@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { getOrganizationById, updateOrgStripeCustomerId, getUsageForPeriod } from "@foxhound/db";
 import { getEntitlements, currentBillingPeriod, periodBounds } from "@foxhound/billing";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 // ── Billing status cache ──────────────────────────────────────────────────────
 // Simple in-memory TTL cache for GET /v1/billing/status responses.
@@ -109,6 +110,17 @@ export function billingRoutes(fastify: FastifyInstance): void {
         metadata: { orgId: org.id },
       });
 
+      trackPendoEvent({
+        event: "checkout_session_created",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          plan,
+          currentPlan: org.plan,
+        },
+        context: { ip: request.ip },
+      });
+
       return reply.code(200).send({ url: session.url });
     },
   );
@@ -156,6 +168,16 @@ export function billingRoutes(fastify: FastifyInstance): void {
       const session = await stripe.billingPortal.sessions.create({
         customer: org.stripeCustomerId,
         return_url: returnUrl,
+      });
+
+      trackPendoEvent({
+        event: "billing_portal_opened",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          currentPlan: org.plan,
+        },
+        context: { ip: request.ip },
       });
 
       return reply.code(200).send({ url: session.url });
@@ -326,6 +348,18 @@ export function billingRoutes(fastify: FastifyInstance): void {
         quantity: overage,
         timestamp: Math.floor(Date.now() / 1000),
         action: "set",
+      });
+
+      trackPendoEvent({
+        event: "span_overage_reported",
+        visitorId: "system",
+        accountId: orgId,
+        properties: {
+          overage,
+          spansUsed,
+          includedLimit,
+          period,
+        },
       });
 
       fastify.log.info(

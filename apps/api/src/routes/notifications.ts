@@ -12,6 +12,7 @@ import {
 } from "@foxhound/db";
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Validation schemas
@@ -65,6 +66,17 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
       config: config as Record<string, unknown>,
     });
 
+    trackPendoEvent({
+      event: "notification_channel_created",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        channelId: channel.id,
+        kind,
+        name,
+      },
+    });
+
     return reply.code(201).send(sanitizeChannel(channel));
   });
 
@@ -101,6 +113,18 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
       eventType,
       minSeverity,
       channelId,
+    });
+
+    trackPendoEvent({
+      event: "alert_rule_created",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        ruleId: rule.id,
+        eventType,
+        minSeverity,
+        channelId,
+      },
     });
 
     return reply.code(201).send(rule);
@@ -185,6 +209,18 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
         errorMsg = err instanceof Error ? err.message : "Unknown error";
         fastify.log.error({ err, channelId }, "Test notification failed");
       }
+
+      trackPendoEvent({
+        event: "test_notification_sent",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          channelId,
+          eventType,
+          severity,
+          deliveryStatus: status,
+        },
+      });
 
       await createNotificationLogEntry({
         id: randomUUID(),

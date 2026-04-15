@@ -25,6 +25,7 @@ import {
   writeAuditLog,
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreatePromptSchema = z.object({
   name: z
@@ -126,6 +127,16 @@ export function promptsRoutes(fastify: FastifyInstance): void {
           .code(500)
           .send({ error: "Internal Server Error", message: "Failed to create prompt" });
       }
+
+      trackPendoEvent({
+        event: "prompt_created",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          promptId: prompt.id,
+          name,
+        },
+      });
 
       writeAuditLog({
         orgId,
@@ -249,6 +260,19 @@ export function promptsRoutes(fastify: FastifyInstance): void {
           .code(500)
           .send({ error: "Internal Server Error", message: "Failed to create version" });
       }
+
+      trackPendoEvent({
+        event: "prompt_version_created",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          promptId: id,
+          versionId: version.id,
+          versionNumber: version.version,
+          model: result.data.model ?? null,
+          contentLength: result.data.content.length,
+        },
+      });
 
       writeAuditLog({
         orgId: request.orgId,
@@ -381,6 +405,17 @@ export function promptsRoutes(fastify: FastifyInstance): void {
         label,
       });
 
+      trackPendoEvent({
+        event: "prompt_label_set",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          promptId: id,
+          versionNumber,
+          label,
+        },
+      });
+
       writeAuditLog({
         orgId: request.orgId,
         action: "prompt_label.set",
@@ -429,6 +464,17 @@ export function promptsRoutes(fastify: FastifyInstance): void {
           message: `Label "${label}" not found`,
         });
       }
+
+      trackPendoEvent({
+        event: "prompt_label_deleted",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          promptId: id,
+          versionNumber: version.version,
+          label,
+        },
+      });
 
       writeAuditLog({
         orgId: request.orgId,
@@ -479,6 +525,17 @@ export function promptsRoutes(fastify: FastifyInstance): void {
           message: `No prompt "${name}" with label "${resolvedLabel}" found`,
         });
       }
+
+      trackPendoEvent({
+        event: "prompt_resolved",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          promptName: name,
+          label: resolvedLabel,
+          versionNumber: version.version,
+        },
+      });
 
       writeAuditLog({
         orgId: request.orgId,

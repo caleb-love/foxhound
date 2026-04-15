@@ -8,6 +8,7 @@ import {
   deleteAgentConfig,
 } from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const UpsertSLASchema = z
   .object({
@@ -59,6 +60,20 @@ export function slasRoutes(fastify: FastifyInstance): void {
       maxDurationMs: config.maxDurationMs,
       minSuccessRate: config.minSuccessRate ? Number(config.minSuccessRate) : null,
       evaluationWindowMs: config.evaluationWindowMs,
+    });
+
+    trackPendoEvent({
+      event: "sla_configured",
+      visitorId: request.userId ?? "system",
+      accountId: orgId,
+      properties: {
+        agentId,
+        maxDurationMs: result.data.maxDurationMs ?? null,
+        minSuccessRate: result.data.minSuccessRate ?? null,
+        evaluationWindowMs: result.data.evaluationWindowMs,
+        minSampleSize: result.data.minSampleSize,
+        isCreate,
+      },
     });
 
     return reply.code(isCreate ? 201 : 200).send(config);

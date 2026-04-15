@@ -15,6 +15,7 @@ import {
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { getEvaluatorQueue } from "../queue.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreateEvaluatorSchema = z.object({
   name: z.string().min(1).max(100),
@@ -67,6 +68,19 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
         model,
         scoringType,
         labels,
+      });
+
+      trackPendoEvent({
+        event: "evaluator_created",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          evaluatorId: evaluator.id,
+          name,
+          model,
+          scoringType,
+          labelCount: labels?.length ?? 0,
+        },
       });
 
       // Audit: evaluator creation
@@ -134,6 +148,16 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
         return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
 
+      trackPendoEvent({
+        event: "evaluator_updated",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          evaluatorId: id,
+          updatedFields: Object.keys(result.data).join(","),
+        },
+      });
+
       // Audit: evaluator update (security-relevant: prompt/model changes)
       writeAuditLog({
         orgId: request.orgId,
@@ -163,6 +187,15 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
       if (!deleted) {
         return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
       }
+
+      trackPendoEvent({
+        event: "evaluator_deleted",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          evaluatorId: id,
+        },
+      });
 
       // Audit: evaluator deletion
       writeAuditLog({
@@ -257,6 +290,17 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
           ),
         );
       }
+
+      trackPendoEvent({
+        event: "evaluator_runs_triggered",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          evaluatorId,
+          traceCount: traceIds.length,
+          runCount: runs.length,
+        },
+      });
 
       return reply.code(202).send({
         message: `${runs.length} evaluation run(s) queued`,

@@ -12,6 +12,7 @@ import {
   getOrganizationBySlug,
 } from "@foxhound/db";
 import type { JwtPayload } from "../plugins/auth.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Zod schemas
@@ -208,6 +209,17 @@ export function ssoRoutes(fastify: FastifyInstance): void {
       enforceSso,
     });
 
+    trackPendoEvent({
+      event: "sso_config_created",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        provider,
+        enforceSso,
+      },
+      context: { ip: request.ip },
+    });
+
     return reply.code(200).send({
       id: config.id,
       provider: config.provider,
@@ -251,6 +263,16 @@ export function ssoRoutes(fastify: FastifyInstance): void {
           .code(404)
           .send({ error: "Not Found", message: "Configure SSO before enabling enforcement" });
       }
+
+      trackPendoEvent({
+        event: "sso_enforcement_toggled",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          enforce: result.data.enforce,
+        },
+        context: { ip: request.ip },
+      });
 
       return reply.code(200).send({
         enforceSso: config.enforceSso,
@@ -432,6 +454,16 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       });
 
+      trackPendoEvent({
+        event: "sso_login_completed",
+        visitorId: user.id,
+        accountId: orgId,
+        properties: {
+          sso_provider: "saml",
+        },
+        context: { ip: request.ip },
+      });
+
       // Issue JWT
       const payload: JwtPayload = { userId: user.id, orgId };
       const token = fastify.jwt.sign(payload, { expiresIn: "24h" });
@@ -526,6 +558,16 @@ export function ssoRoutes(fastify: FastifyInstance): void {
         orgId,
         idpSessionId: userInfo.sub,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      trackPendoEvent({
+        event: "sso_login_completed",
+        visitorId: user.id,
+        accountId: orgId,
+        properties: {
+          sso_provider: "oidc",
+        },
+        context: { ip: request.ip },
       });
 
       // Issue JWT
