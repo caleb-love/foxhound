@@ -6,7 +6,7 @@ sidebar_label: Overview
 
 # Foxhound
 
-**Open-source observability for AI agent fleets.**
+**Compliance-grade observability for AI agent fleets.**
 
 Foxhound gives you deep visibility into every AI agent call — traces, evals, cost, latency, and policy violations — so you can ship AI safely at scale.
 

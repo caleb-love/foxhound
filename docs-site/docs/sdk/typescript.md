@@ -174,7 +174,7 @@ fox.prompts.invalidate();
 
 ## Local Viewer
 
-Start the local OSS trace viewer:
+Start the local trace viewer:
 
 ```bash
 npx foxhound ui

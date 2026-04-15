@@ -9,7 +9,7 @@ After running the [Quickstart](./quickstart), your trace is visible in the Foxho
 
 ## Open the Viewer
 
-**Local OSS viewer:**
+**Local trace viewer:**
 
 ```bash
 # Python CLI
