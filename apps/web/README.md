@@ -8,9 +8,9 @@ Built with Next.js 16, Tailwind CSS 4, and shadcn/ui.
 
 ## Quick Start
 
-### Demo Mode (No API Required!)
+### Sandbox Environment (No API Required)
 
-Test the UI with realistic generated data:
+Use the sandbox to review the dashboard with realistic seeded data and no authentication:
 
 ```bash
 # from repo root, make sure workspace packages are linked
@@ -22,22 +22,22 @@ pnpm --filter @foxhound/api-client build
 pnpm --filter @foxhound/demo-domain build
 
 cd apps/web
-pnpm dev
-# Navigate to http://localhost:3001/demo
+pnpm dev:demo
+# Navigate to http://localhost:3001/sandbox
 ```
 
-**Demo mode features:**
+**Sandbox features:**
 
-- 25 realistic traces with mixed success/error states
-- Multiple agent types (customer-support, code-review, data-analysis, etc.)
+- realistic seeded traces with mixed success and error states
+- multiple agent types and workflows
 - LLM calls, tool calls, and agent steps
-- Session grouping (~30% of traces)
-- No authentication required
-- Perfect for screenshots and demos
+- session grouping and replayable stories
+- no authentication required
+- strong review surface for screenshots, walkthroughs, and marketing previews
 
-### Local Dashboard Demo Bypass (No Login Required)
+### Local Dashboard Sandbox Bypass (No Login Required)
 
-If you want to review the real dashboard routes without getting blocked by auth redirects, enable the local dashboard demo flag:
+If you want to review the real dashboard routes without auth redirects, enable the local sandbox flag:
 
 ```bash
 cd apps/web
@@ -45,28 +45,29 @@ pnpm dev:demo
 ```
 
 Then open routes like:
-- `http://localhost:3001/` ← real dashboard home in demo mode
-- `http://localhost:3001/executive`
-- `http://localhost:3001/traces/demo-trace`
-- `http://localhost:3001/diff?a=demo-a&b=demo-b`
-- `http://localhost:3001/replay/demo-trace`
-- `http://localhost:3001/budgets`
-- `http://localhost:3001/slas`
-- `http://localhost:3001/regressions`
-- `http://localhost:3001/notifications`
+- `http://localhost:3001/` ← redirects to `/sandbox` when sandbox mode is enabled
+- `http://localhost:3001/sandbox`
+- `http://localhost:3001/sandbox/executive`
+- `http://localhost:3001/sandbox/traces/trace_support_refund_v18_regression`
+- `http://localhost:3001/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression`
+- `http://localhost:3001/sandbox/replay/trace_support_refund_v18_regression`
+- `http://localhost:3001/sandbox/budgets`
+- `http://localhost:3001/sandbox/slas`
+- `http://localhost:3001/sandbox/regressions`
+- `http://localhost:3001/sandbox/notifications`
 
 **Important:**
 - This is a local preview mode only.
 - Default behavior remains auth-protected when `FOXHOUND_UI_DEMO_MODE` is not set.
-- `pnpm dev:demo` is the simplest way to launch the local dashboard preview.
+- `pnpm dev:demo` is the simplest way to launch the local dashboard sandbox.
 - Some pages use seeded example data in this mode so the workflow can be reviewed without a live API session.
-- The legacy `/demo` area is no longer the primary path for dashboard preview; use the real dashboard routes directly.
+- `/sandbox` is the canonical preview surface.
 - If Next reports `Module not found` for a workspace package like `@foxhound/demo-domain` or `@foxhound/api-client`, debug in this order:
   1. verify the workspace package is actually linked under `apps/web/node_modules/@foxhound/`
   2. verify the package exposes the expected `exports` entry
   3. verify the package has been built if it exports from `dist/`
   4. only then consider TS path or import-specifier changes
-- Do **not** rewrite NodeNext `.js` import specifiers in workspace package source just to make web dev boot; fix link/build state first.
+- Do **not** rewrite NodeNext `.js` import specifiers in workspace package source just to make web dev boot, fix link/build state first.
 
 ### Development (With Real API)
 
@@ -77,13 +78,10 @@ pnpm install
 # Run dashboard only
 cd apps/web
 pnpm dev
-
-# Or run dashboard + API together (from root)
-pnpm dev:all
 ```
 
 Dashboard runs on: **http://localhost:3001**  
-Demo mode: **http://localhost:3001/demo**
+Canonical sandbox: **http://localhost:3001/sandbox**
 
 ### Build
 
@@ -138,6 +136,7 @@ apps/web/
 │   │   ├── traces/
 │   │   ├── experiments/
 │   │   └── ...
+│   ├── sandbox/          # Public no-auth sandbox routes
 │   └── api/auth/         # NextAuth API routes
 ├── components/
 │   ├── ui/               # shadcn components
@@ -147,82 +146,9 @@ apps/web/
 ├── lib/
 │   ├── api-client.ts     # API wrapper
 │   ├── auth.ts           # NextAuth config
+│   ├── sandbox-auth.ts   # sandbox auth bypass helpers
 │   └── utils.ts
 └── types/
-```
-
----
-
-## Features
-
-### ✅ Implemented (Day 1)
-
-- [x] Authentication (login, logout, protected routes)
-- [x] Trace list view
-- [x] Trace detail view with visual timeline
-- [x] Dashboard layout with sidebar navigation
-- [x] Status badges, duration display, span counts
-- [x] Color-coded span types (LLM, Tool, Agent, Workflow)
-
-### 🚧 In Progress (Week 1-2)
-
-- [ ] Trace filters (status, agent, date range)
-- [ ] Global search
-- [ ] Session Replay viewer
-- [ ] Run Diff comparison
-- [ ] Signup page
-- [ ] API key management
-
-### 📅 Planned (Week 3-8)
-
-- [ ] Experiments & evaluations UI
-- [ ] Dataset management
-- [ ] Cost budget dashboard
-- [ ] SLA monitoring
-- [ ] Behavior regression detection
-- [ ] Command palette (Cmd+K)
-- [ ] Dark mode
-- [ ] Mobile responsive
-
----
-
-## Development Workflow
-
-### Adding a New Page
-
-1. Create route file:
-
-   ```bash
-   mkdir -p app/(dashboard)/my-feature
-   touch app/(dashboard)/my-feature/page.tsx
-   ```
-
-2. Add to sidebar (`components/layout/sidebar.tsx`):
-
-   ```typescript
-   { href: '/my-feature', label: 'My Feature', icon: Icon }
-   ```
-
-3. Create components:
-   ```bash
-   mkdir components/my-feature
-   touch components/my-feature/my-component.tsx
-   ```
-
-### Adding a shadcn Component
-
-```bash
-pnpm dlx shadcn@latest add <component-name>
-```
-
-Available: button, card, table, dialog, dropdown-menu, input, label, tabs, badge, command, select, etc.
-
-### Type Safety
-
-All API responses are typed via `@foxhound/types`. Import from workspace package:
-
-```typescript
-import type { Trace, Span } from "@foxhound/types";
 ```
 
 ---
@@ -231,24 +157,26 @@ import type { Trace, Span } from "@foxhound/types";
 
 ### Manual Testing
 
-1. Start API server:
-
-   ```bash
-   cd apps/api
-   pnpm dev
-   ```
-
-2. Start dashboard:
+1. Start sandbox mode:
 
    ```bash
    cd apps/web
-   pnpm dev
+   pnpm dev:demo
    ```
 
-3. Navigate to `http://localhost:3001`
-4. Log in with test credentials
-5. Verify trace list loads
-6. Click trace → verify detail view
+2. Navigate to `http://localhost:3001/sandbox`
+3. Verify overview, traces, diff, replay, and governance pages open with no auth
+4. Verify the sandbox surface opens directly without any legacy `/demo` dependency
+
+### Verification
+
+```bash
+pnpm verify
+```
+
+This runs the canonical sandbox route check, TypeScript typecheck, and the web test suite.
+
+For the retirement decision trail and historical review packet, see `../docs/reference/2026-04-15-demo-retirement-review-packet.md`.
 
 ### Type Checking
 
@@ -261,136 +189,3 @@ pnpm typecheck
 ```bash
 pnpm build
 ```
-
----
-
-## Troubleshooting
-
-### "No traces yet" message
-
-**Cause:** API not running or no traces in database  
-**Fix:** Start API, send test trace via SDK
-
-### Login fails
-
-**Cause:** API server not responding  
-**Fix:** Verify API is running on port 3000
-
-### TypeScript errors
-
-**Cause:** Missing types or wrong API usage  
-**Fix:** Run `pnpm typecheck` to see details
-
-### Build fails
-
-**Cause:** Import errors or missing dependencies  
-**Fix:** Check `pnpm install` completed, verify workspace packages are built
-
----
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Connect GitHub repo to Vercel
-2. Set root directory to `apps/web`
-3. Add environment variables:
-   - `NEXT_PUBLIC_API_URL`
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL`
-4. Deploy
-
-### Custom Server
-
-1. Build:
-
-   ```bash
-   pnpm build
-   ```
-
-2. Start:
-
-   ```bash
-   pnpm start
-   ```
-
-3. Nginx proxy (optional):
-   ```nginx
-   location / {
-     proxy_pass http://localhost:3001;
-   }
-   ```
-
----
-
-## Contributing
-
-### Code Style
-
-- Use TypeScript strict mode
-- Follow Next.js App Router conventions
-- Use Server Components by default, Client Components only when needed
-- Tailwind classes for styling (no CSS modules)
-
-### Component Patterns
-
-- **Server Component:** Data fetching, static rendering
-- **Client Component:** Interactivity, state, event handlers
-- Mark client components with `'use client'`
-
-### Commit Messages
-
-Follow Conventional Commits:
-
-```
-feat(traces): add filter by agent
-fix(auth): handle expired sessions
-docs(readme): add deployment guide
-```
-
----
-
-## Performance
-
-### Bundle Size Targets
-
-- Initial JS: <500KB
-- Total size: <2MB
-- First Contentful Paint: <1.5s
-
-### Optimization Tips
-
-- Use `next/image` for images
-- Lazy load heavy components
-- Server Components for data fetching
-- Static generation where possible
-
----
-
-## Roadmap
-
-See [`docs/plans/2026-04-13-dashboard-ui-comprehensive-plan.md`](../../docs/plans/2026-04-13-dashboard-ui-comprehensive-plan.md) for the full 8-week plan.
-
-**Week 1-2:** Foundation + core trace viewer  
-**Week 3:** Session Replay + Run Diff  
-**Week 4:** Experiments + evaluations  
-**Week 5:** Cost Budgets + SLA monitoring  
-**Week 6:** Behavior regression detection  
-**Week 7:** Settings + admin  
-**Week 8:** Polish + launch
-
----
-
-## Support
-
-For questions or issues:
-
-1. Check documentation in `docs/plans/`
-2. Review `docs/reference/engineering-notes.md` for patterns
-3. Open GitHub issue
-
----
-
-## License
-
-Same as Foxhound parent project (see root LICENSE file).

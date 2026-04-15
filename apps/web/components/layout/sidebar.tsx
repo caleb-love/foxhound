@@ -1,9 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { upsertSegmentInUrl } from '@/lib/segment-url';
+import { getSandboxRootHref, getSandboxRunDiffHref, isSandboxPath } from '@/lib/sandbox-routes';
 import { cn } from '@/lib/utils';
 import {
   Activity,
@@ -95,9 +97,20 @@ export function Sidebar() {
   const searchParams = useSearchParams();
   const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
 
-  const isDemo = pathname.startsWith('/demo');
-  const baseHref = isDemo ? '/demo' : '';
+  const isSandbox = isSandboxPath(pathname);
+  const baseHref = isSandbox ? getSandboxRootHref() : '';
   const currentSearch = searchParams?.toString() ?? '';
+  const preservedSearch = new URLSearchParams(currentSearch);
+  preservedSearch.delete('a');
+  preservedSearch.delete('b');
+  preservedSearch.delete('sourceTrace');
+  preservedSearch.delete('focus');
+  preservedSearch.delete('baseline');
+  preservedSearch.delete('comparison');
+  preservedSearch.delete('version');
+  preservedSearch.delete('versionA');
+  preservedSearch.delete('versionB');
+  const preservedSearchString = preservedSearch.toString();
 
   return (
     <aside
@@ -107,13 +120,29 @@ export function Sidebar() {
         background: 'color-mix(in srgb, var(--tenant-panel) 78%, transparent)',
       }}
     >
-      <div className="flex h-16 items-center border-b px-6" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <Link href={isDemo ? '/demo' : '/'}>
-          <div className="space-y-0.5">
-            <h1 className="text-xl font-bold" style={{ color: 'var(--tenant-accent)', fontFamily: 'var(--font-heading)' }}>Foxhound</h1>
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--tenant-text-muted)' }}>
+      <div className="flex h-24 items-center border-b px-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+        <Link href={isSandbox ? getSandboxRootHref() : '/'} className="group flex items-center gap-3">
+          <Image
+            src="/icon.png"
+            alt="Foxhound logo"
+            width={192}
+            height={192}
+            priority
+            className="h-20 w-20 object-contain drop-shadow-[0_0_22px_rgba(24,144,255,0.28)] transition-transform duration-200 group-hover:scale-[1.03]"
+          />
+          <div className="flex flex-col justify-center leading-none">
+            <span
+              className="text-[1.05rem] font-semibold tracking-[0.16em]"
+              style={{ color: '#1890FF', fontFamily: 'var(--font-heading)' }}
+            >
+              FOXHOUND
+            </span>
+            <span
+              className="mt-1 text-[0.62rem] font-medium uppercase tracking-[0.22em]"
+              style={{ color: 'color-mix(in srgb, #1890FF 62%, white 38%)' }}
+            >
               Agent Ops Console
-            </p>
+            </span>
           </div>
         </Link>
       </div>
@@ -126,9 +155,11 @@ export function Sidebar() {
             <div className="space-y-1">
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const fullHref = `${baseHref}${item.href === '/' ? '' : item.href}` || baseHref || '/';
-                const navigableHref = upsertSegmentInUrl(`${fullHref}${currentSearch ? `?${currentSearch}` : ''}`, currentSegmentName);
-                const isActive = isItemActive(pathname, fullHref, baseHref);
+                const fullHref = isSandbox && item.href === '/diff'
+                  ? getSandboxRunDiffHref()
+                  : `${baseHref}${item.href === '/' ? '' : item.href}` || baseHref || '/';
+                const navigableHref = upsertSegmentInUrl(`${fullHref}${preservedSearchString ? `?${preservedSearchString}` : ''}`, currentSegmentName);
+                const isActive = isItemActive(pathname, item.href === '/diff' ? `${baseHref}/diff` : fullHref, baseHref);
 
                 return (
                   <Link

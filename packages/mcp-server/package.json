@@ -3,7 +3,7 @@
   "mcpName": "io.github.caleb-love/foxhound",
   "version": "0.3.0",
   "description": "MCP server for querying Foxhound traces from Claude Code, Cursor, and other MCP clients",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",

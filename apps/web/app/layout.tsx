@@ -28,6 +28,18 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Foxhound - AI Agent Observability",
   description: "Open-source observability for AI agent fleets",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
+  openGraph: {
+    images: [{ url: "/foxhound-wordmark.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/foxhound-wordmark.png"],
+  },
 };
 
 export default function RootLayout({

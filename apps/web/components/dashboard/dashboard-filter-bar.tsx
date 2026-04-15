@@ -37,7 +37,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
   const store = useSegmentStore((state) => state.currentFilters);
   const updateCurrentFilters = useSegmentStore((state) => state.updateCurrentFilters);
   const setCurrentSegmentName = useSegmentStore((state) => state.setCurrentSegmentName);
-  const legacyFilterStore = useFilterStore();
+  useFilterStore();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const activeCount = countActiveFilters(definitions, store);
 

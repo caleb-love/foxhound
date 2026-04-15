@@ -8,11 +8,9 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import {
-  DashboardPage,
-  MetricGrid,
-  SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
+import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
 export interface EvaluatorMetric {
   label: string;
@@ -112,35 +110,42 @@ export function EvaluatorsDashboard({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Improve · Evaluators"
-      title="Evaluators"
-      description="Monitor evaluator health, understand scoring adoption, and keep the improve loop moving from production traces to datasets, experiments, and release decisions."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Improve"
+        title="Evaluators"
+        description="Monitor evaluator health, understand scoring adoption, and keep the improve loop moving from production traces to datasets, experiments, and release decisions."
+      />
+
       <DashboardFilterBar definitions={evaluatorFilters} />
 
-      <MetricGrid>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
         ))}
-      </MetricGrid>
+      </section>
 
-      <SplitPanelLayout
-        main={
-          <EventTimeline
-            title="Evaluator coverage"
-            description="Which evaluators are active, what they score, and where to investigate weak signals next."
-            items={toEvaluatorTimelineItems(filteredEvaluators)}
-          />
-        }
-        side={
-          <TopNList
-            title="Recommended next actions"
-            description="Tighten evaluation coverage before promoting a change or dismissing a regression."
-            items={toActionItems(filteredNextActions)}
-          />
-        }
-      />
-    </DashboardPage>
+      <WorkbenchPanel
+        title="Evaluator coverage workbench"
+        description="Use this surface to understand evaluator health, trace coverage, and whether current scoring signals are strong enough to support a promotion decision."
+      >
+        <SplitPanelLayout
+          main={
+            <EventTimeline
+              title="Evaluator coverage"
+              description="Which evaluators are active, what they score, and where to investigate weak signals next."
+              items={toEvaluatorTimelineItems(filteredEvaluators)}
+            />
+          }
+          side={
+            <TopNList
+              title="Recommended next actions"
+              description="Tighten evaluation coverage before promoting a change or dismissing a regression."
+              items={toActionItems(filteredNextActions)}
+            />
+          }
+        />
+      </WorkbenchPanel>
+    </PageContainer>
   );
 }

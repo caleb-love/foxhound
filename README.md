@@ -10,7 +10,7 @@ Trace every decision. Evaluate every response. Budget every dollar.
 
 <p>
   <a href="https://github.com/caleb-love/foxhound/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/caleb-love/foxhound/ci.yml?branch=main&style=flat-square" alt="CI" /></a>
-  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-E8751A?style=flat-square" alt="MIT License" /></a>
+  <a href="https://github.com/caleb-love/foxhound/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-All%20Rights%20Reserved-E8751A?style=flat-square" alt="All Rights Reserved" /></a>
   <a href="https://www.npmjs.com/package/@foxhound-ai/sdk"><img src="https://img.shields.io/npm/v/@foxhound-ai/sdk?style=flat-square&label=sdk" alt="npm sdk" /></a>
   <a href="https://www.npmjs.com/package/@foxhound-ai/mcp-server"><img src="https://img.shields.io/npm/v/@foxhound-ai/mcp-server?style=flat-square&label=mcp" alt="npm mcp" /></a>
   <a href="https://pypi.org/project/foxhound-ai/"><img src="https://img.shields.io/pypi/v/foxhound-ai?style=flat-square&label=python" alt="PyPI" /></a>
@@ -28,9 +28,16 @@ Trace every decision. Evaluate every response. Budget every dollar.
 
 ---
 
+> **Licensing notice**
+> This repository is publicly visible for reference and evaluation only.
+> No permission is granted to use, copy, modify, distribute, sublicense, or sell this software without prior written permission from Caleb Love.
+> Licensing inquiries: hello@caleb-love.com
+>
+> See [LICENSE](./LICENSE) for full terms.
+
 ## What is Foxhound?
 
-Foxhound is an open-source observability platform purpose-built for AI agent systems. Generic APM and logging tools do not model agent behavior well: tool calls, LLM invocations, branching workflows, replay, evaluation, and regression detection all get flattened into the wrong abstractions.
+Foxhound is a source-available observability platform purpose-built for AI agent systems. Generic APM and logging tools do not model agent behavior well: tool calls, LLM invocations, branching workflows, replay, evaluation, and regression detection all get flattened into the wrong abstractions.
 
 Foxhound gives you the missing layer:
 
@@ -218,7 +225,10 @@ Useful dev commands:
 pnpm dev       # API only
 pnpm dev:web   # web only
 pnpm dev:all   # API + web
+pnpm --filter web verify   # canonical web verification lane
 ```
+
+For the web preview surface, `/sandbox` is canonical and `/demo` is compatibility-only. See `apps/web/README.md` and `docs/reference/sandbox-compatibility-retirement-checklist.md`.
 
 ## Contributing
 
@@ -232,4 +242,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution conventions.
 
 ## License
 
-[MIT](LICENSE)
+All rights reserved. This repository is public for reference and evaluation only.
+No permission is granted to use, copy, modify, distribute, sublicense, or sell this software without prior written permission.
+See [LICENSE](LICENSE) and contact hello@caleb-love.com for licensing inquiries.

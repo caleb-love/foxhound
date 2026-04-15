@@ -11,7 +11,6 @@ import {
   createDefaultDashboardFilters,
 } from './dashboard-filter-presets';
 import type {
-  DashboardFilterKey,
   DashboardFilters,
   SeverityFilter,
   StatusFilter,

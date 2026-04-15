@@ -2,7 +2,7 @@
   "name": "@foxhound-ai/cli",
   "version": "0.1.0",
   "description": "CLI for the Foxhound AI agent observability platform",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",

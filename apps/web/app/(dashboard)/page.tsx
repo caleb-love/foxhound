@@ -1,5 +1,5 @@
 import { FleetOverview, type OverviewActionItem, type OverviewFeedItem, type OverviewMetric } from '@/components/overview/fleet-overview';
-import { isDashboardDemoModeEnabled } from '@/lib/demo-auth';
+import { isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
 
 const metrics: OverviewMetric[] = [
   {
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       changeFeed={changeFeed}
       actionQueue={actionQueue}
       nextActions={nextActions}
-      demoMode={isDashboardDemoModeEnabled()}
+      demoMode={isDashboardSandboxModeEnabled()}
     />
   );
 }

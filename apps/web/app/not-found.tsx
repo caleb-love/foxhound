@@ -25,10 +25,10 @@ export default function NotFound() {
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { title: 'Open Fleet Overview', href: '/demo', cta: 'Inspect demo tenant' },
-              { title: 'Review Traces', href: '/demo/traces', cta: 'Check recent runs' },
-              { title: 'Open Session Replay', href: '/demo/replay', cta: 'Reconstruct state' },
-              { title: 'Compare Regressions', href: '/demo/regressions', cta: 'Find the root cause' },
+              { title: 'Open Fleet Overview', href: '/sandbox', cta: 'Inspect sandbox workspace' },
+              { title: 'Review Traces', href: '/sandbox/traces', cta: 'Check recent runs' },
+              { title: 'Open Session Replay', href: '/sandbox/replay', cta: 'Reconstruct state' },
+              { title: 'Compare Regressions', href: '/sandbox/regressions', cta: 'Find the root cause' },
             ].map((item) => (
               <Link key={item.href} href={item.href} className="rounded-2xl border p-4 transition-all hover:-translate-y-0.5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
                 <div className="space-y-2">
@@ -46,7 +46,7 @@ export default function NotFound() {
             <ul className="mt-4 space-y-3 text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
               <li>• The link points to a route that was imagined confidently but never implemented.</li>
               <li>• A pathname changed and nobody updated the baseline.</li>
-              <li>• This page exists in a parallel branch where the deploy also "definitely worked on localhost".</li>
+              <li>• This page exists in a parallel branch where the deploy also &quot;definitely worked on localhost&quot;.</li>
             </ul>
           </div>
           <div className="rounded-[1.5rem] border p-6" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-text-primary) 92%, black)', color: 'color-mix(in srgb, white 96%, transparent)', boxShadow: 'var(--tenant-shadow-panel)' }}>

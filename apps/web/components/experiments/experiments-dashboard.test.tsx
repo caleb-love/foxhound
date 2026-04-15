@@ -101,7 +101,7 @@ describe('ExperimentsDashboard', () => {
       <ExperimentsDashboard metrics={metrics} experiments={experiments} nextActions={nextActions} />,
     );
 
-    expect(screen.getByText('onboarding-router-rerank-strategy')).toBeInTheDocument();
+    expect(screen.getByText('Segment: Onboarding experiments')).toBeInTheDocument();
     expect(screen.queryByText('support-routing-v12-vs-v11')).not.toBeInTheDocument();
   });
 });

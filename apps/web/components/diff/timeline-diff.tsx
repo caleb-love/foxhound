@@ -1,7 +1,7 @@
 import type { Trace, Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
+import { tenantStyles } from '@/components/sandbox/primitives';
 
 interface TimelineDiffProps {
   traceA: Trace;

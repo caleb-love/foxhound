@@ -3,7 +3,26 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
-declare var pendo: any;
+declare global {
+  interface Window {
+    pendo?: {
+      initialize: (config: { visitor: { id: string } }) => void;
+      identify: (config: {
+        visitor: {
+          id: string;
+          email: string;
+          full_name: string;
+          role: string | null;
+        };
+        account: {
+          id: string;
+          name: string | null;
+          slug: string | null;
+        };
+      }) => void;
+    };
+  }
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -17,8 +36,8 @@ export function PendoInitializer() {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    if (typeof pendo !== 'undefined') {
-      pendo.initialize({
+    if (typeof window !== 'undefined' && window.pendo) {
+      window.pendo.initialize({
         visitor: { id: '' },
       });
     }
@@ -51,8 +70,8 @@ export function PendoInitializer() {
         // Continue with session data if /auth/me fails
       }
 
-      if (typeof pendo !== 'undefined') {
-        pendo.identify({
+      if (typeof window !== 'undefined' && window.pendo) {
+        window.pendo.identify({
           visitor: {
             id: user.id,
             email: user.email,

@@ -88,7 +88,7 @@ describe('FleetOverview', () => {
     expect(screen.getByText('Regression spike in onboarding agent')).toBeInTheDocument();
   });
 
-  it('renders demo quick links when demo mode is enabled', () => {
+  it('renders sandbox quick links when sandbox mode is enabled', () => {
     render(
       <FleetOverview
         metrics={metrics}
@@ -99,10 +99,10 @@ describe('FleetOverview', () => {
       />,
     );
 
-    expect(screen.getByText('Demo quick links')).toBeInTheDocument();
+    expect(screen.getByText('Sandbox quick links')).toBeInTheDocument();
     const openRouteLinks = screen.getAllByRole('link', { name: /open route/i });
     expect(openRouteLinks.length).toBeGreaterThan(0);
-    expect(openRouteLinks[0]).toHaveAttribute('href', '/demo/traces/trace_support_refund_v18_regression');
+    expect(openRouteLinks[0]).toHaveAttribute('href', '/sandbox/traces/trace_support_refund_v18_regression');
   });
 
   it('renders recommended next action links', () => {

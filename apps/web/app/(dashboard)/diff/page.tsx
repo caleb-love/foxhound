@@ -1,7 +1,7 @@
 import { getAuthenticatedClient } from '@/lib/api-client';
 import { RunDiffView } from '@/components/diff/run-diff-view';
 import { PageErrorState, PageWarningState } from '@/components/ui/page-state';
-import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/demo-auth';
+import { getDashboardSessionOrSandbox, isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
 
 interface DiffPageProps {
   searchParams: Promise<{
@@ -11,7 +11,7 @@ interface DiffPageProps {
 }
 
 export default async function DiffPage({ searchParams }: DiffPageProps) {
-  const session = await getDashboardSessionOrDemo();
+  const session = await getDashboardSessionOrSandbox();
 
   const { a, b } = await searchParams;
   
@@ -34,7 +34,7 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
   let error: string | null = null;
 
   try {
-    if (isDashboardDemoModeEnabled()) {
+    if (isDashboardSandboxModeEnabled()) {
       traceA = {
         id: a,
         agentId: 'demo-agent',

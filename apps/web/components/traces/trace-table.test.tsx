@@ -110,7 +110,19 @@ describe('TraceTable', () => {
     expect(push).toHaveBeenCalledWith('/diff?a=trace_a&b=trace_b');
   });
 
-  it('uses demo diff route when rendered in demo mode', () => {
+  it('uses sandbox diff route when rendered in sandbox mode', () => {
+    usePathnameMock.mockReturnValue('/sandbox/traces');
+    render(<TraceTable initialData={traces as never} />);
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]!);
+    fireEvent.click(checkboxes[1]!);
+    fireEvent.click(screen.getByRole('button', { name: /Compare/i }));
+
+    expect(push).toHaveBeenCalledWith('/sandbox/diff?a=trace_a&b=trace_b');
+  });
+
+  it('uses standard diff routes when rendered outside sandbox paths', () => {
     usePathnameMock.mockReturnValue('/demo/traces');
     render(<TraceTable initialData={traces as never} />);
 
@@ -119,7 +131,7 @@ describe('TraceTable', () => {
     fireEvent.click(checkboxes[1]!);
     fireEvent.click(screen.getByRole('button', { name: /Compare/i }));
 
-    expect(push).toHaveBeenCalledWith('/demo/diff?a=trace_a&b=trace_b');
+    expect(push).toHaveBeenCalledWith('/diff?a=trace_a&b=trace_b');
   });
 
   it('keeps only the newest two selected traces', () => {

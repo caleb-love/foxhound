@@ -1,4 +1,4 @@
-import { PremiumActionLink, PremiumActions, PremiumMetricCard } from '@/components/demo/dashboard-primitives';
+import { PremiumActionLink, PremiumActions, PremiumMetricCard } from '@/components/sandbox/primitives';
 import type { MetricTileData } from './chart-types';
 
 export function MetricTile({ label, value, supportingText, href }: MetricTileData) {

@@ -34,6 +34,7 @@ export function filterByDashboardScope<T>(
     severity?: (item: T) => string | undefined;
     agentIds?: (item: T) => string[];
     promptIds?: (item: T) => string[];
+    datasetIds?: (item: T) => string[];
     models?: (item: T) => string[];
   },
 ) {
@@ -43,6 +44,7 @@ export function filterByDashboardScope<T>(
     if (!matchesSeverity(resolver.severity?.(item), filters.severity)) return false;
     if (!matchesArray(resolver.agentIds?.(item), filters.agentIds)) return false;
     if (!matchesArray(resolver.promptIds?.(item), filters.promptIds)) return false;
+    if (!matchesArray(resolver.datasetIds?.(item), filters.datasetIds)) return false;
     if (!matchesArray(resolver.models?.(item), filters.models)) return false;
     return true;
   });

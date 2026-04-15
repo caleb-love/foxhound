@@ -137,7 +137,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Foxhound. MIT License.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Foxhound. All rights reserved. Public reference repo only.`,
     },
     prism: {
       theme: prismThemes.github,

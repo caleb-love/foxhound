@@ -7,8 +7,8 @@ vi.mock('next/navigation', () => ({
   redirect: (...args: unknown[]) => redirectMock(...args),
 }));
 
-vi.mock('@/lib/demo-auth', () => ({
-  isDashboardDemoModeEnabled: () => isDemoModeEnabledMock(),
+vi.mock('@/lib/sandbox-auth', () => ({
+  isDashboardSandboxModeEnabled: () => isDemoModeEnabledMock(),
 }));
 
 describe('app/page', () => {
@@ -17,14 +17,14 @@ describe('app/page', () => {
     vi.clearAllMocks();
   });
 
-  it('goes to the real dashboard root when demo mode is enabled', async () => {
+  it('redirects to the sandbox landing page when sandbox mode is enabled', async () => {
     isDemoModeEnabledMock.mockReturnValue(true);
     const mod = await import('./page');
     await mod.default();
-    expect(redirectMock).not.toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith('/sandbox');
   });
 
-  it('redirects to login when demo mode is disabled', async () => {
+  it('redirects to login when sandbox mode is disabled', async () => {
     isDemoModeEnabledMock.mockReturnValue(false);
     const mod = await import('./page');
     await mod.default();

@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
-import { isDashboardDemoModeEnabled } from '@/lib/demo-auth';
+import { isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
 
 export default function HomePage() {
-  if (isDashboardDemoModeEnabled()) {
-    return null;
+  if (isDashboardSandboxModeEnabled()) {
+    redirect('/sandbox');
   }
 
   redirect('/login');

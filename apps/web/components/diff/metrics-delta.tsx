@@ -1,6 +1,6 @@
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
+import { tenantStyles } from '@/components/sandbox/primitives';
 
 interface MetricsDeltaProps {
   label: string;

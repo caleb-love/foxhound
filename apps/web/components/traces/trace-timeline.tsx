@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { SpanDetailPanel } from './span-detail-panel';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
 
 interface TraceTimelineProps {
   spans: Span[];

@@ -9,11 +9,9 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import {
-  DashboardPage,
-  MetricGrid,
-  SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
+import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
 export interface BudgetMetric {
   label: string;
@@ -171,41 +169,48 @@ export function BudgetsGovernDashboard({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Govern · Budgets"
-      title="Cost Budgets"
-      description="Monitor overspend risk, identify the most expensive agent workflows, and route operators into traces, regressions, and improvement workflows before spend compounds."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Govern"
+        title="Cost Budgets"
+        description="Monitor overspend risk, identify the most expensive agent workflows, and route operators into traces, regressions, and improvement workflows before spend compounds."
+      />
+
       <DashboardFilterBar definitions={budgetFilters} />
 
-      <MetricGrid>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
         ))}
-      </MetricGrid>
+      </section>
 
-      <TrendChart
-        title="Budget pressure trend"
-        description="A shared trend view for burn and risk signals that can be reused across budgets, SLAs, and overview dashboards."
-        series={budgetTrendSeries}
-      />
+      <WorkbenchPanel
+        title="Budget pressure workbench"
+        description="Use this surface to identify overspend hotspots, connect budget risk back to real traces, and open the improvement workflow before cost compounds."
+      >
+        <TrendChart
+          title="Budget pressure trend"
+          description="A shared trend view for burn and risk signals that can be reused across budgets, SLAs, and overview dashboards."
+          series={budgetTrendSeries}
+        />
 
-      <SplitPanelLayout
-        main={
-          <EventTimeline
-            title="Spend hotspots"
-            description="The highest-risk or highest-cost agent workflows to review right now."
-            items={toHotspotTimelineItems(filteredHotspots)}
-          />
-        }
-        side={
-          <TopNList
-            title="Recommended next actions"
-            description="Bring cost back under control without losing sight of behavior quality."
-            items={toActionItems(filteredNextActions)}
-          />
-        }
-      />
-    </DashboardPage>
+        <SplitPanelLayout
+          main={
+            <EventTimeline
+              title="Spend hotspots"
+              description="The highest-risk or highest-cost agent workflows to review right now."
+              items={toHotspotTimelineItems(filteredHotspots)}
+            />
+          }
+          side={
+            <TopNList
+              title="Recommended next actions"
+              description="Bring cost back under control without losing sight of behavior quality."
+              items={toActionItems(filteredNextActions)}
+            />
+          }
+        />
+      </WorkbenchPanel>
+    </PageContainer>
   );
 }

@@ -2,52 +2,65 @@
 
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageWarningState } from '@/components/ui/page-state';
 import type { PromptResponse, PromptVersionResponse } from '@foxhound/api-client';
+import { ActionCard, DetailActionPanel, DetailHeader, EvidenceCard, SummaryStatCard } from '@/components/system/detail';
 
 interface PromptDetailViewProps {
   prompt: PromptResponse;
   versions: PromptVersionResponse[];
+  baseHref?: string;
 }
 
-export function PromptDetailView({ prompt, versions }: PromptDetailViewProps) {
+export function PromptDetailView({ prompt, versions, baseHref = '' }: PromptDetailViewProps) {
   const sortedVersions = useMemo(
     () => [...versions].sort((a, b) => b.version - a.version),
     [versions],
   );
 
   const latestVersion = sortedVersions[0] ?? null;
+  const compareHref = latestVersion && sortedVersions[1]
+    ? `${baseHref}/prompts/${prompt.id}/diff?versionA=${sortedVersions[1].version}&versionB=${latestVersion.version}`
+    : null;
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{prompt.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          Review prompt versions and jump into a side-by-side comparison.
-        </p>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="space-y-3">
+          <DetailHeader
+            title={prompt.name}
+            subtitle="Review prompt versions, understand the current published state, and jump directly into side-by-side comparisons using the same investigation workflow language as traces and run diff."
+          />
+          <div className="font-mono text-sm text-muted-foreground">{prompt.id}</div>
+        </div>
+
+        <DetailActionPanel title="Recommended prompt actions">
+          <ActionCard
+            href={`${baseHref}/prompts`}
+            title="Return to prompt catalog"
+            description="Go back to the prompt workbench to switch prompt families without losing the overall investigation workflow."
+          />
+          <ActionCard
+            href={compareHref ?? '#'}
+            title="Compare latest versions"
+            description={compareHref
+              ? `Open a side-by-side comparison between v${sortedVersions[1]?.version} and v${latestVersion?.version}.`
+              : 'At least two versions are required before a meaningful prompt comparison is available.'}
+            disabled={!compareHref}
+          />
+          <ActionCard
+            href={`${baseHref}/traces`}
+            title="Connect prompt changes to traces"
+            description="Return to traces to verify whether recent prompt changes align with regressions, recoveries, or behavior drift."
+          />
+        </DetailActionPanel>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Prompt overview</CardTitle>
-          <CardDescription>Latest published state and available versions.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prompt ID</div>
-            <div className="mt-1 font-mono text-sm">{prompt.id}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Latest version</div>
-            <div className="mt-1 text-sm">{latestVersion ? `v${latestVersion.version}` : 'None yet'}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total versions</div>
-            <div className="mt-1 text-sm">{sortedVersions.length}</div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <SummaryStatCard label="Prompt ID" value={prompt.id} supportingText="Stable prompt family identifier." />
+        <SummaryStatCard label="Latest version" value={latestVersion ? `v${latestVersion.version}` : 'None yet'} supportingText="Most recent version available in this prompt family." />
+        <SummaryStatCard label="Total versions" value={String(sortedVersions.length)} supportingText="Available versions for comparison and change review." />
+      </div>
 
       {sortedVersions.length === 0 ? (
         <PageWarningState
@@ -58,19 +71,21 @@ export function PromptDetailView({ prompt, versions }: PromptDetailViewProps) {
         <div className="space-y-4">
           {sortedVersions.map((version, index) => {
             const compareTarget = sortedVersions[index + 1] ?? null;
-            const compareHref = compareTarget
-              ? `/prompts/${prompt.id}/diff?versionA=${compareTarget.version}&versionB=${version.version}`
+            const versionCompareHref = compareTarget
+              ? `${baseHref}/prompts/${prompt.id}/diff?versionA=${compareTarget.version}&versionB=${version.version}`
               : null;
 
             return (
-              <Card key={version.id}>
-                <CardHeader>
+              <EvidenceCard key={version.id} title={`Version ${version.version}`}>
+                <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <CardTitle>Version {version.version}</CardTitle>
-                      <CardDescription>
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-muted-foreground">
                         {version.model ?? 'No model specified'}
-                      </CardDescription>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Created {new Date(version.createdAt).toLocaleString()}
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {(version.labels ?? []).map((label) => (
@@ -80,26 +95,23 @@ export function PromptDetailView({ prompt, versions }: PromptDetailViewProps) {
                       ))}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+
                   <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs whitespace-pre-wrap">
                     {version.content}
                   </pre>
 
                   <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">
-                      Created {new Date(version.createdAt).toLocaleString()}
+                      {compareTarget ? `Previous comparison target: v${compareTarget.version}` : 'Oldest available version'}
                     </span>
-                    {compareHref ? (
-                      <a href={compareHref} className="font-medium text-primary underline-offset-4 hover:underline">
+                    {versionCompareHref ? (
+                      <a href={versionCompareHref} className="font-medium text-primary underline-offset-4 hover:underline">
                         Compare against v{compareTarget?.version}
                       </a>
-                    ) : (
-                      <span className="text-muted-foreground">Oldest available version</span>
-                    )}
+                    ) : null}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </EvidenceCard>
             );
           })}
         </div>

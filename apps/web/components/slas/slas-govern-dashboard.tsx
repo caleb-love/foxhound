@@ -9,11 +9,9 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import {
-  DashboardPage,
-  MetricGrid,
-  SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
+import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
 export interface SlaMetric {
   label: string;
@@ -154,41 +152,48 @@ export function SlasGovernDashboard({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Govern · SLAs"
-      title="SLA Monitoring"
-      description="Track which agent workflows are drifting beyond latency or success-rate targets and move directly into investigation surfaces before reliability incidents reach users."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Govern"
+        title="SLA Monitoring"
+        description="Track which agent workflows are drifting beyond latency or success-rate targets and move directly into investigation surfaces before reliability incidents reach users."
+      />
+
       <DashboardFilterBar definitions={slaFilters} />
 
-      <MetricGrid>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
         ))}
-      </MetricGrid>
+      </section>
 
-      <TrendChart
-        title="Reliability drift trend"
-        description="A shared trend view for SLA health and latency movement that can be reused across overview, SLAs, and regressions."
-        series={slaTrendSeries}
-      />
+      <WorkbenchPanel
+        title="SLA triage workbench"
+        description="Use this surface to understand reliability drift, identify the most at-risk workflows, and move directly into traces, replay, and regression analysis."
+      >
+        <TrendChart
+          title="Reliability drift trend"
+          description="A shared trend view for SLA health and latency movement that can be reused across overview, SLAs, and regressions."
+          series={slaTrendSeries}
+        />
 
-      <SplitPanelLayout
-        main={
-          <EventTimeline
-            title="At-risk agents"
-            description="Workflows trending toward or already breaching their reliability targets."
-            items={toAtRiskTimelineItems(filteredAtRiskAgents)}
-          />
-        }
-        side={
-          <TopNList
-            title="Recommended next actions"
-            description="Use the investigation and improvement workflow to recover reliability before breaching commitments."
-            items={toActionItems(filteredNextActions)}
-          />
-        }
-      />
-    </DashboardPage>
+        <SplitPanelLayout
+          main={
+            <EventTimeline
+              title="At-risk agents"
+              description="Workflows trending toward or already breaching their reliability targets."
+              items={toAtRiskTimelineItems(filteredAtRiskAgents)}
+            />
+          }
+          side={
+            <TopNList
+              title="Recommended next actions"
+              description="Use the investigation and improvement workflow to recover reliability before breaching commitments."
+              items={toActionItems(filteredNextActions)}
+            />
+          }
+        />
+      </WorkbenchPanel>
+    </PageContainer>
   );
 }

@@ -3,7 +3,7 @@
 import type { Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Plus, Minus, Equal } from 'lucide-react';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
+import { tenantStyles } from '@/components/sandbox/primitives';
 
 interface StateDiffProps {
   previousSpan: Span | null;

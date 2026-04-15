@@ -295,4 +295,8 @@ Before requesting review:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's license.
+This repository is not open source. Unless a separate written agreement says otherwise,
+submissions are provided for review only and do not grant you any rights to the project.
+Do not contribute code, documentation, or other materials unless you are comfortable assigning
+or otherwise granting the copyright holder the rights needed to use your submission.
+If you intend to contribute, contact hello@caleb-love.com first to confirm the terms.

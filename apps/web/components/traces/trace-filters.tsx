@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Search, X, Calendar, Filter } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface TraceFiltersProps {
   availableAgents: string[];

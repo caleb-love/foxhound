@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StateDiff } from './state-diff';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
+import { tenantStyles } from '@/components/sandbox/primitives';
 
 interface ReplayState {
   currentSpanIndex: number;
@@ -29,9 +29,10 @@ export function SessionReplay({ trace }: SessionReplayProps) {
     playbackSpeed: 1,
   });
 
-  const currentSpan = spans[state.currentSpanIndex];
-  const previousSpan = state.currentSpanIndex > 0 ? spans[state.currentSpanIndex - 1] : null;
-  const progress = (state.currentSpanIndex / Math.max(spans.length - 1, 1)) * 100;
+  const safeSpanIndex = Math.min(state.currentSpanIndex, Math.max(spans.length - 1, 0));
+  const currentSpan = spans[safeSpanIndex];
+  const previousSpan = safeSpanIndex > 0 ? spans[safeSpanIndex - 1] : null;
+  const progress = (safeSpanIndex / Math.max(spans.length - 1, 1)) * 100;
 
   // Auto-play logic
   useEffect(() => {
@@ -78,8 +79,16 @@ export function SessionReplay({ trace }: SessionReplayProps) {
   };
 
   // Get execution state at current point
-  const completedSpans = spans.slice(0, state.currentSpanIndex + 1);
+  const completedSpans = spans.slice(0, safeSpanIndex + 1);
   const executionState = buildExecutionState(completedSpans);
+
+  if (spans.length === 0 || !currentSpan) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+        No replay steps are available for this trace yet.
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -124,7 +133,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
           {/* Progress Bar & Counter */}
           <div className="flex flex-1 items-center gap-3">
             <span className="text-xs font-mono whitespace-nowrap" style={{ color: 'var(--tenant-text-muted)' }}>
-              Step {state.currentSpanIndex + 1} / {spans.length}
+              Step {safeSpanIndex + 1} / {spans.length}
             </span>
             <div className="relative h-2 w-full rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 12%, white)' }}>
               <div
@@ -136,7 +145,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
                 type="range"
                 min="0"
                 max={spans.length - 1}
-                value={state.currentSpanIndex}
+                value={safeSpanIndex}
                 onChange={(e) => seekTo(parseInt(e.target.value))}
                 className="absolute inset-0 w-full opacity-0 cursor-pointer"
               />
@@ -165,9 +174,8 @@ export function SessionReplay({ trace }: SessionReplayProps) {
           {/* Span markers */}
           <div className="absolute inset-x-0 top-0 flex items-start gap-px">
             {spans.map((span, index) => {
-              const isActive = index === state.currentSpanIndex;
-              const isCompleted = index < state.currentSpanIndex;
-              const isError = span.status === 'error';
+              const isActive = index === safeSpanIndex;
+              const isCompleted = index < safeSpanIndex;
               
               return (
                 <button

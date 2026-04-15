@@ -139,4 +139,6 @@ This package also includes:
 
 ## License
 
-MIT
+All rights reserved. This package is published for public reference and evaluation only.
+No permission is granted to use, copy, modify, distribute, sublicense, or sell it without prior written permission.
+See [LICENSE](./LICENSE) and contact hello@caleb-love.com for licensing inquiries.

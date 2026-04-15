@@ -5,8 +5,8 @@ import Link from 'next/link';
 import type { Trace, Span } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DetailActionPanel, DetailHeader, CompareContextCard, ActionCard, StatusBadge } from '@/components/system/detail';
+import { getSandboxRootHref } from '@/lib/sandbox-routes';
 import { MetricsDelta } from './metrics-delta';
 import { TimelineDiff } from './timeline-diff';
 import { InsightsPanel } from './insights-panel';
@@ -177,11 +177,19 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
 
   const { promptName: promptNameA, promptVersion: promptVersionA } = getPromptMetadata(traceA);
   const { promptName: promptNameB, promptVersion: promptVersionB } = getPromptMetadata(traceB);
-  const basePrefix = backHref === '/demo/traces' ? '/demo' : '';
+  const sandboxTracesHref = `${getSandboxRootHref()}/traces`;
+  const isSandbox = backHref === sandboxTracesHref;
+  const basePrefix = isSandbox ? getSandboxRootHref() : '';
   const hasPromptLink = Boolean(promptNameA || promptNameB);
-  const promptHistoryHref = getPromptDetailHref(basePrefix, promptNameB ?? promptNameA);
+  const promptHistoryHref = isSandbox
+    ? getPromptDetailHref(basePrefix, promptNameB ?? promptNameA)
+    : promptNameB ?? promptNameA
+      ? `${basePrefix}/prompts?focus=${encodeURIComponent(String(promptNameB ?? promptNameA))}`
+      : null;
   const promptDiffHref = promptNameA && promptNameB && promptNameA === promptNameB
-    ? getPromptDiffHref(basePrefix, promptNameA, promptVersionA, promptVersionB)
+    ? isSandbox
+      ? getPromptDiffHref(basePrefix, promptNameA, promptVersionA, promptVersionB)
+      : `${basePrefix}/prompts?focus=${encodeURIComponent(String(promptNameA))}&baseline=${encodeURIComponent(String(promptVersionA))}&comparison=${encodeURIComponent(String(promptVersionB))}`
     : null;
   const narrative =
     metrics.errors.delta > 0
@@ -201,79 +209,64 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces' }: RunDiffVie
             </Button>
           </Link>
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold">Run Diff</h1>
-              <Badge variant="outline">Baseline vs comparison</Badge>
-            </div>
+            <DetailHeader
+              title="Run Diff"
+              subtitle={narrative}
+              primaryBadge={<StatusBadge status="Baseline vs comparison" variant="neutral" />}
+            />
             <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
               Comparing {traceA.agentId} traces to explain what changed and what to inspect next.
             </p>
-            <p className="max-w-3xl text-sm text-muted-foreground">{narrative}</p>
           </div>
         </div>
 
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>Recommended next actions</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <a href={`${basePrefix}/traces/${traceA.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
-              <div className="font-medium">Inspect baseline trace</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Review the last known-good execution and its timeline in detail.
-              </p>
-            </a>
-            <a href={`${basePrefix}/traces/${traceB.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
-              <div className="font-medium">Inspect comparison trace</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Open the changed run directly to inspect metadata, spans, and prompt context.
-              </p>
-            </a>
-            <a
-              href={promptHistoryHref ?? '#'}
-              aria-disabled={!promptHistoryHref}
-              className={`rounded-lg border p-3 transition-colors ${promptHistoryHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-            >
-              <div className="font-medium">Review prompt history</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {hasPromptLink
-                  ? `Compare prompt context${promptNameA ? ` (${promptNameA}${promptVersionA ? ` v${promptVersionA}` : ''})` : ''}${promptNameB ? ` and (${promptNameB}${promptVersionB ? ` v${promptVersionB}` : ''})` : ''} to determine whether prompt changes explain the run divergence.`
-                  : 'Prompt metadata is not attached to these traces yet.'}
-              </p>
-            </a>
-            <a
-              href={promptDiffHref ?? '#'}
-              aria-disabled={!promptDiffHref}
-              className={`rounded-lg border p-3 transition-colors ${promptDiffHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-            >
-              <div className="font-medium">Compare prompt versions</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {promptDiffHref
-                  ? `Jump directly into prompt comparison for ${promptNameA} between v${promptVersionA} and v${promptVersionB}.`
-                  : 'Prompt diff is available when both runs share a prompt name with distinct versions.'}
-              </p>
-            </a>
-          </CardContent>
-        </Card>
+        <DetailActionPanel title="Recommended next actions">
+          <ActionCard
+            href={`${basePrefix}/traces/${traceA.id}`}
+            title="Inspect baseline trace"
+            description="Review the last known-good execution and its timeline in detail."
+          />
+          <ActionCard
+            href={`${basePrefix}/traces/${traceB.id}`}
+            title="Inspect comparison trace"
+            description="Open the changed run directly to inspect metadata, spans, and prompt context."
+          />
+          <ActionCard
+            href={promptHistoryHref ?? '#'}
+            title="Review prompt history"
+            description={hasPromptLink
+              ? `Compare prompt context${promptNameA ? ` (${promptNameA}${promptVersionA ? ` v${promptVersionA}` : ''})` : ''}${promptNameB ? ` and (${promptNameB}${promptVersionB ? ` v${promptVersionB}` : ''})` : ''} to determine whether prompt changes explain the run divergence.`
+              : 'Prompt metadata is not attached to these traces yet.'}
+            disabled={!promptHistoryHref}
+          />
+          <ActionCard
+            href={promptDiffHref ?? '#'}
+            title="Compare prompt versions"
+            description={promptDiffHref
+              ? `Jump directly into prompt comparison for ${promptNameA} between v${promptVersionA} and v${promptVersionB}.`
+              : 'Prompt diff is available when both runs share a prompt name with distinct versions.'}
+            disabled={!promptDiffHref}
+          />
+        </DetailActionPanel>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-          <div className="mb-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>Baseline (A)</div>
-          <div className="font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{traceA.id}</div>
-          <div className="mt-2 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>Agent: {traceA.agentId}</div>
-          <div className="mt-2 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
-            {promptNameA ? `Prompt: ${promptNameA}${promptVersionA ? ` · v${promptVersionA}` : ''}` : 'Prompt context unavailable'}
-          </div>
-        </div>
-        <div className="rounded-lg p-4" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-          <div className="mb-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>Comparison (B)</div>
-          <div className="font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{traceB.id}</div>
-          <div className="mt-2 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>Agent: {traceB.agentId}</div>
-          <div className="mt-2 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
-            {promptNameB ? `Prompt: ${promptNameB}${promptVersionB ? ` · v${promptVersionB}` : ''}` : 'Prompt context unavailable'}
-          </div>
-        </div>
+        <CompareContextCard
+          label="Baseline (A)"
+          id={traceA.id}
+          meta={[
+            `Agent: ${traceA.agentId}`,
+            promptNameA ? `Prompt: ${promptNameA}${promptVersionA ? ` · v${promptVersionA}` : ''}` : 'Prompt context unavailable',
+          ]}
+        />
+        <CompareContextCard
+          label="Comparison (B)"
+          id={traceB.id}
+          meta={[
+            `Agent: ${traceB.agentId}`,
+            promptNameB ? `Prompt: ${promptNameB}${promptVersionB ? ` · v${promptVersionB}` : ''}` : 'Prompt context unavailable',
+          ]}
+        />
       </div>
       
       {/* Metrics Comparison */}

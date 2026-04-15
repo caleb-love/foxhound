@@ -1,9 +1,8 @@
 'use client';
 
-import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ActionCard, DetailActionPanel, DetailHeader, StatusBadge, SummaryStatCard } from '@/components/system/detail';
 import { TraceTimeline } from './trace-timeline';
 import type { Span, Trace } from '@foxhound/types';
 
@@ -108,118 +107,56 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold">Trace investigation</h1>
-            <Badge variant={hasError ? 'destructive' : 'default'}>
-              {hasError ? 'Error path' : 'Healthy path'}
-            </Badge>
-            <Badge variant="outline">{trace.agentId}</Badge>
-          </div>
+          <DetailHeader
+            title="Trace investigation"
+            subtitle="Use this view to understand what happened, identify the likely source of behavior changes, and jump directly into comparison or prompt review workflows."
+            primaryBadge={<StatusBadge status={hasError ? 'Error path' : 'Healthy path'} variant={hasError ? 'critical' : 'healthy'} />}
+            secondaryBadge={<StatusBadge status={trace.agentId} variant="neutral" />}
+          />
           <div className="font-mono text-sm text-muted-foreground">{trace.id}</div>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Use this view to understand what happened, identify the likely source of behavior changes,
-            and jump directly into comparison or prompt review workflows.
-          </p>
         </div>
 
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>Recommended investigation actions</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <SegmentAwareLink href={compareHref} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
-              <div className="font-medium">Compare against another run</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Open Run Diff and compare this trace with a healthy or newer execution.
-              </p>
-            </SegmentAwareLink>
-            <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
-              <div className="font-medium">Review trace timeline</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Inspect execution state changes and identify the transition point before failure directly in the trace timeline.
-              </p>
-            </SegmentAwareLink>
-            <SegmentAwareLink
-              href={promptHref ?? '#'}
-              className={`rounded-lg border p-3 transition-colors ${promptHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-            >
-              <div className="font-medium">Inspect prompt history</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {promptName
-                  ? `Prompt ${promptName}${promptVersion ? ` (version ${promptVersion})` : ''} is linked to this trace. Use prompt history to verify whether the failure aligns with a recent prompt change.`
-                  : 'Prompt metadata is not attached to this trace yet.'}
-              </p>
-            </SegmentAwareLink>
-            <SegmentAwareLink
-              href={promptDiffHref ?? '#'}
-              className={`rounded-lg border p-3 transition-colors ${promptDiffHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-            >
-              <div className="font-medium">Compare prompt versions</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {promptDiffHref
-                  ? `Open prompt diff around version ${promptVersion} to inspect the likely change that influenced this run.`
-                  : 'Prompt version data is required before comparing prompt revisions.'}
-              </p>
-            </SegmentAwareLink>
-            <SegmentAwareLink href={`${baseHref}/datasets?sourceTrace=${trace.id}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/40">
-              <div className="font-medium">Add to evaluation workflow</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Use this failure pattern to seed a dataset, then move into evaluator and experiment workflows.
-              </p>
-            </SegmentAwareLink>
-          </CardContent>
-        </Card>
+        <DetailActionPanel title="Recommended investigation actions">
+          <ActionCard
+            href={compareHref}
+            title="Compare against another run"
+            description="Open Run Diff and compare this trace with a healthy or newer execution."
+          />
+          <ActionCard
+            href={`${baseHref}/traces/${trace.id}`}
+            title="Review trace timeline"
+            description="Inspect execution state changes and identify the transition point before failure directly in the trace timeline."
+          />
+          <ActionCard
+            href={promptHref ?? '#'}
+            title="Inspect prompt history"
+            description={promptName
+              ? `Prompt ${promptName}${promptVersion ? ` (version ${promptVersion})` : ''} is linked to this trace. Use prompt history to verify whether the failure aligns with a recent prompt change.`
+              : 'Prompt metadata is not attached to this trace yet.'}
+            disabled={!promptHref}
+          />
+          <ActionCard
+            href={promptDiffHref ?? '#'}
+            title="Compare prompt versions"
+            description={promptDiffHref
+              ? `Open prompt diff around version ${promptVersion} to inspect the likely change that influenced this run.`
+              : 'Prompt version data is required before comparing prompt revisions.'}
+            disabled={!promptDiffHref}
+          />
+          <ActionCard
+            href={`${baseHref}/datasets?sourceTrace=${trace.id}`}
+            title="Add to evaluation workflow"
+            description="Use this failure pattern to seed a dataset, then move into evaluator and experiment workflows."
+          />
+        </DetailActionPanel>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Duration</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{formatDuration(trace)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Total spans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{trace.spans.length}</div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{llmCallCount} LLM · {toolCallCount} tool</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Errors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{errorCount}</div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>Spans with error status in this execution.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Estimated cost</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>${totalCost.toFixed(4)}</div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>Derived from span-level cost attributes.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Prompt context</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="truncate text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
-              {promptName ? promptName : 'No prompt metadata'}
-            </div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
-              {promptVersion ? `Version ${promptVersion}` : 'Prompt version unavailable'}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryStatCard label="Duration" value={formatDuration(trace)} />
+        <SummaryStatCard label="Total spans" value={String(trace.spans.length)} supportingText={`${llmCallCount} LLM · ${toolCallCount} tool`} />
+        <SummaryStatCard label="Errors" value={String(errorCount)} supportingText="Spans with error status in this execution." />
+        <SummaryStatCard label="Estimated cost" value={`$${totalCost.toFixed(4)}`} supportingText="Derived from span-level cost attributes." />
+        <SummaryStatCard label="Prompt context" value={promptName ? promptName : 'No prompt metadata'} supportingText={promptVersion ? `Version ${promptVersion}` : 'Prompt version unavailable'} />
       </div>
 
       <Tabs defaultValue="timeline" className="space-y-4">

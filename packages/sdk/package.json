@@ -2,7 +2,7 @@
   "name": "@foxhound-ai/sdk",
   "version": "0.3.0",
   "description": "Observability SDK for AI agents — trace, replay, and audit every agent decision",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "module",
   "homepage": "https://foxhound.caleb-love.com",
   "repository": {

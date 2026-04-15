@@ -2,7 +2,7 @@
   "name": "foxhound",
   "version": "0.1.0",
   "private": true,
-  "description": "Foxhound — open-source observability platform for AI agent fleets",
+  "description": "Foxhound — source-available observability platform for AI agent fleets",
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.0.0",

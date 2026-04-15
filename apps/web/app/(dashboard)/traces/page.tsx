@@ -1,17 +1,18 @@
 import { getAuthenticatedClient } from '@/lib/api-client';
 import { TraceTable } from '@/components/traces/trace-table';
 import { PageErrorState } from '@/components/ui/page-state';
+import { PageContainer, PageHeader } from '@/components/system/page';
 import type { Trace } from '@foxhound/types';
-import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/demo-auth';
+import { getDashboardSessionOrSandbox, isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
 
 export default async function TracesPage() {
-  const session = await getDashboardSessionOrDemo();
+  const session = await getDashboardSessionOrSandbox();
 
   let traces: Trace[] = [];
   let error: string | null = null;
 
   try {
-    if (isDashboardDemoModeEnabled()) {
+    if (isDashboardSandboxModeEnabled()) {
       traces = [];
     } else {
       const client = getAuthenticatedClient(session.user.token);
@@ -24,10 +25,12 @@ export default async function TracesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Traces</h1>
-      </div>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Investigate"
+        title="Traces"
+        description="Scan recent executions, isolate unhealthy runs, and select two traces for a faster compare workflow."
+      />
       {error ? (
         <PageErrorState
           title="Unable to load traces"
@@ -37,6 +40,6 @@ export default async function TracesPage() {
       ) : (
         <TraceTable initialData={traces} />
       )}
-    </div>
+    </PageContainer>
   );
 }

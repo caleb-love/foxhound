@@ -10,14 +10,14 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import {
-  DashboardPage,
   MetricGrid,
   PremiumActionLink,
   PremiumActions,
   PremiumPanel,
   PremiumRecord,
   PremiumRecordHeader,
-} from '@/components/demo/dashboard-primitives';
+} from '@/components/sandbox/primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
 
 export interface OverviewMetric {
   label: string;
@@ -188,24 +188,25 @@ export function FleetOverview({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Overview"
-      title="Fleet Overview"
-      description="A premium command surface for understanding fleet health, recent change impact, and the highest-priority operator actions."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Overview"
+        title="Fleet Overview"
+        description="A premium command surface for understanding fleet health, recent change impact, and the highest-priority operator actions."
+      />
       <DashboardFilterBar definitions={overviewFilters} />
 
       {demoMode ? (
         <PremiumPanel
-          title="Demo quick links"
+          title="Sandbox quick links"
           description="Jump straight to the key seeded dashboard surfaces without needing auth or a live API session."
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Hero regression trace', href: '/demo/traces/trace_support_refund_v18_regression' },
-              { label: 'Hero run diff', href: '/demo/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression' },
-              { label: 'Session replay', href: '/demo/replay/trace_support_refund_v18_regression' },
-              { label: 'Executive summary', href: '/demo/executive' },
+              { label: 'Hero regression trace', href: '/sandbox/traces/trace_support_refund_v18_regression' },
+              { label: 'Hero run diff', href: '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression' },
+              { label: 'Session replay', href: '/sandbox/replay/trace_support_refund_v18_regression' },
+              { label: 'Executive summary', href: '/sandbox/executive' },
             ].map((item) => (
               <PremiumRecord key={item.href}>
                 <PremiumRecordHeader title={item.label} />
@@ -254,6 +255,6 @@ export function FleetOverview({
         description="Jump directly into the workflows most likely to move reliability, cost, and behavior."
         items={toTopListItems(filteredNextActions)}
       />
-    </DashboardPage>
+    </PageContainer>
   );
 }

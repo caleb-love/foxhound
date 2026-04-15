@@ -62,16 +62,33 @@ describe('Sidebar', () => {
     render(<Sidebar />);
 
     const promptsLink = screen.getByRole('link', { name: /Prompts/i });
-    expect(promptsLink).toHaveStyle({
-      color: 'var(--tenant-accent)',
-    });
+    expect(promptsLink.getAttribute('href')).toBe('/prompts?segment=Planner+agent');
+    expect(promptsLink.className).toContain('rounded-xl');
   });
 
-  it('uses demo-prefixed links in demo mode', () => {
+  it('uses sandbox-prefixed links in sandbox mode', () => {
+    usePathname.mockReturnValue('/sandbox/prompts');
+    render(<Sidebar />);
+
+    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/sandbox?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/sandbox/prompts?segment=Planner+agent');
+  });
+
+  it('uses a seeded sandbox diff link instead of a bare diff route', () => {
+    usePathname.mockReturnValue('/sandbox/prompts');
+    render(<Sidebar />);
+
+    expect(screen.getByRole('link', { name: /Run Diff/i })).toHaveAttribute(
+      'href',
+      '/sandbox/diff?a=trace_support_refund_v17_baseline&b=trace_support_refund_v18_regression&segment=Planner+agent',
+    );
+  });
+
+  it('treats legacy demo paths as non-sandbox paths after retirement', () => {
     usePathname.mockReturnValue('/demo/prompts');
     render(<Sidebar />);
 
-    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/demo?segment=Planner+agent');
-    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/demo/prompts?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Fleet Overview/i })).toHaveAttribute('href', '/?segment=Planner+agent');
+    expect(screen.getByRole('link', { name: /Prompts/i })).toHaveAttribute('href', '/prompts?segment=Planner+agent');
   });
 });

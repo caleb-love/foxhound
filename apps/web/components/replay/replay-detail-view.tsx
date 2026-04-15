@@ -1,11 +1,9 @@
 'use client';
 
-import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SessionReplay } from './session-replay';
 import type { Trace } from '@foxhound/types';
-import { getDemoPromptDetailHref, getDemoPromptDiffHref } from '@/lib/demo-routes';
+import { getSandboxPromptDetailHref, getSandboxPromptDiffHref, getSandboxRootHref } from '@/lib/sandbox-routes';
+import { ActionCard, DetailActionPanel, DetailHeader, EvidenceCard, StatusBadge, SummaryStatCard } from '@/components/system/detail';
 
 interface ReplayDetailViewProps {
   trace: Trace;
@@ -32,13 +30,13 @@ function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?:
 export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps) {
   const hasError = trace.spans.some((span) => span.status === 'error');
   const { promptName, promptVersion } = getPromptMetadata(trace);
-  const promptHistoryHref = baseHref === '/demo'
-    ? getDemoPromptDetailHref(promptName)
+  const promptHistoryHref = baseHref === getSandboxRootHref()
+    ? getSandboxPromptDetailHref(promptName)
     : promptName
       ? `${baseHref}/prompts?focus=${encodeURIComponent(promptName)}`
       : null;
-  const promptDiffHref = baseHref === '/demo'
-    ? getDemoPromptDiffHref(promptName, Number(promptVersion) - 1, promptVersion)
+  const promptDiffHref = baseHref === getSandboxRootHref()
+    ? getSandboxPromptDiffHref(promptName, Number(promptVersion) - 1, promptVersion)
     : promptName && promptVersion
       ? `${baseHref}/prompts?focus=${encodeURIComponent(promptName)}&version=${encodeURIComponent(String(promptVersion))}`
       : null;
@@ -47,73 +45,73 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold">Session Replay</h1>
-            <Badge variant={hasError ? 'destructive' : 'default'}>
-              {hasError ? 'Error path' : 'Healthy path'}
-            </Badge>
-            <Badge variant="outline">{trace.agentId}</Badge>
-          </div>
+          <DetailHeader
+            title="Session Replay"
+            subtitle="Step through execution in order to see how agent state evolved, where attributes changed, and what happened immediately before a failure or unexpected behavior shift."
+            primaryBadge={<StatusBadge status={hasError ? 'Error path' : 'Healthy path'} variant={hasError ? 'critical' : 'healthy'} />}
+            secondaryBadge={<StatusBadge status={trace.agentId} variant="neutral" />}
+          />
           <div className="font-mono text-sm text-muted-foreground">{trace.id}</div>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Step through execution in order to see how agent state evolved, where attributes changed,
-            and what happened immediately before a failure or unexpected behavior shift.
-          </p>
         </div>
 
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>Replay context</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm">
-            <div>
-              <div className="font-medium">Prompt context</div>
-              <p className="text-muted-foreground">
-                {promptName
-                  ? `${promptName}${promptVersion ? ` · version ${promptVersion}` : ''}`
-                  : 'Prompt metadata is not attached to this trace yet.'}
-              </p>
-            </div>
-            <div>
-              <div className="font-medium">Best next step</div>
-              <p className="text-muted-foreground">
-                Use replay to identify the exact transition point, then jump to Run Diff or prompt history to validate what changed.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
-                Open trace detail
-              </SegmentAwareLink>
-              <SegmentAwareLink href={`${baseHref}/traces/${trace.id}`} className="rounded-lg border px-3 py-2 font-medium transition-colors hover:bg-muted/40">
-                Inspect trace context
-              </SegmentAwareLink>
-              <SegmentAwareLink
-                href={promptHistoryHref ?? '#'}
-                className={`rounded-lg border px-3 py-2 font-medium transition-colors ${promptHistoryHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-              >
-                Review prompts
-              </SegmentAwareLink>
-              <SegmentAwareLink
-                href={promptDiffHref ?? '#'}
-                className={`rounded-lg border px-3 py-2 font-medium transition-colors ${promptDiffHref ? 'hover:bg-muted/40' : 'pointer-events-none opacity-60'}`}
-              >
-                Compare prompt versions
-              </SegmentAwareLink>
-            </div>
-          </CardContent>
-        </Card>
+        <DetailActionPanel title="Replay context and next actions">
+          <ActionCard
+            href={`${baseHref}/traces/${trace.id}`}
+            title="Open trace detail"
+            description="Inspect the same run through the trace detail workflow to review metadata, summary metrics, and timeline context."
+          />
+          <ActionCard
+            href={`${baseHref}/traces`}
+            title="Prepare a comparison workflow"
+            description="Use replay to find the interesting transition point, then return to traces and launch Run Diff with a baseline or recovery run for direct comparison."
+          />
+          <ActionCard
+            href={promptHistoryHref ?? '#'}
+            title="Review prompt history"
+            description={promptName
+              ? `${promptName}${promptVersion ? ` · version ${promptVersion}` : ''} is linked to this replay. Review history to check whether prompt changes explain the behavior shift.`
+              : 'Prompt metadata is not attached to this trace yet.'}
+            disabled={!promptHistoryHref}
+          />
+          <ActionCard
+            href={promptDiffHref ?? '#'}
+            title="Compare prompt versions"
+            description={promptDiffHref
+              ? 'Open prompt comparison for the linked prompt versions to validate the likely behavior change.'
+              : 'Prompt diff is available when prompt metadata includes a comparable version boundary.'}
+            disabled={!promptDiffHref}
+          />
+        </DetailActionPanel>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle>Replay timeline</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="h-[720px]">
-            <SessionReplay trace={trace} />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryStatCard
+          label="Total spans"
+          value={String(trace.spans.length)}
+          supportingText="Replay scrubs one completed execution timeline."
+        />
+        <SummaryStatCard
+          label="Errors"
+          value={String(trace.spans.filter((span) => span.status === 'error').length)}
+          supportingText="Failed steps visible in playback and state transitions."
+        />
+        <SummaryStatCard
+          label="Prompt context"
+          value={promptName ? promptName : 'No prompt metadata'}
+          supportingText={promptVersion ? `Version ${promptVersion}` : 'Prompt version unavailable'}
+        />
+        <SummaryStatCard
+          label="Recommended use"
+          value="Replay first"
+          supportingText="Use replay to find the transition point before switching to diff or prompt analysis."
+        />
+      </div>
+
+      <EvidenceCard title="Replay timeline" contentClassName="p-0">
+        <div className="h-[720px]">
+          <SessionReplay trace={trace} />
+        </div>
+      </EvidenceCard>
     </div>
   );
 }

@@ -199,4 +199,6 @@ foxhound ui
 
 ## License
 
-MIT
+All rights reserved. This package is public for reference and evaluation only.
+No permission is granted to use, copy, modify, distribute, sublicense, or sell it without prior written permission.
+See the repository [LICENSE](../../LICENSE) and contact hello@caleb-love.com for licensing inquiries.

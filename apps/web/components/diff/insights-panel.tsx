@@ -1,6 +1,6 @@
 import type { Span } from '@foxhound/types';
 import { Lightbulb, CheckCircle2, AlertCircle, Info } from 'lucide-react';
-import { tenantStyles } from '@/components/demo/dashboard-primitives';
+import { tenantStyles } from '@/components/sandbox/primitives';
 
 interface InsightsPanelProps {
   costDelta: number;
@@ -111,18 +111,6 @@ export function InsightsPanel({
     }
   };
   
-  const getBgClass = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'success';
-      case 'warning':
-        return 'warning';
-      case 'info':
-      default:
-        return 'info';
-    }
-  };
-
   return (
     <div className="rounded-lg p-6" style={tenantStyles.panel}>
       <div className="mb-4 flex items-center gap-2">

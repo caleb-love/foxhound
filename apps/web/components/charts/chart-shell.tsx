@@ -6,7 +6,7 @@ import {
   PremiumRecord,
   PremiumRecordHeader,
   PremiumStatusBadge,
-} from '@/components/demo/dashboard-primitives';
+} from '@/components/sandbox/primitives';
 import type { ChartStatusTone } from './chart-types';
 
 function toBadgeVariant(tone: ChartStatusTone | undefined): 'healthy' | 'warning' | 'critical' | 'neutral' {

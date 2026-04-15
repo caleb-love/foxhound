@@ -9,11 +9,9 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import {
-  DashboardPage,
-  MetricGrid,
-  SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
+import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
 export interface RegressionMetric {
   label: string;
@@ -164,41 +162,48 @@ export function RegressionsDashboard({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Govern · Regressions"
-      title="Behavior Regressions"
-      description="Track where agent behavior changed, prioritize the highest-risk regressions, and jump directly into traces, replay, diffs, and prompt review to understand root cause."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Govern"
+        title="Behavior Regressions"
+        description="Track where agent behavior changed, prioritize the highest-risk regressions, and jump directly into traces, replay, diffs, and prompt review to understand root cause."
+      />
+
       <DashboardFilterBar definitions={regressionFilters} />
 
-      <MetricGrid>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
         ))}
-      </MetricGrid>
+      </section>
 
-      <DiffScorecard
-        title="Regression delta summary"
-        description="A shared compare view that summarizes how current behavior differs from the expected stable baseline."
-        metrics={buildRegressionDiffMetrics(filteredRegressions)}
-      />
+      <WorkbenchPanel
+        title="Regression triage workbench"
+        description="Use this surface to compare current behavior with the stable baseline, identify the strongest likely causes, and move directly into deeper investigation."
+      >
+        <DiffScorecard
+          title="Regression delta summary"
+          description="A shared compare view that summarizes how current behavior differs from the expected stable baseline."
+          metrics={buildRegressionDiffMetrics(filteredRegressions)}
+        />
 
-      <SplitPanelLayout
-        main={
-          <EventTimeline
-            title="Active regressions"
-            description="The most important behavior shifts to investigate right now."
-            items={toRegressionTimelineItems(filteredRegressions)}
-          />
-        }
-        side={
-          <TopNList
-            title="Likely causes to review"
-            description="Follow the strongest leads before widening investigation scope."
-            items={toLikelyCauseItems(filteredLikelyCauses)}
-          />
-        }
-      />
-    </DashboardPage>
+        <SplitPanelLayout
+          main={
+            <EventTimeline
+              title="Active regressions"
+              description="The most important behavior shifts to investigate right now."
+              items={toRegressionTimelineItems(filteredRegressions)}
+            />
+          }
+          side={
+            <TopNList
+              title="Likely causes to review"
+              description="Follow the strongest leads before widening investigation scope."
+              items={toLikelyCauseItems(filteredLikelyCauses)}
+            />
+          }
+        />
+      </WorkbenchPanel>
+    </PageContainer>
   );
 }

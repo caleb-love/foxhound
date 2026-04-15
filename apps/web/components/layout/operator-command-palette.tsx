@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { upsertSegmentInUrl } from '@/lib/segment-url';
+import { getSandboxRootHref, getSandboxRunDiffHref, isSandboxPath } from '@/lib/sandbox-routes';
 import {
   LayoutDashboard,
   Activity,
@@ -42,7 +43,7 @@ const routes: CommandRoute[] = [
   { label: 'Executive Summary', href: '/executive', group: 'Overview', keywords: ['executive', 'summary', 'leadership', 'stakeholder'], icon: LayoutDashboard },
   { label: 'Traces', href: '/traces', group: 'Investigate', keywords: ['trace', 'runs', 'logs'], icon: Activity },
   { label: 'Run Diff', href: '/diff', group: 'Investigate', keywords: ['compare', 'diff', 'baseline'], icon: GitBranch },
-  { label: 'Session Replay', href: '/traces', group: 'Investigate', keywords: ['replay', 'state', 'timeline'], icon: PlaySquare },
+  { label: 'Session Replay', href: '/replay', group: 'Investigate', keywords: ['replay', 'state', 'timeline'], icon: PlaySquare },
   { label: 'Prompts', href: '/prompts', group: 'Investigate', keywords: ['prompt', 'version', 'history'], icon: FileCode2 },
   { label: 'Datasets', href: '/datasets', group: 'Improve', keywords: ['cases', 'dataset', 'eval'], icon: Database },
   { label: 'Evaluators', href: '/evaluators', group: 'Improve', keywords: ['judge', 'scoring', 'evaluator'], icon: CheckSquare },
@@ -84,7 +85,13 @@ export function OperatorCommandPalette() {
 
   const handleSelect = (href: string) => {
     const currentSearch = searchParams?.toString() ?? '';
-    const nextUrl = upsertSegmentInUrl(`${href}${currentSearch ? `?${currentSearch}` : ''}`, currentSegmentName);
+    const isSandbox = isSandboxPath(pathname);
+    const resolvedHref = isSandbox
+      ? href === '/diff'
+        ? getSandboxRunDiffHref()
+        : `${getSandboxRootHref()}${href === '/' ? '' : href}`
+      : href;
+    const nextUrl = upsertSegmentInUrl(`${resolvedHref}${currentSearch ? `${resolvedHref.includes('?') ? '&' : '?'}${currentSearch}` : ''}`, currentSegmentName);
     router.push(nextUrl);
     setOpen(false);
   };

@@ -83,7 +83,11 @@ describe('NotificationsGovernDashboard', () => {
       <NotificationsGovernDashboard metrics={metrics} channels={channels} nextActions={nextActions} />,
     );
 
-    expect(screen.getByRole('link', { name: /Review the highest-signal alert sources/i })).toHaveAttribute('href', '/regressions');
-    expect(screen.getByRole('link', { name: /Check SLA-driven routing before the next breach/i })).toHaveAttribute('href', '/slas');
+    expect(screen.getByText('Review the highest-signal alert sources')).toBeInTheDocument();
+    expect(screen.getByText('Check SLA-driven routing before the next breach')).toBeInTheDocument();
+    const regressionLinks = screen.getAllByRole('link', { name: /Open regressions/i });
+    expect(regressionLinks[0]).toHaveAttribute('href', '/regressions');
+    const slaLinks = screen.getAllByRole('link', { name: /Open SLAs/i });
+    expect(slaLinks[0]).toHaveAttribute('href', '/slas');
   });
 });

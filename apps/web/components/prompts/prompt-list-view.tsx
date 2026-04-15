@@ -1,16 +1,18 @@
 'use client';
 
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageWarningState } from '@/components/ui/page-state';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import type { PromptResponse } from '@foxhound/api-client';
+import { PageContainer, PageHeader, RecordBody, RecordCard, RecordHeader, StatusBadge } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
 
 interface PromptListViewProps {
   prompts: PromptResponse[];
   focusedPromptName?: string;
+  baseHref?: string;
 }
 
 const promptFilters: DashboardFilterDefinition[] = [
@@ -32,7 +34,7 @@ const promptFilters: DashboardFilterDefinition[] = [
   },
 ];
 
-export function PromptListView({ prompts, focusedPromptName }: PromptListViewProps) {
+export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: PromptListViewProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
   const sortedPrompts = filterByDashboardScope(prompts, filters, {
@@ -41,18 +43,14 @@ export function PromptListView({ prompts, focusedPromptName }: PromptListViewPro
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Prompts</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse saved prompts, inspect versions, and jump into prompt comparisons.
-        </p>
-        {focusedPromptName ? (
-          <p className="text-sm text-muted-foreground">
-            Focused from another workflow: <span className="font-medium text-foreground">{focusedPromptName}</span>
-          </p>
-        ) : null}
-      </div>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Investigate"
+        title="Prompts"
+        description="Browse saved prompts, inspect version history, and move into side-by-side prompt comparisons using the same operator workflow conventions as traces and run diff."
+      >
+        {focusedPromptName ? <StatusBadge status={`Focused: ${focusedPromptName}`} variant="warning" /> : null}
+      </PageHeader>
 
       <DashboardFilterBar definitions={promptFilters} />
 
@@ -62,41 +60,43 @@ export function PromptListView({ prompts, focusedPromptName }: PromptListViewPro
           message="Create a prompt in the API first, then return here to review versions and compare changes."
         />
       ) : (
-        <div className="grid gap-4">
-          {sortedPrompts.map((prompt) => {
-            const isFocused = focusedPromptName?.toLowerCase() === prompt.name.toLowerCase();
+        <WorkbenchPanel
+          title="Prompt catalog workbench"
+          description="Use this catalog to find the relevant prompt family quickly, then move into prompt history or prompt comparison without losing investigation context."
+        >
+          {focusedPromptName ? (
+            <div className="rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}>
+              Prompt focus was carried in from another workflow. Review the matching prompt first, then branch into prompt history or comparison.
+            </div>
+          ) : null}
+          <div className="grid gap-4">
+            {sortedPrompts.map((prompt) => {
+              const isFocused = focusedPromptName?.toLowerCase() === prompt.name.toLowerCase();
 
-            return (
-              <Card key={prompt.id} className={isFocused ? 'ring-2 ring-primary/25' : undefined}>
-                <CardHeader>
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <CardTitle>{prompt.name}</CardTitle>
-                      <CardDescription>{prompt.id}</CardDescription>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {isFocused ? (
-                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                          Focused
-                        </span>
-                      ) : null}
-                      <a
-                        href={`/prompts/${prompt.id}`}
-                        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                      >
-                        View prompt
-                      </a>
-                    </div>
+              return (
+                <RecordCard key={prompt.id} style={isFocused ? { boxShadow: '0 0 0 2px color-mix(in srgb, var(--tenant-accent) 20%, transparent)' } : undefined}>
+                  <RecordHeader
+                    title={prompt.name}
+                    meta={prompt.id}
+                    badge={isFocused ? <StatusBadge status="Focused" variant="warning" /> : undefined}
+                  />
+                  <RecordBody>
+                    Updated {new Date(prompt.updatedAt).toLocaleString()}
+                  </RecordBody>
+                  <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
+                    <a
+                      href={`${baseHref}/prompts/${prompt.id}`}
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      View prompt
+                    </a>
                   </div>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Updated {new Date(prompt.updatedAt).toLocaleString()}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </RecordCard>
+              );
+            })}
+          </div>
+        </WorkbenchPanel>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -2,35 +2,35 @@ import { getAuthenticatedClient } from '@/lib/api-client';
 import { TraceDetailView } from '@/components/traces/trace-detail-view';
 import { PageErrorState } from '@/components/ui/page-state';
 import { notFound } from 'next/navigation';
-import { getDashboardSessionOrDemo, isDashboardDemoModeEnabled } from '@/lib/demo-auth';
+import { getDashboardSessionOrSandbox, isDashboardSandboxModeEnabled } from '@/lib/sandbox-auth';
 
 export default async function TraceDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getDashboardSessionOrDemo();
+  const session = await getDashboardSessionOrSandbox();
   const { id } = await params;
 
   let trace = null;
   let error = null;
 
   try {
-    if (isDashboardDemoModeEnabled()) {
+    if (isDashboardSandboxModeEnabled()) {
       trace = {
         id,
-        agentId: 'demo-agent',
-        sessionId: 'demo-session',
+        agentId: 'sandbox-agent',
+        sessionId: 'sandbox-session',
         startTimeMs: 0,
         endTimeMs: 4200,
         metadata: {
-          prompt_name: 'demo-prompt',
+          prompt_name: 'sandbox-prompt',
           prompt_version: 3,
         },
         spans: [
           {
             traceId: id,
-            spanId: 'demo-span-1',
+            spanId: 'sandbox-span-1',
             name: 'plan',
             kind: 'llm_call' as const,
             startTimeMs: 0,
@@ -41,7 +41,7 @@ export default async function TraceDetailPage({
           },
           {
             traceId: id,
-            spanId: 'demo-span-2',
+            spanId: 'sandbox-span-2',
             name: 'tool-select',
             kind: 'tool_call' as const,
             startTimeMs: 1800,

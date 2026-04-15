@@ -113,8 +113,8 @@ describe('RunDiffView', () => {
   });
 
   it('uses the provided back link when supplied', () => {
-    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} backHref="/demo/traces" />);
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} backHref="/sandbox/traces" />);
 
-    expect(screen.getByRole('link', { name: /back to traces/i })).toHaveAttribute('href', '/demo/traces');
+    expect(screen.getByRole('link', { name: /back to traces/i })).toHaveAttribute('href', '/sandbox/traces');
   });
 });

@@ -12,7 +12,7 @@ import {
   DashboardPage,
   MetricGrid,
   SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+} from '@/components/sandbox/primitives';
 
 export interface ExecutiveMetric {
   label: string;

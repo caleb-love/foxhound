@@ -8,11 +8,9 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import {
-  DashboardPage,
-  MetricGrid,
-  SplitPanelLayout,
-} from '@/components/demo/dashboard-primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { WorkbenchPanel } from '@/components/system/workbench';
+import { SplitPanelLayout } from '@/components/sandbox/primitives';
 
 export interface ExperimentMetric {
   label: string;
@@ -82,7 +80,7 @@ function mapExperimentStatus(status: ExperimentRecord['status']): 'healthy' | 'w
 function toExperimentTimelineItems(experiments: ExperimentRecord[]): TimelineItem[] {
   return experiments.map((experiment) => ({
     title: experiment.name,
-    description: `${experiment.comparisonSummary}. Winning signal: ${experiment.winningSignal}.`,
+    description: `${experiment.comparisonSummary}. Winning signal: ${experiment.winningSignal}. Last updated: ${experiment.lastUpdated}.`,
     status: mapExperimentStatus(experiment.status),
     href: experiment.tracesHref,
     cta: 'Inspect traces',
@@ -118,35 +116,42 @@ export function ExperimentsDashboard({
   });
 
   return (
-    <DashboardPage
-      eyebrow="Improve · Experiments"
-      title="Experiments"
-      description="Compare candidate prompts and routing strategies against real trace-derived datasets, then use evaluator signals to decide what is safe to promote."
-    >
+    <PageContainer>
+      <PageHeader
+        eyebrow="Improve"
+        title="Experiments"
+        description="Compare candidate prompts and routing strategies against real trace-derived datasets, then use evaluator signals to decide what is safe to promote."
+      />
+
       <DashboardFilterBar definitions={experimentFilters} />
 
-      <MetricGrid>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
         ))}
-      </MetricGrid>
+      </section>
 
-      <SplitPanelLayout
-        main={
-          <EventTimeline
-            title="Active experiment comparisons"
-            description="Compare what changed, which candidate is winning, and where to verify before promotion."
-            items={toExperimentTimelineItems(filteredExperiments)}
-          />
-        }
-        side={
-          <TopNList
-            title="Recommended next actions"
-            description="Keep comparison work grounded in trace evidence and evaluator signals."
-            items={toActionItems(filteredNextActions)}
-          />
-        }
-      />
-    </DashboardPage>
+      <WorkbenchPanel
+        title="Experiment comparison workbench"
+        description="Use this surface to compare candidate changes against trace-derived datasets, review evaluator-backed outcomes, and decide what is safe to promote."
+      >
+        <SplitPanelLayout
+          main={
+            <EventTimeline
+              title="Active experiment comparisons"
+              description="Compare what changed, which candidate is winning, and where to verify before promotion."
+              items={toExperimentTimelineItems(filteredExperiments)}
+            />
+          }
+          side={
+            <TopNList
+              title="Recommended next actions"
+              description="Keep comparison work grounded in trace evidence and evaluator signals."
+              items={toActionItems(filteredNextActions)}
+            />
+          }
+        />
+      </WorkbenchPanel>
+    </PageContainer>
   );
 }

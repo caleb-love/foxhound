@@ -10,6 +10,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:route-props": "node ./scripts/check-route-props.mjs",
+    "check:sandbox-canonical": "node ./scripts/check-sandbox-canonical.mjs",
+    "verify": "pnpm check:sandbox-canonical && pnpm typecheck && pnpm test",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

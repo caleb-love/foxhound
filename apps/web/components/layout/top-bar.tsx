@@ -19,15 +19,27 @@ interface TopBarProps {
     name: string;
     email: string;
   };
+  mode?: 'dashboard' | 'sandbox';
+  leadingContent?: React.ReactNode;
 }
 
-export function TopBar({ user }: TopBarProps) {
+export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps) {
+  const defaultLeadingContent = mode === 'sandbox'
+    ? (
+      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}>
+        Shared sandbox workspace · themeable operator shell
+      </div>
+    )
+    : (
+      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}>
+        Operator Console · live workspace
+      </div>
+    );
+
   return (
     <header className="relative z-10 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 82%, transparent)' }}>
       <div className="flex-1">
-        <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-muted)' }}>
-          Operator Console · live workspace
-        </div>
+        {leadingContent ?? defaultLeadingContent}
       </div>
       <div className="flex items-center gap-3">
         <SegmentSwitcher />
