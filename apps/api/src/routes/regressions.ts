@@ -6,6 +6,7 @@ import {
   getBaseline,
   getSpanStructureForVersion,
 } from "@foxhound/db";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CompareSchema = z.object({
   versionA: z.string().min(1),
@@ -103,6 +104,18 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
         (await getSpanStructureForVersion(orgId, agentId, versionB));
 
       const regressions = detectStructuralDrift(structA, structB);
+
+      trackPendoEvent({
+        event: "regression_comparison_executed",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          agentId,
+          versionA,
+          versionB,
+          regressionCount: regressions.length,
+        },
+      });
 
       return reply.code(200).send({
         agentId,

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { updateOrgPlan, getOrganizationByStripeCustomerId, writeAuditLog } from "@foxhound/db";
 import { invalidateEntitlements } from "@foxhound/billing";
 import { invalidateBillingStatusCache } from "./billing.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 function getStripe(): Stripe {
   const key = process.env["STRIPE_SECRET_KEY"];
@@ -62,6 +63,20 @@ async function handleSubscriptionEvent(
   await updateOrgPlan(org.id, plan);
   invalidateEntitlements(org.id);
   invalidateBillingStatusCache(org.id);
+
+  // Pendo: plan change
+  if (previousPlan !== plan) {
+    trackPendoEvent({
+      event: "plan_changed",
+      visitorId: "system",
+      accountId: org.id,
+      properties: {
+        previousPlan,
+        newPlan: plan,
+        stripeEvent: eventType,
+      },
+    });
+  }
 
   // Audit: billing plan change
   if (previousPlan !== plan) {
@@ -135,6 +150,14 @@ export function billingWebhookRoutes(fastify: FastifyInstance): void {
           const stripeCustomerId = invoice.customer as string;
           const org = await getOrganizationByStripeCustomerId(stripeCustomerId);
           if (org) {
+            trackPendoEvent({
+              event: "payment_failed",
+              visitorId: "system",
+              accountId: org.id,
+              properties: {
+                invoiceId: invoice.id,
+              },
+            });
             fastify.log.warn(
               { orgId: org.id, invoiceId: invoice.id },
               "Payment failed for organization",

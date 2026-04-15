@@ -15,6 +15,7 @@ import {
   createScore,
   getTrace,
 } from "@foxhound/db";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const ScoreConfigSchema = z.object({
   name: z.string().min(1).max(100),
@@ -63,6 +64,17 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
         name: result.data.name,
         description: result.data.description,
         scoreConfigs: result.data.scoreConfigs,
+      });
+
+      trackPendoEvent({
+        event: "annotation_queue_created",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          queueId: queue.id,
+          name: result.data.name,
+          scoreConfigCount: result.data.scoreConfigs?.length ?? 0,
+        },
       });
 
       return reply.code(201).send(queue);
@@ -143,6 +155,17 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
         () => `aqi_${randomUUID()}`,
       );
 
+      trackPendoEvent({
+        event: "annotation_items_added",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          queueId: id,
+          traceCount: result.data.traceIds.length,
+          itemsAdded: items.length,
+        },
+      });
+
       return reply.code(201).send({ added: items.length, items });
     },
   );
@@ -171,6 +194,16 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       if (!item) {
         return reply.code(204).send();
       }
+
+      trackPendoEvent({
+        event: "annotation_item_claimed",
+        visitorId: request.userId!,
+        accountId: request.orgId,
+        properties: {
+          queueId: id,
+          itemId: item.id,
+        },
+      });
 
       return reply.code(200).send(item);
     },
@@ -219,6 +252,18 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
 
       await completeAnnotationQueueItem(id, orgId);
 
+      trackPendoEvent({
+        event: "annotation_item_completed",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          itemId: id,
+          traceId: item.traceId,
+          scoreCount: createdScores.length,
+          scoreNames: result.data.scores.map((s) => s.name).join(","),
+        },
+      });
+
       return reply.code(200).send({
         item: { ...item, status: "completed" },
         scores: createdScores,
@@ -246,6 +291,16 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       }
 
       const updated = await skipAnnotationQueueItem(id, orgId);
+
+      trackPendoEvent({
+        event: "annotation_item_skipped",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          itemId: id,
+        },
+      });
+
       return reply.code(200).send(updated);
     },
   );

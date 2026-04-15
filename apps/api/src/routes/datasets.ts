@@ -14,6 +14,7 @@ import {
   countDatasetItems,
   getTracesForDatasetCuration,
 } from "@foxhound/db";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreateDatasetSchema = z.object({
   name: z.string().min(1).max(100),
@@ -53,6 +54,17 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       orgId: request.orgId,
       name: result.data.name,
       description: result.data.description,
+    });
+
+    trackPendoEvent({
+      event: "dataset_created",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        datasetId: dataset.id,
+        name: result.data.name,
+        hasDescription: !!result.data.description,
+      },
     });
 
     return reply.code(201).send(dataset);
@@ -105,6 +117,18 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       expectedOutput: result.data.expectedOutput,
       metadata: result.data.metadata,
       sourceTraceId: result.data.sourceTraceId,
+    });
+
+    trackPendoEvent({
+      event: "dataset_item_added",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        datasetId: id,
+        hasSourceTraceId: !!result.data.sourceTraceId,
+        hasExpectedOutput: !!result.data.expectedOutput,
+        hasMetadata: !!result.data.metadata,
+      },
     });
 
     return reply.code(201).send(item);
@@ -202,6 +226,21 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
     });
 
     const items = await createDatasetItems(itemInputs);
+
+    trackPendoEvent({
+      event: "dataset_items_curated_from_traces",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        datasetId: id,
+        scoreName,
+        scoreOperator,
+        scoreThreshold,
+        sinceDays: sinceDays ?? null,
+        requestedLimit: limit,
+        itemsAdded: items.length,
+      },
+    });
 
     return reply.code(201).send({ added: items.length, items });
   });

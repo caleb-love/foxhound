@@ -22,6 +22,7 @@ import { lookupPricing } from "../lib/pricing-cache.js";
 import { getRedis } from "../lib/redis.js";
 import { getConfigFromCache } from "../lib/config-cache.js";
 import { getCostMonitorQueue, getRegressionDetectorQueue } from "../queue.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -74,6 +75,20 @@ async function maybeFireAlerts(
     const matchingRules = rules.filter(
       (r) => r.eventType === "agent_failure",
     ) as unknown as AlertRule[];
+
+    if (matchingRules.length > 0) {
+      trackPendoEvent({
+        event: "alert_dispatched",
+        visitorId: "system",
+        accountId: orgId,
+        properties: {
+          agentId: trace.agentId,
+          traceId: trace.id,
+          matchingRuleCount: matchingRules.length,
+          severity: "high",
+        },
+      });
+    }
 
     await dispatchAlert(event, matchingRules, channelMap, fastify.log);
 
@@ -204,6 +219,18 @@ async function handlePhase4Ingestion(
       const budget = config.costBudgetUsd;
       const threshold = (config.costAlertThresholdPct ?? 80) / 100;
       if (newTotal >= budget) {
+        trackPendoEvent({
+          event: "budget_threshold_breached",
+          visitorId: "system",
+          accountId: orgId,
+          properties: {
+            agentId: trace.agentId,
+            periodKey,
+            level: "critical",
+            currentTotal: newTotal,
+            budgetUsd: budget,
+          },
+        });
         const queue = getCostMonitorQueue();
         await queue?.add(
           "cost-alert",
@@ -213,6 +240,18 @@ async function handlePhase4Ingestion(
           },
         );
       } else if (newTotal >= budget * threshold) {
+        trackPendoEvent({
+          event: "budget_threshold_breached",
+          visitorId: "system",
+          accountId: orgId,
+          properties: {
+            agentId: trace.agentId,
+            periodKey,
+            level: "high",
+            currentTotal: newTotal,
+            budgetUsd: budget,
+          },
+        });
         const queue = getCostMonitorQueue();
         await queue?.add(
           "cost-alert",
@@ -249,6 +288,15 @@ async function handlePhase4Ingestion(
     // 4. Enqueue regression detection if agent_version is set
     const agentVersion = trace.metadata?.["agent_version"];
     if (typeof agentVersion === "string") {
+      trackPendoEvent({
+        event: "regression_detected",
+        visitorId: "system",
+        accountId: orgId,
+        properties: {
+          agentId: trace.agentId,
+          agentVersion,
+        },
+      });
       const queue = getRegressionDetectorQueue();
       await queue?.add(
         "regression-check",
@@ -301,6 +349,18 @@ export function tracesRoutes(fastify: FastifyInstance): void {
           return reply.code(202).send({ accepted: true, id: trace.id, sampled: false });
         }
       }
+
+      trackPendoEvent({
+        event: "trace_ingested",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          agentId: trace.agentId,
+          spanCount: trace.spans.length,
+          hasError: trace.spans.some((s) => s.status === "error"),
+          hasSessionId: !!trace.sessionId,
+        },
+      });
 
       void reply.code(202).send({ accepted: true, id: trace.id });
 
@@ -357,6 +417,17 @@ export function tracesRoutes(fastify: FastifyInstance): void {
           message: "Replay context not found for the specified trace and span",
         });
       }
+
+      trackPendoEvent({
+        event: "span_replay_executed",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          traceId,
+          spanId,
+        },
+      });
+
       return reply.code(200).send(context);
     },
   );
@@ -380,6 +451,16 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       if (!diff) {
         return reply.code(404).send({ error: "One or both runs not found" });
       }
+
+      trackPendoEvent({
+        event: "trace_diff_executed",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          runA,
+          runB,
+        },
+      });
 
       return reply.code(200).send(diff);
     },
@@ -405,6 +486,20 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       to,
       page,
       limit,
+    });
+
+    trackPendoEvent({
+      event: "trace_search_executed",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        agentId: agentId ?? null,
+        sessionId: sessionId ?? null,
+        hasTimeRange: !!(from || to),
+        page,
+        limit,
+        resultCount: rows.length,
+      },
     });
 
     return reply.code(200).send({

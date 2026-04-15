@@ -13,6 +13,7 @@ import {
   getExperimentComparison,
 } from "@foxhound/db";
 import { getExperimentQueue } from "../queue.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreateExperimentSchema = z.object({
   datasetId: z.string().min(1),
@@ -82,6 +83,18 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
         );
       }
 
+      trackPendoEvent({
+        event: "experiment_created",
+        visitorId: request.userId ?? "system",
+        accountId: orgId,
+        properties: {
+          experimentId: experiment.id,
+          datasetId,
+          name,
+          runCount: runs.length,
+        },
+      });
+
       return reply.code(202).send({
         experiment,
         runCount: runs.length,
@@ -139,6 +152,15 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
     if (!comparison) {
       return reply.code(404).send({ error: "One or more experiments not found" });
     }
+
+    trackPendoEvent({
+      event: "experiment_comparison_viewed",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        experimentCount: experimentIds.length,
+      },
+    });
 
     return reply.code(200).send(comparison);
   });

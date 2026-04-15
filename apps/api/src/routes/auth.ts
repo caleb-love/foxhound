@@ -11,6 +11,7 @@ import {
   getSsoConfigByOrg,
 } from "@foxhound/db";
 import type { JwtPayload } from "../plugins/auth.js";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const SignupSchema = z.object({
   name: z.string().min(1).max(100),
@@ -69,6 +70,17 @@ export function authRoutes(fastify: FastifyInstance): void {
         name,
       });
 
+      trackPendoEvent({
+        event: "user_signed_up",
+        visitorId: user.id,
+        accountId: org.id,
+        properties: {
+          orgSlug: org.slug,
+          email_domain: email.split("@")[1] ?? "",
+        },
+        context: { ip: request.ip },
+      });
+
       const payload: JwtPayload = { userId: user.id, orgId: org.id };
       const token = fastify.jwt.sign(payload, { expiresIn: "30d" });
 
@@ -121,6 +133,18 @@ export function authRoutes(fastify: FastifyInstance): void {
           orgSlug: primary.org.slug,
         });
       }
+
+      trackPendoEvent({
+        event: "user_logged_in",
+        visitorId: user.id,
+        accountId: primary.org.id,
+        properties: {
+          orgSlug: primary.org.slug,
+          role: primary.role,
+          login_method: "email_password",
+        },
+        context: { ip: request.ip },
+      });
 
       const payload: JwtPayload = { userId: user.id, orgId: primary.org.id };
       const token = fastify.jwt.sign(payload, { expiresIn: "30d" });

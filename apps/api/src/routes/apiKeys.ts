@@ -8,6 +8,7 @@ import {
   generateApiKey,
   writeAuditLog,
 } from "@foxhound/db";
+import { trackPendoEvent } from "../lib/pendo.js";
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
@@ -46,6 +47,18 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
       name,
       createdByUserId: request.userId!,
       expiresAt: expiresAt ?? null,
+    });
+
+    trackPendoEvent({
+      event: "api_key_created",
+      visitorId: request.userId ?? "system",
+      accountId: request.orgId,
+      properties: {
+        keyName: name,
+        keyPrefix: prefix,
+        hasExpiry: !!expiresAt,
+      },
+      context: { ip: request.ip },
     });
 
     // Audit: API key creation
@@ -97,6 +110,16 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
           .code(404)
           .send({ error: "Not Found", message: "API key not found or already revoked" });
       }
+
+      trackPendoEvent({
+        event: "api_key_revoked",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: {
+          keyId: id,
+        },
+        context: { ip: request.ip },
+      });
 
       // Audit: API key revocation
       writeAuditLog({
