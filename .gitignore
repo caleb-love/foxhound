@@ -37,6 +37,9 @@ tmp/
 
 # Sensitive internal docs must never be committed.
 /docs/
+/IMPLEMENTATION_SUMMARY.md
+/packages/mcp-server/PUBLISH.md
+/packages/sdk/PUBLISH.md
 
 
 # Claude Code local config
