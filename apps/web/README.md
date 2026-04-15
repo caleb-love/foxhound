@@ -99,6 +99,40 @@ pnpm build
 pnpm start
 ```
 
+### Public Sandbox Deployment Notes
+
+#### Preferred host
+
+For the current `apps/web` sandbox, prefer **Vercel** for public no-auth deployment.
+
+Verified on 2026-04-15:
+- `pnpm build:pages` succeeds for Cloudflare via OpenNext
+- but the generated Worker bundle exceeds the Cloudflare Pages free-plan 3 MiB limit
+- that makes Cloudflare Pages free a poor fit for the current `apps/web` bundle unless you are on a paid Workers plan or deliberately shrink the deployment target
+
+#### Vercel project settings
+
+For the `foxhound-sandbox` project:
+- **Root Directory must be `apps/web`**
+- if Root Directory is `.` Vercel may fail to detect Next.js correctly for this workspace app
+- if workspace packages are not available during build, explicitly build these from the repo root before the web build:
+
+```bash
+pnpm --filter @foxhound/types build
+pnpm --filter @foxhound/api-client build
+pnpm --filter @foxhound/demo-domain build
+```
+
+Recommended production env vars for the public sandbox:
+
+```bash
+FOXHOUND_UI_DEMO_MODE=true
+NEXTAUTH_URL=https://sandbox.example.com
+NEXTAUTH_SECRET=<secure-random>
+```
+
+If the public sandbox stays inside seeded `/sandbox` routes, `NEXT_PUBLIC_API_URL` is optional and should not block first deploy.
+
 ---
 
 ## Environment Variables

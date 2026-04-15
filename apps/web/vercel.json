@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @foxhound/types build && pnpm --filter @foxhound/api-client build && pnpm --filter @foxhound/demo-domain build && pnpm --filter web build",
+  "framework": "nextjs"
+}

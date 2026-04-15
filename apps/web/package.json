@@ -6,6 +6,9 @@
     "dev": "next dev -p 3001",
     "dev:demo": "FOXHOUND_UI_DEMO_MODE=true next dev -p 3001",
     "build": "next build",
+    "build:pages": "opennextjs-cloudflare build && node ./scripts/prepare-pages.mjs",
+    "preview:pages": "pnpm build:pages && wrangler pages dev .open-next/assets",
+    "deploy:pages": "pnpm build:pages && wrangler pages deploy .open-next/assets",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -40,6 +43,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -53,6 +57,7 @@
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "wrangler": "^4.83.0"
   }
 }
