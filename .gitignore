@@ -35,8 +35,9 @@ vendor/
 .cache/
 tmp/
 
-# Internal docs are committed repo truth. Do not ignore docs/ globally.
-# Generated docs output should still be ignored via more specific rules below.
+# Sensitive internal docs must never be committed.
+/docs/
+
 
 # Claude Code local config
 .claude/
