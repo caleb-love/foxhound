@@ -1,6 +1,8 @@
 <div align="center">
 
-# Foxhound
+<p>
+  <img src="docs-site/static/img/foxhound-banner.png" alt="FOXHOUND banner" width="720" />
+</p>
 
 ### Compliance-grade observability for AI agent fleets.
 
