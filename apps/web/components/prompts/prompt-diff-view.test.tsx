@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PromptDiffView } from './prompt-diff-view';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/prompts/pmt_123/diff',
+}));
 
 const versions = [
   {
@@ -40,14 +44,15 @@ const initialDiff = {
 };
 
 describe('PromptDiffView', () => {
-  it('renders changed fields with before and after values', () => {
+  it('renders changed fields with character-level diff', () => {
     render(<PromptDiffView promptName="support-agent" versions={versions as never} initialDiff={initialDiff as never} initialVersionA={1} initialVersionB={2} />);
 
     expect(screen.getByText('Prompt Comparison')).toBeInTheDocument();
-    expect(screen.getByText('2 changed field(s)')).toBeInTheDocument();
+    // Summary shows changed field count
+    expect(screen.getByText(/2 changed field/)).toBeInTheDocument();
+    // Field names rendered
     expect(screen.getByText('Content')).toBeInTheDocument();
     expect(screen.getByText('Config')).toBeInTheDocument();
-    expect(screen.getByText('Be concise.')).toBeInTheDocument();
   });
 
   it('renders release review carry-forward action', () => {

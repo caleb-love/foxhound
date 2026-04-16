@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { PageWarningState } from '@/components/ui/page-state';
 import type { PromptVersionDiffResponse, PromptVersionResponse } from '@foxhound/api-client';
-import { CompareContextCard, DetailActionPanel, DetailHeader, EvidenceCard, ActionCard } from '@/components/system/detail';
+import { VerdictBar, InlineAction, InlineActionBar } from '@/components/investigation';
+import { ArrowLeft, GitCompare, Eye, FlaskConical } from 'lucide-react';
 
 interface PromptDiffViewProps {
   promptName: string;
@@ -13,6 +15,71 @@ interface PromptDiffViewProps {
   initialVersionA?: number;
   initialVersionB?: number;
   baseHref?: string;
+}
+
+/* ---------- Character-level diff engine ---------- */
+
+interface DiffSegment {
+  type: 'equal' | 'added' | 'removed';
+  text: string;
+}
+
+/**
+ * Simple word-level diff using longest common subsequence.
+ * Splits on whitespace boundaries to produce readable chunks.
+ */
+function computeWordDiff(before: string, after: string): DiffSegment[] {
+  const wordsA = before.split(/(\s+)/);
+  const wordsB = after.split(/(\s+)/);
+
+  // LCS table
+  const m = wordsA.length;
+  const n = wordsB.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (wordsA[i - 1] === wordsB[j - 1]) {
+        dp[i]![j] = dp[i - 1]![j - 1]! + 1;
+      } else {
+        dp[i]![j] = Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!);
+      }
+    }
+  }
+
+  // Backtrack to produce diff segments
+  const segments: DiffSegment[] = [];
+  let i = m;
+  let j = n;
+
+  const rawSegments: DiffSegment[] = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && wordsA[i - 1] === wordsB[j - 1]) {
+      rawSegments.push({ type: 'equal', text: wordsA[i - 1]! });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
+      rawSegments.push({ type: 'added', text: wordsB[j - 1]! });
+      j--;
+    } else {
+      rawSegments.push({ type: 'removed', text: wordsA[i - 1]! });
+      i--;
+    }
+  }
+
+  rawSegments.reverse();
+
+  // Merge consecutive segments of the same type
+  for (const seg of rawSegments) {
+    const last = segments[segments.length - 1];
+    if (last && last.type === seg.type) {
+      last.text += seg.text;
+    } else {
+      segments.push({ ...seg });
+    }
+  }
+
+  return segments;
 }
 
 function formatValue(value: unknown): string {
@@ -36,87 +103,111 @@ export function PromptDiffView({
   const [selectedA, setSelectedA] = useState<string>(initialVersionA ? String(initialVersionA) : '');
   const [selectedB, setSelectedB] = useState<string>(initialVersionB ? String(initialVersionB) : '');
 
-  const compareHref = useMemo(() => {
-    if (!selectedA || !selectedB) return null;
-    const query = new URLSearchParams({ versionA: selectedA, versionB: selectedB });
-    return `${baseHref ? `${baseHref}/prompts` : ''}?${query.toString()}`;
-  }, [baseHref, selectedA, selectedB]);
-
   const releaseReviewHref = useMemo(() => {
     if (!selectedA || !selectedB) return `${baseHref}/prompts`;
     return `${baseHref}/prompts?baseline=${encodeURIComponent(selectedA)}&comparison=${encodeURIComponent(selectedB)}&focus=${encodeURIComponent(promptName)}`;
   }, [baseHref, promptName, selectedA, selectedB]);
 
+  const changeCount = initialDiff?.changes.length ?? 0;
+
+  // Verdict
+  const verdictSeverity = !initialDiff
+    ? 'info' as const
+    : !initialDiff.hasChanges
+      ? 'success' as const
+      : changeCount >= 3
+        ? 'warning' as const
+        : 'info' as const;
+
+  const verdictHeadline = !initialDiff
+    ? 'Select two versions to compare'
+    : !initialDiff.hasChanges
+      ? 'Versions are identical'
+      : `${changeCount} field${changeCount > 1 ? 's' : ''} changed between v${initialDiff.versionA} and v${initialDiff.versionB}`;
+
+  const verdictSummary = !initialDiff
+    ? 'Choose a baseline and comparison version above to inspect prompt changes.'
+    : !initialDiff.hasChanges
+      ? `v${initialDiff.versionA} and v${initialDiff.versionB} have identical content, model, and config.`
+      : 'Review the diff below to understand the behavior shift, then check traces to see if this change correlated with a regression or improvement.';
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-3">
-          <DetailHeader
-            title="Prompt Comparison"
-            subtitle={`Compare prompt versions for ${promptName} and inspect content, model, and config changes using the same side-by-side investigation patterns as run diff.`}
-          />
+    <div className="space-y-4">
+      {/* Back */}
+      <Link
+        href={`${baseHref}/prompts`}
+        className="inline-flex items-center gap-1.5 text-sm text-tenant-text-muted transition-colors hover:text-tenant-text-primary"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Prompts
+      </Link>
+
+      {/* Header with version selectors */}
+      <div
+        className="rounded-[var(--tenant-radius-panel)] border p-4"
+        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 94%, var(--background))' }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-tenant-text-primary">Prompt Comparison</h1>
+            <p className="mt-1 text-sm text-tenant-text-secondary">{promptName}</p>
+          </div>
+          <InlineActionBar>
+            <InlineAction href={`${baseHref}/traces`} variant="secondary">
+              <Eye className="h-3.5 w-3.5" />
+              Linked traces
+            </InlineAction>
+            <InlineAction href={`${baseHref}/experiments`} variant="ghost">
+              <FlaskConical className="h-3.5 w-3.5" />
+              Experiments
+            </InlineAction>
+            <InlineAction href={releaseReviewHref} variant="ghost">
+              <GitCompare className="h-3.5 w-3.5" />
+              Carry this pair into release review
+            </InlineAction>
+          </InlineActionBar>
         </div>
 
-        <DetailActionPanel title="Comparison controls and next actions">
-          <div className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-            <label className="grid gap-2 text-sm">
-              <span className="font-medium">Baseline version</span>
-              <select
-                className="h-10 rounded-md border bg-background px-3"
-                value={selectedA}
-                onChange={(event) => setSelectedA(event.target.value)}
-              >
-                <option value="">Select version</option>
-                {sortedVersions.map((version) => (
-                  <option key={`a-${version.id}`} value={version.version}>
-                    v{version.version}
-                  </option>
-                ))}
-              </select>
+        {/* Version selectors */}
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_1fr]">
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+              Baseline
             </label>
-
-            <label className="grid gap-2 text-sm">
-              <span className="font-medium">Comparison version</span>
-              <select
-                className="h-10 rounded-md border bg-background px-3"
-                value={selectedB}
-                onChange={(event) => setSelectedB(event.target.value)}
-              >
-                <option value="">Select version</option>
-                {sortedVersions.map((version) => (
-                  <option key={`b-${version.id}`} value={version.version}>
-                    v{version.version}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <select
+              className="mt-1 block w-full rounded-[var(--tenant-radius-control-tight)] border px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-primary)' }}
+              value={selectedA}
+              onChange={(e) => setSelectedA(e.target.value)}
+            >
+              <option value="">Select version</option>
+              {sortedVersions.map((v) => (
+                <option key={`a-${v.id}`} value={v.version}>v{v.version}{v.model ? ` (${v.model})` : ''}</option>
+              ))}
+            </select>
           </div>
-
-          <ActionCard
-            href={compareHref ?? '#'}
-            title="Run prompt comparison"
-            description={compareHref
-              ? 'Reload the page with the selected baseline and comparison versions.'
-              : 'Choose both versions first to inspect prompt differences.'}
-            disabled={!compareHref}
-          />
-          <ActionCard
-            href={`${baseHref}/prompts`}
-            title="Return to prompt catalog"
-            description="Switch prompt families or reopen prompt detail using the shared prompt workbench."
-          />
-          <ActionCard
-            href={`${baseHref}/traces`}
-            title="Reconnect to traces"
-            description="Return to traces to validate whether these prompt changes correlate with an observed regression or recovery."
-          />
-          <ActionCard
-            href={releaseReviewHref}
-            title="Carry this pair into release review"
-            description="Reopen the prompt family with the same baseline and comparison versions preserved so release controls and label decisions stay anchored to this exact comparison."
-          />
-        </DetailActionPanel>
+          <div className="flex items-end justify-center pb-2 text-tenant-text-muted">→</div>
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+              Comparison
+            </label>
+            <select
+              className="mt-1 block w-full rounded-[var(--tenant-radius-control-tight)] border px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-primary)' }}
+              value={selectedB}
+              onChange={(e) => setSelectedB(e.target.value)}
+            >
+              <option value="">Select version</option>
+              {sortedVersions.map((v) => (
+                <option key={`b-${v.id}`} value={v.version}>v{v.version}{v.model ? ` (${v.model})` : ''}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
+
+      {/* Verdict */}
+      <VerdictBar severity={verdictSeverity} headline={verdictHeadline} summary={verdictSummary} />
 
       {!initialDiff ? (
         <PageWarningState
@@ -130,55 +221,98 @@ export function PromptDiffView({
         />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
-            <CompareContextCard
-              label="Baseline version"
-              id={`v${initialDiff.versionA}`}
-              meta={[
-                `Prompt: ${promptName}`,
-                `${initialDiff.changes.length} changed field(s) detected across the comparison.`,
-              ]}
-            />
-            <CompareContextCard
-              label="Comparison version"
-              id={`v${initialDiff.versionB}`}
-              meta={[
-                `Prompt: ${promptName}`,
-                'Review changed fields below to understand the likely behavior shift.',
-              ]}
-            />
+          {/* Change summary strip */}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Badge variant="outline" className="text-[10px]">v{initialDiff.versionA}</Badge>
+            <span className="text-tenant-text-muted">→</span>
+            <Badge className="text-[10px]">v{initialDiff.versionB}</Badge>
+            <span className="text-tenant-text-muted">{changeCount} changed field{changeCount !== 1 ? 's' : ''}</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="secondary">v{initialDiff.versionA}</Badge>
-            <span>→</span>
-            <Badge>v{initialDiff.versionB}</Badge>
-            <span>{initialDiff.changes.length} changed field(s)</span>
-          </div>
-
+          {/* Diff cards */}
           <div className="space-y-4">
-            {initialDiff.changes.map((change: PromptVersionDiffResponse['changes'][number]) => (
-              <EvidenceCard key={change.field} title={change.field.charAt(0).toUpperCase() + change.field.slice(1)}>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Before
-                    </div>
-                    <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs whitespace-pre-wrap">
-                      {formatValue(change.before)}
-                    </pre>
+            {initialDiff.changes.map((change: PromptVersionDiffResponse['changes'][number]) => {
+              const beforeStr = formatValue(change.before);
+              const afterStr = formatValue(change.after);
+              const isTextContent = typeof change.before === 'string' && typeof change.after === 'string';
+              const segments = isTextContent ? computeWordDiff(beforeStr, afterStr) : null;
+
+              return (
+                <div
+                  key={change.field}
+                  className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
+                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
+                >
+                  {/* Field header */}
+                  <div
+                    className="flex items-center justify-between border-b px-4 py-2"
+                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
+                  >
+                    <span className="text-sm font-semibold text-tenant-text-primary">
+                      {change.field.charAt(0).toUpperCase() + change.field.slice(1)}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+                      Changed
+                    </span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      After
+
+                  {segments ? (
+                    /* Character-level highlighted diff for text content */
+                    <div className="p-4">
+                      <div className="overflow-x-auto rounded-[var(--tenant-radius-panel-tight)] border p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 92%, var(--background))' }}>
+                        {segments.map((seg, idx) => {
+                          if (seg.type === 'equal') {
+                            return <span key={idx} className="text-tenant-text-secondary">{seg.text}</span>;
+                          }
+                          if (seg.type === 'added') {
+                            return (
+                              <span
+                                key={idx}
+                                className="rounded px-0.5"
+                                style={{ background: 'color-mix(in srgb, var(--tenant-success) 18%, transparent)', color: 'var(--tenant-success)' }}
+                              >
+                                {seg.text}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span
+                              key={idx}
+                              className="rounded px-0.5 line-through"
+                              style={{ background: 'color-mix(in srgb, var(--tenant-danger) 18%, transparent)', color: 'var(--tenant-danger)' }}
+                            >
+                              {seg.text}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs whitespace-pre-wrap">
-                      {formatValue(change.after)}
-                    </pre>
-                  </div>
+                  ) : (
+                    /* Side-by-side for non-text fields (config objects etc.) */
+                    <div className="grid gap-0 lg:grid-cols-2 lg:divide-x" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+                      <div className="p-4">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Before</div>
+                        <pre
+                          className="overflow-x-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-xs whitespace-pre-wrap font-mono"
+                          style={{ borderColor: 'color-mix(in srgb, var(--tenant-danger) 16%, var(--tenant-panel-stroke))', background: 'color-mix(in srgb, var(--tenant-danger) 4%, var(--card))', color: 'var(--tenant-text-secondary)' }}
+                        >
+                          {beforeStr}
+                        </pre>
+                      </div>
+                      <div className="p-4">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">After</div>
+                        <pre
+                          className="overflow-x-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-xs whitespace-pre-wrap font-mono"
+                          style={{ borderColor: 'color-mix(in srgb, var(--tenant-success) 16%, var(--tenant-panel-stroke))', background: 'color-mix(in srgb, var(--tenant-success) 4%, var(--card))', color: 'var(--tenant-text-secondary)' }}
+                        >
+                          {afterStr}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </EvidenceCard>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

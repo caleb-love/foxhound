@@ -7,6 +7,10 @@ import { format } from 'date-fns';
 import type { Trace } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import { useFilterStore } from '@/lib/stores/filter-store';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { useCompareStore } from '@/lib/stores/compare-store';
+import { WorkbenchPanel, SelectionSummaryBar, TableShell } from '@/components/system/workbench';
 import {
   Table,
   TableBody,
@@ -15,11 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useFilterStore } from '@/lib/stores/filter-store';
-import { useSegmentStore } from '@/lib/stores/segment-store';
-import { useCompareStore } from '@/lib/stores/compare-store';
-import { WorkbenchPanel, SelectionSummaryBar, TableShell } from '@/components/system/workbench';
 import {
   getSandboxPromptDetailHref,
   getSandboxReplayHref,
@@ -28,6 +27,8 @@ import {
   isSandboxPath,
 } from '@/lib/sandbox-routes';
 import { getPromptMetadata } from '@/lib/trace-utils';
+import { InlineAction } from '@/components/investigation';
+import { Eye, Play, BookOpen } from 'lucide-react';
 
 interface TraceTableProps {
   initialData: Trace[];
@@ -40,10 +41,10 @@ export function TraceTable({ initialData }: TraceTableProps) {
   const { selectedTraceIds, toggleTrace, clearSelection, canCompare, setTraceSlot, setComparePair } = useCompareStore();
   const pathname = usePathname();
   const router = useRouter();
-  
+
   const isSandbox = isSandboxPath(pathname);
   const baseHref = isSandbox ? getSandboxRootHref() : '';
-  
+
   const handleCompare = () => {
     if (canCompare()) {
       const [traceA, traceB] = selectedTraceIds;
@@ -53,23 +54,16 @@ export function TraceTable({ initialData }: TraceTableProps) {
   };
 
   const handleSetCompareSlot = (slot: 'a' | 'b', traceId: string) => {
-    const otherTraceId = slot === 'a' ? selectedTraceIds.find((id) => id !== traceId) : selectedTraceIds.find((id) => id !== traceId);
+    const otherTraceId = selectedTraceIds.find((id) => id !== traceId);
     setTraceSlot(slot, traceId);
-
-    if (slot === 'a' && otherTraceId) {
-      setComparePair(traceId, otherTraceId);
-    }
-
-    if (slot === 'b' && otherTraceId) {
-      setComparePair(otherTraceId, traceId);
-    }
+    if (slot === 'a' && otherTraceId) setComparePair(traceId, otherTraceId);
+    if (slot === 'b' && otherTraceId) setComparePair(otherTraceId, traceId);
   };
 
   // Apply filters
   const traces = useMemo(() => {
     let filtered = initialData;
 
-    // Status filter
     if (status !== 'all') {
       filtered = filtered.filter((trace) => {
         const hasError = trace.spans.some((s) => s.status === 'error');
@@ -77,12 +71,10 @@ export function TraceTable({ initialData }: TraceTableProps) {
       });
     }
 
-    // Agent filter
     if (agentIds.length > 0) {
       filtered = filtered.filter((trace) => agentIds.includes(trace.agentId));
     }
 
-    // Date range filter
     const allTracesAreFutureDated =
       initialData.length > 0 && initialData.every((trace) => Number(trace.startTimeMs) > dateRange.end.getTime());
 
@@ -93,7 +85,6 @@ export function TraceTable({ initialData }: TraceTableProps) {
       });
     }
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((trace) => {
@@ -142,28 +133,14 @@ export function TraceTable({ initialData }: TraceTableProps) {
   return (
     <WorkbenchPanel
       title="Trace workbench"
-      description="Select two runs to compare, inspect recent failures, and move from evidence to investigation without leaving this surface."
+      description="Select two runs to compare, inspect recent failures, and move from evidence to investigation."
     >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-tenant-text-secondary">
-            Showing <span className="font-medium text-tenant-text-primary">{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
-            {traces.length !== initialData.length && (
-              <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
-            )}
-          </div>
-        </div>
-
-        <div
-          className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
-        >
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
-            Compare guidance
-          </div>
-          <p className="mt-2 text-sm leading-6 text-tenant-text-secondary">
-            Pick the failing trace first, then the healthy or newer run second. That preserves the clearest before-versus-after investigation path when you jump into Run Diff.
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-tenant-text-secondary">
+          Showing <span className="font-medium text-tenant-text-primary">{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
+          {traces.length !== initialData.length && (
+            <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
+          )}
         </div>
       </div>
 
@@ -174,29 +151,20 @@ export function TraceTable({ initialData }: TraceTableProps) {
         onCompare={handleCompare}
       />
 
-      <TableShell
-        footer={
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>
-              Tip: start with the run that broke, then add the baseline or proposed fix. Keep the compare story obvious.
-            </span>
-            {selectedTraceIds.length === 0 ? <span>No traces selected yet.</span> : <span>{selectedTraceIds.length} selected for compare flow.</span>}
-          </div>
-        }
-      >
+      <TableShell>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
+              <TableHead className="w-10">
                 <span className="sr-only">Select</span>
               </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Agent</TableHead>
+              <TableHead className="w-[200px]">Agent / Status</TableHead>
               <TableHead>Session</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>Spans</TableHead>
+              <TableHead>Cost</TableHead>
               <TableHead>Started</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -205,6 +173,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
                 ? ((trace.endTimeMs - trace.startTimeMs) / 1000).toFixed(2)
                 : '-';
               const hasError = trace.spans.some((s) => s.status === 'error');
+              const errorCount = trace.spans.filter((s) => s.status === 'error').length;
               const isSelected = selectedTraceIds.includes(trace.id);
               const { promptName, promptVersion } = getPromptMetadata(trace);
               const replayHref = isSandbox ? getSandboxReplayHref(trace.id) : `${baseHref}/replay/${trace.id}`;
@@ -213,15 +182,27 @@ export function TraceTable({ initialData }: TraceTableProps) {
                   ? getSandboxPromptDetailHref(promptName)
                   : `${baseHref}/prompts?focus=${encodeURIComponent(promptName)}`
                 : null;
+              const totalCost = trace.spans.reduce((sum, s) => {
+                const c = s.attributes.cost;
+                return sum + (typeof c === 'number' ? c : 0);
+              }, 0);
+              const storyLabel = typeof trace.metadata?.story_label === 'string' ? trace.metadata.story_label : null;
 
               return (
                 <TableRow
                   key={trace.id}
                   data-state={isSelected ? 'selected' : undefined}
-                  className="[&_td]:py-3"
-                  style={isSelected ? { background: 'color-mix(in srgb, var(--tenant-accent-soft) 72%, var(--tenant-panel))' } : undefined}
+                  className="group"
+                  style={{
+                    borderLeft: hasError ? '3px solid var(--tenant-danger)' : '3px solid transparent',
+                    background: isSelected
+                      ? 'color-mix(in srgb, var(--tenant-accent) 8%, var(--card))'
+                      : hasError
+                        ? 'color-mix(in srgb, var(--tenant-danger) 3%, var(--card))'
+                        : undefined,
+                  }}
                 >
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -231,99 +212,98 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       aria-label={`Select trace ${trace.id}`}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={hasError ? 'destructive' : 'default'} className="rounded-[var(--tenant-radius-control-tight)] px-2 py-1 text-[10px] uppercase tracking-[0.14em]">
-                      {hasError ? 'Error' : 'Success'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[240px]">
-                    <Link
-                      href={`${baseHref}/traces/${trace.id}`}
-                      className="block transition-colors hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="truncate font-mono text-sm font-medium text-tenant-text-primary">
-                        {trace.agentId}
+
+                  {/* Agent + status */}
+                  <TableCell className="py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{
+                          background: hasError ? 'var(--tenant-danger)' : 'var(--tenant-success)',
+                          boxShadow: hasError ? '0 0 0 3px color-mix(in srgb, var(--tenant-danger) 16%, transparent)' : 'none',
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <Link
+                          href={`${baseHref}/traces/${trace.id}`}
+                          className="block truncate text-sm font-medium text-tenant-text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {trace.agentId}
+                        </Link>
+                        <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">
+                          {hasError ? (
+                            <span style={{ color: 'var(--tenant-danger)' }}>{errorCount} error{errorCount > 1 ? 's' : ''}</span>
+                          ) : (
+                            <span style={{ color: 'var(--tenant-success)' }}>Healthy</span>
+                          )}
+                          {storyLabel ? <span> · {storyLabel}</span> : null}
+                        </div>
                       </div>
-                    </Link>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
-                      {hasError ? 'Needs investigation' : 'Healthy execution'}
                     </div>
                   </TableCell>
-                  <TableCell>
+
+                  {/* Session */}
+                  <TableCell className="py-2.5">
                     {trace.sessionId ? (
-                      isSandbox ? (
-                        <Link
-                          href={getSandboxSessionHref(trace.sessionId)}
-                          className="font-mono text-sm hover:underline"
-                          style={{ color: 'var(--tenant-accent)' }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {trace.sessionId.slice(0, 8)}
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`${baseHref}/sessions/${trace.sessionId}`}
-                          className="font-mono text-sm hover:underline"
-                          style={{ color: 'var(--tenant-accent)' }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {trace.sessionId.slice(0, 8)}
-                        </Link>
-                      )
+                      <Link
+                        href={isSandbox ? getSandboxSessionHref(trace.sessionId) : `${baseHref}/sessions/${trace.sessionId}`}
+                        className="font-mono text-xs hover:underline"
+                        style={{ color: 'var(--tenant-accent)' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {trace.sessionId.slice(0, 8)}
+                      </Link>
                     ) : (
-                      <span style={{ color: 'var(--tenant-text-muted)' }}>-</span>
+                      <span className="text-xs text-tenant-text-muted">--</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="font-medium text-tenant-text-primary">{duration}s</div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
-                      runtime
-                    </div>
+
+                  {/* Duration */}
+                  <TableCell className="py-2.5">
+                    <span className="font-mono text-sm text-tenant-text-primary">{duration}s</span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-tenant-text-primary">{trace.spans.length}</span>
-                      <span className="text-xs text-tenant-text-muted">
-                        ({trace.spans.filter((s) => s.kind === 'llm_call').length} LLM)
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
-                      total spans
-                    </div>
+
+                  {/* Spans */}
+                  <TableCell className="py-2.5">
+                    <span className="text-sm text-tenant-text-primary">{trace.spans.length}</span>
+                    <span className="ml-1 text-[10px] text-tenant-text-muted">
+                      ({trace.spans.filter((s) => s.kind === 'llm_call').length} LLM)
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    <div style={{ color: 'var(--tenant-text-secondary)' }}>
-                      {format(new Date(trace.startTimeMs), 'yyyy-MM-dd HH:mm')}
-                    </div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
-                      started
-                    </div>
+
+                  {/* Cost */}
+                  <TableCell className="py-2.5">
+                    {totalCost > 0 ? (
+                      <span className="font-mono text-sm text-tenant-text-primary">${totalCost.toFixed(4)}</span>
+                    ) : (
+                      <span className="text-xs text-tenant-text-muted">--</span>
+                    )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <Link
-                        href={`${baseHref}/traces/${trace.id}`}
-                        className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
-                        style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-accent-strong)' }}
-                      >
+
+                  {/* Started */}
+                  <TableCell className="py-2.5">
+                    <span className="text-xs text-tenant-text-secondary">
+                      {format(new Date(trace.startTimeMs), 'MMM d HH:mm')}
+                    </span>
+                  </TableCell>
+
+                  {/* Actions */}
+                  <TableCell className="py-2.5">
+                    <div className="flex flex-wrap items-center justify-end gap-1">
+                      <InlineAction href={`${baseHref}/traces/${trace.id}`} variant="primary" className="text-xs px-2 py-1">
+                        <Eye className="h-3 w-3" />
                         Inspect
-                      </Link>
-                      <Link
-                        href={replayHref}
-                        className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
-                        style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-text-primary)' }}
-                      >
+                      </InlineAction>
+                      <InlineAction href={replayHref} variant="secondary" className="text-xs px-2 py-1">
+                        <Play className="h-3 w-3" />
                         Replay
-                      </Link>
+                      </InlineAction>
                       {promptHref ? (
-                        <Link
-                          href={promptHref}
-                          className="rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 transition-[border-color,background-color,color] duration-200 hover:border-[color:var(--tenant-accent)]/45 hover:bg-[color:var(--tenant-panel-strong)]"
-                          style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-text-primary)' }}
-                        >
+                        <InlineAction href={promptHref} variant="ghost" className="text-xs px-2 py-1">
+                          <BookOpen className="h-3 w-3" />
                           Prompt{promptVersion !== undefined ? ` v${promptVersion}` : ''}
-                        </Link>
+                        </InlineAction>
                       ) : null}
                       <Button variant="outline" size="xs" onClick={() => handleSetCompareSlot('a', trace.id)}>
                         Set A
