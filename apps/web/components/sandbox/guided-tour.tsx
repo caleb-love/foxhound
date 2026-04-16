@@ -54,25 +54,10 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const TOUR_STORAGE_KEY = 'foxhound.sandbox.tour-completed';
-
 export function GuidedTour() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    const completed = window.localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!completed) {
-      // Auto-show on first visit after a short delay
-      const timer = setTimeout(() => setIsOpen(true), 1200);
-      return () => clearTimeout(timer);
-    }
-    // Schedule state update to avoid synchronous setState in effect
-    const timer = setTimeout(() => setHasCheckedStorage(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
 
   const step = TOUR_STEPS[currentStep]!;
   const isFirst = currentStep === 0;
@@ -80,9 +65,8 @@ export function GuidedTour() {
 
   const close = useCallback(() => {
     setIsOpen(false);
-    window.localStorage.setItem(TOUR_STORAGE_KEY, 'true');
-    setHasCheckedStorage(true);
-  }, []);
+    router.push('/sandbox');
+  }, [router]);
 
   const next = useCallback(() => {
     if (isLast) {
@@ -118,37 +102,30 @@ export function GuidedTour() {
   }, [isOpen, close, next, prev]);
 
   if (!isOpen) {
-    // Show a small re-trigger button if tour was completed
-    if (hasCheckedStorage) {
-      return (
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentStep(0);
-            setIsOpen(true);
-            router.push('/sandbox');
-          }}
-          className="fixed bottom-6 right-6 z-50 flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-medium shadow-lg backdrop-blur-xl transition-all hover:scale-105"
-          style={{
-            borderColor: 'var(--tenant-panel-stroke)',
-            background: 'var(--card)',
-            color: 'var(--tenant-text-secondary)',
-          }}
-          aria-label="Restart guided tour"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-tenant-accent" />
-          Tour
-        </button>
-      );
-    }
-    return null;
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setCurrentStep(0);
+          setIsOpen(true);
+          router.push('/sandbox');
+        }}
+        className="fixed bottom-6 right-6 z-50 flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-medium shadow-lg backdrop-blur-xl transition-all hover:scale-105"
+        style={{
+          borderColor: 'var(--tenant-panel-stroke)',
+          background: 'var(--card)',
+          color: 'var(--tenant-text-secondary)',
+        }}
+        aria-label="Start guided tour"
+      >
+        <Sparkles className="h-3.5 w-3.5 text-tenant-accent" />
+        Tour
+      </button>
+    );
   }
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={close} />
-
       {/* Tour card */}
       <div
         className="fixed bottom-8 left-1/2 z-[61] w-full max-w-lg -translate-x-1/2 rounded-2xl border p-6 shadow-2xl backdrop-blur-xl"
@@ -158,17 +135,6 @@ export function GuidedTour() {
           boxShadow: '0 24px 64px rgba(0,0,0,0.4), 0 0 0 1px var(--tenant-panel-stroke)',
         }}
       >
-        {/* Close */}
-        <button
-          type="button"
-          onClick={close}
-          className="absolute right-4 top-4 rounded-lg p-1 transition-colors hover:bg-muted"
-          style={{ color: 'var(--tenant-text-muted)' }}
-          aria-label="Close tour"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
         {/* Step indicator */}
         <div className="mb-4 flex items-center gap-1.5">
           {TOUR_STEPS.map((_, i) => (
@@ -188,6 +154,15 @@ export function GuidedTour() {
           <span className="ml-auto text-xs tabular-nums text-tenant-text-muted">
             {currentStep + 1} / {TOUR_STEPS.length}
           </span>
+          <button
+            type="button"
+            onClick={close}
+            className="ml-2 rounded-lg p-1 transition-colors hover:bg-muted"
+            style={{ color: 'var(--tenant-text-muted)' }}
+            aria-label="Close tour"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Content */}
