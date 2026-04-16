@@ -42,6 +42,15 @@ const SendTestSchema = z.object({
   severity: z.enum(["critical", "high", "medium", "low"]).default("high"),
 });
 
+const ListChannelsSchema = z.object({
+  q: z.string().optional(),
+  channelId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
+});
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Route plugin
 // ──────────────────────────────────────────────────────────────────────────────
@@ -85,7 +94,20 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
    * List all notification channels for the authenticated org.
    */
   fastify.get("/v1/notifications/channels", async (request, reply) => {
-    const channels = await listNotificationChannels(request.orgId);
+    const result = ListChannelsSchema.safeParse(request.query);
+    if (!result.success) {
+      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+    }
+
+    const channelIds = typeof result.data.channelId === "string"
+      ? [result.data.channelId]
+      : result.data.channelId;
+
+    const channels = await listNotificationChannels({
+      orgId: request.orgId,
+      searchQuery: result.data.q,
+      channelIds,
+    });
     return reply.code(200).send({ data: channels.map(sanitizeChannel) });
   });
 

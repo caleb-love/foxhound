@@ -40,6 +40,26 @@ describe('DatasetDetailView', () => {
     expect(screen.getByText(/Trace-derived support routing failures/i)).toBeInTheDocument();
   });
 
+  it('uses dashboard handoffs by default', () => {
+    render(<DatasetDetailView dataset={dataset as never} items={items as never} />);
+
+    expect(screen.getByRole('link', { name: /Return to datasets/i })).toHaveAttribute('href', '/datasets');
+    expect(screen.getByRole('link', { name: /Review evaluator coverage/i })).toHaveAttribute('href', '/evaluators');
+    expect(screen.getByRole('link', { name: /Launch or inspect experiments/i })).toHaveAttribute('href', '/experiments');
+    expect(screen.getByRole('link', { name: /Return to source traces/i })).toHaveAttribute('href', '/traces');
+    expect(screen.getByRole('link', { name: /Open source trace/i })).toHaveAttribute('href', '/traces/trace_123');
+  });
+
+  it('uses the provided baseHref for sandbox detail links', () => {
+    render(<DatasetDetailView dataset={dataset as never} items={items as never} baseHref="/sandbox" />);
+
+    expect(screen.getByRole('link', { name: /Return to datasets/i })).toHaveAttribute('href', '/sandbox/datasets');
+    expect(screen.getByRole('link', { name: /Review evaluator coverage/i })).toHaveAttribute('href', '/sandbox/evaluators');
+    expect(screen.getByRole('link', { name: /Launch or inspect experiments/i })).toHaveAttribute('href', '/sandbox/experiments');
+    expect(screen.getByRole('link', { name: /Return to source traces/i })).toHaveAttribute('href', '/sandbox/traces');
+    expect(screen.getByRole('link', { name: /Open source trace/i })).toHaveAttribute('href', '/sandbox/traces/trace_123');
+  });
+
   it('renders empty-state guidance when there are no dataset items', () => {
     render(<DatasetDetailView dataset={{ ...dataset, itemCount: 0 } as never} items={[] as never} />);
 

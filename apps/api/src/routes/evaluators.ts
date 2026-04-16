@@ -40,6 +40,15 @@ const TriggerEvaluatorRunsSchema = z.object({
   traceIds: z.array(z.string().min(1)).min(1).max(100),
 });
 
+const ListEvaluatorsSchema = z.object({
+  q: z.string().optional(),
+  evaluatorId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
+});
+
 export function evaluatorsRoutes(fastify: FastifyInstance): void {
   /**
    * POST /v1/evaluators
@@ -108,7 +117,20 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     "/v1/evaluators",
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
-      const rows = await listEvaluators(request.orgId);
+      const result = ListEvaluatorsSchema.safeParse(request.query);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
+
+      const evaluatorIds = typeof result.data.evaluatorId === "string"
+        ? [result.data.evaluatorId]
+        : result.data.evaluatorId;
+
+      const rows = await listEvaluators({
+        orgId: request.orgId,
+        searchQuery: result.data.q,
+        evaluatorIds,
+      });
       return reply.code(200).send({ data: rows });
     },
   );

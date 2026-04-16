@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray } from "drizzle-orm";
 import { db } from "./client.js";
 import { alertRules, notificationChannels, notificationLog } from "./schema.js";
 
@@ -15,11 +15,28 @@ export async function createNotificationChannel(input: CreateChannelInput) {
   return rows[0]!;
 }
 
-export async function listNotificationChannels(orgId: string) {
+export interface NotificationChannelListFilters {
+  orgId: string;
+  searchQuery?: string;
+  channelIds?: string[];
+}
+
+export async function listNotificationChannels(filters: NotificationChannelListFilters) {
+  const conditions = [eq(notificationChannels.orgId, filters.orgId)];
+
+  if (filters.searchQuery) {
+    const q = `%${filters.searchQuery}%`;
+    conditions.push(ilike(notificationChannels.name, q));
+  }
+
+  if (filters.channelIds && filters.channelIds.length > 0) {
+    conditions.push(inArray(notificationChannels.id, filters.channelIds));
+  }
+
   return db
     .select()
     .from(notificationChannels)
-    .where(eq(notificationChannels.orgId, orgId))
+    .where(and(...conditions))
     .orderBy(desc(notificationChannels.createdAt));
 }
 

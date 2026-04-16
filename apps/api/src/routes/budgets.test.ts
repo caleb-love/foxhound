@@ -8,7 +8,8 @@ vi.mock("@foxhound/db", () => ({
   touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   upsertAgentConfig: vi.fn(),
   getAgentConfig: vi.fn(),
-  listAgentConfigs: vi.fn(),
+  listBudgetConfigs: vi.fn(),
+  countBudgetConfigs: vi.fn(),
   deleteAgentConfig: vi.fn(),
 }));
 
@@ -169,14 +170,15 @@ describe("DELETE /v1/budgets/:agentId", () => {
 describe("GET /v1/budgets", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns paginated list", async () => {
+  it("returns filtered paginated budgets with true total count", async () => {
     mockApiKey();
-    vi.mocked(db.listAgentConfigs).mockResolvedValue([baseBudgetConfig]);
+    vi.mocked(db.listBudgetConfigs).mockResolvedValue([baseBudgetConfig]);
+    vi.mocked(db.countBudgetConfigs).mockResolvedValue(9);
 
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
-      url: "/v1/budgets",
+      url: "/v1/budgets?page=1&limit=10",
       headers: { authorization: "Bearer sk-testkey123" },
     });
 
@@ -185,6 +187,50 @@ describe("GET /v1/budgets", () => {
     expect(body).toHaveProperty("data");
     expect(body).toHaveProperty("pagination");
     expect(body.data).toHaveLength(1);
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 9 });
+    expect(vi.mocked(db.listBudgetConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 10,
+      searchQuery: undefined,
+      agentIds: undefined,
+    });
+    expect(vi.mocked(db.countBudgetConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 10,
+      searchQuery: undefined,
+      agentIds: undefined,
+    });
+  });
+
+  it("accepts shared-style search and agentId filters without applying event-window semantics", async () => {
+    mockApiKey();
+    vi.mocked(db.listBudgetConfigs).mockResolvedValue([baseBudgetConfig]);
+    vi.mocked(db.countBudgetConfigs).mockResolvedValue(1);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/budgets?q=agent&agentId=agent_1&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listBudgetConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "agent",
+      agentIds: ["agent_1"],
+    });
+    expect(vi.mocked(db.countBudgetConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "agent",
+      agentIds: ["agent_1"],
+    });
   });
 
   it("returns 403 when api key lacks budgets:read scope", async () => {

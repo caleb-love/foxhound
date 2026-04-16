@@ -19,6 +19,7 @@ export default async function BudgetsPage() {
       currentSpendUsd: 0,
       status: 'healthy',
       summary: `Budget: $${c.costBudgetUsd ?? 0}, alert at ${c.costAlertThresholdPct ?? 80}%`,
+      updatedAt: new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

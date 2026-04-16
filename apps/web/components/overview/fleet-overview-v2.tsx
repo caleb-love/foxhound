@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Filter, X, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
+import { DEFAULT_DASHBOARD_DATE_PRESETS } from '@/lib/stores/dashboard-filter-presets';
 import {
   computeFleetVerdict,
   computeDelta,
@@ -16,9 +18,12 @@ import {
 import type { SparkPoint } from '@/components/charts/chart-types';
 import { FleetVerdictBar } from './fleet-verdict-bar';
 import { MetricStrip, type MetricStripItem } from './metric-strip';
-import { ActionQueue, type ActionQueueItem } from './action-queue';
+import { ActionQueue } from './action-queue';
 import { SandboxQuickBar } from './sandbox-quick-bar';
 import { PageContainer } from '@/components/system/page';
+import { StackedBarChart } from '@/components/charts/stacked-bar-chart';
+import { TrendChart } from '@/components/charts/trend-chart';
+import { ViewModeToggle } from '@/components/charts/view-mode-toggle';
 
 // ---------------------------------------------------------------------------
 // Prop Types
@@ -96,11 +101,7 @@ const overviewFilters: DashboardFilterDefinition[] = [
     key: 'dateRange',
     kind: 'date-preset',
     label: 'Date range',
-    presets: [
-      { label: 'Last 24h', hours: 24 },
-      { label: 'Last 7d', hours: 24 * 7 },
-      { label: 'Last 30d', hours: 24 * 30 },
-    ],
+    presets: DEFAULT_DASHBOARD_DATE_PRESETS,
   },
 ];
 
@@ -115,8 +116,11 @@ export function FleetOverviewV2({
   demoMode = false,
 }: FleetOverviewV2Props) {
   const [filterOpen, setFilterOpen] = useState(false);
+  const [groupBy, setGroupBy] = useState('agent');
   const filters = useSegmentStore((state) => state.currentFilters);
   const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
+  const setCurrentFilters = useSegmentStore((state) => state.setCurrentFilters);
+  const setCurrentSegmentName = useSegmentStore((state) => state.setCurrentSegmentName);
 
   // Compute verdict
   const verdict = computeFleetVerdict(fleetMetrics);
@@ -144,6 +148,86 @@ export function FleetOverviewV2({
     filters.status !== 'all' ||
     filters.severity !== 'all' ||
     filters.agentIds.length > 0;
+
+  const concentrationData = useMemo(() => {
+    if (groupBy === 'severity') {
+      return [
+        {
+          label: 'Current posture',
+          healthy: filteredActions.filter((item) => item.severity === 'healthy').length,
+          warning: filteredActions.filter((item) => item.severity === 'warning').length,
+          critical: filteredActions.filter((item) => item.severity === 'critical').length,
+          drillIn: {
+            href: filters.severity === 'critical'
+              ? (demoMode ? '/sandbox/regressions' : '/regressions')
+              : filters.severity === 'warning'
+                ? (demoMode ? '/sandbox/slas' : '/slas')
+                : (demoMode ? '/sandbox/traces' : '/traces'),
+          },
+        },
+      ];
+    }
+
+    const grouped = new Map<string, { label: string; healthy: number; warning: number; critical: number }>();
+    for (const item of filteredActions) {
+      const keys = groupBy === 'agent' ? item.agentIds : [item.actions[0]?.label ?? 'Workflow'];
+      for (const key of keys) {
+        const existing = grouped.get(key) ?? { label: key, healthy: 0, warning: 0, critical: 0 };
+        existing[item.severity] += 1;
+        grouped.set(key, existing);
+      }
+    }
+    return [...grouped.values()].sort((a, b) => (b.critical + b.warning + b.healthy) - (a.critical + a.warning + a.healthy)).slice(0, 5).map((entry) => ({
+      ...entry,
+      drillIn: groupBy === 'agent'
+        ? {
+            onClick: () => {
+              const defaults = createDefaultDashboardFilters();
+              setCurrentFilters({ ...defaults, agentIds: [entry.label] });
+              setCurrentSegmentName(`${entry.label} drill-in`);
+            },
+          }
+        : {
+            href: groupBy === 'workflow'
+              ? entry.label.toLowerCase().includes('budget')
+                ? (demoMode ? '/sandbox/budgets' : '/budgets')
+                : entry.label.toLowerCase().includes('sla')
+                  ? (demoMode ? '/sandbox/slas' : '/slas')
+                  : entry.label.toLowerCase().includes('regression') || entry.label.toLowerCase().includes('trace')
+                    ? (demoMode ? '/sandbox/traces' : '/traces')
+                    : (demoMode ? '/sandbox/experiments' : '/experiments')
+              : undefined,
+          },
+    }));
+  }, [demoMode, filteredActions, filters.severity, groupBy, setCurrentFilters, setCurrentSegmentName]);
+
+  const segmentationScale = Math.max(1, filteredActions.length || actionItems.length || 1);
+  const riskTrendSeries = [
+    {
+      id: 'reliability',
+      label: 'Reliability posture',
+      tone: metricCards[0]?.tone === 'critical' ? 'critical' as const : metricCards[0]?.tone === 'warning' ? 'warning' as const : 'healthy' as const,
+      values: metricCards[0]?.sparklineData?.map((point, index) => ({ label: `P${index + 1}`, value: Number((point.value * (filteredActions.length > 0 ? filteredActions.length / segmentationScale : 1)).toFixed(2)) })) ?? [],
+      href: demoMode ? '/sandbox/traces' : '/traces',
+      cta: 'Open traces',
+    },
+    {
+      id: 'regressions',
+      label: 'Regression pressure',
+      tone: metricCards[1]?.tone === 'critical' ? 'critical' as const : metricCards[1]?.tone === 'warning' ? 'warning' as const : 'healthy' as const,
+      values: metricCards[1]?.sparklineData?.map((point, index) => ({ label: `P${index + 1}`, value: Number((point.value * (filteredActions.filter((item) => item.severity !== 'healthy').length / segmentationScale || 1)).toFixed(2)) })) ?? [],
+      href: demoMode ? '/sandbox/regressions' : '/regressions',
+      cta: 'Review regressions',
+    },
+    {
+      id: 'budget',
+      label: 'Budget pressure',
+      tone: metricCards[3]?.tone === 'critical' ? 'critical' as const : metricCards[3]?.tone === 'warning' ? 'warning' as const : 'healthy' as const,
+      values: metricCards[3]?.sparklineData?.map((point, index) => ({ label: `P${index + 1}`, value: Number((point.value * (filteredActions.filter((item) => item.severity === 'critical').length / segmentationScale || 1)).toFixed(2)) })) ?? [],
+      href: demoMode ? '/sandbox/budgets' : '/budgets',
+      cta: 'Open budgets',
+    },
+  ];
 
   return (
     <PageContainer>
@@ -192,6 +276,31 @@ export function FleetOverviewV2({
 
       {/* 3. Risk metrics strip */}
       <MetricStrip items={metricStripItems} />
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="space-y-3">
+          <ViewModeToggle
+            label="Group concentration by"
+            value={groupBy}
+            options={[
+              { value: 'agent', label: 'Agent' },
+              { value: 'workflow', label: 'Workflow' },
+              { value: 'severity', label: 'Severity' },
+            ]}
+            onChange={setGroupBy}
+          />
+          <StackedBarChart
+            title="Risk concentration"
+            description="See where active risk is concentrated before jumping into traces or regressions. Segmentation should change the dominant owner, not just the total count."
+            data={concentrationData}
+          />
+        </div>
+        <TrendChart
+          title="Risk posture trend band"
+          description="Read whether reliability, regressions, and budget pressure are moving together or independently before escalating the wrong issue."
+          series={riskTrendSeries}
+        />
+      </div>
 
       {/* 4. Unified action queue */}
       <ActionQueue items={filteredActions} />

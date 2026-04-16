@@ -19,6 +19,7 @@ export default async function NotificationsPage() {
       kind: ch.kind,
       status: 'healthy',
       summary: `${ch.kind} channel`,
+      updatedAt: new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

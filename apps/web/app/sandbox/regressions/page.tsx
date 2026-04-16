@@ -12,6 +12,7 @@ export default function SandboxRegressionsPage() {
     diffPairId: r.diffPairId,
     promptName: r.promptName,
     summary: r.summary,
+    detectedAt: new Date().toISOString(),
   }));
 
   return <RegressionsDashboard regressions={regressions} baseHref="/sandbox" />;

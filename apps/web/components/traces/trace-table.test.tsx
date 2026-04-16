@@ -186,15 +186,15 @@ describe('TraceTable', () => {
 
     const replayLinks = screen.getAllByRole('link', { name: /Replay/i });
     expect(replayLinks[0]).toHaveAttribute('href', '/replay/trace_a');
-    expect(screen.getAllByRole('button', { name: /Set A/i }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: /Set B/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /^A$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /^B$/i }).length).toBeGreaterThan(0);
   });
 
   it('updates compare slots explicitly from trace actions', () => {
     render(<TraceTable initialData={traces as never} />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Set A/i })[0]!);
-    fireEvent.click(screen.getAllByRole('button', { name: /Set B/i })[1]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /^A$/i })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /^B$/i })[1]!);
 
     expect(useCompareStore.getState().traceAId).toBe('trace_a');
     expect(useCompareStore.getState().traceBId).toBe('trace_b');

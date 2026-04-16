@@ -30,6 +30,7 @@ export interface SettingsControlRecord {
   status: 'healthy' | 'warning' | 'critical';
   summary: string;
   lastChanged: string;
+  lastChangedAt?: string;
   href: string;
   owner: string;
 }
@@ -87,6 +88,7 @@ export function SettingsGovernDashboard({
     severity: (item) => item.status,
     status: (item) => item.status,
     agentIds: (item) => [item.owner],
+    timestampMs: (item) => (item.lastChangedAt ? new Date(item.lastChangedAt).getTime() : undefined),
   });
 
   const filteredNextActions = filterByDashboardScope(nextActions, filters, {

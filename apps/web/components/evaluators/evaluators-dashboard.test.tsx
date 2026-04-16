@@ -4,10 +4,14 @@ import { EvaluatorsDashboard } from './evaluators-dashboard';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
+const now = Date.now();
+
 const evaluators = [
-  { id: 'ev_1', name: 'refund-quality', scoringType: 'numeric', model: 'gpt-4o', health: 'healthy', summary: 'Scores refund response quality' },
-  { id: 'ev_2', name: 'tone-check', scoringType: 'categorical', model: 'gpt-4o-mini', health: 'warning', summary: 'Checks response tone' },
+  { id: 'ev_1', name: 'refund-quality', scoringType: 'numeric', model: 'gpt-4o', health: 'healthy', summary: 'Scores refund response quality', updatedAt: new Date(now - 30 * 60 * 1000).toISOString() },
+  { id: 'ev_2', name: 'tone-check', scoringType: 'categorical', model: 'gpt-4o-mini', health: 'warning', summary: 'Checks response tone', updatedAt: new Date(now - 10 * 60 * 60 * 1000).toISOString() },
 ];
+
+const olderEvaluator = { id: 'ev_3', name: 'legacy-check', scoringType: 'numeric', model: 'claude-3-5-sonnet', health: 'healthy', summary: 'Old evaluator activity', updatedAt: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString() };
 
 describe('EvaluatorsDashboard', () => {
   beforeEach(() => {
@@ -36,5 +40,20 @@ describe('EvaluatorsDashboard', () => {
     render(<EvaluatorsDashboard evaluators={[]} />);
 
     expect(screen.getByText(/No evaluators configured/)).toBeInTheDocument();
+  });
+
+  it('filters evaluators by date range when timestamps are present', () => {
+    useSegmentStore.getState().updateCurrentFilters({
+      dateRange: {
+        start: new Date(now - 24 * 60 * 60 * 1000),
+        end: new Date(now),
+      },
+    });
+
+    render(<EvaluatorsDashboard evaluators={[...evaluators, olderEvaluator]} />);
+
+    expect(screen.getByText('refund-quality')).toBeInTheDocument();
+    expect(screen.getByText('tone-check')).toBeInTheDocument();
+    expect(screen.queryByText('legacy-check')).not.toBeInTheDocument();
   });
 });

@@ -41,6 +41,7 @@ export function filterByDashboardScope<T>(
     promptIds?: (item: T) => string[];
     datasetIds?: (item: T) => string[];
     models?: (item: T) => string[];
+    timestampMs?: (item: T) => number | undefined;
   },
 ) {
   return items.filter((item) => {
@@ -51,6 +52,14 @@ export function filterByDashboardScope<T>(
     if (!matchesArray(resolver.promptIds?.(item), filters.promptIds)) return false;
     if (!matchesArray(resolver.datasetIds?.(item), filters.datasetIds)) return false;
     if (!matchesArray(resolver.models?.(item), filters.models)) return false;
+
+    const timestampMs = resolver.timestampMs?.(item);
+    if (timestampMs !== undefined) {
+      if (timestampMs < filters.dateRange.start.getTime() || timestampMs > filters.dateRange.end.getTime()) {
+        return false;
+      }
+    }
+
     return true;
   });
 }

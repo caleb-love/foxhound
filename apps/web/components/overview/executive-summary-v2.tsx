@@ -1,13 +1,17 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { computeExecutiveVerdict, type FleetMetrics, computeDelta } from '@/lib/verdict-engine';
 import type { SparkPoint } from '@/components/charts/chart-types';
 import { PageContainer } from '@/components/system/page';
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
+import { useSegmentStore } from '@/lib/stores/segment-store';
 import { RagIndicator } from './rag-indicator';
 import { MetricStrip, type MetricStripItem } from './metric-strip';
-import { DecisionCard, type DecisionCardProps } from './decision-card';
+import { DecisionCard } from './decision-card';
+import { MetricChip, MetricStrip as CompactMetricStrip } from '@/components/investigation/comparison-bar';
+import { ViewModeToggle } from '@/components/charts/view-mode-toggle';
 
 // ---------------------------------------------------------------------------
 // Prop Types
@@ -61,6 +65,8 @@ export function ExecutiveSummaryV2({
   generatedAt,
   fleetOverviewHref,
 }: ExecutiveSummaryV2Props) {
+  const [readinessView, setReadinessView] = useState('status');
+  const filters = useSegmentStore((state) => state.currentFilters);
   const execVerdict = computeExecutiveVerdict(fleetMetrics);
 
   const metricStripItems: MetricStripItem[] = metricCards.map((card) => ({
@@ -70,6 +76,23 @@ export function ExecutiveSummaryV2({
     sparklineData: card.sparklineData,
     tone: card.tone,
   }));
+
+  const segmentedDecisionCounts = useMemo(() => {
+    const severityBias = filters.severity === 'critical' ? 'attention' : filters.severity === 'warning' ? 'watch' : null;
+    if (!severityBias) {
+      return {
+        onTrack: decisions.filter((item) => item.status === 'on-track').length,
+        watch: decisions.filter((item) => item.status === 'watch').length,
+        attention: decisions.filter((item) => item.status === 'attention').length,
+      };
+    }
+
+    return {
+      onTrack: 0,
+      watch: decisions.filter((item) => item.status === 'watch' || severityBias === 'watch').length,
+      attention: decisions.filter((item) => item.status === 'attention' || severityBias === 'attention').length,
+    };
+  }, [decisions, filters.severity]);
 
   return (
     <PageContainer>
@@ -82,6 +105,24 @@ export function ExecutiveSummaryV2({
 
       {/* 2. Key numbers strip */}
       <MetricStrip items={metricStripItems} />
+
+      <div className="space-y-3">
+        <ViewModeToggle
+          label="Candidate readiness view"
+          value={readinessView}
+          options={[
+            { value: 'status', label: 'Status mix' },
+            { value: 'risk', label: 'Risk framing' },
+          ]}
+          onChange={setReadinessView}
+        />
+        <CompactMetricStrip>
+          <MetricChip label="On track" value={String(segmentedDecisionCounts.onTrack)} accent="success" />
+          <MetricChip label="Watch" value={String(segmentedDecisionCounts.watch)} accent="warning" />
+          <MetricChip label="Attention" value={String(segmentedDecisionCounts.attention)} accent="danger" />
+          <MetricChip label={readinessView === 'status' ? 'Ready now' : 'Blocked'} value={String(readinessView === 'status' ? segmentedDecisionCounts.onTrack : segmentedDecisionCounts.watch + segmentedDecisionCounts.attention)} accent={readinessView === 'status' ? 'success' : 'warning'} />
+        </CompactMetricStrip>
+      </div>
 
       {/* 3. Decision cards */}
       <div role="region" aria-label="Decisions requiring review">

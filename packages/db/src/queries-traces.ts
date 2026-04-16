@@ -7,6 +7,8 @@ export interface TraceFilters {
   orgId: string;
   agentId?: string;
   sessionId?: string;
+  status?: "all" | "success" | "error";
+  searchQuery?: string;
   /** Unix milliseconds lower bound (inclusive) */
   from?: number;
   /** Unix milliseconds upper bound (inclusive) */
@@ -296,15 +298,34 @@ export async function diffTraces(
   };
 }
 
-export async function queryTraces(filters: TraceFilters) {
-  const { orgId, agentId, sessionId, from, to, page = 1, limit = 50 } = filters;
-  const offset = (page - 1) * limit;
+function buildTraceConditions(filters: TraceFilters) {
+  const conditions = [eq(traces.orgId, filters.orgId)];
+  if (filters.agentId) conditions.push(eq(traces.agentId, filters.agentId));
+  if (filters.sessionId) conditions.push(eq(traces.sessionId, filters.sessionId));
+  if (filters.from != null) conditions.push(gte(traces.startTimeMs, filters.from));
+  if (filters.to != null) conditions.push(lte(traces.startTimeMs, filters.to));
+  if (filters.status === "error") {
+    conditions.push(sql`${traces.metadata}->>'status' = 'error'`);
+  } else if (filters.status === "success") {
+    conditions.push(sql`coalesce(${traces.metadata}->>'status', 'success') != 'error'`);
+  }
+  if (filters.searchQuery) {
+    const q = `%${filters.searchQuery.toLowerCase()}%`;
+    conditions.push(
+      sql`(
+        lower(${traces.id}) like ${q}
+        or lower(${traces.agentId}) like ${q}
+        or lower(coalesce(${traces.sessionId}, '')) like ${q}
+      )`,
+    );
+  }
+  return conditions;
+}
 
-  const conditions = [eq(traces.orgId, orgId)];
-  if (agentId) conditions.push(eq(traces.agentId, agentId));
-  if (sessionId) conditions.push(eq(traces.sessionId, sessionId));
-  if (from != null) conditions.push(gte(traces.startTimeMs, from));
-  if (to != null) conditions.push(lte(traces.startTimeMs, to));
+export async function queryTraces(filters: TraceFilters) {
+  const { page = 1, limit = 50 } = filters;
+  const offset = (page - 1) * limit;
+  const conditions = buildTraceConditions(filters);
 
   return db
     .select()
@@ -313,6 +334,16 @@ export async function queryTraces(filters: TraceFilters) {
     .orderBy(desc(traces.createdAt))
     .limit(limit)
     .offset(offset);
+}
+
+export async function countTraces(filters: TraceFilters) {
+  const conditions = buildTraceConditions(filters);
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(traces)
+    .where(and(...conditions));
+
+  return Number(row?.count ?? 0);
 }
 
 export async function insertSpans(traceId: string, orgId: string, spanList: Span[]): Promise<void> {

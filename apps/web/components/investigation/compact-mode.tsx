@@ -77,15 +77,15 @@ export function CompactModeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex items-center gap-1.5 rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
-        background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+        background: 'var(--card)',
         color: 'var(--tenant-text-muted)',
       }}
       title={`Switch to ${mode === 'comfortable' ? 'compact' : 'comfortable'} density`}
     >
-      <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
         {mode === 'comfortable' ? (
           /* Comfortable icon: wider lines */
           <>

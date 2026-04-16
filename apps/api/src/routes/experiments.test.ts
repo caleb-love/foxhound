@@ -149,6 +149,30 @@ describe("POST /v1/experiments", () => {
   });
 });
 
+describe("GET /v1/experiments", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("passes datasetId, search, and experimentId filters through to listExperiments", async () => {
+    mockApiKey();
+    vi.mocked(db.listExperiments).mockResolvedValue([]);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/experiments?datasetId=ds_123&q=refund&experimentId=exp_1&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listExperiments)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      datasetId: "ds_123",
+      searchQuery: "refund",
+      experimentIds: ["exp_1"],
+    });
+  });
+});
+
 describe("GET /v1/experiment-comparisons", () => {
   beforeEach(() => vi.clearAllMocks());
 

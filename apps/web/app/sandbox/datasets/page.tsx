@@ -10,6 +10,7 @@ export default function SandboxDatasetsPage() {
     description: d.description,
     itemCount: d.itemCount,
     sourceTraceIds: d.sourceTraceIds,
+    createdAt: new Date().toISOString(),
   }));
 
   return <DatasetsDashboard datasets={datasets} baseHref="/sandbox" />;

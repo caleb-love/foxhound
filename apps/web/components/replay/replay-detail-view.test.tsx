@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ReplayDetailView } from './replay-detail-view';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
@@ -83,5 +83,16 @@ describe('ReplayDetailView', () => {
     // Should have Trace and Compare actions
     expect(screen.getByText('Trace')).toBeInTheDocument();
     expect(screen.getByText('Compare')).toBeInTheDocument();
+  });
+
+  it('updates the inline inspector when a replay step is selected', () => {
+    render(<ReplayDetailView trace={trace as never} />);
+
+    const executionFlowButtons = screen.getAllByRole('button', { name: /execute/i });
+    fireEvent.click(executionFlowButtons.at(-1)!);
+
+    expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument();
+    expect(screen.getAllByText('execute').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Selected replay step')).toBeInTheDocument();
   });
 });

@@ -30,11 +30,27 @@ export async function createDataset(input: CreateDatasetInput) {
   return rows[0]!;
 }
 
-export async function listDatasets(orgId: string) {
+export interface DatasetListFilters {
+  orgId: string;
+  searchQuery?: string;
+  datasetIds?: string[];
+}
+
+export async function listDatasets(filters: DatasetListFilters) {
+  const conditions = [eq(datasets.orgId, filters.orgId)];
+
+  if (filters.searchQuery) {
+    conditions.push(sql`lower(${datasets.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+  }
+
+  if (filters.datasetIds && filters.datasetIds.length > 0) {
+    conditions.push(inArray(datasets.id, filters.datasetIds));
+  }
+
   return db
     .select()
     .from(datasets)
-    .where(eq(datasets.orgId, orgId))
+    .where(and(...conditions))
     .orderBy(desc(datasets.createdAt));
 }
 
@@ -247,9 +263,22 @@ export async function createExperiment(input: CreateExperimentInput) {
   return rows[0]!;
 }
 
-export async function listExperiments(orgId: string, datasetId?: string) {
-  const conditions = [eq(experiments.orgId, orgId)];
-  if (datasetId) conditions.push(eq(experiments.datasetId, datasetId));
+export interface ExperimentListFilters {
+  orgId: string;
+  datasetId?: string;
+  searchQuery?: string;
+  experimentIds?: string[];
+}
+
+export async function listExperiments(filters: ExperimentListFilters) {
+  const conditions = [eq(experiments.orgId, filters.orgId)];
+  if (filters.datasetId) conditions.push(eq(experiments.datasetId, filters.datasetId));
+  if (filters.searchQuery) {
+    conditions.push(sql`lower(${experiments.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+  }
+  if (filters.experimentIds && filters.experimentIds.length > 0) {
+    conditions.push(inArray(experiments.id, filters.experimentIds));
+  }
 
   return db
     .select()

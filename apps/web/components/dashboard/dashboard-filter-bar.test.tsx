@@ -31,6 +31,15 @@ const definitions: DashboardFilterDefinition[] = [
       { value: 'support-agent', label: 'support-agent' },
     ],
   },
+  {
+    key: 'dateRange',
+    kind: 'date-preset',
+    label: 'Date range',
+    presets: [
+      { label: 'Last 24h', durationHours: 24 },
+      { label: 'Last 7d', durationHours: 24 * 7 },
+    ],
+  },
 ];
 
 describe('DashboardFilterBar', () => {
@@ -45,6 +54,7 @@ describe('DashboardFilterBar', () => {
     expect(screen.getByPlaceholderText('Search dashboards...')).toBeInTheDocument();
     expect(screen.getByText('Status:')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Agents/i }).length).toBeGreaterThan(0);
+    expect(screen.getByText('Last 24h')).toBeInTheDocument();
   });
 
   it('updates shared search filter state', () => {
@@ -56,5 +66,20 @@ describe('DashboardFilterBar', () => {
 
     expect(useSegmentStore.getState().currentFilters.searchQuery).toBe('planner');
     expect(screen.getByText(/Search: "planner"/)).toBeInTheDocument();
+  });
+
+  it('shows the matching date preset label from the current date range', () => {
+    const now = Date.now();
+    useSegmentStore.getState().updateCurrentFilters({
+      dateRange: {
+        start: new Date(now - 7 * 24 * 60 * 60 * 1000),
+        end: new Date(now),
+      },
+    });
+
+    render(<DashboardFilterBar definitions={definitions} />);
+
+    expect(screen.getByText('Last 7d')).toBeInTheDocument();
+    expect(screen.getByText('Date: Last 7d')).toBeInTheDocument();
   });
 });

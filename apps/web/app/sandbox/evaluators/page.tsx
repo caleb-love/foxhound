@@ -11,6 +11,7 @@ export default function SandboxEvaluatorsPage() {
     model: e.model,
     health: e.health,
     summary: e.summary,
+    updatedAt: new Date().toISOString(),
   }));
 
   return <EvaluatorsDashboard evaluators={evaluators} baseHref="/sandbox" />;

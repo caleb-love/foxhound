@@ -18,6 +18,7 @@ export default async function DatasetsPage() {
       name: d.name,
       description: d.description,
       itemCount: ('itemCount' in d ? (d as { itemCount: number }).itemCount : 0),
+      createdAt: 'createdAt' in d && typeof d.createdAt === 'string' ? d.createdAt : new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

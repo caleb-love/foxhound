@@ -4,10 +4,14 @@ import { NotificationsGovernDashboard } from './notifications-govern-dashboard';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
+const now = Date.now();
+
 const channels = [
-  { channelId: 'ch_1', channelName: '#ops-alerts', kind: 'slack', status: 'healthy', summary: 'Primary alert channel' },
-  { channelId: 'ch_2', channelName: '#eng-alerts', kind: 'slack', status: 'warning', summary: 'Secondary channel, degraded' },
+  { channelId: 'ch_1', channelName: '#ops-alerts', kind: 'slack', status: 'healthy', summary: 'Primary alert channel', updatedAt: new Date(now - 60 * 60 * 1000).toISOString() },
+  { channelId: 'ch_2', channelName: '#eng-alerts', kind: 'slack', status: 'warning', summary: 'Secondary channel, degraded', updatedAt: new Date(now - 6 * 60 * 60 * 1000).toISOString() },
 ];
+
+const olderChannel = { channelId: 'ch_3', channelName: '#nightly-alerts', kind: 'slack', status: 'healthy', summary: 'Old channel activity', updatedAt: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString() };
 
 describe('NotificationsGovernDashboard', () => {
   beforeEach(() => {
@@ -35,5 +39,20 @@ describe('NotificationsGovernDashboard', () => {
     render(<NotificationsGovernDashboard channels={[]} />);
 
     expect(screen.getByText(/No notification channels/)).toBeInTheDocument();
+  });
+
+  it('filters channels by date range when timestamps are present', () => {
+    useSegmentStore.getState().updateCurrentFilters({
+      dateRange: {
+        start: new Date(now - 24 * 60 * 60 * 1000),
+        end: new Date(now),
+      },
+    });
+
+    render(<NotificationsGovernDashboard channels={[...channels, olderChannel]} />);
+
+    expect(screen.getByText('#ops-alerts')).toBeInTheDocument();
+    expect(screen.getByText('#eng-alerts')).toBeInTheDocument();
+    expect(screen.queryByText('#nightly-alerts')).not.toBeInTheDocument();
   });
 });

@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import type { Span, Trace } from '@foxhound/types';
-import { VerdictBar, generateTraceVerdict, InlineAction, InlineActionBar, CopyButton, MetricChip, MetricStrip, WaterfallTimeline, SplitPane } from '@/components/investigation';
-import { SpanDetailPanel } from './span-detail-panel';
+import { VerdictBar, generateTraceVerdict, InlineAction, InlineActionBar, CopyButton, MetricChip, MetricStrip, WaterfallTimeline, InvestigationDetailShell } from '@/components/investigation';
 import { getPromptMetadata, getPromptDetailHref, getSuggestedCompareHref } from '@/lib/trace-utils';
 import { GitCompare, Play, BookOpen, FlaskConical, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -27,7 +26,6 @@ function getTraceCost(trace: Trace): number {
 
 export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) {
   const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const llmCallCount = trace.spans.filter((span: Span) => span.kind === 'llm_call').length;
   const toolCallCount = trace.spans.filter((span: Span) => span.kind === 'tool_call').length;
@@ -41,12 +39,6 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
 
   const handleSpanClick = (span: Span) => {
     setSelectedSpan(span);
-    setIsPanelOpen(true);
-  };
-
-  const handleClosePanel = () => {
-    setIsPanelOpen(false);
-    setTimeout(() => setSelectedSpan(null), 300);
   };
 
   return (
@@ -113,11 +105,10 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
         ) : null}
       </MetricStrip>
 
-      {/* Main content: waterfall + inspector split pane */}
-      <SplitPane
-        defaultSplit={62}
-        minPaneWidth={300}
-        left={
+      {/* Main content: waterfall + inline inspector. Investigation workflows keep evidence visible instead of opening an obscuring overlay. */}
+      <InvestigationDetailShell
+        detailTitle="Selected span"
+        primary={
           <WaterfallTimeline
             spans={trace.spans}
             selectedSpanId={selectedSpan?.spanId}
@@ -125,7 +116,7 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
             className="rounded-none border-0"
           />
         }
-        right={
+        detail={
           selectedSpan ? (
             <SpanInlineInspector span={selectedSpan} />
           ) : (
@@ -154,12 +145,6 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
         </div>
       </details>
 
-      {/* Sheet panel for full detail (still useful for mobile / deep dive) */}
-      <SpanDetailPanel
-        span={selectedSpan}
-        isOpen={isPanelOpen}
-        onClose={handleClosePanel}
-      />
     </div>
   );
 }

@@ -1,24 +1,35 @@
-export type StatusFilter = "all" | "success" | "error";
-export type SeverityFilter = "all" | "healthy" | "warning" | "critical";
+import type {
+  SegmentationQuery,
+  SegmentationSeverityFilter,
+  SegmentationStatusFilter,
+} from '@foxhound/types';
+
+export type StatusFilter = SegmentationStatusFilter;
+export type SeverityFilter = SegmentationSeverityFilter;
 
 export interface DashboardDateRange {
   start: Date;
   end: Date;
 }
 
+export interface DashboardDatePreset {
+  label: string;
+  durationHours: number;
+}
+
 export interface DashboardFilters {
   status: StatusFilter;
   severity: SeverityFilter;
-  agentIds: string[];
-  environments: string[];
-  promptIds: string[];
-  promptVersionIds: string[];
-  evaluatorIds: string[];
-  datasetIds: string[];
-  models: string[];
-  toolNames: string[];
-  tags: string[];
-  searchQuery: string;
+  agentIds: NonNullable<SegmentationQuery['agentIds']>;
+  environments: NonNullable<SegmentationQuery['environmentIds']>;
+  promptIds: NonNullable<SegmentationQuery['promptIds']>;
+  promptVersionIds: NonNullable<SegmentationQuery['promptVersionIds']>;
+  evaluatorIds: NonNullable<SegmentationQuery['evaluatorIds']>;
+  datasetIds: NonNullable<SegmentationQuery['datasetIds']>;
+  models: NonNullable<SegmentationQuery['modelIds']>;
+  toolNames: NonNullable<SegmentationQuery['toolNames']>;
+  tags: NonNullable<SegmentationQuery['tags']>;
+  searchQuery: NonNullable<SegmentationQuery['searchQuery']>;
   dateRange: DashboardDateRange;
 }
 
@@ -61,5 +72,5 @@ export type DashboardFilterDefinition =
       key: "dateRange";
       kind: "date-preset";
       label: string;
-      presets: Array<{ label: string; hours: number }>;
+      presets: DashboardDatePreset[];
     };

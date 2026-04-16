@@ -53,6 +53,36 @@ describe('ExperimentDetailView', () => {
       'href',
       '/prompts/pmt_support_routing/diff?versionA=12&versionB=13',
     );
+    expect(screen.getByRole('link', { name: /Compare this experiment/i })).toHaveAttribute(
+      'href',
+      '/experiments/compare?experimentIds=exp_1',
+    );
+    expect(screen.getByRole('link', { name: /Open comparison workspace/i })).toHaveAttribute(
+      'href',
+      '/experiments/compare?experimentIds=exp_1',
+    );
+  });
+
+  it('uses the provided baseHref for sandbox experiment actions', () => {
+    render(<ExperimentDetailView experiment={experiment as never} datasetName="support-routing-regressions" baseHref="/sandbox" />);
+
+    expect(screen.getByRole('link', { name: /Return to experiments/i })).toHaveAttribute('href', '/sandbox/experiments');
+    expect(screen.getByRole('link', { name: /Review source dataset/i })).toHaveAttribute('href', '/sandbox/datasets');
+    expect(screen.getAllByRole('link', { name: /Review evaluator coverage/i })[0]).toHaveAttribute('href', '/sandbox/evaluators');
+    expect(screen.getByRole('link', { name: /Move toward prompt and release review/i })).toHaveAttribute('href', '/sandbox/prompts');
+    expect(screen.getByRole('link', { name: /Review candidate vs baseline prompt/i })).toHaveAttribute(
+      'href',
+      '/sandbox/prompts/pmt_support_routing/diff?versionA=12&versionB=13',
+    );
+    expect(screen.getByRole('link', { name: /Re-check regression posture/i })).toHaveAttribute('href', '/sandbox/regressions');
+    expect(screen.getByRole('link', { name: /Compare this experiment/i })).toHaveAttribute(
+      'href',
+      '/sandbox/experiments/compare?experimentIds=exp_1',
+    );
+    expect(screen.getByRole('link', { name: /Open comparison workspace/i })).toHaveAttribute(
+      'href',
+      '/sandbox/experiments/compare?experimentIds=exp_1',
+    );
   });
 
   it('renders pending guidance when no runs are attached', () => {

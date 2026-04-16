@@ -120,6 +120,30 @@ describe("GET /v1/datasets", () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toHaveProperty("data");
+    expect(vi.mocked(db.listDatasets)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      searchQuery: undefined,
+      datasetIds: undefined,
+    });
+  });
+
+  it("accepts shared-style search and datasetId filters without applying event-window semantics", async () => {
+    mockApiKey();
+    vi.mocked(db.listDatasets).mockResolvedValue([]);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/datasets?q=refund&datasetId=ds_123&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listDatasets)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      searchQuery: "refund",
+      datasetIds: ["ds_123"],
+    });
   });
 
   it("returns 403 when api key lacks datasets:read scope", async () => {
@@ -134,6 +158,46 @@ describe("GET /v1/datasets", () => {
 
     expect(res.statusCode).toBe(403);
     expect(JSON.parse(res.body).message).toContain("datasets:read");
+  });
+});
+
+describe("GET /v1/datasets/:id/items", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns total dataset item count, not page-local length", async () => {
+    mockApiKey();
+    vi.mocked(db.getDataset).mockResolvedValue({
+      id: "ds_123",
+      orgId: "org_1",
+      name: "test",
+      description: null,
+      createdAt: new Date(),
+    });
+    vi.mocked(db.listDatasetItems).mockResolvedValue([
+      {
+        id: "item_1",
+        datasetId: "ds_123",
+        input: { prompt: "hello" },
+        expectedOutput: null,
+        metadata: {},
+        sourceTraceId: null,
+        createdAt: new Date(),
+      },
+    ] as never);
+    vi.mocked(db.countDatasetItems).mockResolvedValue(14);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/datasets/ds_123/items?page=1&limit=10",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.data).toHaveLength(1);
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 14 });
+    expect(vi.mocked(db.countDatasetItems)).toHaveBeenCalledWith("ds_123", "org_1");
   });
 });
 

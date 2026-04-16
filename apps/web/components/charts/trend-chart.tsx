@@ -3,6 +3,7 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ChartPanel } from './chart-shell';
 import type { TrendSeries } from './chart-types';
+import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 
 function toneColor(tone: TrendSeries['tone']): string {
   if (tone === 'healthy') return '#34d399';
@@ -57,6 +58,17 @@ export function TrendChart({
                   {entry.values.at(-1)?.value ?? 0}
                 </div>
               </div>
+
+              {entry.href && entry.cta ? (
+                <div className="mb-3 flex justify-end">
+                  <SegmentAwareLink
+                    href={entry.href}
+                    className="inline-flex items-center rounded-md border px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/[0.04]"
+                  >
+                    <span style={{ color: 'var(--tenant-accent)' }}>{entry.cta}</span>
+                  </SegmentAwareLink>
+                </div>
+              ) : null}
 
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">

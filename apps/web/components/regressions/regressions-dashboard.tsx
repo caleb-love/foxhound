@@ -16,6 +16,7 @@ export interface RegressionRecord {
   diffPairId: string;
   promptName?: string;
   summary: string;
+  detectedAt?: string;
 }
 
 interface RegressionsDashboardProps {
@@ -32,6 +33,7 @@ export function RegressionsDashboard({ regressions, baseHref = '' }: Regressions
 
   const filtered = filterByDashboardScope(regressions, filters, {
     searchableText: (item) => `${item.title} ${item.summary} ${item.promptName ?? ''}`,
+    timestampMs: (item) => (item.detectedAt ? new Date(item.detectedAt).getTime() : undefined),
   });
 
   const criticalCount = regressions.filter((r) => r.severity === 'critical').length;

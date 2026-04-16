@@ -213,6 +213,20 @@ Radius:
 
 - 12px to 16px
 
+### Investigative workflow rule
+
+For evidence-heavy operator workflows (trace detail, replay, run diff, timeline inspection), detail should update inline beside the source evidence instead of opening a blur overlay that obscures the page.
+
+Use pushed or split layouts when the operator needs to keep source context visible while inspecting a selected item.
+
+Keep modal dialogs for:
+- create and configure flows
+- destructive confirmations
+- short focused forms
+- command-style transient interactions
+
+Do not use blur-backed sheets for core investigation when the hidden page contains the evidence the operator still needs to see.
+
 ### 3. Tight panel surfaces
 
 Use for:

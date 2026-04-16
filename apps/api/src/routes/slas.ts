@@ -4,12 +4,14 @@ import { randomUUID } from "crypto";
 import {
   upsertAgentConfig,
   getAgentConfig,
-  listAgentConfigs,
+  listSlaConfigs,
+  countSlaConfigs,
   deleteAgentConfig,
 } from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, AgentIdParamSchema } from "../lib/params.js";
+import { paginatedResponse } from "../lib/pagination.js";
 
 const UpsertSLASchema = z
   .object({
@@ -25,6 +27,12 @@ const UpsertSLASchema = z
 const ListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+  q: z.string().optional(),
+  agentId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
 });
 
 export function slasRoutes(fastify: FastifyInstance): void {
@@ -87,12 +95,26 @@ export function slasRoutes(fastify: FastifyInstance): void {
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
-    const configs = await listAgentConfigs(request.orgId, result.data.page, result.data.limit);
-    const slaConfigs = configs.filter((c) => c.maxDurationMs !== null || c.minSuccessRate !== null);
-    return reply.code(200).send({
-      data: slaConfigs,
-      pagination: { page: result.data.page, limit: result.data.limit, count: slaConfigs.length },
-    });
+
+    const agentIds = typeof result.data.agentId === "string"
+      ? [result.data.agentId]
+      : result.data.agentId;
+
+    const filters = {
+      orgId: request.orgId,
+      page: result.data.page,
+      limit: result.data.limit,
+      searchQuery: result.data.q,
+      agentIds,
+    };
+
+    const [slaConfigs, totalCount] = await Promise.all([
+      listSlaConfigs(filters),
+      countSlaConfigs(filters),
+    ]);
+    return reply.code(200).send(
+      paginatedResponse(slaConfigs, result.data.page, result.data.limit, totalCount),
+    );
   });
 
   fastify.get("/v1/slas/:agentId", async (request, reply) => {

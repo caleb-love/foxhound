@@ -4,10 +4,14 @@ import { SlasGovernDashboard } from './slas-govern-dashboard';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
+const now = Date.now();
+
 const slas = [
-  { agentId: 'support-agent', maxDurationMs: 10000, minSuccessRate: 0.95, observedDurationMs: 8500, observedSuccessRate: 0.97, status: 'healthy', summary: 'Within SLA targets' },
-  { agentId: 'billing-agent', maxDurationMs: 5000, minSuccessRate: 0.99, observedDurationMs: 6200, observedSuccessRate: 0.91, status: 'critical', summary: 'Latency and success rate both breached' },
+  { agentId: 'support-agent', maxDurationMs: 10000, minSuccessRate: 0.95, observedDurationMs: 8500, observedSuccessRate: 0.97, status: 'healthy', summary: 'Within SLA targets', updatedAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() },
+  { agentId: 'billing-agent', maxDurationMs: 5000, minSuccessRate: 0.99, observedDurationMs: 6200, observedSuccessRate: 0.91, status: 'critical', summary: 'Latency and success rate both breached', updatedAt: new Date(now - 8 * 60 * 60 * 1000).toISOString() },
 ];
+
+const olderSla = { agentId: 'legacy-agent', maxDurationMs: 7000, minSuccessRate: 0.9, observedDurationMs: 6500, observedSuccessRate: 0.92, status: 'healthy', summary: 'Older SLA sample', updatedAt: new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString() };
 
 describe('SlasGovernDashboard', () => {
   beforeEach(() => {
@@ -35,5 +39,20 @@ describe('SlasGovernDashboard', () => {
     render(<SlasGovernDashboard slas={[]} />);
 
     expect(screen.getByText(/No SLAs configured/)).toBeInTheDocument();
+  });
+
+  it('filters SLA rows by date range when timestamps are present', () => {
+    useSegmentStore.getState().updateCurrentFilters({
+      dateRange: {
+        start: new Date(now - 24 * 60 * 60 * 1000),
+        end: new Date(now),
+      },
+    });
+
+    render(<SlasGovernDashboard slas={[...slas, olderSla]} />);
+
+    expect(screen.getByText('support-agent')).toBeInTheDocument();
+    expect(screen.getByText('billing-agent')).toBeInTheDocument();
+    expect(screen.queryByText('legacy-agent')).not.toBeInTheDocument();
   });
 });

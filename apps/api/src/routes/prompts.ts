@@ -11,6 +11,7 @@ function isUniqueViolation(error: unknown, constraintName?: string): boolean {
 import {
   createPrompt,
   listPrompts,
+  countPrompts,
   getPrompt,
   getPromptByName,
   deletePrompt,
@@ -27,6 +28,7 @@ import {
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, IdParamSchema, IdLabelParamSchema } from "../lib/params.js";
+import { paginatedResponse } from "../lib/pagination.js";
 
 const CreatePromptSchema = z.object({
   name: z
@@ -54,6 +56,12 @@ const SetLabelSchema = z.object({
 const ListPromptsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+  q: z.string().optional(),
+  promptId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
 });
 
 const PromptDiffQuerySchema = z.object({
@@ -167,12 +175,20 @@ export function promptsRoutes(fastify: FastifyInstance): void {
         return reply.code(400).send({ error: "Bad Request", issues: query.error.issues });
       }
 
-      const { page, limit } = query.data;
-      const rows = await listPrompts(request.orgId, page, limit);
-      return reply.code(200).send({
-        data: rows,
-        pagination: { page, limit, count: rows.length },
-      });
+      const { page, limit, q, promptId } = query.data;
+      const promptIds = typeof promptId === "string" ? [promptId] : promptId;
+      const filters = {
+        orgId: request.orgId,
+        page,
+        limit,
+        searchQuery: q,
+        promptIds,
+      };
+      const [rows, totalCount] = await Promise.all([
+        listPrompts(filters),
+        countPrompts(filters),
+      ]);
+      return reply.code(200).send(paginatedResponse(rows, page, limit, totalCount));
     },
   );
 

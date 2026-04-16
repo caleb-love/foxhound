@@ -5,8 +5,9 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Eye, AlertTriangle, Settings } from 'lucide-react';
+import { StackedBarChart } from '@/components/charts/stacked-bar-chart';
 
 export interface BudgetRecord {
   agentId: string;
@@ -14,6 +15,7 @@ export interface BudgetRecord {
   currentSpendUsd: number;
   status: string;
   summary: string;
+  updatedAt?: string;
 }
 
 interface BudgetsGovernDashboardProps {
@@ -38,6 +40,7 @@ export function BudgetsGovernDashboard({ budgets, baseHref = '' }: BudgetsGovern
 
   const filtered = filterByDashboardScope(budgets, filters, {
     searchableText: (item) => `${item.agentId} ${item.summary}`,
+    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
   });
 
   const criticalCount = budgets.filter((b) => b.status === 'critical').length;
@@ -87,6 +90,18 @@ export function BudgetsGovernDashboard({ budgets, baseHref = '' }: BudgetsGovern
         {warningCount > 0 ? <MetricChip label="At risk" value={String(warningCount)} accent="warning" /> : null}
       </MetricStrip>
 
+      <StackedBarChart
+        title="Budget concentration"
+        description="See whether overspend is broad or concentrated in a small number of agents before changing thresholds or traffic."
+        data={filtered.map((budget) => ({
+          label: budget.agentId,
+          healthy: budget.status === 'healthy' ? budget.currentSpendUsd : 0,
+          warning: budget.status === 'warning' ? budget.currentSpendUsd : 0,
+          critical: budget.status === 'critical' ? budget.currentSpendUsd : 0,
+          drillIn: { href: `${baseHref}/traces` },
+        }))}
+      />
+
       {filtered.length === 0 ? (
         <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
           <p className="text-sm text-tenant-text-muted">
@@ -94,63 +109,63 @@ export function BudgetsGovernDashboard({ budgets, baseHref = '' }: BudgetsGovern
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
-          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 100px 100px 120px 80px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Agent</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Budget</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Spend</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Usage</span>
-            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 108px 108px 128px 88px">
+            <DataGridHead>Agent</DataGridHead>
+            <DataGridHead className="text-center">Budget</DataGridHead>
+            <DataGridHead className="text-center">Spend</DataGridHead>
+            <DataGridHead className="text-center">Usage</DataGridHead>
+            <DataGridHead className="text-right">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {filtered.map((budget) => {
-            const pct = spendPercent(budget.currentSpendUsd, budget.budgetUsd);
-            const barColor = budget.status === 'critical' ? 'var(--tenant-danger)' : budget.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-success)';
+          <DataGridBody>
+            {filtered.map((budget) => {
+              const pct = spendPercent(budget.currentSpendUsd, budget.budgetUsd);
+              const barColor = budget.status === 'critical' ? 'var(--tenant-danger)' : budget.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-success)';
 
-            return (
-              <div
-                key={budget.agentId}
-                className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-                style={{
-                  gridTemplateColumns: '1fr 100px 100px 120px 80px',
-                  borderColor: 'var(--tenant-panel-stroke)',
-                  borderLeft: budget.status === 'critical' ? '3px solid var(--tenant-danger)' : budget.status === 'warning' ? '3px solid var(--tenant-warning)' : '3px solid transparent',
-                }}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    {budget.status === 'critical' ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--tenant-danger)' }} /> : null}
-                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{budget.agentId}</span>
-                  </div>
-                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{budget.summary}</div>
-                </div>
-
-                <div className="text-center font-mono text-xs text-tenant-text-primary">{formatUsd(budget.budgetUsd)}</div>
-
-                <div className="text-center font-mono text-xs" style={{ color: barColor }}>{formatUsd(budget.currentSpendUsd)}</div>
-
-                <div className="px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="relative h-2 flex-1 overflow-hidden rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-panel-stroke) 32%, transparent)' }}>
-                      <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+              return (
+                <DataGridRow
+                  key={budget.agentId}
+                  columns="minmax(0,1fr) 108px 108px 128px 88px"
+                  style={{
+                    borderLeft: budget.status === 'critical' ? '3px solid var(--tenant-danger)' : budget.status === 'warning' ? '3px solid var(--tenant-warning)' : '3px solid transparent',
+                  }}
+                >
+                  <DataGridCell>
+                    <div className="flex items-center gap-2">
+                      {budget.status === 'critical' ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--tenant-danger)' }} /> : null}
+                      <span className="truncate text-sm font-semibold text-tenant-text-primary">{budget.agentId}</span>
                     </div>
-                    <span className="shrink-0 text-[10px] font-semibold" style={{ color: barColor }}>{pct}%</span>
-                  </div>
-                </div>
+                    <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{budget.summary}</div>
+                  </DataGridCell>
 
-                <div className="flex items-center justify-end">
-                  <InlineAction href={`${baseHref}/budgets`} variant="ghost" className="text-[11px] px-2 py-0.5">
-                    <Settings className="h-3 w-3" />
-                  </InlineAction>
-                </div>
-              </div>
-            );
-          })}
+                  <DataGridCell className="text-center font-mono text-xs text-tenant-text-primary">{formatUsd(budget.budgetUsd)}</DataGridCell>
 
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+                  <DataGridCell className="text-center font-mono text-xs" style={{ color: barColor }}>{formatUsd(budget.currentSpendUsd)}</DataGridCell>
+
+                  <DataGridCell className="px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative h-2 flex-1 overflow-hidden rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-panel-stroke) 32%, transparent)' }}>
+                        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold" style={{ color: barColor }}>{pct}%</span>
+                    </div>
+                  </DataGridCell>
+
+                  <DataGridCell className="flex items-center justify-end whitespace-nowrap">
+                    <InlineAction href={`${baseHref}/budgets`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                      <Settings className="h-3 w-3" />
+                    </InlineAction>
+                  </DataGridCell>
+                </DataGridRow>
+              );
+            })}
+          </DataGridBody>
+
+          <DataGridFooter>
             {filtered.length} budget{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

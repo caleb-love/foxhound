@@ -115,8 +115,8 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       await createTestEvaluator(orgA.id, { name: "eval-a2" });
       await createTestEvaluator(orgB.id, { name: "eval-b1" });
 
-      const evalsA = await queries.listEvaluators(orgA.id);
-      const evalsB = await queries.listEvaluators(orgB.id);
+      const evalsA = await queries.listEvaluators({ orgId: orgA.id });
+      const evalsB = await queries.listEvaluators({ orgId: orgB.id });
 
       expect(evalsA).toHaveLength(2);
       expect(evalsB).toHaveLength(1);
@@ -166,8 +166,8 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       await createTestDataset(orgA.id, { name: "ds-a" });
       await createTestDataset(orgB.id, { name: "ds-b" });
 
-      const dsA = await queries.listDatasets(orgA.id);
-      const dsB = await queries.listDatasets(orgB.id);
+      const dsA = await queries.listDatasets({ orgId: orgA.id });
+      const dsB = await queries.listDatasets({ orgId: orgB.id });
 
       expect(dsA).toHaveLength(1);
       expect(dsB).toHaveLength(1);
@@ -418,6 +418,31 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       expect(filtered).toHaveLength(1);
     });
+
+    it("countTraces returns the full matching total independent of page size", async () => {
+      const org = await createTestOrg();
+
+      await createTestTrace(org.id, { agentId: "agent-paginated", startTimeMs: Date.now() - 3000 });
+      await createTestTrace(org.id, { agentId: "agent-paginated", startTimeMs: Date.now() - 2000 });
+      await createTestTrace(org.id, { agentId: "agent-paginated", startTimeMs: Date.now() - 1000 });
+      await createTestTrace(org.id, { agentId: "agent-other", startTimeMs: Date.now() });
+
+      const pageOne = await queries.queryTraces({
+        orgId: org.id,
+        agentId: "agent-paginated",
+        page: 1,
+        limit: 2,
+      });
+      const total = await queries.countTraces({
+        orgId: org.id,
+        agentId: "agent-paginated",
+        page: 1,
+        limit: 2,
+      });
+
+      expect(pageOne).toHaveLength(2);
+      expect(total).toBe(3);
+    });
   });
 
   describe("Score CRUD", () => {
@@ -474,6 +499,52 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
         source: "manual",
       });
       expect(bySource).toHaveLength(1);
+    });
+
+    it("countScores returns full matching total independent of page size", async () => {
+      const org = await createTestOrg();
+      const trace = await createTestTrace(org.id);
+
+      await queries.createScore({
+        id: "score-count-1",
+        orgId: org.id,
+        traceId: trace.id,
+        name: "accuracy",
+        value: 0.2,
+        source: "sdk",
+      });
+      await queries.createScore({
+        id: "score-count-2",
+        orgId: org.id,
+        traceId: trace.id,
+        name: "accuracy",
+        value: 0.4,
+        source: "sdk",
+      });
+      await queries.createScore({
+        id: "score-count-3",
+        orgId: org.id,
+        traceId: trace.id,
+        name: "accuracy",
+        value: 0.6,
+        source: "sdk",
+      });
+
+      const pageOne = await queries.queryScores({
+        orgId: org.id,
+        name: "accuracy",
+        page: 1,
+        limit: 2,
+      });
+      const total = await queries.countScores({
+        orgId: org.id,
+        name: "accuracy",
+        page: 1,
+        limit: 2,
+      });
+
+      expect(pageOne).toHaveLength(2);
+      expect(total).toBe(3);
     });
   });
 
@@ -539,7 +610,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       expect(ds.name).toBe("Training Set");
 
-      const list = await queries.listDatasets(org.id);
+      const list = await queries.listDatasets({ orgId: org.id });
       expect(list).toHaveLength(1);
 
       const found = await queries.getDataset("ds-1", org.id);
@@ -717,10 +788,10 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       const apiKeysList = await queries.listApiKeys(org.id);
       expect(apiKeysList).toHaveLength(0);
 
-      const evaluatorsList = await queries.listEvaluators(org.id);
+      const evaluatorsList = await queries.listEvaluators({ orgId: org.id });
       expect(evaluatorsList).toHaveLength(0);
 
-      const datasetsList = await queries.listDatasets(org.id);
+      const datasetsList = await queries.listDatasets({ orgId: org.id });
       expect(datasetsList).toHaveLength(0);
 
       const auditLog = await queries.getAuditLog(org.id);
@@ -788,6 +859,39 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       const results = await queries.queryTraces({ orgId: org.id });
       expect(results).toHaveLength(1);
+    });
+
+    it("queryTraces supports shared-style status and search filters", async () => {
+      const org = await createTestOrg();
+
+      await createTestTrace(org.id, {
+        id: "trace-error-planner",
+        agentId: "planner-agent",
+        sessionId: "sess-planner",
+        metadata: { status: "error" },
+      });
+      await createTestTrace(org.id, {
+        id: "trace-success-support",
+        agentId: "support-agent",
+        sessionId: "sess-support",
+        metadata: { status: "success" },
+      });
+
+      const errorPlanner = await queries.queryTraces({
+        orgId: org.id,
+        status: "error",
+        searchQuery: "planner",
+      });
+      const successSupport = await queries.queryTraces({
+        orgId: org.id,
+        status: "success",
+        searchQuery: "support",
+      });
+
+      expect(errorPlanner).toHaveLength(1);
+      expect(errorPlanner[0]?.id).toBe("trace-error-planner");
+      expect(successSupport).toHaveLength(1);
+      expect(successSupport[0]?.id).toBe("trace-success-support");
     });
   });
 
@@ -918,7 +1022,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       expect(channel.name).toBe("#alerts");
 
-      const list = await queries.listNotificationChannels(org.id);
+      const list = await queries.listNotificationChannels({ orgId: org.id });
       expect(list).toHaveLength(1);
       expect(list[0]!.kind).toBe("slack");
     });
@@ -935,8 +1039,8 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
         config: {},
       });
 
-      const listA = await queries.listNotificationChannels(orgA.id);
-      const listB = await queries.listNotificationChannels(orgB.id);
+      const listA = await queries.listNotificationChannels({ orgId: orgA.id });
+      const listB = await queries.listNotificationChannels({ orgId: orgB.id });
 
       expect(listA).toHaveLength(1);
       expect(listB).toHaveLength(0);
@@ -1119,6 +1223,25 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       const resolved = await queries.getPromptVersionByLabel(org.id, prompt.name, "production");
       expect(resolved?.id).toBe(v2.id);
     });
+
+    it("listPrompts and countPrompts return org-scoped paginated prompt totals", async () => {
+      const orgA = await createTestOrg();
+      const orgB = await createTestOrg();
+
+      await queries.createPrompt({ id: "prompt-list-a1", orgId: orgA.id, name: "alpha" });
+      await queries.createPrompt({ id: "prompt-list-a2", orgId: orgA.id, name: "beta" });
+      await queries.createPrompt({ id: "prompt-list-a3", orgId: orgA.id, name: "gamma" });
+      await queries.createPrompt({ id: "prompt-list-b1", orgId: orgB.id, name: "other-org" });
+
+      const pageOne = await queries.listPrompts({ orgId: orgA.id, page: 1, limit: 2 });
+      const totalA = await queries.countPrompts({ orgId: orgA.id });
+      const totalB = await queries.countPrompts({ orgId: orgB.id });
+
+      expect(pageOne).toHaveLength(2);
+      expect(totalA).toBe(3);
+      expect(totalB).toBe(1);
+      expect(pageOne.every((prompt) => prompt.orgId === orgA.id)).toBe(true);
+    });
   });
 
   describe("Experiments", () => {
@@ -1249,6 +1372,60 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
       expect(await queries.deleteBaseline(org.id, "agent-a", "v1")).toBe(true);
       expect(await queries.deleteAgentConfig(org.id, "agent-a")).toBe(true);
+    });
+
+    it("budget and sla list helpers paginate the filtered set, not all agent configs", async () => {
+      const org = await createTestOrg();
+
+      await queries.upsertAgentConfig({
+        id: "cfg-budget-1",
+        orgId: org.id,
+        agentId: "agent-budget-a",
+        costBudgetUsd: "10.00",
+      });
+      await queries.upsertAgentConfig({
+        id: "cfg-none-1",
+        orgId: org.id,
+        agentId: "agent-none-a",
+      });
+      await queries.upsertAgentConfig({
+        id: "cfg-budget-2",
+        orgId: org.id,
+        agentId: "agent-budget-b",
+        costBudgetUsd: "20.00",
+      });
+      await queries.upsertAgentConfig({
+        id: "cfg-sla-1",
+        orgId: org.id,
+        agentId: "agent-sla-a",
+        maxDurationMs: 5000,
+      });
+      await queries.upsertAgentConfig({
+        id: "cfg-none-2",
+        orgId: org.id,
+        agentId: "agent-none-b",
+      });
+      await queries.upsertAgentConfig({
+        id: "cfg-sla-2",
+        orgId: org.id,
+        agentId: "agent-sla-b",
+        minSuccessRate: "0.95",
+      });
+
+      const budgetPage = await queries.listBudgetConfigs({ orgId: org.id, page: 1, limit: 1 });
+      const budgetCount = await queries.countBudgetConfigs({ orgId: org.id, page: 1, limit: 1 });
+      const slaPage = await queries.listSlaConfigs({ orgId: org.id, page: 1, limit: 1 });
+      const slaCount = await queries.countSlaConfigs({ orgId: org.id, page: 1, limit: 1 });
+
+      expect(budgetPage).toHaveLength(1);
+      expect(budgetPage[0]?.costBudgetUsd).not.toBeNull();
+      expect(budgetCount).toBe(2);
+
+      expect(slaPage).toHaveLength(1);
+      expect(
+        slaPage[0]?.maxDurationMs !== null || slaPage[0]?.minSuccessRate !== null,
+      ).toBe(true);
+      expect(slaCount).toBe(2);
     });
 
     it("insertWaitlistSignup deduplicates by normalized email", async () => {

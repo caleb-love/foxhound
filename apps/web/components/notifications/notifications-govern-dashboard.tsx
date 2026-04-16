@@ -5,7 +5,7 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Bell, Settings } from 'lucide-react';
 
 export interface NotificationRecord {
@@ -14,6 +14,7 @@ export interface NotificationRecord {
   kind: string;
   status: string;
   summary: string;
+  updatedAt?: string;
 }
 
 interface NotificationsGovernDashboardProps {
@@ -30,6 +31,7 @@ export function NotificationsGovernDashboard({ channels, baseHref = '' }: Notifi
 
   const filtered = filterByDashboardScope(channels, filters, {
     searchableText: (item) => `${item.channelName} ${item.kind} ${item.summary}`,
+    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
   });
 
   const healthyCount = channels.filter((c) => c.status === 'healthy').length;
@@ -82,53 +84,51 @@ export function NotificationsGovernDashboard({ channels, baseHref = '' }: Notifi
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
-          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 80px 80px 60px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Channel</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Type</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Status</span>
-            <span className="sr-only">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 88px 88px 68px">
+            <DataGridHead>Channel</DataGridHead>
+            <DataGridHead className="text-center">Type</DataGridHead>
+            <DataGridHead className="text-center">Status</DataGridHead>
+            <DataGridHead className="sr-only">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {filtered.map((channel) => (
-            <div
-              key={channel.channelId}
-              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-              style={{ gridTemplateColumns: '1fr 80px 80px 60px', borderColor: 'var(--tenant-panel-stroke)' }}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
-                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{channel.channelName}</span>
-                </div>
-                <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{channel.summary}</div>
-              </div>
+          <DataGridBody>
+            {filtered.map((channel) => (
+              <DataGridRow key={channel.channelId} columns="minmax(0,1fr) 88px 88px 68px">
+                <DataGridCell>
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{channel.channelName}</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{channel.summary}</div>
+                </DataGridCell>
 
-              <div className="text-center">
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium capitalize" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
-                  {channel.kind}
-                </span>
-              </div>
+                <DataGridCell className="text-center">
+                  <span className="rounded px-1.5 py-0.5 text-[10px] font-medium capitalize" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
+                    {channel.kind}
+                  </span>
+                </DataGridCell>
 
-              <div className="text-center">
-                <div
-                  className="mx-auto h-2 w-2 rounded-full"
-                  style={{ background: channel.status === 'healthy' ? 'var(--tenant-success)' : channel.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
-                />
-              </div>
+                <DataGridCell className="text-center">
+                  <div
+                    className="mx-auto h-2 w-2 rounded-full"
+                    style={{ background: channel.status === 'healthy' ? 'var(--tenant-success)' : channel.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
+                  />
+                </DataGridCell>
 
-              <div className="flex items-center justify-end">
-                <InlineAction href={`${baseHref}/notifications`} variant="ghost" className="text-[11px] px-2 py-0.5">
-                  <Settings className="h-3 w-3" />
-                </InlineAction>
-              </div>
-            </div>
-          ))}
+                <DataGridCell className="flex items-center justify-end whitespace-nowrap">
+                  <InlineAction href={`${baseHref}/notifications`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                    <Settings className="h-3 w-3" />
+                  </InlineAction>
+                </DataGridCell>
+              </DataGridRow>
+            ))}
+          </DataGridBody>
 
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+          <DataGridFooter>
             {filtered.length} channel{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

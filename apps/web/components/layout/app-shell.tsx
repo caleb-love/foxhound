@@ -1,8 +1,8 @@
 import { Suspense, type ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { TopBar } from '@/components/layout/top-bar';
-import { OperatorCommandPalette } from '@/components/layout/operator-command-palette';
 import { SegmentPersistenceBridge } from '@/components/layout/segment-persistence-bridge';
+import { ThemeModeToggleButton } from '@/components/theme/theme-mode-toggle';
 
 import { InvestigationBreadcrumb } from '@/components/investigation/breadcrumb';
 import { CompactModeProvider, CompactModeToggle } from '@/components/investigation/compact-mode';
@@ -23,21 +23,15 @@ interface AppShellProps {
 function ShellModeHeader({ mode }: { mode: 'dashboard' | 'sandbox' }) {
   if (mode === 'sandbox') {
     return (
-      <div className="flex items-center gap-4">
-        <div
-          className="rounded-full border px-3 py-1 text-sm font-medium shadow-sm"
-          style={{
-            borderColor: 'color-mix(in srgb, var(--tenant-warning) 35%, transparent)',
-            background: 'color-mix(in srgb, var(--tenant-warning) 12%, transparent)',
-            color: 'var(--tenant-text-primary)',
-          }}
-        >
-          Sandbox
-        </div>
-        <div>
-          <p className="text-sm font-medium text-tenant-text-primary">Shared narrative sandbox workspace</p>
-          <p className="text-xs text-tenant-text-muted">Whitelabel-friendly shell, reusable data-driven surfaces</p>
-        </div>
+      <div
+        className="rounded-full border px-3 py-1 text-sm font-medium shadow-sm"
+        style={{
+          borderColor: 'color-mix(in srgb, var(--tenant-warning) 35%, transparent)',
+          background: 'color-mix(in srgb, var(--tenant-warning) 12%, transparent)',
+          color: 'var(--tenant-text-primary)',
+        }}
+      >
+        Sandbox
       </div>
     );
   }
@@ -89,19 +83,8 @@ export function AppShell({
           >
             <ShellModeHeader mode={mode} />
             <div className="hidden items-center gap-3 md:flex">
-              <Suspense fallback={null}>
-                <OperatorCommandPalette />
-              </Suspense>
               <CompactModeToggle />
-              {['Overview', 'Investigate', 'Improve', 'Govern'].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-full border px-3 py-1 text-xs"
-                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}
-                >
-                  {item}
-                </div>
-              ))}
+              <ThemeModeToggleButton />
             </div>
           </header>
         ) : null}

@@ -82,6 +82,33 @@ function createApiHttpClient(config) {
 }
 
 // ../../../packages/api-client/dist/index.js
+function appendSegmentationQuery(query, segmentation) {
+  if (!segmentation)
+    return query;
+  if (segmentation.timeRange?.start)
+    query.set("start", segmentation.timeRange.start);
+  if (segmentation.timeRange?.end)
+    query.set("end", segmentation.timeRange.end);
+  if (segmentation.status)
+    query.set("status", segmentation.status);
+  if (segmentation.severity)
+    query.set("severity", segmentation.severity);
+  if (segmentation.searchQuery)
+    query.set("q", segmentation.searchQuery);
+  const appendMany = (key, values) => {
+    values?.forEach((value) => query.append(key, value));
+  };
+  appendMany("agentId", segmentation.agentIds);
+  appendMany("environmentId", segmentation.environmentIds);
+  appendMany("promptId", segmentation.promptIds);
+  appendMany("promptVersionId", segmentation.promptVersionIds);
+  appendMany("evaluatorId", segmentation.evaluatorIds);
+  appendMany("datasetId", segmentation.datasetIds);
+  appendMany("modelId", segmentation.modelIds);
+  appendMany("toolName", segmentation.toolNames);
+  appendMany("tag", segmentation.tags);
+  return query;
+}
 var FoxhoundApiClient = class {
   endpoint;
   apiKey;
@@ -104,6 +131,7 @@ var FoxhoundApiClient = class {
       query.set("limit", String(params.limit));
     if (params.page !== void 0)
       query.set("page", String(params.page));
+    appendSegmentationQuery(query, params.segmentation);
     return this.get(`/v1/traces?${query.toString()}`);
   }
   async getTrace(traceId) {
@@ -127,8 +155,15 @@ var FoxhoundApiClient = class {
     throw new Error("deleteAlertRule is not supported by the current Foxhound API. Remove the rule directly in the dashboard or implement the backend route before using this client method.");
   }
   // ── Notification Channels ─────────────────────────────────────────────
-  async listChannels() {
-    return this.get("/v1/notifications/channels");
+  async listChannels(params) {
+    const query = new URLSearchParams();
+    appendSegmentationQuery(query, {
+      ...params,
+      searchQuery: params?.searchQuery
+    });
+    params?.channelIds?.forEach((channelId) => query.append("channelId", channelId));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/notifications/channels${suffix}`);
   }
   async createChannel(params) {
     return this.post("/v1/notifications/channels", params);
@@ -212,8 +247,15 @@ var FoxhoundApiClient = class {
   async createEvaluator(params) {
     return this.post("/v1/evaluators", params);
   }
-  async listEvaluators() {
-    return this.get("/v1/evaluators");
+  async listEvaluators(params) {
+    const query = new URLSearchParams();
+    appendSegmentationQuery(query, {
+      ...params,
+      searchQuery: params?.searchQuery
+    });
+    params?.evaluatorIds?.forEach((evaluatorId) => query.append("evaluatorId", evaluatorId));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/evaluators${suffix}`);
   }
   async getEvaluator(evaluatorId) {
     return this.get(`/v1/evaluators/${encodeURIComponent(evaluatorId)}`);
@@ -272,8 +314,15 @@ var FoxhoundApiClient = class {
   async createDataset(params) {
     return this.post("/v1/datasets", params);
   }
-  async listDatasets() {
-    return this.get("/v1/datasets");
+  async listDatasets(params) {
+    const query = new URLSearchParams();
+    if (params?.page !== void 0)
+      query.set("page", String(params.page));
+    if (params?.limit !== void 0)
+      query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/datasets${suffix}`);
   }
   async getDataset(datasetId) {
     return this.get(`/v1/datasets/${encodeURIComponent(datasetId)}`);
@@ -306,6 +355,11 @@ var FoxhoundApiClient = class {
     const query = new URLSearchParams();
     if (params?.datasetId !== void 0)
       query.set("datasetId", params.datasetId);
+    if (params?.page !== void 0)
+      query.set("page", String(params.page));
+    if (params?.limit !== void 0)
+      query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
     return this.get(`/v1/experiments?${query.toString()}`);
   }
   async getExperiment(experimentId) {
@@ -331,6 +385,7 @@ var FoxhoundApiClient = class {
       qs.set("page", String(params.page));
     if (params?.limit)
       qs.set("limit", String(params.limit));
+    appendSegmentationQuery(qs, params);
     return this.get(`/v1/budgets?${qs}`);
   }
   async deleteBudget(agentId) {
@@ -349,6 +404,7 @@ var FoxhoundApiClient = class {
       qs.set("page", String(params.page));
     if (params?.limit)
       qs.set("limit", String(params.limit));
+    appendSegmentationQuery(qs, params);
     return this.get(`/v1/slas?${qs}`);
   }
   async deleteSla(agentId) {
@@ -377,6 +433,7 @@ var FoxhoundApiClient = class {
       query.set("page", String(params.page));
     if (params?.limit !== void 0)
       query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
     const suffix = query.size > 0 ? `?${query.toString()}` : "";
     return this.get(`/v1/prompts${suffix}`);
   }

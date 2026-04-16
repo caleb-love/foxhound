@@ -29,7 +29,7 @@ interface TraceTableProps {
 
 const ROW_HEIGHT = 56;
 const VIRTUAL_THRESHOLD = 80;
-const GRID_COLS = '40px minmax(160px,1.2fr) 80px 72px 80px 80px 88px minmax(180px,1fr)';
+const GRID_COLS = '40px minmax(420px,1fr) 96px 72px 64px 80px 88px 212px';
 
 /* ---------- Row component (shared by virtual and non-virtual paths) ---------- */
 
@@ -83,7 +83,7 @@ function TraceRow({ trace, baseHref, isSandbox, isSelected, onToggle, onSetSlot,
         />
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center gap-3 pr-4">
         <div
           className="h-2 w-2 shrink-0 rounded-full"
           style={{
@@ -102,11 +102,11 @@ function TraceRow({ trace, baseHref, isSandbox, isSelected, onToggle, onSetSlot,
         </div>
       </div>
 
-      <div>
+      <div className="text-left">
         {trace.sessionId ? (
           <Link
             href={isSandbox ? getSandboxSessionHref(trace.sessionId) : `${baseHref}/sessions/${trace.sessionId}`}
-            className="font-mono text-[11px] hover:underline"
+            className="block truncate font-mono text-[10px] hover:underline"
             style={{ color: 'var(--tenant-accent)' }}
           >
             {trace.sessionId.slice(0, 8)}
@@ -114,35 +114,35 @@ function TraceRow({ trace, baseHref, isSandbox, isSelected, onToggle, onSetSlot,
         ) : <span className="text-[10px] text-tenant-text-muted">--</span>}
       </div>
 
-      <div><span className="font-mono text-[12px] text-tenant-text-primary">{duration}s</span></div>
+      <div className="text-right"><span className="font-mono text-[12px] text-tenant-text-primary">{duration}s</span></div>
 
-      <div>
+      <div className="text-right">
         <span className="text-[12px] text-tenant-text-primary">{trace.spans.length}</span>
         <span className="ml-0.5 text-[9px] text-tenant-text-muted">({trace.spans.filter((s) => s.kind === 'llm_call').length})</span>
       </div>
 
-      <div>
+      <div className="text-right">
         {totalCost > 0
           ? <span className="font-mono text-[12px] text-tenant-text-primary">${totalCost.toFixed(4)}</span>
           : <span className="text-[10px] text-tenant-text-muted">--</span>}
       </div>
 
-      <div><span className="text-[11px] text-tenant-text-secondary">{format(new Date(trace.startTimeMs), 'MMM d HH:mm')}</span></div>
+      <div className="pr-2 text-right"><span className="text-[10px] text-tenant-text-secondary">{format(new Date(trace.startTimeMs), 'MMM d HH:mm')}</span></div>
 
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        <InlineAction href={`${baseHref}/traces/${trace.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
+      <div className="flex items-center justify-end gap-1.5 pl-1 whitespace-nowrap">
+        <InlineAction href={`${baseHref}/traces/${trace.id}`} variant="primary" className="h-6 min-w-[62px] justify-center px-2 text-[10px]">
           <Eye className="h-3 w-3" /> Inspect
         </InlineAction>
-        <InlineAction href={replayHref} variant="secondary" className="text-[11px] px-2 py-0.5">
+        <InlineAction href={replayHref} variant="secondary" className="h-6 min-w-[60px] justify-center px-2 text-[10px]">
           <Play className="h-3 w-3" /> Replay
         </InlineAction>
         {promptHref ? (
-          <InlineAction href={promptHref} variant="ghost" className="text-[11px] px-1.5 py-0.5">
+          <InlineAction href={promptHref} variant="ghost" className="h-6 w-6 justify-center px-0 text-[10px]">
             <BookOpen className="h-3 w-3" />
           </InlineAction>
-        ) : null}
-        <Button variant="outline" size="xs" className="text-[10px] h-6 px-1.5" onClick={() => onSetSlot('a', trace.id)}>Set A</Button>
-        <Button variant="outline" size="xs" className="text-[10px] h-6 px-1.5" onClick={() => onSetSlot('b', trace.id)}>Set B</Button>
+        ) : <span className="inline-block w-6" />}
+        <Button variant="outline" size="xs" className="h-6 min-w-6 px-0 text-[10px]" onClick={() => onSetSlot('a', trace.id)}>A</Button>
+        <Button variant="outline" size="xs" className="h-6 min-w-6 px-0 text-[10px]" onClick={() => onSetSlot('b', trace.id)}>B</Button>
       </div>
     </div>
   );
@@ -256,10 +256,10 @@ export function TraceTable({ initialData }: TraceTableProps) {
           <span className="sr-only">Select</span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Agent</span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Session</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Duration</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Spans</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Cost</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Started</span>
+          <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Dur</span>
+          <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Spans</span>
+          <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Cost</span>
+          <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Started</span>
           <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
         </div>
 

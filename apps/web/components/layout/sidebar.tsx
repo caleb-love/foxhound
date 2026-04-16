@@ -263,18 +263,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="border-t p-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <div className={cn('rounded-2xl border shadow-sm backdrop-blur transition-[padding] duration-200 ease-out', isCollapsed ? 'flex justify-center p-2' : 'p-3')} style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--sidebar-accent) 72%, var(--sidebar))' }}>
-          {isCollapsed ? (
-            <LayoutDashboard className="h-5 w-5 text-tenant-accent" aria-hidden="true" />
-          ) : (
-            <>
-              <p className="text-xs font-medium text-tenant-text-primary">Agent operating console</p>
-              <p className="mt-1 text-[11px] text-tenant-text-muted">Overview · Investigate · Improve · Govern</p>
-            </>
-          )}
-        </div>
-      </div>
       {/* Mobile close button */}
       <button
         type="button"

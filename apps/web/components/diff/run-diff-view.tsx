@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Trace, Span } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowLeftRight, Check, Download, BookOpen, Eye } from 'lucide-react';
@@ -50,10 +50,18 @@ function getSpanFingerprint(trace: Trace, span: Span): string {
 
 export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTraces = [] }: RunDiffViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setComparePair, setTraceSlot, swapComparePair } = useCompareStore();
   const localTraceAId = traceA.id;
   const localTraceBId = traceB.id;
   const [exportCopied, setExportCopied] = useState(false);
+
+  const highlightedSpanName = searchParams.get('span');
+  const expandedFingerprint = searchParams.get('expanded');
+  const rowFilter: 'all' | 'changes' | 'errors' = (() => {
+    const value = searchParams.get('filter');
+    return value === 'changes' || value === 'errors' ? value : 'all';
+  })();
 
   useEffect(() => {
     const timer = setTimeout(() => setComparePair(traceA.id, traceB.id), 0);
@@ -152,9 +160,36 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
     modifiedSpans: spanDiff.modified.length,
   });
 
+  const buildDiffHref = (
+    nextTraceAId: string,
+    nextTraceBId: string,
+    options?: { spanName?: string | null; filter?: 'all' | 'changes' | 'errors'; expandedFingerprint?: string | null },
+  ) => {
+    const params = new URLSearchParams();
+    params.set('a', nextTraceAId);
+    params.set('b', nextTraceBId);
+
+    const effectiveFilter = options?.filter ?? rowFilter;
+    const effectiveSpanName = options?.spanName ?? highlightedSpanName;
+    const effectiveExpandedFingerprint = options?.expandedFingerprint ?? expandedFingerprint;
+
+    if (effectiveFilter !== 'all') {
+      params.set('filter', effectiveFilter);
+    }
+
+    if (effectiveSpanName) {
+      params.set('span', effectiveSpanName);
+    }
+
+    if (effectiveExpandedFingerprint) {
+      params.set('expanded', effectiveExpandedFingerprint);
+    }
+
+    return `${basePrefix}/diff?${params.toString()}`;
+  };
+
   const navigateToPair = (nextTraceAId: string, nextTraceBId: string) => {
-    const params = new URLSearchParams({ a: nextTraceAId, b: nextTraceBId });
-    router.push(`${basePrefix}/diff?${params.toString()}`);
+    router.push(buildDiffHref(nextTraceAId, nextTraceBId));
   };
 
   const handleSelectTraceA = (nextTraceAId: string) => {
@@ -170,6 +205,41 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
   const handleSwap = () => {
     swapComparePair();
     navigateToPair(localTraceBId, localTraceAId);
+  };
+
+  const handleSelectSpan = (spanName: string) => {
+    const matchingRow = [
+      ...spanDiff.modified,
+      ...spanDiff.added,
+      ...spanDiff.removed,
+      ...spanDiff.unchanged,
+    ].find((span) => span.name === spanName);
+
+    const nextFilter = matchingRow?.status === 'error'
+      ? 'errors'
+      : spanDiff.modified.some((span) => span.name === spanName)
+        || spanDiff.added.some((span) => span.name === spanName)
+        || spanDiff.removed.some((span) => span.name === spanName)
+        ? 'changes'
+        : rowFilter;
+
+    router.replace(buildDiffHref(localTraceAId, localTraceBId, { spanName, filter: nextFilter }));
+  };
+
+  const handleFilterChange = (nextFilter: 'all' | 'changes' | 'errors') => {
+    router.replace(buildDiffHref(localTraceAId, localTraceBId, { filter: nextFilter }));
+  };
+
+  const handleExpandedFingerprintChange = (nextFingerprint: string | null) => {
+    router.replace(buildDiffHref(localTraceAId, localTraceBId, { expandedFingerprint: nextFingerprint }));
+  };
+
+  const handleClearInvestigation = () => {
+    router.replace(buildDiffHref(localTraceAId, localTraceBId, {
+      spanName: null,
+      expandedFingerprint: null,
+      filter: 'all',
+    }));
   };
 
   const storyLabelA = typeof traceA.metadata?.story_label === 'string' ? traceA.metadata.story_label : traceA.id.slice(0, 12);
@@ -268,23 +338,36 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
         <ComparisonBar label="Errors" valueA={metrics.errors.valueA} valueB={metrics.errors.valueB} format="number" lowerIsBetter />
       </div>
 
-      {/* Prescriptive insights */}
-      <InsightsPanel
-        costDelta={metrics.cost.delta}
-        costPercentage={metrics.cost.percentage}
-        durationDelta={metrics.duration.delta}
-        durationPercentage={metrics.duration.percentage}
-        spanDiff={spanDiff}
-        traceA={traceA}
-        traceB={traceB}
-      />
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]">
+        {/* Prescriptive insights */}
+        <div className="min-w-0 2xl:sticky 2xl:top-4 2xl:self-start">
+          <InsightsPanel
+            costDelta={metrics.cost.delta}
+            costPercentage={metrics.cost.percentage}
+            durationDelta={metrics.duration.delta}
+            durationPercentage={metrics.duration.percentage}
+            spanDiff={spanDiff}
+            traceA={traceA}
+            traceB={traceB}
+            onSelectSpan={handleSelectSpan}
+          />
+        </div>
 
-      {/* Unified waterfall diff */}
-      <WaterfallDiff
-        traceA={traceA}
-        traceB={traceB}
-        spanDiff={spanDiff}
-      />
+        {/* Unified waterfall diff */}
+        <div className="min-w-0">
+          <WaterfallDiff
+            traceA={traceA}
+            traceB={traceB}
+            spanDiff={spanDiff}
+            highlightedSpanName={highlightedSpanName}
+            rowFilter={rowFilter}
+            onRowFilterChange={handleFilterChange}
+            expandedFingerprint={expandedFingerprint}
+            onExpandedFingerprintChange={handleExpandedFingerprintChange}
+            onClearInvestigation={handleClearInvestigation}
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import type {
   AnnotationQueueItem,
   Dataset,
   Experiment,
+  SegmentationQuery,
 } from "@foxhound/types";
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -25,6 +26,11 @@ export interface FoxhoundApiConfig {
 export interface TraceListResponse {
   data: Trace[];
   pagination: { page: number; limit: number; count: number };
+}
+
+export interface SegmentedListParams extends SegmentationQuery {
+  page?: number;
+  limit?: number;
 }
 
 export interface ReplayResponse {

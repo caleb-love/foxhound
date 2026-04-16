@@ -10,6 +10,7 @@ vi.mock("@foxhound/db", () => ({
   insertTrace: vi.fn(),
   insertSpans: vi.fn(),
   queryTraces: vi.fn(),
+  countTraces: vi.fn(),
   getTrace: vi.fn(),
   getTraceWithSpans: vi.fn(),
   getReplayContext: vi.fn(),
@@ -261,6 +262,7 @@ describe("GET /v1/traces — list traces", () => {
   it("returns paginated traces for authenticated org", async () => {
     mockApiKey("org_1");
     vi.mocked(db.queryTraces).mockResolvedValue([]);
+    vi.mocked(db.countTraces).mockResolvedValue(42);
     const app = buildApp();
     const res = await app.inject({
       method: "GET",
@@ -270,8 +272,11 @@ describe("GET /v1/traces — list traces", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body).toHaveProperty("data");
-    expect(body.pagination).toMatchObject({ page: 1, limit: 10 });
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 42 });
     expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org_1", page: 1, limit: 10 }),
+    );
+    expect(vi.mocked(db.countTraces)).toHaveBeenCalledWith(
       expect.objectContaining({ orgId: "org_1", page: 1, limit: 10 }),
     );
   });
@@ -290,6 +295,7 @@ describe("GET /v1/traces — list traces", () => {
   it("passes agentId and sessionId filters to queryTraces", async () => {
     mockApiKey("org_1");
     vi.mocked(db.queryTraces).mockResolvedValue([]);
+    vi.mocked(db.countTraces).mockResolvedValue(0);
     const app = buildApp();
     await app.inject({
       method: "GET",
@@ -298,6 +304,37 @@ describe("GET /v1/traces — list traces", () => {
     });
     expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agent_42", sessionId: "sess_99" }),
+    );
+    expect(vi.mocked(db.countTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agent_42", sessionId: "sess_99" }),
+    );
+  });
+
+  it("accepts shared segmentation-style status, search, and ISO time range filters", async () => {
+    mockApiKey("org_1");
+    vi.mocked(db.queryTraces).mockResolvedValue([]);
+    vi.mocked(db.countTraces).mockResolvedValue(0);
+    const app = buildApp();
+    await app.inject({
+      method: "GET",
+      url: "/v1/traces?status=error&q=planner&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z",
+      headers: { authorization: "Bearer sk-test-key" },
+    });
+    expect(vi.mocked(db.queryTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org_1",
+        status: "error",
+        searchQuery: "planner",
+        from: new Date("2026-04-15T00:00:00.000Z").getTime(),
+        to: new Date("2026-04-16T00:00:00.000Z").getTime(),
+      }),
+    );
+    expect(vi.mocked(db.countTraces)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org_1",
+        status: "error",
+        searchQuery: "planner",
+      }),
     );
   });
 

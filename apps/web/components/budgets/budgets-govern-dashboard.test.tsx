@@ -4,10 +4,14 @@ import { BudgetsGovernDashboard } from './budgets-govern-dashboard';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
+const now = Date.now();
+
 const budgets = [
-  { agentId: 'support-agent', budgetUsd: 500, currentSpendUsd: 480, status: 'critical', summary: 'Over budget on refund workflows' },
-  { agentId: 'codegen-agent', budgetUsd: 1000, currentSpendUsd: 300, status: 'healthy', summary: 'Within budget' },
+  { agentId: 'support-agent', budgetUsd: 500, currentSpendUsd: 480, status: 'critical', summary: 'Over budget on refund workflows', updatedAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() },
+  { agentId: 'codegen-agent', budgetUsd: 1000, currentSpendUsd: 300, status: 'healthy', summary: 'Within budget', updatedAt: new Date(now - 8 * 60 * 60 * 1000).toISOString() },
 ];
+
+const olderBudget = { agentId: 'legacy-budget-agent', budgetUsd: 200, currentSpendUsd: 50, status: 'healthy', summary: 'Older budget sample', updatedAt: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString() };
 
 describe('BudgetsGovernDashboard', () => {
   beforeEach(() => {
@@ -35,5 +39,20 @@ describe('BudgetsGovernDashboard', () => {
     render(<BudgetsGovernDashboard budgets={[]} />);
 
     expect(screen.getByText(/No budgets configured/)).toBeInTheDocument();
+  });
+
+  it('filters budgets by date range when timestamps are present', () => {
+    useSegmentStore.getState().updateCurrentFilters({
+      dateRange: {
+        start: new Date(now - 24 * 60 * 60 * 1000),
+        end: new Date(now),
+      },
+    });
+
+    render(<BudgetsGovernDashboard budgets={[...budgets, olderBudget]} />);
+
+    expect(screen.getByText('support-agent')).toBeInTheDocument();
+    expect(screen.getByText('codegen-agent')).toBeInTheDocument();
+    expect(screen.queryByText('legacy-budget-agent')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getBudgetPeriodKey, parsePeriodStart } from "./index.js";
+import type { SegmentationQuery } from "./index.js";
 
 // ---------------------------------------------------------------------------
 // getBudgetPeriodKey
@@ -79,5 +80,26 @@ describe("getBudgetPeriodKey -> parsePeriodStart roundtrip", () => {
     expect(start).toBe(Date.UTC(2026, 3, 1, 0, 0, 0));
     // And generating a key from the start should yield the same key
     expect(getBudgetPeriodKey("monthly", start)).toBe(key);
+  });
+});
+
+describe("SegmentationQuery", () => {
+  it("accepts the shared filter shape used by dashboard surfaces", () => {
+    const query: SegmentationQuery = {
+      timeRange: {
+        start: "2026-04-15T00:00:00.000Z",
+        end: "2026-04-16T00:00:00.000Z",
+      },
+      status: "error",
+      severity: "critical",
+      agentIds: ["planner-agent"],
+      promptIds: ["support-routing"],
+      datasetIds: ["ds_1"],
+      searchQuery: "refund",
+    };
+
+    expect(query.status).toBe("error");
+    expect(query.timeRange?.start).toContain("2026-04-15");
+    expect(query.agentIds).toEqual(["planner-agent"]);
   });
 });

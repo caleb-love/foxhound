@@ -12,6 +12,7 @@ export default function SandboxSlasPage() {
     observedSuccessRate: s.observedSuccessRate,
     status: s.status,
     summary: s.summary,
+    updatedAt: new Date().toISOString(),
   }));
 
   return <SlasGovernDashboard slas={slas} baseHref="/sandbox" />;

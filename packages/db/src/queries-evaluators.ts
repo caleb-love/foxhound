@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "./client.js";
 import { evaluatorRuns, evaluators, scores } from "./schema.js";
 
@@ -46,27 +46,21 @@ export interface ScoreFilters {
   limit?: number;
 }
 
-export async function queryScores(filters: ScoreFilters) {
-  const {
-    orgId,
-    traceId,
-    spanId,
-    name,
-    source,
-    minValue,
-    maxValue,
-    page = 1,
-    limit = 50,
-  } = filters;
-  const offset = (page - 1) * limit;
+function buildScoreConditions(filters: ScoreFilters) {
+  const conditions = [eq(scores.orgId, filters.orgId)];
+  if (filters.traceId) conditions.push(eq(scores.traceId, filters.traceId));
+  if (filters.spanId) conditions.push(eq(scores.spanId, filters.spanId));
+  if (filters.name) conditions.push(eq(scores.name, filters.name));
+  if (filters.source) conditions.push(eq(scores.source, filters.source as CreateScoreInput["source"]));
+  if (filters.minValue != null) conditions.push(gte(scores.value, filters.minValue));
+  if (filters.maxValue != null) conditions.push(lte(scores.value, filters.maxValue));
+  return conditions;
+}
 
-  const conditions = [eq(scores.orgId, orgId)];
-  if (traceId) conditions.push(eq(scores.traceId, traceId));
-  if (spanId) conditions.push(eq(scores.spanId, spanId));
-  if (name) conditions.push(eq(scores.name, name));
-  if (source) conditions.push(eq(scores.source, source as CreateScoreInput["source"]));
-  if (minValue != null) conditions.push(gte(scores.value, minValue));
-  if (maxValue != null) conditions.push(lte(scores.value, maxValue));
+export async function queryScores(filters: ScoreFilters) {
+  const { page = 1, limit = 50 } = filters;
+  const offset = (page - 1) * limit;
+  const conditions = buildScoreConditions(filters);
 
   return db
     .select()
@@ -75,6 +69,16 @@ export async function queryScores(filters: ScoreFilters) {
     .orderBy(desc(scores.createdAt))
     .limit(limit)
     .offset(offset);
+}
+
+export async function countScores(filters: ScoreFilters) {
+  const conditions = buildScoreConditions(filters);
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(scores)
+    .where(and(...conditions));
+
+  return Number(row?.count ?? 0);
 }
 
 export async function getScoresByTraceId(traceId: string, orgId: string) {
@@ -128,11 +132,27 @@ export async function createEvaluator(input: CreateEvaluatorInput) {
   return rows[0]!;
 }
 
-export async function listEvaluators(orgId: string) {
+export interface EvaluatorListFilters {
+  orgId: string;
+  searchQuery?: string;
+  evaluatorIds?: string[];
+}
+
+export async function listEvaluators(filters: EvaluatorListFilters) {
+  const conditions = [eq(evaluators.orgId, filters.orgId)];
+
+  if (filters.searchQuery) {
+    conditions.push(sql`lower(${evaluators.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+  }
+
+  if (filters.evaluatorIds && filters.evaluatorIds.length > 0) {
+    conditions.push(inArray(evaluators.id, filters.evaluatorIds));
+  }
+
   return db
     .select()
     .from(evaluators)
-    .where(eq(evaluators.orgId, orgId))
+    .where(and(...conditions))
     .orderBy(desc(evaluators.createdAt));
 }
 

@@ -4,9 +4,13 @@ import { RunDiffView } from './run-diff-view';
 
 const push = vi.fn();
 
+const replace = vi.fn();
+const searchParams = new URLSearchParams();
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
   usePathname: () => '/diff',
+  useSearchParams: () => searchParams,
 }));
 
 const traceA = {
@@ -89,6 +93,9 @@ const traceB = {
 describe('RunDiffView', () => {
   beforeEach(() => {
     push.mockReset();
+    replace.mockReset();
+    searchParams.delete('span');
+    searchParams.delete('filter');
   });
 
   it('renders the verdict and key sections', () => {
@@ -159,5 +166,45 @@ describe('RunDiffView', () => {
 
     expect(push).toHaveBeenCalledWith(expect.stringContaining('a=trace_b'));
     expect(push).toHaveBeenCalledWith(expect.stringContaining('b=trace_a'));
+  });
+
+  it('jumps from an insight to a targeted span and persists state in the URL', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
+
+    const jumpButton = screen.getByRole('button', { name: /Jump to llm/i });
+    fireEvent.click(jumpButton);
+
+    expect(replace).toHaveBeenCalledWith(expect.stringContaining('span=llm'));
+    expect(replace).toHaveBeenCalledWith(expect.stringContaining('filter=errors'));
+  });
+
+  it('updates the URL when a waterfall filter is selected', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
+
+    const changedFilter = screen.getByRole('button', { name: /Changed \(3\)/i });
+    fireEvent.click(changedFilter);
+
+    expect(replace).toHaveBeenCalledWith(expect.stringContaining('filter=changes'));
+  });
+
+  it('shows collapsed delta badges for changed rows', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
+
+    expect(screen.getByText('-200ms')).toBeInTheDocument();
+    expect(screen.getByText('-$0.0050')).toBeInTheDocument();
+    expect(screen.getByText('-1.80s')).toBeInTheDocument();
+    expect(screen.getByText('-$0.0100')).toBeInTheDocument();
+  });
+
+  it('persists expanded row state in the URL when a waterfall row is opened', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
+
+    const searchRowButton = screen.getAllByRole('button', { name: /search/i }).find((element) =>
+      element.className.includes('grid w-full items-center'),
+    );
+    expect(searchRowButton).toBeTruthy();
+    fireEvent.click(searchRowButton!);
+
+    expect(replace).toHaveBeenCalledWith(expect.stringContaining('expanded=tool_call%3Asearch%3A1'));
   });
 });

@@ -11,6 +11,7 @@ export default function SandboxExperimentsPage() {
     status: e.status,
     summary: e.summary,
     winningCandidate: e.winningCandidate,
+    createdAt: new Date().toISOString(),
   }));
 
   return <ExperimentsDashboard experiments={experiments} baseHref="/sandbox" />;

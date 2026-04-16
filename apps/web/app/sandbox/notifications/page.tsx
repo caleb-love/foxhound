@@ -10,6 +10,7 @@ export default function SandboxNotificationsPage() {
     kind: n.kind,
     status: n.status,
     summary: n.summary,
+    updatedAt: new Date().toISOString(),
   }));
 
   return <NotificationsGovernDashboard channels={channels} baseHref="/sandbox" />;

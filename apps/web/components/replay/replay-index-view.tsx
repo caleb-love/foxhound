@@ -10,8 +10,11 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { getPromptMetadata } from '@/lib/trace-utils';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
+import { DEFAULT_DASHBOARD_DATE_PRESETS } from '@/lib/stores/dashboard-filter-presets';
 import { getSandboxPromptDetailHref, getSandboxReplayHref, getSandboxRootHref } from '@/lib/sandbox-routes';
 import { Play, Eye, BookOpen } from 'lucide-react';
+
+const REPLAY_ROW_GRID = '40px 16px minmax(0,1fr) 132px';
 
 interface ReplayIndexViewProps {
   traces: Trace[];
@@ -34,11 +37,7 @@ const replayFilters: DashboardFilterDefinition[] = [
   { key: 'agentIds', kind: 'multi-select', label: 'Agents', options: [] },
   {
     key: 'dateRange', kind: 'date-preset', label: 'Date range',
-    presets: [
-      { label: 'Last 24h', hours: 24 },
-      { label: 'Last 7d', hours: 24 * 7 },
-      { label: 'Last 30d', hours: 24 * 30 },
-    ],
+    presets: DEFAULT_DASHBOARD_DATE_PRESETS,
   },
 ];
 
@@ -85,6 +84,7 @@ export function ReplayIndexView({
     status: (item) => (item.hasError ? 'error' : 'success'),
     severity: (item) => (item.hasError ? 'critical' : 'healthy'),
     agentIds: (item) => [item.trace.agentId],
+    timestampMs: (item) => Number(item.trace.startTimeMs),
   });
 
   // Sort: errors first, then by recency
@@ -174,8 +174,9 @@ function ReplayRow({ row, baseHref, rank }: { row: ReplayRowData; baseHref: stri
 
   return (
     <div
-      className="flex items-center gap-3 rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2.5 transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
+      className="grid items-center gap-3 rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2.5 transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
       style={{
+        gridTemplateColumns: REPLAY_ROW_GRID,
         borderColor: 'var(--tenant-panel-stroke)',
         background: row.hasError
           ? 'color-mix(in srgb, var(--tenant-danger) 4%, var(--card))'
@@ -183,17 +184,14 @@ function ReplayRow({ row, baseHref, rank }: { row: ReplayRowData; baseHref: stri
         borderLeft: row.hasError ? '3px solid var(--tenant-danger)' : '3px solid transparent',
       }}
     >
-      {/* Rank */}
-      <span className="w-6 shrink-0 text-center font-mono text-[11px] text-tenant-text-muted">{rank}</span>
+      <span className="text-center font-mono text-[11px] text-tenant-text-muted">{rank}</span>
 
-      {/* Status dot */}
       <div
         className="h-2 w-2 shrink-0 rounded-full"
         style={{ background: row.hasError ? 'var(--tenant-danger)' : 'var(--tenant-success)' }}
       />
 
-      {/* Content */}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         <div className="flex items-center gap-2">
           <Link href={replayHref} className="truncate text-sm font-medium text-tenant-text-primary hover:underline">
             {row.storyLabel}
@@ -204,34 +202,33 @@ function ReplayRow({ row, baseHref, rank }: { row: ReplayRowData; baseHref: stri
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-tenant-text-muted">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-tenant-text-muted">
           <span>{row.trace.agentId}</span>
           <span>·</span>
           <span>{row.trace.spans.length} spans</span>
           <span>·</span>
-          <span>{row.duration}s</span>
+          <span>{row.duration}</span>
           {row.promptName ? (
             <>
               <span>·</span>
-              <span>{row.promptName}{row.promptVersion !== undefined ? ` v${row.promptVersion}` : ''}</span>
+              <span className="truncate">{row.promptName}{row.promptVersion !== undefined ? ` v${row.promptVersion}` : ''}</span>
             </>
           ) : null}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1">
-        <InlineAction href={replayHref} variant="primary" className="text-xs">
+      <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+        <InlineAction href={replayHref} variant="primary" className="h-7 min-w-[76px] justify-center px-2 text-xs">
           <Play className="h-3 w-3" /> Replay
         </InlineAction>
-        <InlineAction href={`${baseHref}/traces/${row.trace.id}`} variant="ghost" className="text-xs">
+        <InlineAction href={`${baseHref}/traces/${row.trace.id}`} variant="ghost" className="h-7 w-7 justify-center px-0 text-xs">
           <Eye className="h-3 w-3" />
         </InlineAction>
         {promptHref ? (
-          <InlineAction href={promptHref} variant="ghost" className="text-xs">
+          <InlineAction href={promptHref} variant="ghost" className="h-7 w-7 justify-center px-0 text-xs">
             <BookOpen className="h-3 w-3" />
           </InlineAction>
-        ) : null}
+        ) : <span className="inline-block h-7 w-7" aria-hidden="true" />}
       </div>
     </div>
   );

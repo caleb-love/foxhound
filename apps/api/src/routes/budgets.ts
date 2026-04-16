@@ -4,12 +4,14 @@ import { randomUUID } from "crypto";
 import {
   upsertAgentConfig,
   getAgentConfig,
-  listAgentConfigs,
+  listBudgetConfigs,
+  countBudgetConfigs,
   deleteAgentConfig,
 } from "@foxhound/db";
 import { setCacheEntry, deleteCacheEntry } from "../lib/config-cache.js";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, AgentIdParamSchema } from "../lib/params.js";
+import { paginatedResponse } from "../lib/pagination.js";
 
 const UpsertBudgetSchema = z.object({
   costBudgetUsd: z.number().positive(),
@@ -20,6 +22,12 @@ const UpsertBudgetSchema = z.object({
 const ListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+  q: z.string().optional(),
+  agentId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
 });
 
 export function budgetsRoutes(fastify: FastifyInstance): void {
@@ -80,12 +88,26 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
-    const configs = await listAgentConfigs(request.orgId, result.data.page, result.data.limit);
-    const budgetConfigs = configs.filter((c) => c.costBudgetUsd !== null);
-    return reply.code(200).send({
-      data: budgetConfigs,
-      pagination: { page: result.data.page, limit: result.data.limit, count: budgetConfigs.length },
-    });
+
+    const agentIds = typeof result.data.agentId === "string"
+      ? [result.data.agentId]
+      : result.data.agentId;
+
+    const filters = {
+      orgId: request.orgId,
+      page: result.data.page,
+      limit: result.data.limit,
+      searchQuery: result.data.q,
+      agentIds,
+    };
+
+    const [budgetConfigs, totalCount] = await Promise.all([
+      listBudgetConfigs(filters),
+      countBudgetConfigs(filters),
+    ]);
+    return reply.code(200).send(
+      paginatedResponse(budgetConfigs, result.data.page, result.data.limit, totalCount),
+    );
   });
 
   fastify.get("/v1/budgets/:agentId", async (request, reply) => {

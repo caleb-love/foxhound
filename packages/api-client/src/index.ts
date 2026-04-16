@@ -3,7 +3,7 @@
  * Shared by the CLI and MCP server packages.
  */
 
-import type { Trace } from "@foxhound/types";
+import type { Trace, SegmentationQuery } from "@foxhound/types";
 import { createApiHttpClient } from "./http.js";
 import type {
   FoxhoundApiConfig,
@@ -49,6 +49,7 @@ import type {
   PromptVersionListResponse,
   PromptVersionDiffResponse,
   ResolvedPromptResponse,
+  SegmentedListParams,
 } from "./types.js";
 import type {
   Score,
@@ -75,6 +76,35 @@ export function toEpochMs(value: string): number {
   return date.getTime();
 }
 
+export function appendSegmentationQuery(
+  query: URLSearchParams,
+  segmentation?: SegmentationQuery,
+): URLSearchParams {
+  if (!segmentation) return query;
+
+  if (segmentation.timeRange?.start) query.set("start", segmentation.timeRange.start);
+  if (segmentation.timeRange?.end) query.set("end", segmentation.timeRange.end);
+  if (segmentation.status) query.set("status", segmentation.status);
+  if (segmentation.severity) query.set("severity", segmentation.severity);
+  if (segmentation.searchQuery) query.set("q", segmentation.searchQuery);
+
+  const appendMany = (key: string, values?: string[]) => {
+    values?.forEach((value) => query.append(key, value));
+  };
+
+  appendMany("agentId", segmentation.agentIds);
+  appendMany("environmentId", segmentation.environmentIds);
+  appendMany("promptId", segmentation.promptIds);
+  appendMany("promptVersionId", segmentation.promptVersionIds);
+  appendMany("evaluatorId", segmentation.evaluatorIds);
+  appendMany("datasetId", segmentation.datasetIds);
+  appendMany("modelId", segmentation.modelIds);
+  appendMany("toolName", segmentation.toolNames);
+  appendMany("tag", segmentation.tags);
+
+  return query;
+}
+
 // ── Client ────────────────────────────────────────────────────────────────
 
 export class FoxhoundApiClient {
@@ -96,6 +126,7 @@ export class FoxhoundApiClient {
     to?: number;
     limit?: number;
     page?: number;
+    segmentation?: SegmentationQuery;
   }): Promise<TraceListResponse> {
     const query = new URLSearchParams();
     if (params.agentId !== undefined) query.set("agentId", params.agentId);
@@ -103,6 +134,7 @@ export class FoxhoundApiClient {
     if (params.to !== undefined) query.set("to", String(params.to));
     if (params.limit !== undefined) query.set("limit", String(params.limit));
     if (params.page !== undefined) query.set("page", String(params.page));
+    appendSegmentationQuery(query, params.segmentation);
     return this.get(`/v1/traces?${query.toString()}`);
   }
 
@@ -143,8 +175,15 @@ export class FoxhoundApiClient {
 
   // ── Notification Channels ─────────────────────────────────────────────
 
-  async listChannels(): Promise<ChannelListResponse> {
-    return this.get("/v1/notifications/channels");
+  async listChannels(params?: SegmentedListParams & { channelIds?: string[] }): Promise<ChannelListResponse> {
+    const query = new URLSearchParams();
+    appendSegmentationQuery(query, {
+      ...params,
+      searchQuery: params?.searchQuery,
+    });
+    params?.channelIds?.forEach((channelId) => query.append("channelId", channelId));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/notifications/channels${suffix}`);
   }
 
   async createChannel(params: {
@@ -286,8 +325,15 @@ export class FoxhoundApiClient {
     return this.post("/v1/evaluators", params as unknown as Record<string, unknown>);
   }
 
-  async listEvaluators(): Promise<EvaluatorListResponse> {
-    return this.get("/v1/evaluators");
+  async listEvaluators(params?: SegmentedListParams & { evaluatorIds?: string[] }): Promise<EvaluatorListResponse> {
+    const query = new URLSearchParams();
+    appendSegmentationQuery(query, {
+      ...params,
+      searchQuery: params?.searchQuery,
+    });
+    params?.evaluatorIds?.forEach((evaluatorId) => query.append("evaluatorId", evaluatorId));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/evaluators${suffix}`);
   }
 
   async getEvaluator(evaluatorId: string): Promise<Evaluator> {
@@ -377,8 +423,13 @@ export class FoxhoundApiClient {
     return this.post("/v1/datasets", params as unknown as Record<string, unknown>);
   }
 
-  async listDatasets(): Promise<DatasetListResponse> {
-    return this.get("/v1/datasets");
+  async listDatasets(params?: SegmentedListParams): Promise<DatasetListResponse> {
+    const query = new URLSearchParams();
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return this.get(`/v1/datasets${suffix}`);
   }
 
   async getDataset(datasetId: string): Promise<DatasetWithCount> {
@@ -446,9 +497,12 @@ export class FoxhoundApiClient {
     return this.post("/v1/experiments", params as unknown as Record<string, unknown>);
   }
 
-  async listExperiments(params?: { datasetId?: string }): Promise<ExperimentListResponse> {
+  async listExperiments(params?: { datasetId?: string } & SegmentedListParams): Promise<ExperimentListResponse> {
     const query = new URLSearchParams();
     if (params?.datasetId !== undefined) query.set("datasetId", params.datasetId);
+    if (params?.page !== undefined) query.set("page", String(params.page));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
     return this.get(`/v1/experiments?${query.toString()}`);
   }
 
@@ -482,10 +536,11 @@ export class FoxhoundApiClient {
     return this.get(`/v1/budgets/${encodeURIComponent(agentId)}`);
   }
 
-  async listBudgets(params?: { page?: number; limit?: number }): Promise<AgentConfigListResponse> {
+  async listBudgets(params?: SegmentedListParams): Promise<AgentConfigListResponse> {
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
+    appendSegmentationQuery(qs, params);
     return this.get(`/v1/budgets?${qs}`);
   }
 
@@ -515,10 +570,11 @@ export class FoxhoundApiClient {
     return this.get(`/v1/slas/${encodeURIComponent(agentId)}`);
   }
 
-  async listSlas(params?: { page?: number; limit?: number }): Promise<AgentConfigListResponse> {
+  async listSlas(params?: SegmentedListParams): Promise<AgentConfigListResponse> {
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
+    appendSegmentationQuery(qs, params);
     return this.get(`/v1/slas?${qs}`);
   }
 
@@ -555,10 +611,11 @@ export class FoxhoundApiClient {
 
   // ── Prompts ────────────────────────────────────────────────────────────
 
-  async listPrompts(params?: { page?: number; limit?: number }): Promise<PromptListResponse> {
+  async listPrompts(params?: SegmentedListParams): Promise<PromptListResponse> {
     const query = new URLSearchParams();
     if (params?.page !== undefined) query.set("page", String(params.page));
     if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    appendSegmentationQuery(query, params);
     const suffix = query.size > 0 ? `?${query.toString()}` : "";
     return this.get(`/v1/prompts${suffix}`);
   }

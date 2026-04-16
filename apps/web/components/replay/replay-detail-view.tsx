@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, GitCompare, BookOpen, Play, Pause, SkipBack, SkipForward, ChevronsLeft, ChevronsRight, Eye } from 'lucide-react';
 import { getSandboxPromptDetailHref, getSandboxRootHref } from '@/lib/sandbox-routes';
 import { getPromptMetadata } from '@/lib/trace-utils';
-import { InlineAction, CopyButton, MetricChip, MetricStrip } from '@/components/investigation';
+import { InlineAction, CopyButton, MetricChip, MetricStrip, InvestigationDetailShell } from '@/components/investigation';
 import { StateDiff } from './state-diff';
 
 interface ReplayDetailViewProps {
@@ -270,142 +270,140 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
         </MetricStrip>
       </div>
 
-      {/* Main content: split pane (execution flow + inspector) */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left pane: Execution flow */}
-        <div className="w-[320px] shrink-0 overflow-y-auto border-r" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 96%, var(--background))' }}>
-          <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
-            Execution flow
-          </div>
-          <div className="space-y-px pb-4">
-            {spans.map((span, idx) => {
-              const isCompleted = idx < safeIndex;
-              const isCurrent = idx === safeIndex;
-              const isFuture = idx > safeIndex;
-              const isError = span.status === 'error';
-              const duration = span.endTimeMs ? span.endTimeMs - span.startTimeMs : 0;
-
-              return (
-                <button
-                  key={span.spanId}
-                  type="button"
-                  onClick={() => seekTo(idx)}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                  style={{
-                    background: isCurrent
-                      ? 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))'
-                      : 'transparent',
-                    borderLeft: isCurrent ? '3px solid var(--tenant-accent)' : '3px solid transparent',
-                    opacity: isFuture ? 0.45 : 1,
-                  }}
-                >
-                  {/* Status indicator */}
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                    {isCompleted && isError ? (
-                      <span className="text-[11px] font-bold" style={{ color: 'var(--tenant-danger)' }}>✗</span>
-                    ) : isCompleted ? (
-                      <span className="text-[11px] font-bold" style={{ color: 'var(--tenant-success)' }}>✓</span>
-                    ) : isCurrent ? (
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ background: isError ? 'var(--tenant-danger)' : 'var(--tenant-accent)', boxShadow: `0 0 0 3px color-mix(in srgb, ${isError ? 'var(--tenant-danger)' : 'var(--tenant-accent)'} 20%, transparent)` }} />
-                    ) : (
-                      <div className="h-2 w-2 rounded-full" style={{ background: 'var(--tenant-panel-stroke)' }} />
-                    )}
-                  </div>
-
-                  {/* Span info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className="truncate text-[12px] font-medium"
-                        style={{ color: isCurrent ? 'var(--tenant-text-primary)' : isFuture ? 'var(--tenant-text-muted)' : 'var(--tenant-text-secondary)' }}
-                      >
-                        {span.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-tenant-text-muted">
-                      <span>{span.kind.replace('_', ' ')}</span>
-                      {!isFuture ? (
-                        <>
-                          <span>·</span>
-                          <span className="font-mono">{(duration / 1000).toFixed(2)}s</span>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Step number */}
-                  <span className="shrink-0 font-mono text-[10px] text-tenant-text-muted">{idx + 1}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right pane: Inspector */}
-        <div className="flex-1 overflow-y-auto p-4" style={{ background: 'var(--card)' }}>
-          <div className="mx-auto max-w-3xl space-y-4">
-            {/* Current span header */}
-            <div
-              className="rounded-[var(--tenant-radius-panel)] border-2 p-4"
-              style={{
-                borderColor: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-accent)',
-                background: currentSpan.status === 'error'
-                  ? 'color-mix(in srgb, var(--tenant-danger) 8%, var(--card))'
-                  : 'color-mix(in srgb, var(--tenant-accent) 8%, var(--card))',
-              }}
-            >
-              <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-accent)' }}>
-                Step {safeIndex + 1} of {spans.length}
+      {/* Main content: execution flow + inline inspector. Replay keeps evidence visible while step details update inline. */}
+      <div className="flex-1 overflow-hidden p-4">
+        <InvestigationDetailShell
+          detailTitle="Selected replay step"
+          primary={
+            <div className="h-full overflow-y-auto" style={{ background: 'color-mix(in srgb, var(--card) 96%, var(--background))' }}>
+              <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+                Execution flow
               </div>
-              <div className="mt-1 text-lg font-semibold text-tenant-text-primary">{currentSpan.name}</div>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
-                  {currentSpan.kind.replace('_', ' ')}
-                </span>
-                <span
-                  className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase"
+              <div className="space-y-px pb-4">
+                {spans.map((span, idx) => {
+                  const isCompleted = idx < safeIndex;
+                  const isCurrent = idx === safeIndex;
+                  const isFuture = idx > safeIndex;
+                  const isError = span.status === 'error';
+                  const duration = span.endTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+
+                  return (
+                    <button
+                      key={span.spanId}
+                      type="button"
+                      onClick={() => seekTo(idx)}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors"
+                      style={{
+                        background: isCurrent
+                          ? 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))'
+                          : 'transparent',
+                        borderLeft: isCurrent ? '3px solid var(--tenant-accent)' : '3px solid transparent',
+                        opacity: isFuture ? 0.45 : 1,
+                      }}
+                    >
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                        {isCompleted && isError ? (
+                          <span className="text-[11px] font-bold" style={{ color: 'var(--tenant-danger)' }}>✗</span>
+                        ) : isCompleted ? (
+                          <span className="text-[11px] font-bold" style={{ color: 'var(--tenant-success)' }}>✓</span>
+                        ) : isCurrent ? (
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ background: isError ? 'var(--tenant-danger)' : 'var(--tenant-accent)', boxShadow: `0 0 0 3px color-mix(in srgb, ${isError ? 'var(--tenant-danger)' : 'var(--tenant-accent)'} 20%, transparent)` }} />
+                        ) : (
+                          <div className="h-2 w-2 rounded-full" style={{ background: 'var(--tenant-panel-stroke)' }} />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="truncate text-[12px] font-medium"
+                            style={{ color: isCurrent ? 'var(--tenant-text-primary)' : isFuture ? 'var(--tenant-text-muted)' : 'var(--tenant-text-secondary)' }}
+                          >
+                            {span.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-tenant-text-muted">
+                          <span>{span.kind.replace('_', ' ')}</span>
+                          {!isFuture ? (
+                            <>
+                              <span>·</span>
+                              <span className="font-mono">{(duration / 1000).toFixed(2)}s</span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <span className="shrink-0 font-mono text-[10px] text-tenant-text-muted">{idx + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          }
+          detail={
+            <div className="h-full overflow-y-auto p-4" style={{ background: 'var(--card)' }}>
+              <div className="mx-auto max-w-3xl space-y-4">
+                <div
+                  className="rounded-[var(--tenant-radius-panel)] border-2 p-4"
                   style={{
-                    background: currentSpan.status === 'error' ? 'color-mix(in srgb, var(--tenant-danger) 14%, var(--card))' : 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))',
-                    color: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-success)',
+                    borderColor: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-accent)',
+                    background: currentSpan.status === 'error'
+                      ? 'color-mix(in srgb, var(--tenant-danger) 8%, var(--card))'
+                      : 'color-mix(in srgb, var(--tenant-accent) 8%, var(--card))',
                   }}
                 >
-                  {currentSpan.status}
-                </span>
-                {currentSpan.endTimeMs ? (
-                  <span className="font-mono text-sm text-tenant-text-secondary">
-                    {((currentSpan.endTimeMs - currentSpan.startTimeMs) / 1000).toFixed(3)}s
-                  </span>
-                ) : null}
-                {typeof currentSpan.attributes.cost === 'number' ? (
-                  <span className="font-mono text-sm" style={{ color: 'var(--tenant-warning)' }}>
-                    ${(currentSpan.attributes.cost as number).toFixed(4)}
-                  </span>
-                ) : null}
-                {typeof currentSpan.attributes.model === 'string' ? (
-                  <span className="text-xs text-tenant-text-muted">{currentSpan.attributes.model as string}</span>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-accent)' }}>
+                    Step {safeIndex + 1} of {spans.length}
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-tenant-text-primary">{currentSpan.name}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                    <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
+                      {currentSpan.kind.replace('_', ' ')}
+                    </span>
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase"
+                      style={{
+                        background: currentSpan.status === 'error' ? 'color-mix(in srgb, var(--tenant-danger) 14%, var(--card))' : 'color-mix(in srgb, var(--tenant-success) 14%, var(--card))',
+                        color: currentSpan.status === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-success)',
+                      }}
+                    >
+                      {currentSpan.status}
+                    </span>
+                    {currentSpan.endTimeMs ? (
+                      <span className="font-mono text-sm text-tenant-text-secondary">
+                        {((currentSpan.endTimeMs - currentSpan.startTimeMs) / 1000).toFixed(3)}s
+                      </span>
+                    ) : null}
+                    {typeof currentSpan.attributes.cost === 'number' ? (
+                      <span className="font-mono text-sm" style={{ color: 'var(--tenant-warning)' }}>
+                        ${(currentSpan.attributes.cost as number).toFixed(4)}
+                      </span>
+                    ) : null}
+                    {typeof currentSpan.attributes.model === 'string' ? (
+                      <span className="text-xs text-tenant-text-muted">{currentSpan.attributes.model as string}</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <StateDiff previousSpan={previousSpan} currentSpan={currentSpan} />
+
+                {Object.keys(currentSpan.attributes || {}).length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+                      Attributes
+                    </div>
+                    <pre
+                      className="max-h-[300px] overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-[11px] leading-5 font-mono"
+                      style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
+                    >
+                      {JSON.stringify(currentSpan.attributes, null, 2)}
+                    </pre>
+                  </div>
                 ) : null}
               </div>
             </div>
-
-            {/* State diff from previous step */}
-            <StateDiff previousSpan={previousSpan} currentSpan={currentSpan} />
-
-            {/* Attributes */}
-            {Object.keys(currentSpan.attributes || {}).length > 0 ? (
-              <div className="space-y-2">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
-                  Attributes
-                </div>
-                <pre
-                  className="max-h-[300px] overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-[11px] leading-5 font-mono"
-                  style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
-                >
-                  {JSON.stringify(currentSpan.attributes, null, 2)}
-                </pre>
-              </div>
-            ) : null}
-          </div>
-        </div>
+          }
+        />
       </div>
     </div>
   );

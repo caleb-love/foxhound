@@ -14,13 +14,22 @@ interface InsightsPanelProps {
   };
   traceA?: Trace;
   traceB?: Trace;
+  onSelectSpan?: (spanName: string) => void;
 }
 
 interface Insight {
   severity: 'critical' | 'warning' | 'success' | 'info';
   finding: string;
   action: string;
+  targetSpanName?: string;
 }
+
+const INSIGHT_PRIORITY: Record<Insight['severity'], number> = {
+  critical: 0,
+  warning: 1,
+  success: 2,
+  info: 3,
+};
 
 function generateInsights(
   costDelta: number,
@@ -47,6 +56,7 @@ function generateInsights(
       action: firstError
         ? `Investigate the ${firstError.name} span. Check whether a prompt change or input schema change caused the failure.`
         : 'Open the comparison trace to inspect the error spans.',
+      targetSpanName: firstError?.name,
     });
   }
 
@@ -79,6 +89,7 @@ function generateInsights(
         action: top
           ? `The ${top.name} span costs $${((top.attributes.cost as number) || 0).toFixed(4)}. Consider using a lighter model or reducing context window size.`
           : 'Review span-level cost breakdown to find the source of the increase.',
+        targetSpanName: top?.name,
       });
     } else {
       insights.push({
@@ -114,6 +125,7 @@ function generateInsights(
       severity: 'info',
       finding: `${spanDiff.added.length} new span${spanDiff.added.length > 1 ? 's' : ''}: ${names}${more}.`,
       action: 'Review whether these new steps are intentional additions or symptoms of a retry loop.',
+      targetSpanName: spanDiff.added[0]?.name,
     });
   }
 
@@ -123,6 +135,7 @@ function generateInsights(
       severity: 'info',
       finding: `${spanDiff.removed.length} span${spanDiff.removed.length > 1 ? 's' : ''} removed: ${names}.`,
       action: 'Verify the removed steps are no longer needed and not silently dropped by an error.',
+      targetSpanName: spanDiff.removed[0]?.name,
     });
   }
 
@@ -131,6 +144,7 @@ function generateInsights(
       severity: 'info',
       finding: `${spanDiff.modified.length} span${spanDiff.modified.length > 1 ? 's' : ''} changed in duration or cost.`,
       action: 'Expand the waterfall diff to see which spans changed and by how much.',
+      targetSpanName: spanDiff.modified[0]?.name,
     });
   }
 
@@ -183,46 +197,108 @@ export function InsightsPanel({
   spanDiff,
   traceA,
   traceB,
+  onSelectSpan,
 }: InsightsPanelProps) {
-  const insights = generateInsights(costDelta, costPercentage, durationDelta, durationPercentage, spanDiff, traceA, traceB);
+  const insights = generateInsights(costDelta, costPercentage, durationDelta, durationPercentage, spanDiff, traceA, traceB)
+    .slice()
+    .sort((a, b) => INSIGHT_PRIORITY[a.severity] - INSIGHT_PRIORITY[b.severity]);
+  const primaryInsights = insights.slice(0, 3);
+  const secondaryInsights = insights.slice(3);
 
   return (
     <div
-      className="rounded-[var(--tenant-radius-panel)] border p-4"
+      className="rounded-[var(--tenant-radius-panel)] border p-4 2xl:max-h-[calc(100vh-18rem)] 2xl:overflow-auto"
       style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
     >
       <div className="mb-3 flex items-center gap-2">
         <Lightbulb className="h-4 w-4 text-tenant-accent" />
-        <h3 className="text-sm font-semibold text-tenant-text-primary">Insights and recommended actions</h3>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-tenant-text-primary">Insights and recommended actions</h3>
+          <p className="text-xs text-tenant-text-muted">Prioritized findings from cost, latency, errors, and span-shape changes.</p>
+        </div>
+        <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
           {insights.length} finding{insights.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       <div className="space-y-2">
-        {insights.map((insight, index) => {
+        {primaryInsights.map((insight, index) => {
           const Icon = SEVERITY_ICON[insight.severity] || Info;
           const colors = SEVERITY_COLORS[insight.severity] || SEVERITY_COLORS.info;
 
           return (
             <div
-              key={index}
-              className="rounded-[var(--tenant-radius-panel-tight)] border p-3"
+              key={`${insight.severity}-${index}-${insight.finding}`}
+              className="rounded-[var(--tenant-radius-panel-tight)] border p-3 2xl:p-2.5"
               style={{ background: colors.bg, borderColor: colors.border }}
             >
               <div className="flex items-start gap-2.5">
                 <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: colors.accent }} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-tenant-text-primary">{insight.finding}</p>
-                  <div className="mt-1.5 flex items-start gap-1.5 text-[13px] text-tenant-text-secondary">
+                  <p className="text-sm font-medium leading-5 text-tenant-text-primary">{insight.finding}</p>
+                  <div className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-5 text-tenant-text-secondary">
                     <ArrowRight className="mt-0.5 h-3 w-3 shrink-0" style={{ color: colors.accent }} />
                     <span>{insight.action}</span>
                   </div>
+                  {insight.targetSpanName && onSelectSpan ? (
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-tenant-accent transition-opacity hover:opacity-80"
+                      onClick={() => onSelectSpan(insight.targetSpanName!)}
+                    >
+                      Jump to {insight.targetSpanName}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
           );
         })}
+
+        {secondaryInsights.length > 0 ? (
+          <details
+            className="rounded-[var(--tenant-radius-panel-tight)] border"
+            style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 92%, var(--background))' }}
+          >
+            <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-tenant-text-muted marker:hidden">
+              More findings ({secondaryInsights.length})
+            </summary>
+            <div className="space-y-2 border-t px-3 py-2" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+              {secondaryInsights.map((insight, index) => {
+                const Icon = SEVERITY_ICON[insight.severity] || Info;
+                const colors = SEVERITY_COLORS[insight.severity] || SEVERITY_COLORS.info;
+
+                return (
+                  <div
+                    key={`${insight.severity}-secondary-${index}-${insight.finding}`}
+                    className="rounded-[var(--tenant-radius-panel-tight)] border p-2.5"
+                    style={{ background: colors.bg, borderColor: colors.border }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: colors.accent }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-5 text-tenant-text-primary">{insight.finding}</p>
+                        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-5 text-tenant-text-secondary">
+                          <ArrowRight className="mt-0.5 h-3 w-3 shrink-0" style={{ color: colors.accent }} />
+                          <span>{insight.action}</span>
+                        </div>
+                        {insight.targetSpanName && onSelectSpan ? (
+                          <button
+                            type="button"
+                            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-tenant-accent transition-opacity hover:opacity-80"
+                            onClick={() => onSelectSpan(insight.targetSpanName!)}
+                          >
+                            Jump to {insight.targetSpanName}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        ) : null}
       </div>
     </div>
   );

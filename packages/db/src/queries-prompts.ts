@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { db } from "./client.js";
 import { promptLabels, prompts, promptVersions } from "./schema.js";
 
@@ -13,15 +13,48 @@ export async function createPrompt(input: CreatePromptInput) {
   return row;
 }
 
-export async function listPrompts(orgId: string, page = 1, limit = 50) {
+export interface PromptListFilters {
+  orgId: string;
+  page?: number;
+  limit?: number;
+  searchQuery?: string;
+  promptIds?: string[];
+}
+
+function buildPromptConditions(filters: PromptListFilters) {
+  const conditions = [eq(prompts.orgId, filters.orgId)];
+
+  if (filters.searchQuery) {
+    const q = `%${filters.searchQuery}%`;
+    conditions.push(ilike(prompts.name, q));
+  }
+
+  if (filters.promptIds && filters.promptIds.length > 0) {
+    conditions.push(inArray(prompts.name, filters.promptIds));
+  }
+
+  return conditions;
+}
+
+export async function listPrompts(filters: PromptListFilters) {
+  const { page = 1, limit = 50 } = filters;
   const offset = (page - 1) * limit;
   return db
     .select()
     .from(prompts)
-    .where(eq(prompts.orgId, orgId))
+    .where(and(...buildPromptConditions(filters)))
     .orderBy(desc(prompts.updatedAt))
     .limit(limit)
     .offset(offset);
+}
+
+export async function countPrompts(filters: PromptListFilters) {
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(prompts)
+    .where(and(...buildPromptConditions(filters)));
+
+  return Number(row?.count ?? 0);
 }
 
 export async function getPrompt(id: string, orgId: string) {

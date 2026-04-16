@@ -21,6 +21,7 @@ export default async function SlasPage() {
       observedSuccessRate: 1,
       status: 'healthy',
       summary: `Target: ${(Number(c.maxDurationMs ?? 30000) / 1000).toFixed(0)}s max, ${((Number(c.minSuccessRate ?? 0.95)) * 100).toFixed(0)}% success`,
+      updatedAt: new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

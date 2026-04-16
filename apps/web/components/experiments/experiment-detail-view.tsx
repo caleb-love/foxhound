@@ -1,6 +1,8 @@
 'use client';
 
 import type { ExperimentWithRuns } from '@foxhound/api-client';
+import { GitCompare } from 'lucide-react';
+import { InlineAction, InlineActionBar } from '@/components/investigation';
 import { ActionCard, DetailActionPanel, DetailHeader, EvidenceCard, SummaryStatCard, StatusBadge } from '@/components/system/detail';
 
 interface ExperimentDetailViewProps {
@@ -85,6 +87,15 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
         </DetailActionPanel>
       </div>
 
+      {experiment.status === 'completed' ? (
+        <InlineActionBar>
+          <InlineAction href={`${baseHref}/experiments/compare?experimentIds=${encodeURIComponent(experiment.id)}`} variant="secondary">
+            <GitCompare className="h-3.5 w-3.5" />
+            Compare this experiment
+          </InlineAction>
+        </InlineActionBar>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryStatCard label="Status" value={experiment.status} supportingText={`Created ${formatRelativeDayLabel(experiment.createdAt)}`} />
         <SummaryStatCard label="Dataset" value={datasetName} supportingText="Dataset supplying the evaluation cases for this experiment." />
@@ -149,6 +160,11 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
           href={`${baseHref}/prompts`}
           title="Move into release controls"
           description="Use prompt labels and version history to convert experiment evidence into an explicit environment or production decision."
+        />
+        <ActionCard
+          href={`${baseHref}/experiments/compare?experimentIds=${encodeURIComponent(experiment.id)}`}
+          title="Open comparison workspace"
+          description="Start from the comparison surface so you can add one or more peer experiments and review side-by-side evidence in a dedicated workspace."
         />
       </DetailActionPanel>
 

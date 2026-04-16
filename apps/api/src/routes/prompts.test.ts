@@ -8,6 +8,7 @@ vi.mock("@foxhound/db", () => ({
   touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   createPrompt: vi.fn(),
   listPrompts: vi.fn(),
+  countPrompts: vi.fn(),
   getPrompt: vi.fn(),
   getPromptByName: vi.fn(),
   deletePrompt: vi.fn(),
@@ -198,6 +199,7 @@ describe("GET /v1/prompts", () => {
   it("lists prompts for the org", async () => {
     mockApiKey();
     vi.mocked(db.listPrompts).mockResolvedValue([]);
+    vi.mocked(db.countPrompts).mockResolvedValue(12);
 
     const app = buildApp();
     const res = await app.inject({
@@ -207,13 +209,15 @@ describe("GET /v1/prompts", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toMatchObject({ data: [] });
-    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith("org_1", 1, 50);
+    expect(JSON.parse(res.body)).toMatchObject({ data: [], pagination: { count: 12 } });
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 1, limit: 50, searchQuery: undefined, promptIds: undefined });
+    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 1, limit: 50, searchQuery: undefined, promptIds: undefined });
   });
 
   it("passes pagination params through to listPrompts", async () => {
     mockApiKey();
     vi.mocked(db.listPrompts).mockResolvedValue([]);
+    vi.mocked(db.countPrompts).mockResolvedValue(23);
 
     const app = buildApp();
     const res = await app.inject({
@@ -223,8 +227,38 @@ describe("GET /v1/prompts", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith("org_1", 2, 10);
-    expect(JSON.parse(res.body).pagination).toMatchObject({ page: 2, limit: 10, count: 0 });
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 2, limit: 10, searchQuery: undefined, promptIds: undefined });
+    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 2, limit: 10, searchQuery: undefined, promptIds: undefined });
+    expect(JSON.parse(res.body).pagination).toMatchObject({ page: 2, limit: 10, count: 23 });
+  });
+
+  it("accepts shared-style search and promptId filters without applying default time-window semantics", async () => {
+    mockApiKey();
+    vi.mocked(db.listPrompts).mockResolvedValue([]);
+    vi.mocked(db.countPrompts).mockResolvedValue(0);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/prompts?q=support&promptId=support-agent&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "support",
+      promptIds: ["support-agent"],
+    });
+    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "support",
+      promptIds: ["support-agent"],
+    });
   });
 
   it("returns 403 when api key lacks prompts:read scope", async () => {

@@ -56,4 +56,30 @@ describe("filterByDashboardScope", () => {
 
     expect(result.map((item) => item.id)).toEqual(["b"]);
   });
+
+  it("filters by date range when a timestamp resolver is provided", () => {
+    const now = Date.now();
+    const filters = createDefaultDashboardFilters();
+    filters.dateRange = {
+      start: new Date(now - 2 * 60 * 60 * 1000),
+      end: new Date(now),
+    };
+
+    const datedItems = [
+      { ...items[0], timestampMs: now - 60 * 60 * 1000 },
+      { ...items[1], timestampMs: now - 3 * 60 * 60 * 1000 },
+    ];
+
+    const result = filterByDashboardScope(datedItems, filters, {
+      searchableText: (item) => `${item.title} ${item.description}`,
+      severity: (item) => item.severity,
+      status: (item) => item.severity,
+      agentIds: (item) => item.agentIds,
+      promptIds: (item) => item.promptIds,
+      models: (item) => item.models,
+      timestampMs: (item) => item.timestampMs,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["a"]);
+  });
 });

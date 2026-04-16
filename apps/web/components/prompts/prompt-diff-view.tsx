@@ -7,7 +7,7 @@ import { PageWarningState } from '@/components/ui/page-state';
 import type { PromptVersionDiffResponse, PromptVersionResponse } from '@foxhound/api-client';
 import { VerdictBar, InlineAction, InlineActionBar } from '@/components/investigation';
 import { VersionImpactStrip, type VersionMetrics, type VersionImpact } from '@/components/prompts/version-impact-strip';
-import { computeWordDiff, type DiffSegment } from '@/lib/word-diff';
+import { computeWordDiff } from '@/lib/word-diff';
 import { ArrowLeft, GitCompare, Eye, FlaskConical } from 'lucide-react';
 
 interface PromptDiffViewProps {

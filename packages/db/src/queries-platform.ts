@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, isNotNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db } from "./client.js";
 import {
   agentConfigs,
@@ -291,6 +291,95 @@ export async function listAgentConfigs(
     .orderBy(agentConfigs.createdAt)
     .limit(limit)
     .offset((page - 1) * limit);
+}
+
+export interface BudgetConfigListFilters {
+  orgId: string;
+  page?: number;
+  limit?: number;
+  searchQuery?: string;
+  agentIds?: string[];
+}
+
+function buildBudgetConfigConditions(filters: BudgetConfigListFilters) {
+  const conditions = [eq(agentConfigs.orgId, filters.orgId), isNotNull(agentConfigs.costBudgetUsd)];
+
+  if (filters.searchQuery) {
+    conditions.push(sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+  }
+
+  if (filters.agentIds && filters.agentIds.length > 0) {
+    conditions.push(inArray(agentConfigs.agentId, filters.agentIds));
+  }
+
+  return conditions;
+}
+
+export async function listBudgetConfigs(
+  filters: BudgetConfigListFilters,
+): Promise<Array<typeof agentConfigs.$inferSelect>> {
+  const { page = 1, limit = 50 } = filters;
+  return db
+    .select()
+    .from(agentConfigs)
+    .where(and(...buildBudgetConfigConditions(filters)))
+    .orderBy(agentConfigs.createdAt)
+    .limit(limit)
+    .offset((page - 1) * limit);
+}
+
+export async function countBudgetConfigs(filters: BudgetConfigListFilters): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(agentConfigs)
+    .where(and(...buildBudgetConfigConditions(filters)));
+  return Number(row?.count ?? 0);
+}
+
+export interface SlaConfigListFilters {
+  orgId: string;
+  page?: number;
+  limit?: number;
+  searchQuery?: string;
+  agentIds?: string[];
+}
+
+function buildSlaConfigConditions(filters: SlaConfigListFilters) {
+  const conditions = [
+    eq(agentConfigs.orgId, filters.orgId),
+    or(isNotNull(agentConfigs.maxDurationMs), isNotNull(agentConfigs.minSuccessRate)),
+  ];
+
+  if (filters.searchQuery) {
+    conditions.push(sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+  }
+
+  if (filters.agentIds && filters.agentIds.length > 0) {
+    conditions.push(inArray(agentConfigs.agentId, filters.agentIds));
+  }
+
+  return conditions;
+}
+
+export async function listSlaConfigs(
+  filters: SlaConfigListFilters,
+): Promise<Array<typeof agentConfigs.$inferSelect>> {
+  const { page = 1, limit = 50 } = filters;
+  return db
+    .select()
+    .from(agentConfigs)
+    .where(and(...buildSlaConfigConditions(filters)))
+    .orderBy(agentConfigs.createdAt)
+    .limit(limit)
+    .offset((page - 1) * limit);
+}
+
+export async function countSlaConfigs(filters: SlaConfigListFilters): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(agentConfigs)
+    .where(and(...buildSlaConfigConditions(filters)));
+  return Number(row?.count ?? 0);
 }
 
 export async function deleteAgentConfig(orgId: string, agentId: string): Promise<boolean> {

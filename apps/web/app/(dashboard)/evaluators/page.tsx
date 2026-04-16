@@ -21,6 +21,7 @@ export default async function EvaluatorsPage() {
       health: 'healthy',
       summary: `${e.scoringType} evaluator using ${e.model}`,
       enabled: e.enabled,
+      updatedAt: new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

@@ -197,7 +197,30 @@ describe("GET /v1/evaluators", () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toHaveProperty("data");
-    expect(db.listEvaluators).toHaveBeenCalledWith("org_1");
+    expect(db.listEvaluators).toHaveBeenCalledWith({
+      orgId: "org_1",
+      searchQuery: undefined,
+      evaluatorIds: undefined,
+    });
+  });
+
+  it("accepts shared-style search and evaluatorId filters without applying event-window semantics", async () => {
+    mockApiKey();
+    vi.mocked(db.listEvaluators).mockResolvedValue([]);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/evaluators?q=quality&evaluatorId=evl_123&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: AUTH,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(db.listEvaluators).toHaveBeenCalledWith({
+      orgId: "org_1",
+      searchQuery: "quality",
+      evaluatorIds: ["evl_123"],
+    });
   });
 
   it("returns 403 when api key lacks evaluators:read scope", async () => {

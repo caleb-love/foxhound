@@ -176,6 +176,29 @@ describe("GET /v1/notifications/channels", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json<{ data: unknown[] }>();
     expect(body.data).toHaveLength(1);
+    expect(vi.mocked(db.listNotificationChannels)).toHaveBeenCalledWith({
+      orgId: ORG_ID,
+      searchQuery: undefined,
+      channelIds: undefined,
+    });
+  });
+
+  it("accepts shared-style search and channelId filters without applying event-window semantics", async () => {
+    vi.mocked(db.listNotificationChannels).mockResolvedValue([makeChannel()]);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/channels?q=slack&channelId=ch_1&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: { authorization: "Bearer sk-test" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listNotificationChannels)).toHaveBeenCalledWith({
+      orgId: ORG_ID,
+      searchQuery: "slack",
+      channelIds: ["ch_1"],
+    });
   });
 
   it("returns 403 when api key lacks notifications:read scope", async () => {

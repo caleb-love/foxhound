@@ -5,7 +5,7 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Play, Eye, CheckSquare } from 'lucide-react';
 
 export interface EvaluatorRecord {
@@ -16,6 +16,7 @@ export interface EvaluatorRecord {
   health: string;
   summary: string;
   enabled?: boolean;
+  updatedAt?: string;
 }
 
 interface EvaluatorsDashboardProps {
@@ -32,6 +33,7 @@ export function EvaluatorsDashboard({ evaluators, baseHref = '' }: EvaluatorsDas
 
   const filtered = filterByDashboardScope(evaluators, filters, {
     searchableText: (item) => `${item.name} ${item.model} ${item.summary}`,
+    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
   });
 
   const healthyCount = evaluators.filter((e) => e.health === 'healthy').length;
@@ -85,64 +87,59 @@ export function EvaluatorsDashboard({ evaluators, baseHref = '' }: EvaluatorsDas
           </p>
         </div>
       ) : (
-        <div
-          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
-        >
-          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 100px 100px 80px 140px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Evaluator</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Type</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Model</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Health</span>
-            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 112px 112px 88px minmax(140px,auto)">
+            <DataGridHead>Evaluator</DataGridHead>
+            <DataGridHead className="text-center">Type</DataGridHead>
+            <DataGridHead className="text-center">Model</DataGridHead>
+            <DataGridHead className="text-center">Health</DataGridHead>
+            <DataGridHead className="text-right">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {filtered.map((evaluator) => (
-            <div
-              key={evaluator.id}
-              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-              style={{ gridTemplateColumns: '1fr 100px 100px 80px 140px', borderColor: 'var(--tenant-panel-stroke)' }}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <CheckSquare className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
-                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{evaluator.name}</span>
-                </div>
-                <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{evaluator.summary}</div>
-              </div>
+          <DataGridBody>
+            {filtered.map((evaluator) => (
+              <DataGridRow key={evaluator.id} columns="minmax(0,1fr) 112px 112px 88px minmax(140px,auto)">
+                <DataGridCell>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{evaluator.name}</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{evaluator.summary}</div>
+                </DataGridCell>
 
-              <div className="text-center">
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
-                  {evaluator.scoringType}
-                </span>
-              </div>
+                <DataGridCell className="text-center">
+                  <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
+                    {evaluator.scoringType}
+                  </span>
+                </DataGridCell>
 
-              <div className="text-center text-xs text-tenant-text-muted">{evaluator.model}</div>
+                <DataGridCell className="text-center text-xs text-tenant-text-muted">{evaluator.model}</DataGridCell>
 
-              <div className="text-center">
-                <div
-                  className="mx-auto h-2 w-2 rounded-full"
-                  style={{
-                    background: evaluator.health === 'healthy' ? 'var(--tenant-success)' : evaluator.health === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)',
-                  }}
-                />
-              </div>
+                <DataGridCell className="text-center">
+                  <div
+                    className="mx-auto h-2 w-2 rounded-full"
+                    style={{
+                      background: evaluator.health === 'healthy' ? 'var(--tenant-success)' : evaluator.health === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)',
+                    }}
+                  />
+                </DataGridCell>
 
-              <div className="flex items-center justify-end gap-1">
-                <InlineAction href={`${baseHref}/evaluators`} variant="primary" className="text-[11px] px-2 py-0.5">
-                  <Eye className="h-3 w-3" /> View
-                </InlineAction>
-                <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
-                  <Play className="h-3 w-3" /> Run
-                </InlineAction>
-              </div>
-            </div>
-          ))}
+                <DataGridCell className="flex items-center justify-end gap-1 whitespace-nowrap">
+                  <InlineAction href={`${baseHref}/evaluators`} variant="primary" className="text-[11px] px-2 py-0.5">
+                    <Eye className="h-3 w-3" /> View
+                  </InlineAction>
+                  <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                    <Play className="h-3 w-3" /> Run
+                  </InlineAction>
+                </DataGridCell>
+              </DataGridRow>
+            ))}
+          </DataGridBody>
 
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+          <DataGridFooter>
             {filtered.length} evaluator{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

@@ -24,6 +24,7 @@ vi.mock("@foxhound/db", () => ({
   insertTrace: vi.fn().mockResolvedValue(undefined),
   insertSpans: vi.fn().mockResolvedValue(undefined),
   queryTraces: vi.fn(),
+  countTraces: vi.fn(),
   getTrace: vi.fn(),
   getTraceWithSpans: vi.fn(),
   getReplayContext: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("@foxhound/db", () => ({
   // Scores
   createScore: vi.fn(),
   queryScores: vi.fn(),
+  countScores: vi.fn(),
   getScoresByTraceId: vi.fn(),
   deleteScore: vi.fn(),
   // Evaluators
@@ -348,6 +350,7 @@ describe("E2E: Full lifecycle flows", () => {
 
       // Step 2: Query traces — should see the trace
       vi.mocked(db.queryTraces).mockResolvedValue([makeMockTrace()]);
+      vi.mocked(db.countTraces).mockResolvedValue(1);
 
       const queryRes = await app.inject({
         method: "GET",
@@ -408,6 +411,7 @@ describe("E2E: Full lifecycle flows", () => {
 
       // Step 5: Query scores for the trace
       vi.mocked(db.queryScores).mockResolvedValue([mockScore]);
+      vi.mocked(db.countScores).mockResolvedValue(1);
 
       const scoresRes = await app.inject({
         method: "GET",

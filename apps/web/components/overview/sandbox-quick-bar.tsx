@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Activity, GitBranch, PlaySquare, BarChart3, X } from 'lucide-react';
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 
@@ -19,16 +18,16 @@ const defaultLinks: QuickLink[] = [
   { label: 'Executive', href: '/sandbox/executive', icon: BarChart3 },
 ];
 
+function isDismissedInBrowser(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return window.localStorage.getItem(DISMISSED_KEY) === 'true';
+}
+
 export function SandboxQuickBar({ links = defaultLinks }: { links?: QuickLink[] }) {
-  // Start hidden to avoid SSR/hydration flash, then show unless previously dismissed
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const wasDismissed = window.localStorage.getItem(DISMISSED_KEY) === 'true';
-    setVisible(!wasDismissed);
-  }, []);
-
-  const dismissed = !visible;
+  const dismissed = isDismissedInBrowser();
 
   if (dismissed) return null;
 
@@ -59,8 +58,8 @@ export function SandboxQuickBar({ links = defaultLinks }: { links?: QuickLink[] 
       <button
         type="button"
         onClick={() => {
-          setVisible(false);
           window.localStorage.setItem(DISMISSED_KEY, 'true');
+          window.location.reload();
         }}
         className="ml-1 rounded-md p-1 transition-colors hover:bg-white/[0.06]"
         aria-label="Dismiss sandbox toolbar"

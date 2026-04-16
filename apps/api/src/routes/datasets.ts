@@ -16,6 +16,7 @@ import {
 } from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, IdParamSchema, IdItemParamSchema } from "../lib/params.js";
+import { paginatedResponse } from "../lib/pagination.js";
 
 const CreateDatasetSchema = z.object({
   name: z.string().min(1).max(100),
@@ -27,6 +28,15 @@ const CreateDatasetItemSchema = z.object({
   expectedOutput: z.record(z.unknown()).optional(),
   metadata: z.record(z.unknown()).optional(),
   sourceTraceId: z.string().optional(),
+});
+
+const ListDatasetsSchema = z.object({
+  q: z.string().optional(),
+  datasetId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
 });
 
 const ListDatasetItemsSchema = z.object({
@@ -73,7 +83,20 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
 
   // GET /v1/datasets — List all datasets for the org
   fastify.get("/v1/datasets", async (request, reply) => {
-    const rows = await listDatasets(request.orgId);
+    const result = ListDatasetsSchema.safeParse(request.query);
+    if (!result.success) {
+      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+    }
+
+    const datasetIds = typeof result.data.datasetId === "string"
+      ? [result.data.datasetId]
+      : result.data.datasetId;
+
+    const rows = await listDatasets({
+      orgId: request.orgId,
+      searchQuery: result.data.q,
+      datasetIds,
+    });
     return reply.code(200).send({ data: rows });
   });
 
@@ -156,17 +179,19 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       return reply.code(404).send({ error: "Dataset not found" });
     }
 
-    const rows = await listDatasetItems({
-      datasetId: id,
-      orgId: request.orgId,
-      page: result.data.page,
-      limit: result.data.limit,
-    });
+    const [rows, totalCount] = await Promise.all([
+      listDatasetItems({
+        datasetId: id,
+        orgId: request.orgId,
+        page: result.data.page,
+        limit: result.data.limit,
+      }),
+      countDatasetItems(id, request.orgId),
+    ]);
 
-    return reply.code(200).send({
-      data: rows,
-      pagination: { page: result.data.page, limit: result.data.limit, count: rows.length },
-    });
+    return reply.code(200).send(
+      paginatedResponse(rows, result.data.page, result.data.limit, totalCount),
+    );
   });
 
   // DELETE /v1/datasets/:id/items/:itemId — Delete a single item

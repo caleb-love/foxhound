@@ -5,8 +5,10 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
-import { Plus, Eye, Beaker } from 'lucide-react';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { Plus, Eye, Beaker, GitCompare } from 'lucide-react';
+import { CompareExperimentsDialog } from './experiment-compare-actions';
+import { ComparisonScorecard } from '@/components/charts/comparison-scorecard';
 
 export interface ExperimentRecord {
   id: string;
@@ -15,6 +17,7 @@ export interface ExperimentRecord {
   status: string;
   summary: string;
   winningCandidate?: string;
+  createdAt?: string;
 }
 
 interface ExperimentsDashboardProps {
@@ -38,6 +41,7 @@ export function ExperimentsDashboard({ experiments, baseHref = '' }: Experiments
 
   const filtered = filterByDashboardScope(experiments, filters, {
     searchableText: (item) => `${item.name} ${item.summary} ${item.winningCandidate ?? ''}`,
+    timestampMs: (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined),
   });
 
   const completedCount = experiments.filter((e) => e.status === 'completed').length;
@@ -56,6 +60,10 @@ export function ExperimentsDashboard({ experiments, baseHref = '' }: Experiments
       : runningCount > 0
         ? `${runningCount} experiment${runningCount !== 1 ? 's' : ''} currently running. Results will appear when complete.`
         : 'Review completed experiments and promote winning candidates.';
+  const completedExperiments = experiments.filter((experiment) => experiment.status === 'completed');
+  const suggestedComparisonPair = completedExperiments.length >= 2
+    ? completedExperiments.slice(0, 2).map((experiment) => experiment.id).join(',')
+    : null;
 
   return (
     <PageContainer>
@@ -79,6 +87,15 @@ export function ExperimentsDashboard({ experiments, baseHref = '' }: Experiments
             <InlineAction href={`${baseHref}/evaluators`} variant="secondary">
               Evaluators
             </InlineAction>
+            {suggestedComparisonPair ? (
+              <InlineAction href={`${baseHref}/experiments/compare?experimentIds=${encodeURIComponent(suggestedComparisonPair)}`} variant="secondary">
+                <GitCompare className="h-3.5 w-3.5" />
+                Compare top pair
+              </InlineAction>
+            ) : null}
+            {completedExperiments.length >= 2 ? (
+              <CompareExperimentsDialog experiments={completedExperiments} baseHref={baseHref} />
+            ) : null}
           </InlineActionBar>
         }
       />
@@ -91,6 +108,37 @@ export function ExperimentsDashboard({ experiments, baseHref = '' }: Experiments
         {withWinner > 0 ? <MetricChip label="With winner" value={String(withWinner)} accent="success" /> : null}
       </MetricStrip>
 
+      <ComparisonScorecard
+        title="Candidate readiness"
+        description="Read whether the current experiment set is actually decision-ready, not just numerically complete."
+        items={[
+          {
+            label: 'Promotion-ready',
+            current: String(withWinner),
+            supportingText: `${withWinner} completed experiment${withWinner === 1 ? '' : 's'} currently advertise a winning candidate.`,
+            tone: withWinner > 0 ? 'healthy' : 'warning',
+          },
+          {
+            label: 'Still running',
+            current: String(runningCount),
+            supportingText: 'These candidates still need more evidence before they should influence release decisions.',
+            tone: runningCount > 0 ? 'warning' : 'healthy',
+          },
+          {
+            label: 'Failed runs',
+            current: String(failedCount),
+            supportingText: 'Failures should be explained before a winner narrative is trusted.',
+            tone: failedCount > 0 ? 'critical' : 'healthy',
+          },
+          {
+            label: 'Segment-ready view',
+            current: filters.agentIds.length > 0 ? 'Scoped' : 'All traffic',
+            supportingText: filters.agentIds.length > 0 ? `Current segment narrows analytics to ${filters.agentIds.length} agent scope(s).` : 'No agent segmentation is active, so the readiness view is fleet-wide.',
+            tone: filters.agentIds.length > 0 ? 'warning' : 'default',
+          },
+        ]}
+      />
+
       {filtered.length === 0 ? (
         <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
           <p className="text-sm text-tenant-text-muted">
@@ -98,56 +146,56 @@ export function ExperimentsDashboard({ experiments, baseHref = '' }: Experiments
           </p>
         </div>
       ) : (
-        <div
-          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
-        >
-          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 80px 100px 100px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Experiment</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Status</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Winner</span>
-            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 88px 120px minmax(180px,auto)">
+            <DataGridHead>Experiment</DataGridHead>
+            <DataGridHead className="text-center">Status</DataGridHead>
+            <DataGridHead className="text-center">Winner</DataGridHead>
+            <DataGridHead className="text-right">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {filtered.map((experiment) => {
-            const statusStyle = STATUS_COLORS[experiment.status] ?? STATUS_COLORS.pending;
-            return (
-              <div
-                key={experiment.id}
-                className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-                style={{ gridTemplateColumns: '1fr 80px 100px 100px', borderColor: 'var(--tenant-panel-stroke)' }}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Beaker className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
-                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{experiment.name}</span>
-                  </div>
-                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{experiment.summary}</div>
-                </div>
+          <DataGridBody>
+            {filtered.map((experiment) => {
+              const statusStyle = STATUS_COLORS[experiment.status] ?? STATUS_COLORS.pending;
+              return (
+                <DataGridRow key={experiment.id} columns="minmax(0,1fr) 88px 120px minmax(180px,auto)">
+                  <DataGridCell>
+                    <div className="flex items-center gap-2">
+                      <Beaker className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                      <span className="truncate text-sm font-semibold text-tenant-text-primary">{experiment.name}</span>
+                    </div>
+                    <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{experiment.summary}</div>
+                  </DataGridCell>
 
-                <div className="text-center">
-                  <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: statusStyle.bg, color: statusStyle.color }}>
-                    {experiment.status}
-                  </span>
-                </div>
+                  <DataGridCell className="text-center">
+                    <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: statusStyle.bg, color: statusStyle.color }}>
+                      {experiment.status}
+                    </span>
+                  </DataGridCell>
 
-                <div className="text-center text-xs text-tenant-text-muted">
-                  {experiment.winningCandidate ?? '--'}
-                </div>
+                  <DataGridCell className="text-center text-xs text-tenant-text-muted">
+                    {experiment.winningCandidate ?? '--'}
+                  </DataGridCell>
 
-                <div className="flex items-center justify-end gap-1">
-                  <InlineAction href={`${baseHref}/experiments/${experiment.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
-                    <Eye className="h-3 w-3" /> View
-                  </InlineAction>
-                </div>
-              </div>
-            );
-          })}
+                  <DataGridCell className="flex items-center justify-end gap-1 whitespace-nowrap">
+                    <InlineAction href={`${baseHref}/experiments/${experiment.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
+                      <Eye className="h-3 w-3" /> View
+                    </InlineAction>
+                    {experiment.status === 'completed' ? (
+                      <InlineAction href={`${baseHref}/experiments/compare?experimentIds=${encodeURIComponent(experiment.id)}`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                        <GitCompare className="h-3 w-3" /> Compare
+                      </InlineAction>
+                    ) : null}
+                  </DataGridCell>
+                </DataGridRow>
+              );
+            })}
+          </DataGridBody>
 
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+          <DataGridFooter>
             {filtered.length} experiment{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

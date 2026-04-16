@@ -27,6 +27,8 @@ export interface TrendSeries {
   label: string;
   values: TrendSeriesPoint[];
   tone?: Exclude<ChartStatusTone, "default">;
+  href?: string;
+  cta?: string;
 }
 
 export interface TopListItem {

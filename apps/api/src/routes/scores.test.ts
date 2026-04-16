@@ -8,6 +8,7 @@ vi.mock("@foxhound/db", () => ({
   touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   createScore: vi.fn(),
   queryScores: vi.fn(),
+  countScores: vi.fn(),
   getScoresByTraceId: vi.fn(),
   deleteScore: vi.fn(),
   getTrace: vi.fn(),
@@ -248,6 +249,7 @@ describe("GET /v1/scores — query scores", () => {
       },
     ];
     vi.mocked(db.queryScores).mockResolvedValue(mockRows);
+    vi.mocked(db.countScores).mockResolvedValue(17);
 
     const app = buildApp();
     const res = await app.inject({
@@ -260,12 +262,13 @@ describe("GET /v1/scores — query scores", () => {
     const body = res.json();
     expect(body).toHaveProperty("data");
     expect(body.data).toHaveLength(1);
-    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 1 });
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 17 });
   });
 
   it("passes filters to queryScores", async () => {
     mockApiKey("org_1");
     vi.mocked(db.queryScores).mockResolvedValue([]);
+    vi.mocked(db.countScores).mockResolvedValue(0);
 
     const app = buildApp();
     await app.inject({
@@ -275,6 +278,16 @@ describe("GET /v1/scores — query scores", () => {
     });
 
     expect(db.queryScores).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org_1",
+        traceId: "trace_1",
+        name: "accuracy",
+        source: "manual",
+        minValue: 0.5,
+        maxValue: 1.0,
+      }),
+    );
+    expect(db.countScores).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: "org_1",
         traceId: "trace_1",

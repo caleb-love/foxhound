@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { FoxhoundApiClient, toEpochMs } from "./index.js";
+import { FoxhoundApiClient, toEpochMs, appendSegmentationQuery } from "./index.js";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
@@ -67,6 +67,30 @@ describe("toEpochMs utility", () => {
 
   it("throws on invalid date strings", () => {
     expect(() => toEpochMs("not-a-date")).toThrow("Invalid date");
+  });
+});
+
+describe("appendSegmentationQuery utility", () => {
+  it("appends shared segmentation fields to URLSearchParams", () => {
+    const query = appendSegmentationQuery(new URLSearchParams(), {
+      timeRange: {
+        start: "2026-04-15T00:00:00.000Z",
+        end: "2026-04-16T00:00:00.000Z",
+      },
+      status: "error",
+      severity: "critical",
+      agentIds: ["planner-agent"],
+      datasetIds: ["ds_1"],
+      searchQuery: "refund",
+    });
+
+    expect(query.get("start")).toBe("2026-04-15T00:00:00.000Z");
+    expect(query.get("end")).toBe("2026-04-16T00:00:00.000Z");
+    expect(query.get("status")).toBe("error");
+    expect(query.get("severity")).toBe("critical");
+    expect(query.getAll("agentId")).toEqual(["planner-agent"]);
+    expect(query.getAll("datasetId")).toEqual(["ds_1"]);
+    expect(query.get("q")).toBe("refund");
   });
 });
 
@@ -309,6 +333,29 @@ describe("FoxhoundApiClient", () => {
       expect(lastCallUrl()).toContain("to=2000");
     });
 
+    it("searchTraces appends segmentation query params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [], pagination: { page: 1, limit: 20, count: 0 } });
+
+      await client.searchTraces({
+        segmentation: {
+          status: "error",
+          severity: "critical",
+          agentIds: ["planner-agent"],
+          timeRange: {
+            start: "2026-04-15T00:00:00.000Z",
+            end: "2026-04-16T00:00:00.000Z",
+          },
+        },
+      });
+
+      expect(lastCallUrl()).toContain("status=error");
+      expect(lastCallUrl()).toContain("severity=critical");
+      expect(lastCallUrl()).toContain("agentId=planner-agent");
+      expect(lastCallUrl()).toContain("start=2026-04-15T00%3A00%3A00.000Z");
+      expect(lastCallUrl()).toContain("end=2026-04-16T00%3A00%3A00.000Z");
+    });
+
     it("searchTraces forwards page param", async () => {
       const client = makeClient();
       mockOk({ data: [], pagination: { page: 3, limit: 20, count: 0 } });
@@ -464,6 +511,16 @@ describe("FoxhoundApiClient", () => {
       expect(result.data).toHaveLength(2);
     });
 
+    it("listEvaluators appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listEvaluators({ searchQuery: "quality", evaluatorIds: ["evl-1"] } as any);
+
+      expect(lastCallUrl()).toContain("q=quality");
+      expect(lastCallUrl()).toContain("evaluatorId=evl-1");
+    });
+
     it("triggerEvaluatorRuns sends evaluatorId and traceIds", async () => {
       const client = makeClient();
       mockOk({ message: "queued", runs: [] });
@@ -521,6 +578,16 @@ describe("FoxhoundApiClient", () => {
 
       expect(lastCallUrl()).toBe(`${BASE_URL}/v1/datasets`);
       expect(result.data).toHaveLength(1);
+    });
+
+    it("listDatasets appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listDatasets({ searchQuery: "refund", datasetIds: ["ds-1"] });
+
+      expect(lastCallUrl()).toContain("q=refund");
+      expect(lastCallUrl()).toContain("datasetId=ds-1");
     });
 
     it("getDataset includes itemCount", async () => {
@@ -616,6 +683,16 @@ describe("FoxhoundApiClient", () => {
       expect(lastCallUrl()).toContain("datasetId=ds-1");
     });
 
+    it("listExperiments appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listExperiments({ status: "error", agentIds: ["planner-agent"] });
+
+      expect(lastCallUrl()).toContain("status=error");
+      expect(lastCallUrl()).toContain("agentId=planner-agent");
+    });
+
     it("listExperiments works without params", async () => {
       const client = makeClient();
       mockOk({ data: [] });
@@ -684,6 +761,16 @@ describe("FoxhoundApiClient", () => {
       const body = JSON.parse(lastCallOpts().body as string);
       expect(body.name).toBe("Slack Alerts");
       expect(body.kind).toBe("slack");
+    });
+
+    it("listChannels appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listChannels({ searchQuery: "slack", channelIds: ["ch-1"] } as any);
+
+      expect(lastCallUrl()).toContain("q=slack");
+      expect(lastCallUrl()).toContain("channelId=ch-1");
     });
 
     it("testChannel sends defaults for eventType and severity", async () => {
@@ -763,6 +850,28 @@ describe("FoxhoundApiClient", () => {
       expect(url).toContain("limit=10");
     });
 
+    it("listBudgets appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [], pagination: { page: 1, limit: 10, count: 0 } });
+
+      await client.listBudgets({ severity: "warning", searchQuery: "budget" });
+
+      const url = lastCallUrl();
+      expect(url).toContain("severity=warning");
+      expect(url).toContain("q=budget");
+    });
+
+    it("listSlas appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [], pagination: { page: 1, limit: 10, count: 0 } });
+
+      await client.listSlas({ searchQuery: "latency", agentIds: ["agent-1"] });
+
+      const url = lastCallUrl();
+      expect(url).toContain("q=latency");
+      expect(url).toContain("agentId=agent-1");
+    });
+
     it("setSla sends PUT with SLA params", async () => {
       const client = makeClient();
       mockOk({ id: "cfg-1" });
@@ -827,6 +936,23 @@ describe("FoxhoundApiClient", () => {
 
       expect(lastCallUrl()).toBe(`${BASE_URL}/v1/regressions/agent-1/baselines?version=v1.0`);
       expect(lastCallOpts().method).toBe("DELETE");
+    });
+  });
+
+  // ── Prompts ───────────────────────────────────────────────────────────────
+
+  describe("prompts", () => {
+    it("listPrompts appends segmentation params when provided", async () => {
+      const client = makeClient();
+      mockOk({ data: [] });
+
+      await client.listPrompts({ page: 2, limit: 50, searchQuery: "support", promptIds: ["support-routing"] });
+
+      const url = lastCallUrl();
+      expect(url).toContain("page=2");
+      expect(url).toContain("limit=50");
+      expect(url).toContain("q=support");
+      expect(url).toContain("promptId=support-routing");
     });
   });
 

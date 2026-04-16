@@ -14,7 +14,7 @@ interface InlineActionProps {
 }
 
 export function InlineAction({ href, children, variant = 'secondary', disabled = false, className, onClick }: InlineActionProps) {
-  const base = 'inline-flex items-center gap-1.5 rounded-[var(--tenant-radius-control-tight)] border px-3 py-1.5 text-sm font-medium transition-all duration-150';
+  const base = 'inline-flex items-center gap-1 rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-xs font-medium leading-none transition-all duration-150 whitespace-nowrap';
 
   const variants = {
     primary: {

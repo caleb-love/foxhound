@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import {
   queryTraces,
+  countTraces,
   getTraceWithSpans,
   getReplayContext,
   diffTraces,
@@ -15,7 +16,7 @@ import { checkSpanLimit } from "@foxhound/billing";
 import { persistTraceWithRetry } from "../persistence.js";
 import { dispatchAlert } from "@foxhound/notifications";
 import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
-import type { Trace } from "@foxhound/types";
+import type { SegmentationQuery, Trace } from "@foxhound/types";
 import { getBudgetPeriodKey } from "@foxhound/types";
 import { updateSpanCosts } from "@foxhound/db";
 import { lookupPricing } from "../lib/pricing-cache.js";
@@ -24,6 +25,7 @@ import { getConfigFromCache } from "../lib/config-cache.js";
 import { getCostMonitorQueue, getRegressionDetectorQueue } from "../queue.js";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, IdParamSchema, TraceSpanParamSchema } from "../lib/params.js";
+import { paginatedResponse } from "../lib/pagination.js";
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -41,7 +43,7 @@ async function maybeFireAlerts(
   try {
     const [rules, channelRows] = await Promise.all([
       getAlertRulesForOrg(orgId),
-      listNotificationChannels(orgId),
+      listNotificationChannels({ orgId }),
     ]);
 
     if (rules.length === 0) return;
@@ -157,6 +159,11 @@ const QueryTracesSchema = z.object({
   sessionId: z.string().optional(),
   from: z.coerce.number().optional(),
   to: z.coerce.number().optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
+  q: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
@@ -480,17 +487,27 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const { agentId, sessionId, from, to, page, limit } = result.data;
+    const { agentId, sessionId, from, to, start, end, status, q, page, limit } = result.data;
 
-    const rows = await queryTraces({
+    const segmentation: SegmentationQuery = {
+      timeRange: start || end ? { start: start ?? new Date(0).toISOString(), end: end ?? new Date().toISOString() } : undefined,
+      status,
+      searchQuery: q,
+    };
+
+    const filters = {
       orgId: request.orgId,
       agentId,
       sessionId,
-      from,
-      to,
+      from: start ? new Date(start).getTime() : from,
+      to: end ? new Date(end).getTime() : to,
+      status: segmentation.status,
+      searchQuery: segmentation.searchQuery,
       page,
       limit,
-    });
+    };
+
+    const [rows, totalCount] = await Promise.all([queryTraces(filters), countTraces(filters)]);
 
     trackPendoEvent({
       event: "trace_search_executed",
@@ -499,16 +516,16 @@ export function tracesRoutes(fastify: FastifyInstance): void {
       properties: {
         agentId: agentId ?? null,
         sessionId: sessionId ?? null,
-        hasTimeRange: !!(from || to),
+        hasTimeRange: !!(from || to || start || end),
         page,
         limit,
+        status: status ?? null,
+        searchQuery: q ?? null,
         resultCount: rows.length,
+        totalCount,
       },
     });
 
-    return reply.code(200).send({
-      data: rows,
-      pagination: { page, limit, count: rows.length },
-    });
+    return reply.code(200).send(paginatedResponse(rows, page, limit, totalCount));
   });
 }

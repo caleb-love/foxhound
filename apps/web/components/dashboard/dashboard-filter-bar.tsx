@@ -20,14 +20,24 @@ import { Calendar, Filter, Search, X } from 'lucide-react';
 import { useFilterStore } from '@/lib/stores/filter-store';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import {
+  createDateRangeFromHours,
+  createDateRangeFromPreset,
+  getMatchingDatePresetLabel,
+} from '@/lib/stores/dashboard-filter-presets';
 
 function countActiveFilters(definitions: DashboardFilterDefinition[], state: ReturnType<typeof useSegmentStore.getState>['currentFilters']) {
   return definitions.reduce((count, definition) => {
     if (definition.key === 'searchQuery') return count + (state.searchQuery ? 1 : 0);
     if (definition.key === 'status') return count + (state.status !== 'all' ? 1 : 0);
     if (definition.key === 'severity') return count + (state.severity !== 'all' ? 1 : 0);
-    if (definition.key === 'dateRange') return count;
+    if (definition.key === 'dateRange') {
+      const defaultRange = createDateRangeFromHours(24);
+      const isDefaultRange =
+        Math.abs(state.dateRange.start.getTime() - defaultRange.start.getTime()) <= 5 * 60 * 1000 &&
+        Math.abs(state.dateRange.end.getTime() - defaultRange.end.getTime()) <= 5 * 60 * 1000;
+      return count + (isDefaultRange ? 0 : 1);
+    }
     const values = state[definition.key];
     return count + (Array.isArray(values) && values.length > 0 ? 1 : 0);
   }, 0);
@@ -40,6 +50,12 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
   useFilterStore();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const activeCount = countActiveFilters(definitions, store);
+  const datePresetDefinition = definitions.find(
+    (definition): definition is Extract<DashboardFilterDefinition, { kind: 'date-preset' }> => definition.kind === 'date-preset',
+  );
+  const activeDatePresetLabel = datePresetDefinition
+    ? getMatchingDatePresetLabel(store.dateRange, datePresetDefinition.presets)
+    : null;
 
   const applyPartial = (partial: Partial<typeof store>) => {
     updateCurrentFilters(partial);
@@ -99,12 +115,18 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
           }
 
           if (definition.kind === 'date-preset') {
+            const selectedPresetLabel = getMatchingDatePresetLabel(store.dateRange, definition.presets);
+            const selectedValue = selectedPresetLabel ?? 'custom';
+
             return (
               <Select
                 key={definition.key}
-                defaultValue={definition.presets[0]?.hours.toString()}
+                value={selectedValue}
                 onValueChange={(value) => {
-                  const next = createDateRangeFromHours(Number(value));
+                  if (value === 'custom') return;
+                  const preset = definition.presets.find((item) => item.label === value);
+                  if (!preset) return;
+                  const next = createDateRangeFromPreset(preset);
                   applyPartial({ dateRange: { start: next.start, end: next.end } });
                 }}
               >
@@ -114,10 +136,11 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
                 </SelectTrigger>
                 <SelectContent>
                   {definition.presets.map((preset) => (
-                    <SelectItem key={preset.hours.toString()} value={preset.hours.toString()}>
+                    <SelectItem key={preset.label} value={preset.label}>
                       {preset.label}
                     </SelectItem>
                   ))}
+                  {selectedPresetLabel ? null : <SelectItem value="custom">Custom range</SelectItem>}
                 </SelectContent>
               </Select>
             );
@@ -207,6 +230,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
           {store.environments.length > 0 ? <Badge variant="secondary">{store.environments.length} environments</Badge> : null}
           {store.models.length > 0 ? <Badge variant="secondary">{store.models.length} models</Badge> : null}
           {store.searchQuery ? <Badge variant="secondary">Search: &quot;{store.searchQuery}&quot;</Badge> : null}
+          {activeDatePresetLabel ? <Badge variant="secondary">Date: {activeDatePresetLabel}</Badge> : null}
         </div>
       ) : null}
     </div>

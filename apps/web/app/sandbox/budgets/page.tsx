@@ -10,6 +10,7 @@ export default function SandboxBudgetsPage() {
     currentSpendUsd: b.currentSpendUsd,
     status: b.status,
     summary: b.summary,
+    updatedAt: new Date().toISOString(),
   }));
 
   return <BudgetsGovernDashboard budgets={budgets} baseHref="/sandbox" />;

@@ -58,6 +58,32 @@ export interface AuditEvent {
   payload: Record<string, unknown>;
 }
 
+// ── Shared segmentation contract ───────────────────────────────────────────
+
+export interface SegmentationTimeRange {
+  start: string;
+  end: string;
+}
+
+export type SegmentationStatusFilter = "all" | "success" | "error";
+export type SegmentationSeverityFilter = "all" | "healthy" | "warning" | "critical";
+
+export interface SegmentationQuery {
+  timeRange?: SegmentationTimeRange;
+  status?: SegmentationStatusFilter;
+  severity?: SegmentationSeverityFilter;
+  agentIds?: string[];
+  environmentIds?: string[];
+  promptIds?: string[];
+  promptVersionIds?: string[];
+  evaluatorIds?: string[];
+  datasetIds?: string[];
+  modelIds?: string[];
+  toolNames?: string[];
+  tags?: string[];
+  searchQuery?: string;
+}
+
 // ── Evaluation types ───────────────────────────────────────────────────────
 
 export type ScoreSource = "manual" | "llm_judge" | "sdk" | "user_feedback";

@@ -8,7 +8,8 @@ import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import type { PromptResponse } from '@foxhound/api-client';
 import { PageContainer, PageHeader, StatusBadge } from '@/components/system/page';
-import { VerdictBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridHead, DataGridHeader, DataGridRow, VerdictBar } from '@/components/investigation';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface PromptPerformanceMetrics {
   traceCount: number;
@@ -23,6 +24,11 @@ interface PromptListViewProps {
   performanceByPrompt?: Record<string, PromptPerformanceMetrics>;
   focusedPromptName?: string;
   baseHref?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    count: number;
+  };
 }
 
 const promptFilters: DashboardFilterDefinition[] = [
@@ -50,12 +56,17 @@ function HealthBar({ value, max = 100 }: { value: number; max?: number }) {
   );
 }
 
-export function PromptListView({ prompts, performanceByPrompt, focusedPromptName, baseHref = '' }: PromptListViewProps) {
+export function PromptListView({ prompts, performanceByPrompt, focusedPromptName, baseHref = '', pagination }: PromptListViewProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const sortedPrompts = filterByDashboardScope(prompts, filters, {
     searchableText: (prompt) => `${prompt.name} ${prompt.id}`,
     promptIds: (prompt) => [prompt.name],
+    timestampMs: hasExplicitDateFilter ? (prompt) => new Date(prompt.updatedAt).getTime() : undefined,
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -78,58 +89,82 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
         />
       ) : null}
 
+      {pagination && baseHref === '' ? (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2 text-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+          <div className="text-tenant-text-secondary">
+            Showing <span className="font-medium text-tenant-text-primary">{sortedPrompts.length === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1}-{sortedPrompts.length === 0 ? 0 : (pagination.page - 1) * pagination.limit + sortedPrompts.length}</span> of{' '}
+            <span className="font-medium text-tenant-text-primary">{pagination.count}</span> prompts
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={pagination.page <= 2 ? '/prompts' : `/prompts?page=${pagination.page - 1}`}
+              aria-disabled={pagination.page <= 1}
+              className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-xs font-medium transition-opacity"
+              style={{
+                borderColor: 'var(--tenant-panel-stroke)',
+                color: pagination.page > 1 ? 'var(--tenant-text-primary)' : 'var(--tenant-text-muted)',
+                pointerEvents: pagination.page > 1 ? 'auto' : 'none',
+                opacity: pagination.page > 1 ? 1 : 0.5,
+              }}
+            >
+              Previous
+            </Link>
+            <span className="text-xs text-tenant-text-muted">Page {pagination.page}</span>
+            <Link
+              href={`/prompts?page=${pagination.page + 1}`}
+              aria-disabled={pagination.count <= pagination.page * pagination.limit}
+              className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-xs font-medium transition-opacity"
+              style={{
+                borderColor: 'var(--tenant-panel-stroke)',
+                color: pagination.count > pagination.page * pagination.limit ? 'var(--tenant-text-primary)' : 'var(--tenant-text-muted)',
+                pointerEvents: pagination.count > pagination.page * pagination.limit ? 'auto' : 'none',
+                opacity: pagination.count > pagination.page * pagination.limit ? 1 : 0.5,
+              }}
+            >
+              Next
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       {sortedPrompts.length === 0 ? (
         <PageWarningState
           title="No prompts yet"
           message="Create a prompt in the API first, then return here to review versions and compare changes."
         />
       ) : (
-        <div
-          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
-        >
-          {/* Table header */}
-          <div
-            className="grid items-center border-b px-4 py-2"
-            style={{
-              gridTemplateColumns: performanceByPrompt ? '1.2fr 60px 80px 100px 110px 90px' : '1fr 100px 120px',
-              borderColor: 'var(--tenant-panel-stroke)',
-              background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
-            }}
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Prompt</span>
+        <DataGrid>
+          <DataGridHeader columns={performanceByPrompt ? 'minmax(0,1.2fr) 64px 84px 108px 112px 92px' : 'minmax(0,1fr) 112px 120px'}>
+            <DataGridHead className="tracking-[0.14em]">Prompt</DataGridHead>
             {performanceByPrompt ? (
               <>
-                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Ver</span>
-                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Traces</span>
-                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Health</span>
-                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Avg cost</span>
+                <DataGridHead className="text-center tracking-[0.14em]">Ver</DataGridHead>
+                <DataGridHead className="text-center tracking-[0.14em]">Traces</DataGridHead>
+                <DataGridHead className="text-center tracking-[0.14em]">Health</DataGridHead>
+                <DataGridHead className="text-center tracking-[0.14em]">Avg cost</DataGridHead>
               </>
             ) : (
-              <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Updated</span>
+              <DataGridHead className="text-center tracking-[0.14em]">Updated</DataGridHead>
             )}
-            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Actions</span>
-          </div>
+            <DataGridHead className="text-right tracking-[0.14em]">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {/* Rows */}
-          <div className="divide-y" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+          <DataGridBody>
             {sortedPrompts.map((prompt) => {
               const isFocused = focusedPromptName?.toLowerCase() === prompt.name.toLowerCase();
               const perf = performanceByPrompt?.[prompt.name];
               const healthPct = perf ? (1 - perf.errorRate) * 100 : null;
 
               return (
-                <div
+                <DataGridRow
                   key={prompt.id}
-                  className="grid items-center px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+                  columns={performanceByPrompt ? 'minmax(0,1.2fr) 64px 84px 108px 112px 92px' : 'minmax(0,1fr) 112px 120px'}
                   style={{
-                    gridTemplateColumns: performanceByPrompt ? '1.2fr 60px 80px 100px 110px 90px' : '1fr 100px 120px',
                     borderLeft: isFocused ? '3px solid var(--tenant-accent)' : '3px solid transparent',
                     background: isFocused ? 'color-mix(in srgb, var(--tenant-accent) 6%, var(--card))' : undefined,
                   }}
                 >
-                  {/* Name and ID */}
-                  <div className="min-w-0">
+                  <DataGridCell>
                     <Link
                       href={`${baseHref}/prompts/${prompt.id}`}
                       className="text-sm font-semibold text-tenant-text-primary hover:underline"
@@ -137,39 +172,33 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
                       {prompt.name}
                     </Link>
                     <div className="mt-0.5 truncate font-mono text-[11px] text-tenant-text-muted">{prompt.id}</div>
-                  </div>
+                  </DataGridCell>
 
                   {performanceByPrompt ? (
                     <>
-                      {/* Version */}
-                      <div className="text-center text-xs font-semibold text-tenant-text-secondary">
+                      <DataGridCell className="text-center text-xs font-semibold text-tenant-text-secondary">
                         {perf?.latestVersion !== undefined ? `v${perf.latestVersion}` : '-'}
-                      </div>
+                      </DataGridCell>
 
-                      {/* Trace count */}
-                      <div className="text-center font-mono text-xs text-tenant-text-secondary">
+                      <DataGridCell className="text-center font-mono text-xs text-tenant-text-secondary">
                         {perf ? perf.traceCount.toLocaleString() : '-'}
-                      </div>
+                      </DataGridCell>
 
-                      {/* Health bar */}
-                      <div className="flex justify-center">
+                      <DataGridCell className="flex justify-center">
                         {healthPct !== null ? <HealthBar value={healthPct} /> : <span className="text-xs text-tenant-text-muted">-</span>}
-                      </div>
+                      </DataGridCell>
 
-                      {/* Avg cost */}
-                      <div className="text-center font-mono text-xs text-tenant-text-secondary">
+                      <DataGridCell className="text-center font-mono text-xs text-tenant-text-secondary">
                         {perf ? `$${perf.avgCostUsd.toFixed(4)}` : '-'}
-                      </div>
+                      </DataGridCell>
                     </>
                   ) : (
-                    /* Fallback: just updated date */
-                    <div className="text-center text-xs text-tenant-text-muted">
+                    <DataGridCell className="text-center text-xs text-tenant-text-muted">
                       {new Date(prompt.updatedAt).toLocaleDateString()}
-                    </div>
+                    </DataGridCell>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-2">
+                  <DataGridCell className="flex items-center justify-end gap-2 whitespace-nowrap">
                     <Link
                       href={`${baseHref}/prompts/${prompt.id}`}
                       className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-xs font-medium transition-colors hover:border-[color:var(--tenant-accent)]"
@@ -177,12 +206,12 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
                     >
                       View
                     </Link>
-                  </div>
-                </div>
+                  </DataGridCell>
+                </DataGridRow>
               );
             })}
-          </div>
-        </div>
+          </DataGridBody>
+        </DataGrid>
       )}
     </PageContainer>
   );

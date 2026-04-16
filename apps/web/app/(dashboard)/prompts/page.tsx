@@ -8,12 +8,15 @@ import { PageErrorState } from '@/components/ui/page-state';
 
 interface PromptsPageProps {
   searchParams?: Promise<{
+    page?: string;
     focus?: string;
     version?: string;
     baseline?: string;
     comparison?: string;
   }>;
 }
+
+const PROMPTS_PAGE_SIZE = 50;
 
 async function createPromptAction(formData: FormData) {
   'use server';
@@ -37,7 +40,7 @@ async function createPromptAction(formData: FormData) {
   }
 }
 
-export default async function PromptsPage({ searchParams }: PromptsPageProps) {
+export default async function PromptsPage({ searchParams }: PromptsPageProps = {}) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -46,13 +49,16 @@ export default async function PromptsPage({ searchParams }: PromptsPageProps) {
 
   const client = getAuthenticatedClient(session.user.token);
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const currentPage = Math.max(1, Number.parseInt(resolvedSearchParams.page ?? '1', 10) || 1);
 
   let promptsData: Awaited<ReturnType<typeof client.listPrompts>>['data'] = [];
+  let pagination = { page: currentPage, limit: PROMPTS_PAGE_SIZE, count: 0 };
   let errorMessage: string | null = null;
 
   try {
-    const prompts = await client.listPrompts();
+    const prompts = await client.listPrompts({ page: currentPage, limit: PROMPTS_PAGE_SIZE });
     promptsData = prompts.data;
+    pagination = prompts.pagination ?? pagination;
   } catch (error) {
     console.error('Error loading prompts page:', error);
     errorMessage = "We couldn't load prompts right now.";
@@ -97,7 +103,7 @@ export default async function PromptsPage({ searchParams }: PromptsPageProps) {
       <div className="flex justify-end">
         <CreatePromptDialog createPromptAction={createPromptAction} />
       </div>
-      <PromptListView prompts={promptsData} focusedPromptName={focusedPromptName} />
+      <PromptListView prompts={promptsData} focusedPromptName={focusedPromptName} pagination={pagination} />
     </>
   );
 }

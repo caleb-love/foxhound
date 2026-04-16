@@ -165,7 +165,7 @@ describe('FleetOverviewV2', () => {
     expect(hrefs.some((href) => href?.includes('/budgets'))).toBe(true);
   });
 
-  it('renders the action queue with severity-ranked items', () => {
+  it('renders the new analytics panels and action queue', () => {
     render(
       <FleetOverviewV2
         fleetMetrics={fleetMetrics}
@@ -174,6 +174,8 @@ describe('FleetOverviewV2', () => {
       />,
     );
 
+    expect(screen.getByText('Risk concentration')).toBeInTheDocument();
+    expect(screen.getByText('Risk posture trend band')).toBeInTheDocument();
     expect(screen.getByText('Action queue')).toBeInTheDocument();
     expect(screen.getByText('Investigate regression')).toBeInTheDocument();
     expect(screen.getByText('Review SLA drift')).toBeInTheDocument();
@@ -193,7 +195,7 @@ describe('FleetOverviewV2', () => {
     expect(screen.getByRole('link', { name: /^Run Diff$/ })).toHaveAttribute('href', expect.stringContaining('/diff'));
   });
 
-  it('renders the filter toggle button', () => {
+  it('renders the filter toggle and concentration view controls', () => {
     render(
       <FleetOverviewV2
         fleetMetrics={fleetMetrics}
@@ -203,6 +205,10 @@ describe('FleetOverviewV2', () => {
     );
 
     expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(screen.getByText('Group concentration by')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Agent' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Workflow' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Severity' })).toBeInTheDocument();
   });
 
   it('does not render sandbox toolbar when demoMode is false', () => {

@@ -120,6 +120,8 @@ describe('dashboard traces page', () => {
     expect(getRequestUrl).toHaveBeenCalledWith('/api/sandbox/traces');
     expect(screen.getByText(/Review 1 seeded sandbox traces across 7 days/i)).toBeInTheDocument();
     expect(screen.getByText('sandbox-agent')).toBeInTheDocument();
+    expect(screen.getAllByText('Last 7d').length).toBeGreaterThan(0);
+    expect(screen.queryByText('720')).not.toBeInTheDocument();
     expect(screen.queryByText('No traces yet')).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -155,14 +157,41 @@ describe('dashboard traces page', () => {
           metadata: {},
         },
       ],
+      pagination: {
+        page: 1,
+        limit: 50,
+        count: 73,
+      },
     });
 
     const { default: TracesPage } = await import('./page');
-    render(await TracesPage());
+    render(await TracesPage({ searchParams: Promise.resolve({}) }));
 
     expect(getAuthenticatedClient).toHaveBeenCalledWith('token');
-    expect(searchTraces).toHaveBeenCalledWith({ limit: 50 });
+    expect(searchTraces).toHaveBeenCalledWith({ page: 1, limit: 50 });
     expect(screen.getByText('live-agent')).toBeInTheDocument();
+    expect(screen.getByText((_, node) => node?.textContent === 'Showing 1-1 of 73 traces')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute('href', '/traces?page=2');
+  });
+
+  it('respects the requested page for live traces', async () => {
+    isDashboardSandboxModeEnabled.mockReturnValue(false);
+    searchTraces.mockResolvedValue({
+      data: [],
+      pagination: {
+        page: 2,
+        limit: 50,
+        count: 120,
+      },
+    });
+
+    const { default: TracesPage } = await import('./page');
+    render(await TracesPage({ searchParams: Promise.resolve({ page: '2' }) }));
+
+    expect(searchTraces).toHaveBeenCalledWith({ page: 2, limit: 50 });
+    expect(screen.getByText((_, node) => node?.textContent === 'Showing 0-0 of 120 traces')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '/traces');
+    expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute('href', '/traces?page=3');
   });
 
   it('shows filtered empty state copy when date range excludes all traces', async () => {
@@ -217,5 +246,70 @@ describe('dashboard traces page', () => {
     });
 
     expect(screen.getByText('sandbox-agent')).toBeInTheDocument();
+  });
+
+  it('applies status filtering to the rendered trace table in sandbox mode', async () => {
+    isDashboardSandboxModeEnabled.mockReturnValue(true);
+    getRequestUrl.mockResolvedValue('http://localhost:3001/api/sandbox/traces');
+    useSegmentStore.getState().updateCurrentFilters({ status: 'error' });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: async () => ({
+          data: [
+            {
+              id: 'trace_ok_1',
+              agentId: 'ok-agent',
+              sessionId: 'session_ok_1',
+              startTimeMs: Date.now() - 1_000,
+              endTimeMs: Date.now(),
+              spans: [
+                {
+                  traceId: 'trace_ok_1',
+                  spanId: 'span_ok_1',
+                  name: 'ok-step',
+                  kind: 'agent_step',
+                  startTimeMs: 1,
+                  endTimeMs: 2,
+                  status: 'ok',
+                  attributes: {},
+                  events: [],
+                },
+              ],
+              metadata: {},
+            },
+            {
+              id: 'trace_error_1',
+              agentId: 'error-agent',
+              sessionId: 'session_error_1',
+              startTimeMs: Date.now() - 2_000,
+              endTimeMs: Date.now() - 1_000,
+              spans: [
+                {
+                  traceId: 'trace_error_1',
+                  spanId: 'span_error_1',
+                  name: 'error-step',
+                  kind: 'llm_call',
+                  startTimeMs: 1,
+                  endTimeMs: 2,
+                  status: 'error',
+                  attributes: {},
+                  events: [],
+                },
+              ],
+              metadata: {},
+            },
+          ],
+        }),
+      }),
+    );
+
+    const { default: TracesPage } = await import('./page');
+    render(await TracesPage());
+
+    expect(screen.getByText('error-agent')).toBeInTheDocument();
+    expect(screen.queryByText('ok-agent')).not.toBeInTheDocument();
+    expect(screen.getAllByText((_, node) => (node?.textContent ?? '').includes('Showing 1 trace')).length).toBeGreaterThan(0);
   });
 });

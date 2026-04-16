@@ -5,8 +5,9 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Eye, Settings } from 'lucide-react';
+import { ComparisonScorecard } from '@/components/charts/comparison-scorecard';
 
 export interface SlaRecord {
   agentId: string;
@@ -16,6 +17,7 @@ export interface SlaRecord {
   observedSuccessRate: number;
   status: string;
   summary: string;
+  updatedAt?: string;
 }
 
 interface SlasGovernDashboardProps {
@@ -32,6 +34,7 @@ export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboard
 
   const filtered = filterByDashboardScope(slas, filters, {
     searchableText: (item) => `${item.agentId} ${item.summary}`,
+    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
   });
 
   const atRisk = slas.filter((s) => s.status === 'critical' || s.status === 'warning').length;
@@ -77,6 +80,37 @@ export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboard
         {atRisk > 0 ? <MetricChip label="At risk" value={String(atRisk)} accent="warning" /> : null}
       </MetricStrip>
 
+      <ComparisonScorecard
+        title="SLA decomposition"
+        description="Separate latency pressure from success-rate pressure so the next control change targets the real failure mode."
+        items={[
+          {
+            label: 'Latency breaches',
+            current: String(filtered.filter((sla) => sla.observedDurationMs > sla.maxDurationMs).length),
+            supportingText: 'Agents currently missing their duration target.',
+            tone: filtered.some((sla) => sla.observedDurationMs > sla.maxDurationMs) ? 'warning' : 'healthy',
+          },
+          {
+            label: 'Success breaches',
+            current: String(filtered.filter((sla) => sla.observedSuccessRate < sla.minSuccessRate).length),
+            supportingText: 'Agents currently missing their minimum success-rate target.',
+            tone: filtered.some((sla) => sla.observedSuccessRate < sla.minSuccessRate) ? 'critical' : 'healthy',
+          },
+          {
+            label: 'Both dimensions',
+            current: String(filtered.filter((sla) => sla.observedDurationMs > sla.maxDurationMs && sla.observedSuccessRate < sla.minSuccessRate).length),
+            supportingText: 'Agents breaching both reliability dimensions at once.',
+            tone: filtered.some((sla) => sla.observedDurationMs > sla.maxDurationMs && sla.observedSuccessRate < sla.minSuccessRate) ? 'critical' : 'healthy',
+          },
+          {
+            label: 'Scoped view',
+            current: filters.agentIds.length > 0 ? 'Segmented' : 'Fleet-wide',
+            supportingText: filters.agentIds.length > 0 ? `Analytics currently narrowed to ${filters.agentIds.length} agent scope(s).` : 'No agent segmentation is active.',
+            tone: filters.agentIds.length > 0 ? 'warning' : 'default',
+          },
+        ]}
+      />
+
       {filtered.length === 0 ? (
         <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
           <p className="text-sm text-tenant-text-muted">
@@ -84,68 +118,68 @@ export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboard
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
-          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 100px 100px 80px 60px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Agent</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Latency</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Success rate</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Status</span>
-            <span className="sr-only">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 108px 116px 88px 68px">
+            <DataGridHead>Agent</DataGridHead>
+            <DataGridHead className="text-center">Latency</DataGridHead>
+            <DataGridHead className="text-center">Success rate</DataGridHead>
+            <DataGridHead className="text-center">Status</DataGridHead>
+            <DataGridHead className="sr-only">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {filtered.map((sla) => {
-            const latencyOk = sla.observedDurationMs <= sla.maxDurationMs;
-            const successOk = sla.observedSuccessRate >= sla.minSuccessRate;
+          <DataGridBody>
+            {filtered.map((sla) => {
+              const latencyOk = sla.observedDurationMs <= sla.maxDurationMs;
+              const successOk = sla.observedSuccessRate >= sla.minSuccessRate;
 
-            return (
-              <div
-                key={sla.agentId}
-                className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-                style={{
-                  gridTemplateColumns: '1fr 100px 100px 80px 60px',
-                  borderColor: 'var(--tenant-panel-stroke)',
-                  borderLeft: sla.status !== 'healthy' ? `3px solid ${sla.status === 'critical' ? 'var(--tenant-danger)' : 'var(--tenant-warning)'}` : '3px solid transparent',
-                }}
-              >
-                <div className="min-w-0">
-                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{sla.agentId}</span>
-                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{sla.summary}</div>
-                </div>
+              return (
+                <DataGridRow
+                  key={sla.agentId}
+                  columns="minmax(0,1fr) 108px 116px 88px 68px"
+                  style={{
+                    borderLeft: sla.status !== 'healthy' ? `3px solid ${sla.status === 'critical' ? 'var(--tenant-danger)' : 'var(--tenant-warning)'}` : '3px solid transparent',
+                  }}
+                >
+                  <DataGridCell>
+                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{sla.agentId}</span>
+                    <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{sla.summary}</div>
+                  </DataGridCell>
 
-                <div className="text-center">
-                  <div className="font-mono text-xs" style={{ color: latencyOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
-                    {(sla.observedDurationMs / 1000).toFixed(1)}s
-                  </div>
-                  <div className="text-[9px] text-tenant-text-muted">/ {(sla.maxDurationMs / 1000).toFixed(1)}s max</div>
-                </div>
+                  <DataGridCell className="text-center">
+                    <div className="font-mono text-xs" style={{ color: latencyOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
+                      {(sla.observedDurationMs / 1000).toFixed(1)}s
+                    </div>
+                    <div className="text-[9px] text-tenant-text-muted">/ {(sla.maxDurationMs / 1000).toFixed(1)}s max</div>
+                  </DataGridCell>
 
-                <div className="text-center">
-                  <div className="font-mono text-xs" style={{ color: successOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
-                    {(sla.observedSuccessRate * 100).toFixed(1)}%
-                  </div>
-                  <div className="text-[9px] text-tenant-text-muted">/ {(sla.minSuccessRate * 100).toFixed(0)}% min</div>
-                </div>
+                  <DataGridCell className="text-center">
+                    <div className="font-mono text-xs" style={{ color: successOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
+                      {(sla.observedSuccessRate * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-[9px] text-tenant-text-muted">/ {(sla.minSuccessRate * 100).toFixed(0)}% min</div>
+                  </DataGridCell>
 
-                <div className="text-center">
-                  <div
-                    className="mx-auto h-2 w-2 rounded-full"
-                    style={{ background: sla.status === 'healthy' ? 'var(--tenant-success)' : sla.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
-                  />
-                </div>
+                  <DataGridCell className="text-center">
+                    <div
+                      className="mx-auto h-2 w-2 rounded-full"
+                      style={{ background: sla.status === 'healthy' ? 'var(--tenant-success)' : sla.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
+                    />
+                  </DataGridCell>
 
-                <div className="flex items-center justify-end">
-                  <InlineAction href={`${baseHref}/slas`} variant="ghost" className="text-[11px] px-2 py-0.5">
-                    <Settings className="h-3 w-3" />
-                  </InlineAction>
-                </div>
-              </div>
-            );
-          })}
+                  <DataGridCell className="flex items-center justify-end whitespace-nowrap">
+                    <InlineAction href={`${baseHref}/slas`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                      <Settings className="h-3 w-3" />
+                    </InlineAction>
+                  </DataGridCell>
+                </DataGridRow>
+              );
+            })}
+          </DataGridBody>
 
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+          <DataGridFooter>
             {filtered.length} SLA{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

@@ -6,7 +6,7 @@ import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { PageContainer, PageHeader } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
-import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, FlaskConical, Eye, Database } from 'lucide-react';
 
 export interface DatasetRecord {
@@ -15,6 +15,7 @@ export interface DatasetRecord {
   description?: string;
   itemCount: number;
   sourceTraceIds?: string[];
+  createdAt?: string;
 }
 
 interface DatasetsDashboardProps {
@@ -31,6 +32,7 @@ export function DatasetsDashboard({ datasets, baseHref = '' }: DatasetsDashboard
 
   const filtered = filterByDashboardScope(datasets, filters, {
     searchableText: (item) => `${item.name} ${item.description ?? ''}`,
+    timestampMs: (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined),
   });
 
   const totalCases = datasets.reduce((sum, d) => sum + d.itemCount, 0);
@@ -85,62 +87,51 @@ export function DatasetsDashboard({ datasets, baseHref = '' }: DatasetsDashboard
           </div>
         </WorkbenchPanel>
       ) : (
-        <div
-          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
-        >
-          {/* Header */}
-          <div
-            className="grid items-center border-b px-4 py-2"
-            style={{ gridTemplateColumns: '1fr 80px 100px 140px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Dataset</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Cases</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Sources</span>
-            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
-          </div>
+        <DataGrid>
+          <DataGridHeader columns="minmax(0,1fr) 88px 108px minmax(140px,auto)">
+            <DataGridHead>Dataset</DataGridHead>
+            <DataGridHead className="text-center">Cases</DataGridHead>
+            <DataGridHead className="text-center">Sources</DataGridHead>
+            <DataGridHead className="text-right">Actions</DataGridHead>
+          </DataGridHeader>
 
-          {/* Rows */}
-          {filtered.map((dataset) => (
-            <div
-              key={dataset.id}
-              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
-              style={{ gridTemplateColumns: '1fr 80px 100px 140px', borderColor: 'var(--tenant-panel-stroke)' }}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Database className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
-                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{dataset.name}</span>
-                </div>
-                {dataset.description ? (
-                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{dataset.description}</div>
-                ) : null}
-              </div>
+          <DataGridBody>
+            {filtered.map((dataset) => (
+              <DataGridRow key={dataset.id} columns="minmax(0,1fr) 88px 108px minmax(140px,auto)">
+                <DataGridCell>
+                  <div className="flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                    <span className="truncate text-sm font-semibold text-tenant-text-primary">{dataset.name}</span>
+                  </div>
+                  {dataset.description ? (
+                    <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{dataset.description}</div>
+                  ) : null}
+                </DataGridCell>
 
-              <div className="text-center">
-                <span className="text-sm font-medium text-tenant-text-primary">{dataset.itemCount}</span>
-              </div>
+                <DataGridCell className="text-center">
+                  <span className="text-sm font-medium text-tenant-text-primary">{dataset.itemCount}</span>
+                </DataGridCell>
 
-              <div className="text-center">
-                <span className="text-xs text-tenant-text-muted">{dataset.sourceTraceIds?.length ?? 0} traces</span>
-              </div>
+                <DataGridCell className="text-center">
+                  <span className="text-xs text-tenant-text-muted">{dataset.sourceTraceIds?.length ?? 0} traces</span>
+                </DataGridCell>
 
-              <div className="flex items-center justify-end gap-1">
-                <InlineAction href={`${baseHref}/datasets/${dataset.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
-                  <Eye className="h-3 w-3" /> View
-                </InlineAction>
-                <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
-                  <FlaskConical className="h-3 w-3" /> Run
-                </InlineAction>
-              </div>
-            </div>
-          ))}
+                <DataGridCell className="flex items-center justify-end gap-1 whitespace-nowrap">
+                  <InlineAction href={`${baseHref}/datasets/${dataset.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
+                    <Eye className="h-3 w-3" /> View
+                  </InlineAction>
+                  <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                    <FlaskConical className="h-3 w-3" /> Run
+                  </InlineAction>
+                </DataGridCell>
+              </DataGridRow>
+            ))}
+          </DataGridBody>
 
-          {/* Footer */}
-          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+          <DataGridFooter>
             {filtered.length} dataset{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          </DataGridFooter>
+        </DataGrid>
       )}
     </PageContainer>
   );

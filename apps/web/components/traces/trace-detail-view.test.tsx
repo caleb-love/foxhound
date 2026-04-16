@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { TraceDetailView } from './trace-detail-view';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
@@ -94,6 +94,18 @@ describe('TraceDetailView', () => {
 
     // Should have a prompt action link
     expect(screen.getByText(/Prompt/)).toBeInTheDocument();
+  });
+
+  it('keeps span details inline instead of opening an overlay sheet', () => {
+    render(<TraceDetailView trace={trace as never} />);
+
+    fireEvent.click(screen.getByText('planner'));
+
+    expect(screen.getAllByText('planner').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Span').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Duration').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Copy JSON')).not.toBeInTheDocument();
+    expect(screen.queryByText('Add to Dataset')).not.toBeInTheDocument();
   });
 
   it('handles missing prompt metadata', () => {

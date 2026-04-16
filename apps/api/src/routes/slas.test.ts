@@ -8,7 +8,8 @@ vi.mock("@foxhound/db", () => ({
   touchApiKeyLastUsed: vi.fn().mockResolvedValue(undefined),
   upsertAgentConfig: vi.fn(),
   getAgentConfig: vi.fn(),
-  listAgentConfigs: vi.fn(),
+  listSlaConfigs: vi.fn(),
+  countSlaConfigs: vi.fn(),
   deleteAgentConfig: vi.fn(),
 }));
 
@@ -111,6 +112,73 @@ describe("PUT /v1/slas/:agentId", () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("GET /v1/slas", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns filtered paginated slas with true total count", async () => {
+    mockApiKey();
+    vi.mocked(db.listSlaConfigs).mockResolvedValue([baseSlaConfig]);
+    vi.mocked(db.countSlaConfigs).mockResolvedValue(6);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/slas?page=1&limit=10",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty("data");
+    expect(body).toHaveProperty("pagination");
+    expect(body.data).toHaveLength(1);
+    expect(body.pagination).toMatchObject({ page: 1, limit: 10, count: 6 });
+    expect(vi.mocked(db.listSlaConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 10,
+      searchQuery: undefined,
+      agentIds: undefined,
+    });
+    expect(vi.mocked(db.countSlaConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 10,
+      searchQuery: undefined,
+      agentIds: undefined,
+    });
+  });
+
+  it("accepts shared-style search and agentId filters without applying event-window semantics", async () => {
+    mockApiKey();
+    vi.mocked(db.listSlaConfigs).mockResolvedValue([baseSlaConfig]);
+    vi.mocked(db.countSlaConfigs).mockResolvedValue(1);
+
+    const app = buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/slas?q=agent&agentId=agent_1&start=2026-04-15T00:00:00.000Z&end=2026-04-16T00:00:00.000Z&status=error",
+      headers: { authorization: "Bearer sk-testkey123" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(vi.mocked(db.listSlaConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "agent",
+      agentIds: ["agent_1"],
+    });
+    expect(vi.mocked(db.countSlaConfigs)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: "agent",
+      agentIds: ["agent_1"],
+    });
   });
 });
 

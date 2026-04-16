@@ -79,9 +79,51 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
     return walkTree(undefined);
   }, [spans]);
 
+  const spanById = useMemo(() => {
+    const map = new Map<string, Span>();
+    for (const span of spans) {
+      map.set(span.spanId, span);
+    }
+    return map;
+  }, [spans]);
+
+  const descendantEndTimeById = useMemo(() => {
+    const childrenOf = new Map<string, Span[]>();
+    for (const span of spans) {
+      if (!span.parentSpanId) continue;
+      const siblings = childrenOf.get(span.parentSpanId) ?? [];
+      siblings.push(span);
+      childrenOf.set(span.parentSpanId, siblings);
+    }
+
+    const memo = new Map<string, number>();
+
+    const getMaxEndTime = (spanId: string): number => {
+      const cached = memo.get(spanId);
+      if (cached !== undefined) return cached;
+
+      const span = spanById.get(spanId);
+      if (!span) return 0;
+
+      let maxEndTime = span.endTimeMs ?? span.startTimeMs;
+      for (const child of childrenOf.get(spanId) ?? []) {
+        maxEndTime = Math.max(maxEndTime, getMaxEndTime(child.spanId));
+      }
+
+      memo.set(spanId, maxEndTime);
+      return maxEndTime;
+    };
+
+    for (const span of spans) {
+      getMaxEndTime(span.spanId);
+    }
+
+    return memo;
+  }, [spans, spanById]);
+
   // Time bounds
   const minTime = useMemo(() => Math.min(...spans.map((s) => s.startTimeMs)), [spans]);
-  const maxTime = useMemo(() => Math.max(...spans.map((s) => s.endTimeMs ?? s.startTimeMs)), [spans]);
+  const maxTime = useMemo(() => Math.max(...spans.map((s) => descendantEndTimeById.get(s.spanId) ?? s.endTimeMs ?? s.startTimeMs)), [spans, descendantEndTimeById]);
   const totalDuration = maxTime - minTime || 1;
 
   // Critical path: the chain of spans that determines overall trace duration.
@@ -152,9 +194,11 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
       <div className="divide-y" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
         {sortedSpans.map((span) => {
           const depth = getDepth(span.spanId);
+          const visualEndTime = descendantEndTimeById.get(span.spanId) ?? span.endTimeMs ?? span.startTimeMs;
           const duration = span.endTimeMs ? span.endTimeMs - span.startTimeMs : 0;
+          const visualDuration = Math.max(visualEndTime - span.startTimeMs, 0);
           const offset = ((span.startTimeMs - minTime) / totalDuration) * 100;
-          const width = (duration / totalDuration) * 100;
+          const width = (visualDuration / totalDuration) * 100;
           const accentColor = SPAN_KIND_COLORS[span.kind] || SPAN_KIND_COLORS.custom;
           const isError = span.status === 'error';
           const isSelected = selectedSpanId === span.spanId;

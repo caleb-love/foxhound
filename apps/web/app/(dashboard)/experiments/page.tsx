@@ -19,6 +19,7 @@ export default async function ExperimentsPage() {
       datasetId: e.datasetId,
       status: e.status,
       summary: `${e.status} experiment on dataset ${e.datasetId}`,
+      createdAt: 'createdAt' in e && typeof e.createdAt === 'string' ? e.createdAt : new Date().toISOString(),
     }));
   } catch {
     // Fall through with empty array

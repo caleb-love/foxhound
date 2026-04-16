@@ -106,7 +106,14 @@ export function OperatorCommandPalette() {
         aria-label="Open operator command palette"
       >
         Quick jump
-        <span className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
+        <span
+          className="inline-flex h-5 items-center rounded-full border px-1.5 text-[10px] font-semibold leading-none"
+          style={{
+            borderColor: 'var(--tenant-panel-stroke)',
+            background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+            color: 'var(--tenant-text-secondary)',
+          }}
+        >
           ⌘K
         </span>
       </button>

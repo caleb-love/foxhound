@@ -24,6 +24,12 @@ const CreateExperimentSchema = z.object({
 
 const ListExperimentsSchema = z.object({
   datasetId: z.string().optional(),
+  q: z.string().optional(),
+  experimentId: z.union([z.string(), z.array(z.string())]).optional(),
+  start: z.string().datetime().optional(),
+  end: z.string().datetime().optional(),
+  status: z.enum(["all", "success", "error"]).optional(),
+  severity: z.enum(["all", "healthy", "warning", "critical"]).optional(),
 });
 
 const ComparisonSchema = z.object({
@@ -111,7 +117,15 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const rows = await listExperiments(request.orgId, result.data.datasetId);
+    const experimentIds = typeof result.data.experimentId === "string"
+      ? [result.data.experimentId]
+      : result.data.experimentId;
+    const rows = await listExperiments({
+      orgId: request.orgId,
+      datasetId: result.data.datasetId,
+      searchQuery: result.data.q,
+      experimentIds,
+    });
     return reply.code(200).send({ data: rows });
   });
 
