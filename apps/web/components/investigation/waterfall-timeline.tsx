@@ -84,6 +84,26 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
   const maxTime = useMemo(() => Math.max(...spans.map((s) => s.endTimeMs ?? s.startTimeMs)), [spans]);
   const totalDuration = maxTime - minTime || 1;
 
+  // Critical path: the chain of spans that determines overall trace duration.
+  // Walk from the span ending last, back through the parent that ended latest.
+  const criticalPathIds = useMemo(() => {
+    if (spans.length === 0) return new Set<string>();
+    const ids = new Set<string>();
+    // Find the span that ends latest
+    let current: Span | undefined = spans.reduce((latest, s) =>
+      (s.endTimeMs ?? 0) > (latest.endTimeMs ?? 0) ? s : latest
+    , spans[0]!);
+    while (current) {
+      ids.add(current.spanId);
+      const parentId: string | undefined = current.parentSpanId;
+      if (!parentId) break;
+      // Among siblings under the same parent, the critical path goes through
+      // the one that ends latest (it's the bottleneck).
+      current = spans.find((s: Span) => s.spanId === parentId);
+    }
+    return ids;
+  }, [spans]);
+
   // Time axis ticks
   const tickCount = 5;
   const ticks = useMemo(() => {
@@ -139,6 +159,7 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
           const isError = span.status === 'error';
           const isSelected = selectedSpanId === span.spanId;
           const isHovered = hoveredSpanId === span.spanId;
+          const isCriticalPath = criticalPathIds.has(span.spanId);
 
           return (
             <button
@@ -206,7 +227,10 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
                       ? `0 0 0 2px color-mix(in srgb, var(--tenant-accent) 32%, transparent), 0 4px 12px color-mix(in srgb, ${accentColor} 24%, transparent)`
                       : isError
                         ? `0 2px 8px color-mix(in srgb, var(--tenant-danger) 20%, transparent)`
-                        : `0 2px 6px color-mix(in srgb, ${accentColor} 14%, transparent)`,
+                        : isCriticalPath
+                          ? `0 0 0 1px color-mix(in srgb, var(--tenant-warning) 40%, transparent), 0 3px 10px color-mix(in srgb, var(--tenant-warning) 16%, transparent)`
+                          : `0 2px 6px color-mix(in srgb, ${accentColor} 14%, transparent)`,
+                    outline: isCriticalPath && !isSelected && !isError ? '1px dashed color-mix(in srgb, var(--tenant-warning) 48%, transparent)' : 'none',
                     borderRadius: 'var(--tenant-radius-control-tight, 4px)',
                   }}
                 />
@@ -245,6 +269,10 @@ export function WaterfallTimeline({ spans, selectedSpanId, onSelectSpan, classNa
         <div className="flex items-center gap-1.5">
           <div className="h-2 w-2 rounded-full" style={{ background: 'var(--tenant-danger)' }} />
           <span>Error</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-sm" style={{ border: '1px dashed color-mix(in srgb, var(--tenant-warning) 64%, transparent)', background: 'color-mix(in srgb, var(--tenant-warning) 12%, transparent)' }} />
+          <span>Critical path</span>
         </div>
       </div>
     </div>

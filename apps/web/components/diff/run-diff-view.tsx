@@ -10,6 +10,7 @@ import { VerdictBar, generateDiffVerdict, InlineAction, InlineActionBar, Compari
 import { getSandboxRootHref } from '@/lib/sandbox-routes';
 import { useCompareStore } from '@/lib/stores/compare-store';
 import { InsightsPanel } from './insights-panel';
+import { exportDiffAsMarkdown, copyToClipboard } from '@/lib/export-diff';
 import { WaterfallDiff } from './waterfall-diff';
 import { DiffTracePicker } from './diff-trace-picker';
 import { getPromptMetadata, getPromptDetailHref, getPromptDiffHref } from '@/lib/trace-utils';
@@ -211,7 +212,10 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
                 Prompt diff
               </InlineAction>
             ) : null}
-            <InlineAction href="#" variant="ghost" onClick={() => {}}>
+            <InlineAction href="#" variant="ghost" onClick={() => {
+              const md = exportDiffAsMarkdown(traceA, traceB, metrics, spanDiff, verdict);
+              copyToClipboard(md);
+            }}>
               <Download className="h-3.5 w-3.5" />
               Export
             </InlineAction>
