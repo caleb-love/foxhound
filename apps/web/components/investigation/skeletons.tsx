@@ -71,7 +71,7 @@ export function TraceDetailSkeleton() {
               <Bone className="h-2 w-2 rounded-full" />
               <Bone className="h-4 w-32" style={{ opacity: 1 - i * 0.08 }} />
               <div className="flex-1" />
-              <Bone className="h-4 rounded-full" style={{ width: `${30 + Math.random() * 50}%`, opacity: 0.4 }} />
+              <Bone className="h-4 rounded-full" style={{ width: `${30 + (i * 17) % 50}%`, opacity: 0.4 }} />
             </div>
           ))}
         </div>
@@ -131,8 +131,8 @@ export function RunDiffSkeleton() {
             <Bone className="h-2 w-2 rounded-full" />
             <Bone className="h-3 w-28" />
             <div className="flex-1" />
-            <Bone className="h-3.5 rounded" style={{ width: `${20 + Math.random() * 30}%`, opacity: 0.4 }} />
-            <Bone className="h-3.5 rounded" style={{ width: `${20 + Math.random() * 30}%`, opacity: 0.4 }} />
+            <Bone className="h-3.5 rounded" style={{ width: `${20 + (i * 13) % 30}%`, opacity: 0.4 }} />
+            <Bone className="h-3.5 rounded" style={{ width: `${25 + (i * 11) % 25}%`, opacity: 0.4 }} />
           </div>
         ))}
       </div>

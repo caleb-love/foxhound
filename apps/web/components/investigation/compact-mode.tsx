@@ -32,17 +32,19 @@ function applyDensityClass(mode: DensityMode) {
   }
 }
 
-export function CompactModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<DensityMode>('comfortable');
+function readStoredMode(): DensityMode {
+  if (typeof window === 'undefined') return 'comfortable';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'compact' ? 'compact' : 'comfortable';
+}
 
-  // Read from localStorage on mount
+export function CompactModeProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<DensityMode>(readStoredMode);
+
+  // Apply the class on mount and when mode changes
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'compact' || stored === 'comfortable') {
-      setMode(stored);
-      applyDensityClass(stored);
-    }
-  }, []);
+    applyDensityClass(mode);
+  }, [mode]);
 
   const toggle = useCallback(() => {
     setMode((prev) => {

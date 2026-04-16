@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import type { Trace } from '@foxhound/types';
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronDown } from 'lucide-react';
 
@@ -136,7 +135,7 @@ export function DiffTracePicker({
   traceBId,
   onSelectTraceA,
   onSelectTraceB,
-  onSwap,
+  onSwap: _onSwap,
 }: DiffTracePickerProps) {
   if (traces.length === 0) return null;
 

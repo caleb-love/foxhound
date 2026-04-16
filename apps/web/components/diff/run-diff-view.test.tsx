@@ -131,7 +131,7 @@ describe('RunDiffView', () => {
     expect(screen.getByText('Comparison')).toBeInTheDocument();
   });
 
-  it('renders an in-place compare picker when available traces are provided', () => {
+  it('renders trace dropdown pickers when available traces are provided', () => {
     render(
       <RunDiffView
         traceA={traceA as never}
@@ -140,7 +140,9 @@ describe('RunDiffView', () => {
       />,
     );
 
-    expect(screen.getByText('Compare picker')).toBeInTheDocument();
+    // The DiffTracePicker renders A and B dropdown triggers
+    expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('B').length).toBeGreaterThanOrEqual(1);
   });
 
   it('navigates to a new diff pair when swap is clicked', () => {
