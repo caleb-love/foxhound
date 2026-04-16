@@ -8,18 +8,20 @@ export default async function DatasetsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
 
+  let datasets: DatasetRecord[] = [];
+
   try {
     const client = getAuthenticatedClient(session.user.token);
     const response = await client.listDatasets();
-    const datasets: DatasetRecord[] = (response.data ?? []).map((d) => ({
+    datasets = (response.data ?? []).map((d) => ({
       id: d.id,
       name: d.name,
       description: d.description,
       itemCount: ('itemCount' in d ? (d as { itemCount: number }).itemCount : 0),
     }));
-
-    return <DatasetsDashboard datasets={datasets} />;
   } catch {
-    return <DatasetsDashboard datasets={[]} />;
+    // Fall through with empty array
   }
+
+  return <DatasetsDashboard datasets={datasets} />;
 }

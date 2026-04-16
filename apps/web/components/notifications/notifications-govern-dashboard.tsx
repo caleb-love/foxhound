@@ -1,223 +1,135 @@
 'use client';
 
-import { MetricTile } from '@/components/charts/metric-tile';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
-import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
-import { WorkbenchPanel } from '@/components/system/workbench';
-import {
-  PremiumActionLink,
-  PremiumActions,
-  PremiumBody,
-  PremiumPanel,
-  PremiumRecord,
-  PremiumRecordHeader,
-  PremiumStatusBadge,
-  SplitPanelLayout,
-} from '@/components/sandbox/primitives';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { Plus, Bell, Settings } from 'lucide-react';
 
-export interface NotificationMetric {
-  label: string;
-  value: string;
-  supportingText: string;
-}
-
-export interface NotificationChannelRecord {
-  name: string;
-  type: string;
-  status: 'healthy' | 'warning' | 'critical';
-  routingSummary: string;
-  lastDelivery: string;
-  alertsHref: string;
-  regressionsHref: string;
-  slasHref: string;
+export interface NotificationRecord {
+  channelId: string;
+  channelName: string;
+  kind: string;
+  status: string;
+  summary: string;
 }
 
 interface NotificationsGovernDashboardProps {
-  metrics: NotificationMetric[];
-  channels: NotificationChannelRecord[];
-  nextActions: Array<{
-    title: string;
-    description: string;
-    href: string;
-    cta: string;
-  }>;
+  channels: NotificationRecord[];
+  baseHref?: string;
 }
 
 const notificationFilters: DashboardFilterDefinition[] = [
-  {
-    key: 'searchQuery',
-    kind: 'search',
-    label: 'Search',
-    placeholder: 'Search channels, routes, or escalations...',
-  },
-  {
-    key: 'severity',
-    kind: 'single-select',
-    label: 'Status',
-    options: [
-      { value: 'all', label: 'All statuses' },
-      { value: 'healthy', label: 'Healthy' },
-      { value: 'warning', label: 'Warning' },
-      { value: 'critical', label: 'Critical' },
-    ],
-  },
-  {
-    key: 'agentIds',
-    kind: 'multi-select',
-    label: 'Channel group',
-    options: [
-      { value: 'ops', label: 'ops' },
-      { value: 'engineering', label: 'engineering' },
-      { value: 'executive', label: 'executive' },
-    ],
-  },
+  { key: 'searchQuery', kind: 'search', label: 'Search', placeholder: 'Search channels...' },
 ];
 
-export function NotificationsGovernDashboard({
-  metrics,
-  channels,
-  nextActions,
-}: NotificationsGovernDashboardProps) {
+export function NotificationsGovernDashboard({ channels, baseHref = '' }: NotificationsGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
-  const filteredChannels = filterByDashboardScope(channels, filters, {
-    searchableText: (item) => `${item.name} ${item.type} ${item.routingSummary} ${item.lastDelivery}`,
-    severity: (item) => item.status,
-    status: (item) => item.status,
-    agentIds: (item) =>
-      item.name.includes('exec') ? ['executive'] : item.name.includes('engineering') ? ['engineering'] : ['ops'],
+  const filtered = filterByDashboardScope(channels, filters, {
+    searchableText: (item) => `${item.channelName} ${item.kind} ${item.summary}`,
   });
 
-  const filteredNextActions = filterByDashboardScope(nextActions, filters, {
-    searchableText: (item) => `${item.title} ${item.description}`,
-    agentIds: (item) =>
-      item.title.toLowerCase().includes('sla')
-        ? ['ops']
-        : item.title.toLowerCase().includes('budget')
-          ? ['engineering']
-          : ['executive'],
-  });
+  const healthyCount = channels.filter((c) => c.status === 'healthy').length;
+  const degradedCount = channels.filter((c) => c.status !== 'healthy').length;
+
+  const verdictSeverity = channels.length === 0 ? 'info' as const : degradedCount > 0 ? 'warning' as const : 'success' as const;
+  const verdictHeadline = channels.length === 0
+    ? 'No notification channels'
+    : `${channels.length} channel${channels.length !== 1 ? 's' : ''} configured, ${healthyCount} healthy`;
+  const verdictSummary = channels.length === 0
+    ? 'Add a Slack channel or webhook to start receiving alerts.'
+    : degradedCount > 0
+      ? `${degradedCount} channel${degradedCount !== 1 ? 's' : ''} showing degraded status. Check connectivity.`
+      : 'All channels operational. Alerts will route to the configured destinations.';
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Govern"
-        title="Notifications"
-        description="Review alert routing health, understand which channels carry the highest-signal incidents, and verify that escalation paths still match how operators actually respond."
-      >
-        <div
-          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
-        >
-          Escalation governance
+      <PageHeader eyebrow="Govern" title="Notifications" description="Configure alert channels and routing rules. Test delivery and monitor channel health." />
+
+      <DashboardFilterBar definitions={notificationFilters} />
+
+      <VerdictBar
+        severity={verdictSeverity}
+        headline={verdictHeadline}
+        summary={verdictSummary}
+        actions={
+          <InlineActionBar>
+            <InlineAction href={`${baseHref}/notifications`} variant="primary">
+              <Plus className="h-3.5 w-3.5" />
+              Add channel
+            </InlineAction>
+            <InlineAction href={`${baseHref}/notifications`} variant="secondary">
+              <Bell className="h-3.5 w-3.5" />
+              Test send
+            </InlineAction>
+          </InlineActionBar>
+        }
+      />
+
+      <MetricStrip>
+        <MetricChip label="Channels" value={String(channels.length)} />
+        <MetricChip label="Healthy" value={String(healthyCount)} accent="success" />
+        {degradedCount > 0 ? <MetricChip label="Degraded" value={String(degradedCount)} accent="warning" /> : null}
+      </MetricStrip>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+          <p className="text-sm text-tenant-text-muted">
+            {channels.length === 0 ? 'Add your first notification channel.' : 'No channels match the current filter.'}
+          </p>
         </div>
-      </PageHeader>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
-        <SectionPanel
-          title="Read routing health before alert trust erodes"
-          description="This page should frame notifications as an operational trust system. Show channel posture first, then route health, then the actions that reduce noise and protect escalation confidence."
-        >
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-            ))}
-          </section>
-        </SectionPanel>
-
-        <SectionPanel
-          title="Filter routing posture"
-          description="Slice by status or channel group before widening the alert-routing review."
-        >
-          <DashboardFilterBar definitions={notificationFilters} />
-        </SectionPanel>
-      </section>
-
-      <WorkbenchPanel
-        title="Alert routing workbench"
-        description="Use this surface to inspect channel health, validate delivery confidence, and tighten escalation paths before the next high-severity incident."
-      >
-        <SplitPanelLayout
-          main={
-            <PremiumPanel
-              title="Channel status"
-              description="Operational channels framed as active routing surfaces, not just static configuration entries."
-            >
-              {filteredChannels.map((channel) => (
-                <PremiumRecord key={channel.name}>
-                  <PremiumRecordHeader
-                    title={channel.name}
-                    meta={`Last delivery ${channel.lastDelivery}`}
-                    badge={
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="rounded-[var(--tenant-radius-control-tight)] border px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em]"
-                          style={{
-                            borderColor: 'var(--tenant-panel-stroke)',
-                            color: 'var(--tenant-text-muted)',
-                            background: 'var(--card)',
-                          }}
-                        >
-                          {channel.type}
-                        </span>
-                        <PremiumStatusBadge status={channel.status} variant={channel.status} />
-                      </div>
-                    }
-                  />
-                  <PremiumBody>{channel.routingSummary}</PremiumBody>
-                  <PremiumActions>
-                    <PremiumActionLink href={channel.alertsHref}>Review alert source</PremiumActionLink>
-                    <PremiumActionLink href={channel.regressionsHref}>Open regressions</PremiumActionLink>
-                    <PremiumActionLink href={channel.slasHref}>Open SLAs</PremiumActionLink>
-                  </PremiumActions>
-                </PremiumRecord>
-              ))}
-            </PremiumPanel>
-          }
-          side={
-            <PremiumPanel
-              title="Recommended next actions"
-              description="Reduce alert noise, protect escalation trust, and keep the highest-signal routes visible to the right operators."
-            >
-              {filteredNextActions.map((action) => (
-                <PremiumRecord key={action.title}>
-                  <PremiumRecordHeader title={action.title} />
-                  <PremiumBody>{action.description}</PremiumBody>
-                  <PremiumActions>
-                    <PremiumActionLink href={action.href}>{action.cta}</PremiumActionLink>
-                  </PremiumActions>
-                </PremiumRecord>
-              ))}
-            </PremiumPanel>
-          }
-        />
-
-        <SectionPanel
-          title="Routing triage framing"
-          description="A compact interpretation layer between posture metrics and channel evidence, so operators can see which routes matter, where trust is weakening, and where escalation tuning should begin."
-        >
-          <div className="grid gap-4 md:grid-cols-3">
-            {filteredChannels.map((channel) => (
-              <div
-                key={channel.name}
-                className="rounded-[var(--tenant-radius-panel)] border p-4"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
-              >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
-                  {channel.lastDelivery}
-                </div>
-                <div className="mt-2 font-medium text-tenant-text-primary">{channel.name}</div>
-                <div className="mt-3">
-                  <RecordBody>{channel.routingSummary}</RecordBody>
-                </div>
-              </div>
-            ))}
+      ) : (
+        <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 80px 80px 60px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Channel</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Type</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Status</span>
+            <span className="sr-only">Actions</span>
           </div>
-        </SectionPanel>
-      </WorkbenchPanel>
+
+          {filtered.map((channel) => (
+            <div
+              key={channel.channelId}
+              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+              style={{ gridTemplateColumns: '1fr 80px 80px 60px', borderColor: 'var(--tenant-panel-stroke)' }}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{channel.channelName}</span>
+                </div>
+                <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{channel.summary}</div>
+              </div>
+
+              <div className="text-center">
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium capitalize" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
+                  {channel.kind}
+                </span>
+              </div>
+
+              <div className="text-center">
+                <div
+                  className="mx-auto h-2 w-2 rounded-full"
+                  style={{ background: channel.status === 'healthy' ? 'var(--tenant-success)' : channel.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end">
+                <InlineAction href={`${baseHref}/notifications`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                  <Settings className="h-3 w-3" />
+                </InlineAction>
+              </div>
+            </div>
+          ))}
+
+          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            {filtered.length} channel{filtered.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

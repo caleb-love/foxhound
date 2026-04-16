@@ -1,85 +1,39 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SlasGovernDashboard } from './slas-govern-dashboard';
+import { useSegmentStore } from '@/lib/stores/segment-store';
+import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
-const metrics = [
-  {
-    label: 'Tracked SLAs',
-    value: '5',
-    supportingText: 'Critical production workflows currently monitored for reliability drift.',
-  },
-  {
-    label: 'Breaching now',
-    value: '1',
-    supportingText: 'One workflow is already beyond its success-rate or latency target.',
-  },
-  {
-    label: 'At-risk agents',
-    value: '2',
-    supportingText: 'Two workflows are trending in the wrong direction and need investigation.',
-  },
-  {
-    label: 'Longest drift',
-    value: 'planner-agent',
-    supportingText: 'Planner reliability has been unstable since the latest prompt and routing change.',
-  },
-];
-
-const atRiskAgents = [
-  {
-    agent: 'planner-agent',
-    status: 'critical' as const,
-    successRate: '91.2%',
-    latency: '4.8s p95',
-    description: 'Latency and failure rate both regressed after the latest rerank behavior change.',
-    tracesHref: '/traces',
-    regressionsHref: '/regressions',
-    replayHref: '/replay/trace_reg_1',
-  },
-];
-
-const nextActions = [
-  {
-    title: 'Inspect the failing trace cluster',
-    description: 'Review the specific executions driving the latest SLA breach.',
-    href: '/traces',
-    cta: 'Open traces',
-  },
-  {
-    title: 'Check for behavior regressions first',
-    description: 'Use regression analysis to confirm whether the SLA drift came from a recent behavior change.',
-    href: '/regressions',
-    cta: 'Open regressions',
-  },
+const slas = [
+  { agentId: 'support-agent', maxDurationMs: 10000, minSuccessRate: 0.95, observedDurationMs: 8500, observedSuccessRate: 0.97, status: 'healthy', summary: 'Within SLA targets' },
+  { agentId: 'billing-agent', maxDurationMs: 5000, minSuccessRate: 0.99, observedDurationMs: 6200, observedSuccessRate: 0.91, status: 'critical', summary: 'Latency and success rate both breached' },
 ];
 
 describe('SlasGovernDashboard', () => {
-  it('renders SLA summary metrics and hero copy', () => {
-    render(
-      <SlasGovernDashboard metrics={metrics} atRiskAgents={atRiskAgents} nextActions={nextActions} />,
-    );
-
-    expect(screen.getByText('SLA Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getAllByText('planner-agent').length).toBeGreaterThan(0);
+  beforeEach(() => {
+    useSegmentStore.setState({
+      currentSegmentName: 'All traffic',
+      currentFilters: createDefaultDashboardFilters(),
+      savedSegments: [],
+    });
   });
 
-  it('renders at-risk agents and investigation links', () => {
-    render(
-      <SlasGovernDashboard metrics={metrics} atRiskAgents={atRiskAgents} nextActions={nextActions} />,
-    );
+  it('renders SLA table with agent names', () => {
+    render(<SlasGovernDashboard slas={slas} />);
 
-    expect(screen.getByText(/Success rate: 91.2%/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Review traces/i })).toHaveAttribute('href', '/traces');
+    expect(screen.getByText('support-agent')).toBeInTheDocument();
+    expect(screen.getByText('billing-agent')).toBeInTheDocument();
   });
 
-  it('renders SLA next actions', () => {
-    render(
-      <SlasGovernDashboard metrics={metrics} atRiskAgents={atRiskAgents} nextActions={nextActions} />,
-    );
+  it('shows verdict about at-risk SLAs', () => {
+    render(<SlasGovernDashboard slas={slas} />);
 
-    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
-    expect(actionLinks.some((link) => link.getAttribute('href') === '/traces')).toBe(true);
-    expect(actionLinks.some((link) => link.getAttribute('href') === '/regressions')).toBe(true);
+    expect(screen.getByText(/1 SLA at risk/)).toBeInTheDocument();
+  });
+
+  it('shows empty state when no SLAs configured', () => {
+    render(<SlasGovernDashboard slas={[]} />);
+
+    expect(screen.getByText(/No SLAs configured/)).toBeInTheDocument();
   });
 });

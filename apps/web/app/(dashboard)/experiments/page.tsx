@@ -8,19 +8,21 @@ export default async function ExperimentsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
 
+  let experiments: ExperimentRecord[] = [];
+
   try {
     const client = getAuthenticatedClient(session.user.token);
     const response = await client.listExperiments();
-    const experiments: ExperimentRecord[] = (response.data ?? []).map((e) => ({
+    experiments = (response.data ?? []).map((e) => ({
       id: e.id,
       name: e.name,
       datasetId: e.datasetId,
       status: e.status,
       summary: `${e.status} experiment on dataset ${e.datasetId}`,
     }));
-
-    return <ExperimentsDashboard experiments={experiments} />;
   } catch {
-    return <ExperimentsDashboard experiments={[]} />;
+    // Fall through with empty array
   }
+
+  return <ExperimentsDashboard experiments={experiments} />;
 }

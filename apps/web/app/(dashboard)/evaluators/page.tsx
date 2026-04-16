@@ -8,10 +8,12 @@ export default async function EvaluatorsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
 
+  let evaluators: EvaluatorRecord[] = [];
+
   try {
     const client = getAuthenticatedClient(session.user.token);
     const response = await client.listEvaluators();
-    const evaluators: EvaluatorRecord[] = (response.data ?? []).map((e) => ({
+    evaluators = (response.data ?? []).map((e) => ({
       id: e.id,
       name: e.name,
       scoringType: e.scoringType,
@@ -20,9 +22,9 @@ export default async function EvaluatorsPage() {
       summary: `${e.scoringType} evaluator using ${e.model}`,
       enabled: e.enabled,
     }));
-
-    return <EvaluatorsDashboard evaluators={evaluators} />;
   } catch {
-    return <EvaluatorsDashboard evaluators={[]} />;
+    // Fall through with empty array
   }
+
+  return <EvaluatorsDashboard evaluators={evaluators} />;
 }

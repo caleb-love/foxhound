@@ -1,241 +1,152 @@
 'use client';
 
-import { EventTimeline } from '@/components/charts/event-timeline';
-import { MetricTile } from '@/components/charts/metric-tile';
-import { TopNList } from '@/components/charts/top-n-list';
-import { TrendChart } from '@/components/charts/trend-chart';
-import type { TimelineItem, TopListItem, TrendSeries } from '@/components/charts/chart-types';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
-import { WorkbenchPanel } from '@/components/system/workbench';
-import { SplitPanelLayout } from '@/components/sandbox/primitives';
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { Plus, Eye, Settings } from 'lucide-react';
 
-export interface SlaMetric {
-  label: string;
-  value: string;
-  supportingText: string;
-}
-
-export interface SlaRiskRecord {
-  agent: string;
-  status: 'warning' | 'critical' | 'healthy';
-  successRate: string;
-  latency: string;
-  description: string;
-  tracesHref: string;
-  regressionsHref: string;
-  replayHref: string;
+export interface SlaRecord {
+  agentId: string;
+  maxDurationMs: number;
+  minSuccessRate: number;
+  observedDurationMs: number;
+  observedSuccessRate: number;
+  status: string;
+  summary: string;
 }
 
 interface SlasGovernDashboardProps {
-  metrics: SlaMetric[];
-  atRiskAgents: SlaRiskRecord[];
-  nextActions: Array<{
-    title: string;
-    description: string;
-    href: string;
-    cta: string;
-  }>;
-}
-
-function toAtRiskTimelineItems(atRiskAgents: SlaRiskRecord[]): TimelineItem[] {
-  return atRiskAgents.map((agent) => ({
-    title: agent.agent,
-    description: `${agent.description} Success rate: ${agent.successRate}. Latency: ${agent.latency}.`,
-    status: agent.status,
-    href: agent.tracesHref,
-    cta: 'Review traces',
-    meta: `${agent.successRate} · ${agent.latency}`,
-  }));
-}
-
-function toActionItems(actions: Array<{ title: string; description: string; href: string; cta: string }>): TopListItem[] {
-  return actions.map((action) => ({
-    title: action.title,
-    description: action.description,
-    href: action.href,
-  }));
+  slas: SlaRecord[];
+  baseHref?: string;
 }
 
 const slaFilters: DashboardFilterDefinition[] = [
-  {
-    key: 'searchQuery',
-    kind: 'search',
-    label: 'Search',
-    placeholder: 'Search agents, breaches, or replay targets...',
-  },
-  {
-    key: 'severity',
-    kind: 'single-select',
-    label: 'Severity',
-    options: [
-      { value: 'all', label: 'All severities' },
-      { value: 'healthy', label: 'Healthy' },
-      { value: 'warning', label: 'Warning' },
-      { value: 'critical', label: 'Critical' },
-    ],
-  },
-  {
-    key: 'agentIds',
-    kind: 'multi-select',
-    label: 'Agents',
-    options: [
-      { value: 'planner-agent', label: 'planner-agent' },
-      { value: 'support-agent', label: 'support-agent' },
-      { value: 'onboarding-router', label: 'onboarding-router' },
-    ],
-  },
-  {
-    key: 'dateRange',
-    kind: 'date-preset',
-    label: 'Date range',
-    presets: [
-      { label: 'Last 24h', hours: 24 },
-      { label: 'Last 7d', hours: 24 * 7 },
-      { label: 'Last 30d', hours: 24 * 30 },
-    ],
-  },
+  { key: 'searchQuery', kind: 'search', label: 'Search', placeholder: 'Search agents or SLAs...' },
 ];
 
-const slaTrendSeries: TrendSeries[] = [
-  {
-    id: 'success-rate',
-    label: 'Success rate trend',
-    tone: 'healthy',
-    values: [
-      { label: 'Mon', value: 98 },
-      { label: 'Tue', value: 97 },
-      { label: 'Wed', value: 96 },
-      { label: 'Thu', value: 94 },
-      { label: 'Fri', value: 91 },
-    ],
-  },
-  {
-    id: 'p95-latency',
-    label: 'p95 latency trend',
-    tone: 'warning',
-    values: [
-      { label: 'Mon', value: 2 },
-      { label: 'Tue', value: 2.6 },
-      { label: 'Wed', value: 3.1 },
-      { label: 'Thu', value: 3.9 },
-      { label: 'Fri', value: 4.8 },
-    ],
-  },
-];
-
-export function SlasGovernDashboard({
-  metrics,
-  atRiskAgents,
-  nextActions,
-}: SlasGovernDashboardProps) {
+export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
-  const filteredAtRiskAgents = filterByDashboardScope(atRiskAgents, filters, {
-    searchableText: (item) => `${item.agent} ${item.description} ${item.successRate} ${item.latency}`,
-    severity: (item) => item.status,
-    status: (item) => item.status,
-    agentIds: (item) => [item.agent],
+  const filtered = filterByDashboardScope(slas, filters, {
+    searchableText: (item) => `${item.agentId} ${item.summary}`,
   });
 
-  const filteredNextActions = filterByDashboardScope(nextActions, filters, {
-    searchableText: (item) => `${item.title} ${item.description}`,
-    agentIds: (item) =>
-      item.title.toLowerCase().includes('failing')
-        ? ['planner-agent']
-        : item.title.toLowerCase().includes('regressions')
-          ? ['support-agent']
-          : ['onboarding-router'],
-  });
+  const atRisk = slas.filter((s) => s.status === 'critical' || s.status === 'warning').length;
+  const healthy = slas.filter((s) => s.status === 'healthy').length;
+
+  const verdictSeverity = slas.length === 0 ? 'info' as const : atRisk > 0 ? 'warning' as const : 'success' as const;
+  const verdictHeadline = slas.length === 0
+    ? 'No SLAs configured'
+    : atRisk > 0
+      ? `${atRisk} SLA${atRisk !== 1 ? 's' : ''} at risk`
+      : `All ${slas.length} SLAs healthy`;
+  const verdictSummary = slas.length === 0
+    ? 'Set latency and success rate targets for your agents.'
+    : `${healthy} meeting targets. ${atRisk > 0 ? `${atRisk} need attention.` : ''}`;
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Govern"
-        title="SLA Monitoring"
-        description="Track reliability drift across critical agent workflows, identify where latency or success rates are moving out of bounds, and jump directly into the investigation surfaces that explain why."
-      >
-        <div
-          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
-        >
-          Reliability governance
+      <PageHeader eyebrow="Govern" title="SLAs" description="Set latency and success rate targets per agent. Monitor compliance and intervene when SLAs are at risk." />
+
+      <DashboardFilterBar definitions={slaFilters} />
+
+      <VerdictBar
+        severity={verdictSeverity}
+        headline={verdictHeadline}
+        summary={verdictSummary}
+        actions={
+          <InlineActionBar>
+            <InlineAction href={`${baseHref}/slas`} variant="primary">
+              <Plus className="h-3.5 w-3.5" />
+              Set SLA
+            </InlineAction>
+            <InlineAction href={`${baseHref}/traces`} variant="secondary">
+              <Eye className="h-3.5 w-3.5" />
+              Investigate latency
+            </InlineAction>
+          </InlineActionBar>
+        }
+      />
+
+      <MetricStrip>
+        <MetricChip label="Agents" value={String(slas.length)} />
+        <MetricChip label="Healthy" value={String(healthy)} accent="success" />
+        {atRisk > 0 ? <MetricChip label="At risk" value={String(atRisk)} accent="warning" /> : null}
+      </MetricStrip>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+          <p className="text-sm text-tenant-text-muted">
+            {slas.length === 0 ? 'Set your first SLA target to start monitoring.' : 'No SLAs match the current filter.'}
+          </p>
         </div>
-      </PageHeader>
+      ) : (
+        <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 100px 100px 80px 60px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Agent</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Latency</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Success rate</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Status</span>
+            <span className="sr-only">Actions</span>
+          </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
-        <SectionPanel
-          title="Read reliability before it becomes a customer incident"
-          description="This page should frame SLA drift as an operational posture problem. Show the health picture first, then the breach pressure, then the best route into traces, replay, and regression analysis."
-        >
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-            ))}
-          </section>
-        </SectionPanel>
+          {filtered.map((sla) => {
+            const latencyOk = sla.observedDurationMs <= sla.maxDurationMs;
+            const successOk = sla.observedSuccessRate >= sla.minSuccessRate;
 
-        <SectionPanel
-          title="Filter reliability posture"
-          description="Slice by severity or agent to isolate breach pressure before widening the investigation."
-        >
-          <DashboardFilterBar definitions={slaFilters} />
-        </SectionPanel>
-      </section>
-
-      <WorkbenchPanel
-        title="SLA triage workbench"
-        description="Use this workbench to read reliability drift as an operator problem, isolate the workflows most likely to breach commitments, and move directly into traces, replay, and regression analysis."
-      >
-        <TrendChart
-          title="Reliability drift trend"
-          description="A shared governance trend view for SLA health and latency movement, so reliability risk reads with the same visual clarity as cost and behavior drift."
-          series={slaTrendSeries}
-        />
-
-        <SplitPanelLayout
-          main={
-            <EventTimeline
-              title="At-risk agents"
-              description="The workflows trending toward or already breaching their reliability targets, prioritized for immediate investigation."
-              items={toAtRiskTimelineItems(filteredAtRiskAgents)}
-            />
-          }
-          side={
-            <TopNList
-              title="Recommended next actions"
-              description="Use the linked investigation and improvement flows to recover reliability before a drifting workflow turns into a customer-visible incident."
-              items={toActionItems(filteredNextActions)}
-            />
-          }
-        />
-
-        <SectionPanel
-          title="SLA triage framing"
-          description="A compact explanation layer between metrics and evidence, so operators can quickly see who is breaching, what is drifting, and where the recovery workflow should start."
-        >
-          <div className="grid gap-4 md:grid-cols-3">
-            {filteredAtRiskAgents.map((agent) => (
+            return (
               <div
-                key={agent.agent}
-                className="rounded-[var(--tenant-radius-panel)] border p-4"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
+                key={sla.agentId}
+                className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+                style={{
+                  gridTemplateColumns: '1fr 100px 100px 80px 60px',
+                  borderColor: 'var(--tenant-panel-stroke)',
+                  borderLeft: sla.status !== 'healthy' ? `3px solid ${sla.status === 'critical' ? 'var(--tenant-danger)' : 'var(--tenant-warning)'}` : '3px solid transparent',
+                }}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
-                  {agent.successRate} · {agent.latency}
+                <div className="min-w-0">
+                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{sla.agentId}</span>
+                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{sla.summary}</div>
                 </div>
-                <div className="mt-2 font-medium text-tenant-text-primary">{agent.agent}</div>
-                <div className="mt-3">
-                  <RecordBody>{agent.description}</RecordBody>
+
+                <div className="text-center">
+                  <div className="font-mono text-xs" style={{ color: latencyOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
+                    {(sla.observedDurationMs / 1000).toFixed(1)}s
+                  </div>
+                  <div className="text-[9px] text-tenant-text-muted">/ {(sla.maxDurationMs / 1000).toFixed(1)}s max</div>
+                </div>
+
+                <div className="text-center">
+                  <div className="font-mono text-xs" style={{ color: successOk ? 'var(--tenant-success)' : 'var(--tenant-danger)' }}>
+                    {(sla.observedSuccessRate * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-[9px] text-tenant-text-muted">/ {(sla.minSuccessRate * 100).toFixed(0)}% min</div>
+                </div>
+
+                <div className="text-center">
+                  <div
+                    className="mx-auto h-2 w-2 rounded-full"
+                    style={{ background: sla.status === 'healthy' ? 'var(--tenant-success)' : sla.status === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)' }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end">
+                  <InlineAction href={`${baseHref}/slas`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                    <Settings className="h-3 w-3" />
+                  </InlineAction>
                 </div>
               </div>
-            ))}
+            );
+          })}
+
+          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            {filtered.length} SLA{filtered.length !== 1 ? 's' : ''}
           </div>
-        </SectionPanel>
-      </WorkbenchPanel>
+        </div>
+      )}
     </PageContainer>
   );
 }
