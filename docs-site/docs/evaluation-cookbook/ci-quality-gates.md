@@ -68,43 +68,43 @@ jobs:
 Adding `baseline-experiment-id` enables regression detection. The gate compares your PR's scores against the baseline and reports the delta in the PR comment.
 
 ```yaml
-      - name: Run Foxhound Quality Gate
-        uses: ./.github/actions/quality-gate
-        with:
-          api-key: ${{ secrets.FOXHOUND_API_KEY }}
-          api-endpoint: https://api.foxhound.caleb-love.com
-          dataset-id: ds_abc123
-          evaluator-ids: "eval_helpfulness_v2,eval_accuracy_v1"
-          experiment-name: "pr-${{ github.event.pull_request.number }}"
-          experiment-config: |
-            {
-              "model": "gpt-4o",
-              "temperature": 0.0
-            }
-          threshold: "0.8"
-          baseline-experiment-id: "exp_baseline_main"
-          timeout: 600
+- name: Run Foxhound Quality Gate
+  uses: ./.github/actions/quality-gate
+  with:
+    api-key: ${{ secrets.FOXHOUND_API_KEY }}
+    api-endpoint: https://api.foxhound.caleb-love.com
+    dataset-id: ds_abc123
+    evaluator-ids: "eval_helpfulness_v2,eval_accuracy_v1"
+    experiment-name: "pr-${{ github.event.pull_request.number }}"
+    experiment-config: |
+      {
+        "model": "gpt-4o",
+        "temperature": 0.0
+      }
+    threshold: "0.8"
+    baseline-experiment-id: "exp_baseline_main"
+    timeout: 600
 ```
 
 ## Input Reference
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `api-key` | Yes | — | Foxhound API key (`fox_...`), stored as a repository secret |
-| `api-endpoint` | Yes | — | Foxhound API base URL (`https://api.foxhound.caleb-love.com`) |
-| `dataset-id` | Yes | — | Dataset ID to run evaluations against |
-| `evaluator-ids` | No | — | Comma-separated evaluator IDs. Omit to use all dataset evaluators |
-| `experiment-name` | No | — | Human-readable name for this experiment run |
-| `experiment-config` | Yes | — | JSON config for the experiment (model, temperature, etc.) |
-| `threshold` | No | `0.0` | Minimum average score to pass (0.0–1.0) |
-| `baseline-experiment-id` | No | — | Compare against this baseline. Adds regression info to PR comment |
-| `timeout` | No | `600` | Max seconds to wait before failing |
+| Input                    | Required | Default | Description                                                       |
+| ------------------------ | -------- | ------- | ----------------------------------------------------------------- |
+| `api-key`                | Yes      | —       | Foxhound API key (`fox_...`), stored as a repository secret       |
+| `api-endpoint`           | Yes      | —       | Foxhound API base URL (`https://api.foxhound.caleb-love.com`)     |
+| `dataset-id`             | Yes      | —       | Dataset ID to run evaluations against                             |
+| `evaluator-ids`          | No       | —       | Comma-separated evaluator IDs. Omit to use all dataset evaluators |
+| `experiment-name`        | No       | —       | Human-readable name for this experiment run                       |
+| `experiment-config`      | Yes      | —       | JSON config for the experiment (model, temperature, etc.)         |
+| `threshold`              | No       | `0.0`   | Minimum average score to pass (0.0–1.0)                           |
+| `baseline-experiment-id` | No       | —       | Compare against this baseline. Adds regression info to PR comment |
+| `timeout`                | No       | `600`   | Max seconds to wait before failing                                |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `experiment-id` | The ID of the experiment created by this run |
+| Output           | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `experiment-id`  | The ID of the experiment created by this run              |
 | `comparison-url` | URL to the full comparison view in the Foxhound dashboard |
 
 Use `comparison-url` in subsequent steps to link directly to the evaluation results.
@@ -125,7 +125,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
+      - "src/**"
 
 jobs:
   update-baseline:
@@ -155,10 +155,10 @@ jobs:
 
 Start conservative and tighten over time:
 
-| Stage | Recommended Threshold |
-|-------|-----------------------|
-| First setup | 0.6 — catch major regressions only |
-| Stable product | 0.75–0.8 — good default |
+| Stage            | Recommended Threshold                     |
+| ---------------- | ----------------------------------------- |
+| First setup      | 0.6 — catch major regressions only        |
+| Stable product   | 0.75–0.8 — good default                   |
 | High-quality bar | 0.85–0.9 — for production-critical agents |
 
 Run the gate in **warn-only mode** (threshold `0.0`) for a few weeks to build intuition before enforcing failures.

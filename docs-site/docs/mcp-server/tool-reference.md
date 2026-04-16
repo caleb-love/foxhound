@@ -15,14 +15,15 @@ Search traces by agent name, time range, and status. Returns a summary list of m
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description                                    |
-|--------------|--------|----------|------------------------------------------------|
-| `agent_name` | string | No       | Filter by agent ID/name                        |
-| `from`       | string | No       | Start time (ISO 8601 or epoch ms)              |
-| `to`         | string | No       | End time (ISO 8601 or epoch ms)                |
-| `limit`      | number | No       | Max results (default 20, max 100)              |
+| Parameter    | Type   | Required | Description                       |
+| ------------ | ------ | -------- | --------------------------------- |
+| `agent_name` | string | No       | Filter by agent ID/name           |
+| `from`       | string | No       | Start time (ISO 8601 or epoch ms) |
+| `to`         | string | No       | End time (ISO 8601 or epoch ms)   |
+| `limit`      | number | No       | Max results (default 20, max 100) |
 
 **Example prompts:**
+
 ```
 Show me all traces for agent billing-bot in the last hour
 Find error traces from the past 24 hours
@@ -36,11 +37,12 @@ Get the full trace with its complete span tree. Use this to inspect what happene
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description                |
-|------------|--------|----------|----------------------------|
-| `trace_id` | string | Yes      | The trace ID to retrieve   |
+| Parameter  | Type   | Required | Description              |
+| ---------- | ------ | -------- | ------------------------ |
+| `trace_id` | string | Yes      | The trace ID to retrieve |
 
 **Example prompts:**
+
 ```
 Get trace abc-123 and show me the span tree
 What happened in trace def-456?
@@ -54,12 +56,13 @@ Reconstruct the full agent state at the moment a specific span began — includi
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description                        |
-|------------|--------|----------|------------------------------------|
-| `trace_id` | string | Yes      | The trace ID containing the span   |
-| `span_id`  | string | Yes      | The span ID to replay              |
+| Parameter  | Type   | Required | Description                      |
+| ---------- | ------ | -------- | -------------------------------- |
+| `trace_id` | string | Yes      | The trace ID containing the span |
+| `span_id`  | string | Yes      | The span ID to replay            |
 
 **Example prompts:**
+
 ```
 Replay span xyz in trace abc-123 — what was the agent's context?
 ```
@@ -72,12 +75,13 @@ Compare two agent runs side-by-side and surface divergence points. Useful for de
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description           |
-|--------------|--------|----------|-----------------------|
-| `trace_id_a` | string | Yes      | First trace/run ID    |
-| `trace_id_b` | string | Yes      | Second trace/run ID   |
+| Parameter    | Type   | Required | Description         |
+| ------------ | ------ | -------- | ------------------- |
+| `trace_id_a` | string | Yes      | First trace/run ID  |
+| `trace_id_b` | string | Yes      | Second trace/run ID |
 
 **Example prompts:**
+
 ```
 Compare runs abc and def — why did the second one fail?
 ```
@@ -93,11 +97,12 @@ Surface behavioral anomalies in recent traces for an agent — unusually slow sp
 **Parameters:**
 
 | Parameter    | Type   | Required | Description                                    |
-|--------------|--------|----------|------------------------------------------------|
+| ------------ | ------ | -------- | ---------------------------------------------- |
 | `agent_name` | string | Yes      | Agent ID/name to analyze                       |
 | `hours`      | number | No       | Lookback window in hours (default 24, max 168) |
 
 **Example prompts:**
+
 ```
 Any anomalies for billing-bot in the last 12 hours?
 Show me error spikes for the onboarding agent
@@ -111,9 +116,9 @@ Analyze a failed trace and produce a human-readable explanation of what went wro
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description                        |
-|------------|--------|----------|------------------------------------|
-| `trace_id` | string | Yes      | The trace ID of the failed run     |
+| Parameter  | Type   | Required | Description                    |
+| ---------- | ------ | -------- | ------------------------------ |
+| `trace_id` | string | Yes      | The trace ID of the failed run |
 
 ---
 
@@ -123,9 +128,9 @@ Suggest code-level fixes for a failed trace, based on the error chain and span c
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description                        |
-|------------|--------|----------|------------------------------------|
-| `trace_id` | string | Yes      | The trace ID to suggest fixes for  |
+| Parameter  | Type   | Required | Description                       |
+| ---------- | ------ | -------- | --------------------------------- |
+| `trace_id` | string | Yes      | The trace ID to suggest fixes for |
 
 ---
 
@@ -137,12 +142,12 @@ Manually score a trace on one or more dimensions (e.g. helpfulness, accuracy, sa
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description                                   |
-|--------------|--------|----------|-----------------------------------------------|
-| `trace_id`   | string | Yes      | The trace to score                            |
-| `dimension`  | string | Yes      | Scoring dimension (e.g. `helpfulness`)        |
-| `score`      | number | Yes      | Score value (0.0–1.0)                         |
-| `rationale`  | string | No       | Optional explanation for the score            |
+| Parameter   | Type   | Required | Description                            |
+| ----------- | ------ | -------- | -------------------------------------- |
+| `trace_id`  | string | Yes      | The trace to score                     |
+| `dimension` | string | Yes      | Scoring dimension (e.g. `helpfulness`) |
+| `score`     | number | Yes      | Score value (0.0–1.0)                  |
+| `rationale` | string | No       | Optional explanation for the score     |
 
 ---
 
@@ -152,8 +157,8 @@ Retrieve all scores attached to a trace across all dimensions and evaluators.
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description              |
-|------------|--------|----------|--------------------------|
+| Parameter  | Type   | Required | Description                      |
+| ---------- | ------ | -------- | -------------------------------- |
 | `trace_id` | string | Yes      | The trace to retrieve scores for |
 
 ---
@@ -174,10 +179,10 @@ Trigger async evaluator runs for one or more traces. Evaluator runs are async �
 
 **Parameters:**
 
-| Parameter      | Type     | Required | Description                              |
-|----------------|----------|----------|------------------------------------------|
-| `evaluator_id` | string   | Yes      | The evaluator to run                     |
-| `trace_ids`    | string[] | Yes      | List of trace IDs to evaluate            |
+| Parameter      | Type     | Required | Description                   |
+| -------------- | -------- | -------- | ----------------------------- |
+| `evaluator_id` | string   | Yes      | The evaluator to run          |
+| `trace_ids`    | string[] | Yes      | List of trace IDs to evaluate |
 
 ---
 
@@ -187,9 +192,9 @@ Check the status and results of an async evaluator run.
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description              |
-|-----------|--------|----------|--------------------------|
-| `run_id`  | string | Yes      | The evaluator run ID     |
+| Parameter | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| `run_id`  | string | Yes      | The evaluator run ID |
 
 ---
 
@@ -209,10 +214,10 @@ Add a trace to a dataset for evaluation or fine-tuning purposes.
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description                     |
-|--------------|--------|----------|---------------------------------|
-| `trace_id`   | string | Yes      | The trace to add                |
-| `dataset_id` | string | Yes      | The target dataset              |
+| Parameter    | Type   | Required | Description        |
+| ------------ | ------ | -------- | ------------------ |
+| `trace_id`   | string | Yes      | The trace to add   |
+| `dataset_id` | string | Yes      | The target dataset |
 
 ---
 
@@ -222,9 +227,9 @@ Curate a dataset by filtering traces based on quality criteria.
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description                                   |
-|--------------|--------|----------|-----------------------------------------------|
-| `dataset_id` | string | Yes      | The dataset to curate                         |
+| Parameter    | Type   | Required | Description           |
+| ------------ | ------ | -------- | --------------------- |
+| `dataset_id` | string | Yes      | The dataset to curate |
 
 ---
 
@@ -244,11 +249,11 @@ Create a new alert rule that routes events to a notification channel. This is a 
 
 **Parameters:**
 
-| Parameter      | Type   | Required | Description                                                            |
-|----------------|--------|----------|------------------------------------------------------------------------|
+| Parameter      | Type   | Required | Description                                                               |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------- |
 | `event_type`   | enum   | Yes      | `agent_failure`, `anomaly_detected`, `cost_spike`, `compliance_violation` |
-| `min_severity` | enum   | No       | `critical`, `high`, `medium`, `low` (default: `high`)                 |
-| `channel_id`   | string | Yes      | The notification channel ID to route alerts to                         |
+| `min_severity` | enum   | No       | `critical`, `high`, `medium`, `low` (default: `high`)                     |
+| `channel_id`   | string | Yes      | The notification channel ID to route alerts to                            |
 
 ---
 
@@ -259,7 +264,7 @@ Delete an alert rule by ID. Set `confirm=true` to execute. Without confirmation,
 **Parameters:**
 
 | Parameter | Type    | Required | Description                                        |
-|-----------|---------|----------|----------------------------------------------------|
+| --------- | ------- | -------- | -------------------------------------------------- |
 | `rule_id` | string  | Yes      | The alert rule ID to delete                        |
 | `confirm` | boolean | No       | Set to `true` to confirm deletion. Omit to preview |
 
@@ -279,11 +284,11 @@ Create a new Slack notification channel. This is a write operation.
 
 **Parameters:**
 
-| Parameter       | Type   | Required | Description                              |
-|-----------------|--------|----------|------------------------------------------|
-| `name`          | string | Yes      | A human-readable name for the channel    |
-| `webhook_url`   | string | Yes      | The Slack incoming webhook URL           |
-| `slack_channel` | string | No       | Optional Slack channel override          |
+| Parameter       | Type   | Required | Description                           |
+| --------------- | ------ | -------- | ------------------------------------- |
+| `name`          | string | Yes      | A human-readable name for the channel |
+| `webhook_url`   | string | Yes      | The Slack incoming webhook URL        |
+| `slack_channel` | string | No       | Optional Slack channel override       |
 
 ---
 
@@ -293,9 +298,9 @@ Send a test alert through a notification channel to verify it works.
 
 **Parameters:**
 
-| Parameter    | Type   | Required | Description              |
-|--------------|--------|----------|--------------------------|
-| `channel_id` | string | Yes      | The channel ID to test   |
+| Parameter    | Type   | Required | Description            |
+| ------------ | ------ | -------- | ---------------------- |
+| `channel_id` | string | Yes      | The channel ID to test |
 
 ---
 
@@ -306,7 +311,7 @@ Delete a notification channel by ID. This may also delete associated alert rules
 **Parameters:**
 
 | Parameter    | Type    | Required | Description                                        |
-|--------------|---------|----------|----------------------------------------------------|
+| ------------ | ------- | -------- | -------------------------------------------------- |
 | `channel_id` | string  | Yes      | The channel ID to delete                           |
 | `confirm`    | boolean | No       | Set to `true` to confirm deletion. Omit to preview |
 
@@ -328,9 +333,9 @@ Create a new API key. For security, the plaintext key is **not** returned throug
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                            |
-|-----------|--------|----------|----------------------------------------|
-| `name`    | string | Yes      | A human-readable name for the key      |
+| Parameter | Type   | Required | Description                       |
+| --------- | ------ | -------- | --------------------------------- |
+| `name`    | string | Yes      | A human-readable name for the key |
 
 ---
 
@@ -341,7 +346,7 @@ Revoke an API key by ID. The key will immediately stop working. Set `confirm=tru
 **Parameters:**
 
 | Parameter | Type    | Required | Description                                          |
-|-----------|---------|----------|------------------------------------------------------|
+| --------- | ------- | -------- | ---------------------------------------------------- |
 | `key_id`  | string  | Yes      | The API key ID to revoke                             |
 | `confirm` | boolean | No       | Set to `true` to confirm revocation. Omit to preview |
 
@@ -353,9 +358,9 @@ Get the cost budget configuration and current spend status for a specific agent.
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                          |
-|-----------|--------|----------|--------------------------------------|
-| `agentId` | string | Yes      | The agent ID to retrieve budget for  |
+| Parameter | Type   | Required | Description                         |
+| --------- | ------ | -------- | ----------------------------------- |
+| `agentId` | string | Yes      | The agent ID to retrieve budget for |
 
 ---
 
@@ -375,9 +380,9 @@ Check SLA targets and compliance status for a specific agent, including p95 dura
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                             |
-|-----------|--------|----------|-----------------------------------------|
-| `agentId` | string | Yes      | The agent ID to check SLA status for    |
+| Parameter | Type   | Required | Description                          |
+| --------- | ------ | -------- | ------------------------------------ |
+| `agentId` | string | Yes      | The agent ID to check SLA status for |
 
 ---
 
@@ -387,11 +392,11 @@ Compare two versions of an agent and detect span-level regressions — missing o
 
 **Parameters:**
 
-| Parameter  | Type   | Required | Description                          |
-|------------|--------|----------|--------------------------------------|
-| `agentId`  | string | Yes      | The agent ID to analyze              |
-| `versionA` | string | Yes      | The baseline version (before)        |
-| `versionB` | string | Yes      | The comparison version (after)       |
+| Parameter  | Type   | Required | Description                    |
+| ---------- | ------ | -------- | ------------------------------ |
+| `agentId`  | string | Yes      | The agent ID to analyze        |
+| `versionA` | string | Yes      | The baseline version (before)  |
+| `versionB` | string | Yes      | The comparison version (after) |
 
 ---
 
@@ -401,9 +406,9 @@ List all stored baseline snapshots for an agent, showing version, sample size, a
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                              |
-|-----------|--------|----------|------------------------------------------|
-| `agentId` | string | Yes      | The agent ID to list baselines for       |
+| Parameter | Type   | Required | Description                        |
+| --------- | ------ | -------- | ---------------------------------- |
+| `agentId` | string | Yes      | The agent ID to list baselines for |
 
 ---
 
@@ -431,12 +436,13 @@ Resolve a prompt by name and label (defaults to "production"). Returns the promp
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                                                                |
-|-----------|--------|----------|----------------------------------------------------------------------------|
-| `name`    | string | Yes      | The prompt name (e.g. "support-agent")                                     |
+| Parameter | Type   | Required | Description                                                                              |
+| --------- | ------ | -------- | ---------------------------------------------------------------------------------------- |
+| `name`    | string | Yes      | The prompt name (e.g. "support-agent")                                                   |
 | `label`   | string | No       | The label to resolve (default: "production"). Common labels: production, staging, canary |
 
 **Example prompts:**
+
 ```
 What's the current production prompt for support-agent?
 Show me the staging version of billing-classifier
@@ -451,8 +457,8 @@ List all versions of a prompt, including their labels. Use the prompt ID (not na
 **Parameters:**
 
 | Parameter   | Type   | Required | Description                     |
-|-------------|--------|----------|---------------------------------|
-| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt_...") |
+| ----------- | ------ | -------- | ------------------------------- |
+| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt\_...") |
 
 ---
 
@@ -462,9 +468,9 @@ Create a new prompt in the registry. The name must be alphanumeric with hyphens/
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description                                                          |
-|-----------|--------|----------|----------------------------------------------------------------------|
-| `name`    | string | Yes      | Prompt name (alphanumeric, hyphens, underscores only)                |
+| Parameter | Type   | Required | Description                                           |
+| --------- | ------ | -------- | ----------------------------------------------------- |
+| `name`    | string | Yes      | Prompt name (alphanumeric, hyphens, underscores only) |
 
 ---
 
@@ -474,10 +480,10 @@ Add a new version to an existing prompt. The version number auto-increments. Req
 
 **Parameters:**
 
-| Parameter   | Type   | Required | Description                                                         |
-|-------------|--------|----------|---------------------------------------------------------------------|
-| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt_...")                                      |
-| `content`   | string | Yes      | The prompt template content                                         |
+| Parameter   | Type   | Required | Description                                                               |
+| ----------- | ------ | -------- | ------------------------------------------------------------------------- |
+| `prompt_id` | string | Yes      | The prompt ID (e.g. "pmt\_...")                                           |
+| `content`   | string | Yes      | The prompt template content                                               |
 | `model`     | string | No       | Optional model recommendation (e.g. "gpt-4o", "claude-sonnet-4-20250514") |
 
 ---
@@ -488,13 +494,14 @@ Set a label (e.g. "production", "staging") on a specific prompt version. If the 
 
 **Parameters:**
 
-| Parameter        | Type   | Required | Description                                                              |
-|------------------|--------|----------|--------------------------------------------------------------------------|
-| `prompt_id`      | string | Yes      | The prompt ID (e.g. "pmt_...")                                           |
-| `version_number` | number | Yes      | The version number to label                                              |
+| Parameter        | Type   | Required | Description                                                                    |
+| ---------------- | ------ | -------- | ------------------------------------------------------------------------------ |
+| `prompt_id`      | string | Yes      | The prompt ID (e.g. "pmt\_...")                                                |
+| `version_number` | number | Yes      | The version number to label                                                    |
 | `label`          | string | Yes      | Label name (alphanumeric, hyphens, underscores — e.g. "production", "staging") |
 
 **Example prompts:**
+
 ```
 Create a new prompt called billing-classifier
 Add a version to the support-agent prompt with this content: "You are a helpful support agent..."

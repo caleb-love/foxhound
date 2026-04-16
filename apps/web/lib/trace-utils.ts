@@ -1,4 +1,4 @@
-import type { Trace } from '@foxhound/types';
+import type { Trace } from "@foxhound/types";
 
 /**
  * Extract prompt metadata from trace metadata fields.
@@ -9,18 +9,18 @@ export function getPromptMetadata(trace: Trace): {
   promptVersion?: string | number;
 } {
   const promptName =
-    typeof trace.metadata?.prompt_name === 'string'
+    typeof trace.metadata?.prompt_name === "string"
       ? trace.metadata.prompt_name
-      : typeof trace.metadata?.promptName === 'string'
+      : typeof trace.metadata?.promptName === "string"
         ? trace.metadata.promptName
         : undefined;
 
   const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' ||
-    typeof trace.metadata?.prompt_version === 'number'
+    typeof trace.metadata?.prompt_version === "string" ||
+    typeof trace.metadata?.prompt_version === "number"
       ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' ||
-          typeof trace.metadata?.promptVersion === 'number'
+      : typeof trace.metadata?.promptVersion === "string" ||
+          typeof trace.metadata?.promptVersion === "number"
         ? trace.metadata.promptVersion
         : undefined;
 
@@ -32,9 +32,9 @@ export function getPromptMetadata(trace: Trace): {
  * Used across sandbox routes for stable cross-linking.
  */
 const PROMPT_ID_BY_NAME: Record<string, string> = {
-  'support-reply': 'prompt_support_reply',
-  'refund-policy-check': 'prompt_refund_policy_check',
-  'escalation-triage': 'prompt_escalation_triage',
+  "support-reply": "prompt_support_reply",
+  "refund-policy-check": "prompt_refund_policy_check",
+  "escalation-triage": "prompt_escalation_triage",
 };
 
 /** Look up the seeded prompt ID by name. Returns undefined if not found. */
@@ -43,10 +43,7 @@ export function getPromptId(promptName: string): string | undefined {
 }
 
 /** Build the prompt detail href for a given base path and prompt name. */
-export function getPromptDetailHref(
-  baseHref: string,
-  promptName?: string,
-): string | null {
+export function getPromptDetailHref(baseHref: string, promptName?: string): string | null {
   if (!promptName) return null;
   const promptId = PROMPT_ID_BY_NAME[promptName];
   return promptId ? `${baseHref}/prompts/${promptId}` : null;
@@ -91,14 +88,14 @@ export function getPromptDiffHref(
  * Used by trace detail view to suggest a "Compare" action.
  */
 const HERO_COMPARISONS: Record<string, string> = {
-  trace_returns_exception_v17_baseline: 'trace_returns_exception_v18_regression',
-  trace_returns_exception_v18_regression: 'trace_returns_exception_v19_fix',
-  trace_returns_exception_v19_fix: 'trace_returns_exception_v18_regression',
-  trace_damage_receipt_v18_hallucination: 'trace_returns_exception_v17_baseline',
-  trace_vip_chargeback_v18_missed_escalation: 'trace_vip_chargeback_v19_restored_escalation',
-  trace_vip_chargeback_v19_restored_escalation: 'trace_vip_chargeback_v18_missed_escalation',
-  trace_kb_timeout_failed: 'trace_kb_timeout_recovered',
-  trace_kb_timeout_recovered: 'trace_kb_timeout_failed',
+  trace_returns_exception_v17_baseline: "trace_returns_exception_v18_regression",
+  trace_returns_exception_v18_regression: "trace_returns_exception_v19_fix",
+  trace_returns_exception_v19_fix: "trace_returns_exception_v18_regression",
+  trace_damage_receipt_v18_hallucination: "trace_returns_exception_v17_baseline",
+  trace_vip_chargeback_v18_missed_escalation: "trace_vip_chargeback_v19_restored_escalation",
+  trace_vip_chargeback_v19_restored_escalation: "trace_vip_chargeback_v18_missed_escalation",
+  trace_kb_timeout_failed: "trace_kb_timeout_recovered",
+  trace_kb_timeout_recovered: "trace_kb_timeout_failed",
 };
 
 /** Get a suggested comparison trace for Run Diff. Falls back to the trace list. */

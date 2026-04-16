@@ -13,7 +13,7 @@ interface CompareState {
   toggleTrace: (traceId: string) => void;
   clearSelection: () => void;
   canCompare: () => boolean;
-  setTraceSlot: (slot: 'a' | 'b', traceId: string) => void;
+  setTraceSlot: (slot: "a" | "b", traceId: string) => void;
   setComparePair: (traceAId: string, traceBId: string) => void;
   swapComparePair: () => void;
 }
@@ -37,9 +37,10 @@ export const useCompareStore = create<CompareState>((set, get) => ({
         };
       }
 
-      const nextSelectedTraceIds = state.selectedTraceIds.length >= 2
-        ? [state.selectedTraceIds[1], traceId]
-        : [...state.selectedTraceIds, traceId];
+      const nextSelectedTraceIds =
+        state.selectedTraceIds.length >= 2
+          ? [state.selectedTraceIds[1], traceId]
+          : [...state.selectedTraceIds, traceId];
       const [traceAId, traceBId] = nextSelectedTraceIds;
 
       return {
@@ -59,9 +60,11 @@ export const useCompareStore = create<CompareState>((set, get) => ({
 
   setTraceSlot: (slot, traceId) =>
     set((state) => {
-      const nextTraceAId = slot === 'a' ? traceId : state.traceAId;
-      const nextTraceBId = slot === 'b' ? traceId : state.traceBId;
-      const nextSelectedTraceIds = [nextTraceAId, nextTraceBId].filter((id): id is string => Boolean(id));
+      const nextTraceAId = slot === "a" ? traceId : state.traceAId;
+      const nextTraceBId = slot === "b" ? traceId : state.traceBId;
+      const nextSelectedTraceIds = [nextTraceAId, nextTraceBId].filter((id): id is string =>
+        Boolean(id),
+      );
       return {
         traceAId: nextTraceAId,
         traceBId: nextTraceBId,

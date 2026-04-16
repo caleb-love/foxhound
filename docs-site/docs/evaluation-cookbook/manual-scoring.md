@@ -26,23 +26,23 @@ The MCP server will show you a **preview** of the score before writing it. Confi
 
 ### Parameters
 
-| Parameter   | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `trace_id`  | string | Yes | The trace to score |
-| `dimension` | string | Yes | Scoring dimension, e.g. `helpfulness`, `accuracy`, `safety` |
-| `score`     | number | Yes | Score value, 0.0–1.0 (higher is better) |
-| `rationale` | string | No | Explanation for your score — useful for calibration |
+| Parameter   | Type   | Required | Description                                                 |
+| ----------- | ------ | -------- | ----------------------------------------------------------- |
+| `trace_id`  | string | Yes      | The trace to score                                          |
+| `dimension` | string | Yes      | Scoring dimension, e.g. `helpfulness`, `accuracy`, `safety` |
+| `score`     | number | Yes      | Score value, 0.0–1.0 (higher is better)                     |
+| `rationale` | string | No       | Explanation for your score — useful for calibration         |
 
 ### Score Values
 
 Scores are always in the `0.0–1.0` range. Common conventions:
 
-| Range | Meaning |
-|-------|---------|
+| Range   | Meaning                                   |
+| ------- | ----------------------------------------- |
 | 0.9–1.0 | Excellent — meets or exceeds expectations |
-| 0.7–0.9 | Good — minor issues only |
+| 0.7–0.9 | Good — minor issues only                  |
 | 0.5–0.7 | Acceptable — noticeable issues but usable |
-| 0.0–0.5 | Poor — significant failure |
+| 0.0–0.5 | Poor — significant failure                |
 
 There is no enforced semantic — choose a convention that makes sense for your team and stick with it across dimensions.
 
@@ -70,9 +70,9 @@ The response includes scores from all sources — manual scores you added and an
 
 ### Parameters
 
-| Parameter  | Type   | Required | Description |
-|------------|--------|----------|-------------|
-| `trace_id` | string | Yes | The trace to retrieve scores for |
+| Parameter  | Type   | Required | Description                      |
+| ---------- | ------ | -------- | -------------------------------- |
+| `trace_id` | string | Yes      | The trace to retrieve scores for |
 
 ### Example Response
 

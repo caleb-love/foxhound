@@ -1,7 +1,7 @@
-import type { SavedSegment } from './segment-store';
-import type { DashboardFilters } from './dashboard-filter-types';
+import type { SavedSegment } from "./segment-store";
+import type { DashboardFilters } from "./dashboard-filter-types";
 
-const STORAGE_KEY = 'foxhound.saved-segments.v1';
+const STORAGE_KEY = "foxhound.saved-segments.v1";
 
 interface PersistedSegmentState {
   currentSegmentName: string;
@@ -30,7 +30,7 @@ function serializeDates(filters: DashboardFilters) {
 }
 
 export function loadPersistedSegments(): PersistedSegmentState | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -50,7 +50,7 @@ export function loadPersistedSegments(): PersistedSegmentState | null {
 }
 
 export function persistSegments(state: PersistedSegmentState) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     window.localStorage.setItem(
@@ -70,7 +70,7 @@ export function persistSegments(state: PersistedSegmentState) {
 }
 
 export function clearPersistedSegments() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     window.localStorage.removeItem(STORAGE_KEY);

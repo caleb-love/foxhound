@@ -118,8 +118,8 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
   // GET /v1/experiments/:id — Get experiment with runs
   fastify.get("/v1/experiments/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const experiment = await getExperiment(id, request.orgId);
     if (!experiment) {
       return reply.code(404).send({ error: "Not Found", message: "Experiment not found" });
@@ -132,8 +132,8 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
   // DELETE /v1/experiments/:id — Delete experiment and runs
   fastify.delete("/v1/experiments/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const deleted = await deleteExperiment(id, request.orgId);
     if (!deleted) {
       return reply.code(404).send({ error: "Not Found", message: "Experiment not found" });

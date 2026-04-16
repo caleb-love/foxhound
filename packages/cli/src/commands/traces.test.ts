@@ -73,7 +73,9 @@ describe("registerTracesCommands", () => {
 
     await program.parseAsync(["node", "cli", "traces", "diff", "a", "b"]);
 
-    expect(logSpy.mock.calls.some((c) => String(c[0]).includes("No divergences found."))).toBe(true);
+    expect(logSpy.mock.calls.some((c) => String(c[0]).includes("No divergences found."))).toBe(
+      true,
+    );
     logSpy.mockRestore();
   });
 });

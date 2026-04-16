@@ -166,7 +166,9 @@ export async function getSsoSession(sessionId: string) {
 }
 
 export async function deleteSsoSessionsByUser(userId: string, orgId: string) {
-  await db.delete(ssoSessions).where(and(eq(ssoSessions.userId, userId), eq(ssoSessions.orgId, orgId)));
+  await db
+    .delete(ssoSessions)
+    .where(and(eq(ssoSessions.userId, userId), eq(ssoSessions.orgId, orgId)));
 }
 
 export async function deleteSsoSessionByIdpSession(idpSessionId: string) {

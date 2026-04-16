@@ -82,7 +82,9 @@ describe("cli index", () => {
     await import("./index.js");
     expect(hook).toHaveBeenCalledWith("preAction", expect.any(Function));
 
-    const preAction = hook.mock.calls.find((c) => c[0] === "preAction")?.[1] as (...args: unknown[]) => void;
+    const preAction = hook.mock.calls.find((c) => c[0] === "preAction")?.[1] as (
+      ...args: unknown[]
+    ) => void;
     preAction({}, { optsWithGlobals: () => ({ json: true, color: false }) });
     expect(setOutputMode).toHaveBeenCalledWith({ json: true, noColor: true });
   });

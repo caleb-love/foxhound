@@ -238,7 +238,10 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
         }
 
         const updatedRun = await getExperimentRun(run.id, orgId);
-        if (!updatedRun?.output || Object.prototype.hasOwnProperty.call(updatedRun.output, "error")) {
+        if (
+          !updatedRun?.output ||
+          Object.prototype.hasOwnProperty.call(updatedRun.output, "error")
+        ) {
           continue;
         }
 

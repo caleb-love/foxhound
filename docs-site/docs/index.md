@@ -12,16 +12,16 @@ Foxhound gives you deep visibility into every AI agent call — traces, evals, c
 
 ## Explore the docs
 
-| Section | Description |
-|---|---|
-| [Getting Started](/getting-started/installation) | Install Foxhound and send your first trace in minutes |
-| [TypeScript SDK](/sdk/typescript) | Full API reference for the Node.js / TypeScript SDK |
-| [Python SDK](/sdk/python) | Full API reference for the Python SDK |
-| [Integrations](/integrations/langgraph) | Drop-in wrappers for LangGraph, CrewAI, Mastra, and more |
-| [MCP Server](/mcp-server/setup) | Use Foxhound tools from any MCP-compatible AI assistant |
-| [Prompt Management](/sdk/python#prompt-management) | Versioned prompt registry with labels, caching, and trace linking |
-| [CI/CD Quality Gate](/ci-cd/quality-gate-action) | Block deploys when eval scores regress |
-| [Evaluation Cookbook](/evaluation-cookbook/manual-scoring) | Recipes for scoring, judging, and curating eval datasets |
+| Section                                                    | Description                                                       |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| [Getting Started](/getting-started/installation)           | Install Foxhound and send your first trace in minutes             |
+| [TypeScript SDK](/sdk/typescript)                          | Full API reference for the Node.js / TypeScript SDK               |
+| [Python SDK](/sdk/python)                                  | Full API reference for the Python SDK                             |
+| [Integrations](/integrations/langgraph)                    | Drop-in wrappers for LangGraph, CrewAI, Mastra, and more          |
+| [MCP Server](/mcp-server/setup)                            | Use Foxhound tools from any MCP-compatible AI assistant           |
+| [Prompt Management](/sdk/python#prompt-management)         | Versioned prompt registry with labels, caching, and trace linking |
+| [CI/CD Quality Gate](/ci-cd/quality-gate-action)           | Block deploys when eval scores regress                            |
+| [Evaluation Cookbook](/evaluation-cookbook/manual-scoring) | Recipes for scoring, judging, and curating eval datasets          |
 
 ## Live sandbox
 

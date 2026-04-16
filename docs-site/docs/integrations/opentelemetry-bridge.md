@@ -75,14 +75,14 @@ await processor.forceFlush();
 
 ## Supported frameworks
 
-| Framework | Language | Notes |
-|-----------|----------|-------|
-| Mastra | TypeScript | Set `telemetry.enabled: true` |
-| Vercel AI SDK | TypeScript | Emits OTel GenAI spans natively |
-| LlamaIndex.TS | TypeScript | Emits OTel GenAI spans natively |
-| Pydantic AI | Python | Set `instrument=True` on Agent |
-| Google ADK | Python | Set `enable_tracing=True` on AdkApp |
-| Amazon Bedrock AgentCore | Python | Use `configure_adot_for_foxhound()` helper |
+| Framework                | Language   | Notes                                      |
+| ------------------------ | ---------- | ------------------------------------------ |
+| Mastra                   | TypeScript | Set `telemetry.enabled: true`              |
+| Vercel AI SDK            | TypeScript | Emits OTel GenAI spans natively            |
+| LlamaIndex.TS            | TypeScript | Emits OTel GenAI spans natively            |
+| Pydantic AI              | Python     | Set `instrument=True` on Agent             |
+| Google ADK               | Python     | Set `enable_tracing=True` on AdkApp        |
+| Amazon Bedrock AgentCore | Python     | Use `configure_adot_for_foxhound()` helper |
 
 ## Coverage note
 

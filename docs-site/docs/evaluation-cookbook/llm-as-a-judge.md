@@ -49,10 +49,10 @@ Run evaluator eval_helpfulness_v2 on traces [trace-001, trace-002, trace-003]
 
 ### Parameters
 
-| Parameter      | Type       | Required | Description |
-|----------------|------------|----------|-------------|
-| `evaluator_id` | string     | Yes | The evaluator to run (from `foxhound_list_evaluators`) |
-| `trace_ids`    | string[]   | Yes | List of 1–50 trace IDs to evaluate |
+| Parameter      | Type     | Required | Description                                            |
+| -------------- | -------- | -------- | ------------------------------------------------------ |
+| `evaluator_id` | string   | Yes      | The evaluator to run (from `foxhound_list_evaluators`) |
+| `trace_ids`    | string[] | Yes      | List of 1–50 trace IDs to evaluate                     |
 
 ### Example Response
 
@@ -76,18 +76,18 @@ Check the status of evaluator run run_abc789
 
 ### Parameters
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
-| `run_id`  | string | Yes | The evaluator run ID returned by `foxhound_run_evaluator` |
+| Parameter | Type   | Required | Description                                               |
+| --------- | ------ | -------- | --------------------------------------------------------- |
+| `run_id`  | string | Yes      | The evaluator run ID returned by `foxhound_run_evaluator` |
 
 ### Status Values
 
-| Status | Meaning |
-|--------|---------|
-| ⏳ `pending` | Run is queued |
-| ⏳ `running` | Evaluations in progress |
-| ✅ `complete` | All traces scored |
-| ❌ `failed` | Run failed — check error message |
+| Status        | Meaning                          |
+| ------------- | -------------------------------- |
+| ⏳ `pending`  | Run is queued                    |
+| ⏳ `running`  | Evaluations in progress          |
+| ✅ `complete` | All traces scored                |
+| ❌ `failed`   | Run failed — check error message |
 
 Poll every 5–15 seconds until status is `complete` or `failed`. Most runs complete within 30–60 seconds for small batches.
 
@@ -141,6 +141,7 @@ Contact your Foxhound admin or the dashboard to create new evaluators.
 ## Async Execution Details
 
 Evaluator runs are always async because:
+
 - The judge LLM must be invoked once per trace (or per span, depending on evaluator config)
 - Results are persisted to the database before being returned
 - Large batches (50 traces) may involve 50+ LLM calls

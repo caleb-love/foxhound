@@ -25,8 +25,8 @@ const ListQuerySchema = z.object({
 export function budgetsRoutes(fastify: FastifyInstance): void {
   fastify.put("/v1/budgets/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const result = UpsertBudgetSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -90,8 +90,8 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
 
   fastify.get("/v1/budgets/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const config = await getAgentConfig(request.orgId, agentId);
     if (!config || config.costBudgetUsd === null) {
       return reply.code(404).send({ error: "No budget configured for this agent" });
@@ -101,8 +101,8 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
 
   fastify.delete("/v1/budgets/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const config = await getAgentConfig(request.orgId, agentId);
     if (config) {
       // If SLA fields exist, just null out budget fields; otherwise delete the row

@@ -1,4 +1,4 @@
-import type { DashboardFilters } from './dashboard-filter-types';
+import type { DashboardFilters } from "./dashboard-filter-types";
 
 function getDefaultDateRange() {
   const end = new Date();
@@ -8,8 +8,8 @@ function getDefaultDateRange() {
 
 export function createDefaultDashboardFilters(): DashboardFilters {
   return {
-    status: 'all',
-    severity: 'all',
+    status: "all",
+    severity: "all",
     agentIds: [],
     environments: [],
     promptIds: [],
@@ -19,7 +19,7 @@ export function createDefaultDashboardFilters(): DashboardFilters {
     models: [],
     toolNames: [],
     tags: [],
-    searchQuery: '',
+    searchQuery: "",
     dateRange: getDefaultDateRange(),
   };
 }

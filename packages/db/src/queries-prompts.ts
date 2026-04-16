@@ -136,7 +136,9 @@ export async function getPromptVersionByLabel(orgId: string, promptName: string,
     .from(promptLabels)
     .innerJoin(promptVersions, eq(promptLabels.promptVersionId, promptVersions.id))
     .innerJoin(prompts, eq(promptVersions.promptId, prompts.id))
-    .where(and(eq(prompts.orgId, orgId), eq(prompts.name, promptName), eq(promptLabels.label, label)))
+    .where(
+      and(eq(prompts.orgId, orgId), eq(prompts.name, promptName), eq(promptLabels.label, label)),
+    )
     .limit(1);
 
   return rows[0]?.version ?? null;
@@ -234,7 +236,10 @@ export async function getLabelsForVersion(promptVersionId: string) {
 
 export async function getLabelsForVersions(promptVersionIds: string[]) {
   if (promptVersionIds.length === 0) return [];
-  return db.select().from(promptLabels).where(inArray(promptLabels.promptVersionId, promptVersionIds));
+  return db
+    .select()
+    .from(promptLabels)
+    .where(inArray(promptLabels.promptVersionId, promptVersionIds));
 }
 
 export async function deletePromptLabel(promptVersionId: string, label: string): Promise<boolean> {

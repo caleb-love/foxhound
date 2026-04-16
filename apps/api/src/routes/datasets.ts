@@ -80,8 +80,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // GET /v1/datasets/:id — Get a single dataset with item count
   fastify.get("/v1/datasets/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const dataset = await getDataset(id, request.orgId);
     if (!dataset) {
       return reply.code(404).send({ error: "Not Found", message: "Dataset not found" });
@@ -93,8 +93,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // DELETE /v1/datasets/:id — Delete a dataset and all its items
   fastify.delete("/v1/datasets/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const deleted = await deleteDataset(id, request.orgId);
     if (!deleted) {
       return reply.code(404).send({ error: "Not Found", message: "Dataset not found" });
@@ -105,8 +105,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // POST /v1/datasets/:id/items — Add a single item to a dataset
   fastify.post("/v1/datasets/:id/items", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const result = CreateDatasetItemSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -144,8 +144,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // GET /v1/datasets/:id/items — List items in a dataset with pagination
   fastify.get("/v1/datasets/:id/items", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const result = ListDatasetItemsSchema.safeParse(request.query);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -172,8 +172,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // DELETE /v1/datasets/:id/items/:itemId — Delete a single item
   fastify.delete("/v1/datasets/:id/items/:itemId", async (request, reply) => {
     const p = parseParams(request, reply, IdItemParamSchema);
-      if (!p) return;
-      const { id, itemId } = p;
+    if (!p) return;
+    const { id, itemId } = p;
 
     const dataset = await getDataset(id, request.orgId);
     if (!dataset) {
@@ -192,8 +192,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
   // POST /v1/datasets/:id/items/from-traces — Auto-curate from production traces
   fastify.post("/v1/datasets/:id/items/from-traces", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const result = FromTracesSchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });

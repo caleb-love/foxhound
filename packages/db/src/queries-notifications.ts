@@ -54,7 +54,11 @@ export async function createAlertRule(input: CreateAlertRuleInput) {
 }
 
 export async function listAlertRules(orgId: string) {
-  return db.select().from(alertRules).where(eq(alertRules.orgId, orgId)).orderBy(desc(alertRules.createdAt));
+  return db
+    .select()
+    .from(alertRules)
+    .where(eq(alertRules.orgId, orgId))
+    .orderBy(desc(alertRules.createdAt));
 }
 
 export async function getAlertRulesForOrg(orgId: string) {

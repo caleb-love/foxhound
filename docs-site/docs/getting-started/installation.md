@@ -62,10 +62,10 @@ Add to your MCP config (`.cursor/mcp.json` or equivalent):
 
 ## Environment Variables
 
-| Variable            | Required | Default                   | Description           |
-|---------------------|----------|---------------------------|-----------------------|
-| `FOXHOUND_API_KEY`  | Yes      | —                         | Your Foxhound API key |
-| `FOXHOUND_ENDPOINT` | No       | `http://localhost:3001`   | Foxhound API base URL |
+| Variable            | Required | Default                 | Description           |
+| ------------------- | -------- | ----------------------- | --------------------- |
+| `FOXHOUND_API_KEY`  | Yes      | —                       | Your Foxhound API key |
+| `FOXHOUND_ENDPOINT` | No       | `http://localhost:3001` | Foxhound API base URL |
 
 ## Next Steps
 

@@ -68,17 +68,33 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
     "Surface abnormal behavior such as spikes in latency or unusual tool usage.",
     {
       agent_name: z.string().describe("Agent ID/name to analyze"),
-      hours: z.number().int().min(1).max(168).optional().describe("Lookback window in hours (default 24)"),
+      hours: z
+        .number()
+        .int()
+        .min(1)
+        .max(168)
+        .optional()
+        .describe("Lookback window in hours (default 24)"),
     },
     async (params) => {
       const hours = params.hours ?? 24;
       const toMs = Date.now();
       const fromMs = toMs - hours * 60 * 60 * 1000;
-      const data = await api.searchTraces({ agentId: params.agent_name, from: fromMs, to: toMs, limit: 100 });
+      const data = await api.searchTraces({
+        agentId: params.agent_name,
+        from: fromMs,
+        to: toMs,
+        limit: 100,
+      });
 
       if (!data.data.length) {
         return {
-          content: [{ type: "text", text: `No traces found for agent "${params.agent_name}" in the last ${hours} hours.` }],
+          content: [
+            {
+              type: "text",
+              text: `No traces found for agent "${params.agent_name}" in the last ${hours} hours.`,
+            },
+          ],
         };
       }
 
@@ -86,7 +102,11 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
       const errorSpans = allSpans.filter((s) => s.status === "error");
       const spanDurations = allSpans
         .filter((s) => s.endTimeMs && s.startTimeMs)
-        .map((s) => ({ name: s.name, kind: s.kind, durationMs: (s.endTimeMs ?? 0) - s.startTimeMs }));
+        .map((s) => ({
+          name: s.name,
+          kind: s.kind,
+          durationMs: (s.endTimeMs ?? 0) - s.startTimeMs,
+        }));
 
       const kindAvg = new Map<string, { total: number; count: number }>();
       for (const s of spanDurations) {
@@ -112,7 +132,9 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
         lines.push(`### Errors: ${errorSpans.length} (${errorRate}% of spans)`);
         const errorNames = new Map<string, number>();
         for (const e of errorSpans) errorNames.set(e.name, (errorNames.get(e.name) ?? 0) + 1);
-        for (const [name, count] of [...errorNames.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+        for (const [name, count] of [...errorNames.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)) {
           lines.push(`- **${name}**: ${count} errors`);
         }
         lines.push("");
@@ -145,7 +167,14 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
         const trace = await api.getTrace(params.trace_id);
         const errorSpans = trace.spans.filter((s) => s.status === "error");
         if (!errorSpans.length) {
-          return { content: [{ type: "text", text: `# Trace ${trace.id}\n\nNo errors detected in this trace. All ${trace.spans.length} spans completed successfully.` }] };
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Trace ${trace.id}\n\nNo errors detected in this trace. All ${trace.spans.length} spans completed successfully.`,
+              },
+            ],
+          };
         }
 
         const spanMap = new Map<string, Span>();
@@ -167,9 +196,14 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
           current.startTimeMs < earliest.startTimeMs ? current : earliest,
         );
         const errorEvents = firstError.events.filter((e) => e.name === "error");
-        const errorMessage = errorEvents.length > 0
-          ? String(errorEvents[0]?.attributes["error.message"] ?? errorEvents[0]?.attributes["message"] ?? "Unknown error")
-          : "Unknown error";
+        const errorMessage =
+          errorEvents.length > 0
+            ? String(
+                errorEvents[0]?.attributes["error.message"] ??
+                  errorEvents[0]?.attributes["message"] ??
+                  "Unknown error",
+              )
+            : "Unknown error";
         const parentChain = getParentChain(firstError);
 
         const lines: string[] = [
@@ -191,7 +225,8 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
           const isError = span.spanId === firstError.spanId;
           const prefix = "  ".repeat(i);
           const status = isError ? " ❌ **ERROR**" : "";
-          const duration = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+          const duration =
+            span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
           lines.push(`${prefix}${i + 1}. [${span.kind}] **${span.name}** (${duration})${status}`);
 
           if (isError && errorEvents.length > 0) {
@@ -199,14 +234,20 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
             if (event) {
               lines.push(`${prefix}   **Error Details**:`);
               for (const [key, value] of Object.entries(event.attributes ?? {})) {
-                if (value !== null && value !== undefined) lines.push(`${prefix}   - ${key}: ${JSON.stringify(value)}`);
+                if (value !== null && value !== undefined)
+                  lines.push(`${prefix}   - ${key}: ${JSON.stringify(value)}`);
               }
             }
           }
 
-          const attrs = Object.entries(span.attributes ?? {}).filter(([, v]) => v !== null && v !== undefined && v !== "");
+          const attrs = Object.entries(span.attributes ?? {}).filter(
+            ([, v]) => v !== null && v !== undefined && v !== "",
+          );
           if (attrs.length > 0 && i < 3) {
-            const attrStr = attrs.slice(0, 3).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ");
+            const attrStr = attrs
+              .slice(0, 3)
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(", ");
             lines.push(`${prefix}   Attributes: ${attrStr}${attrs.length > 3 ? ", ..." : ""}`);
           }
         }
@@ -214,11 +255,17 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
         if (errorSpans.length > 1) {
           lines.push("", `## Other Errors (${errorSpans.length - 1})`);
           for (const span of errorSpans.slice(1)) {
-            const duration = span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
+            const duration =
+              span.endTimeMs && span.startTimeMs ? `${span.endTimeMs - span.startTimeMs}ms` : "?";
             const events = span.events.filter((e) => e.name === "error");
-            const msg = events.length > 0
-              ? String(events[0]?.attributes["error.message"] ?? events[0]?.attributes["message"] ?? "Unknown")
-              : "Unknown";
+            const msg =
+              events.length > 0
+                ? String(
+                    events[0]?.attributes["error.message"] ??
+                      events[0]?.attributes["message"] ??
+                      "Unknown",
+                  )
+                : "Unknown";
             lines.push(`- [${span.kind}] **${span.name}** (${duration}): ${msg}`);
           }
         }
@@ -226,7 +273,9 @@ export function registerTraceTools(server: McpServer, api: FoxhoundApiClient): v
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching trace "${params.trace_id}": ${msg}` }] };
+        return {
+          content: [{ type: "text", text: `Error fetching trace "${params.trace_id}": ${msg}` }],
+        };
       }
     },
   );

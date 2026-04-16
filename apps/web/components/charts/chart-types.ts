@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-export type ChartStatusTone = 'default' | 'healthy' | 'warning' | 'critical';
+export type ChartStatusTone = "default" | "healthy" | "warning" | "critical";
 
 export interface SparkPoint {
   value: number;
@@ -26,7 +26,7 @@ export interface TrendSeries {
   id: string;
   label: string;
   values: TrendSeriesPoint[];
-  tone?: Exclude<ChartStatusTone, 'default'>;
+  tone?: Exclude<ChartStatusTone, "default">;
 }
 
 export interface TopListItem {

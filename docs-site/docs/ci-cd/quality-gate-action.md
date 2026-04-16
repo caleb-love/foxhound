@@ -10,6 +10,7 @@ The Foxhound quality gate GitHub Actions composite action enforces evaluation sc
 ## Overview
 
 The action:
+
 1. Creates a new evaluation experiment from your dataset + evaluator config
 2. Polls with exponential backoff until the experiment completes
 3. Compares scores against the threshold (and optionally against a baseline experiment)
@@ -54,24 +55,24 @@ jobs:
 
 ## Inputs
 
-| Input                    | Required | Default | Description                                                             |
-|--------------------------|----------|---------|-------------------------------------------------------------------------|
-| `api-key`                | Yes      | —       | Your Foxhound API key (`fox_...`)                                       |
-| `api-endpoint`           | Yes      | —       | Foxhound API base URL                                                   |
-| `dataset-id`             | Yes      | —       | Dataset ID to run evaluations against                                   |
-| `evaluator-ids`          | No       | —       | Comma-separated evaluator IDs. Omit to use all dataset evaluators       |
-| `experiment-name`        | No       | —       | Human-readable name for this experiment run                             |
-| `experiment-config`      | Yes      | —       | JSON config for the experiment (model, temperature, etc.)               |
+| Input                    | Required | Default | Description                                                            |
+| ------------------------ | -------- | ------- | ---------------------------------------------------------------------- |
+| `api-key`                | Yes      | —       | Your Foxhound API key (`fox_...`)                                      |
+| `api-endpoint`           | Yes      | —       | Foxhound API base URL                                                  |
+| `dataset-id`             | Yes      | —       | Dataset ID to run evaluations against                                  |
+| `evaluator-ids`          | No       | —       | Comma-separated evaluator IDs. Omit to use all dataset evaluators      |
+| `experiment-name`        | No       | —       | Human-readable name for this experiment run                            |
+| `experiment-config`      | Yes      | —       | JSON config for the experiment (model, temperature, etc.)              |
 | `threshold`              | No       | `0.0`   | Minimum average score to pass (0.0–1.0). Fail if below.                |
-| `baseline-experiment-id` | No       | —       | Compare scores against this baseline experiment. Adds regression info.  |
-| `timeout`                | No       | `600`   | Max seconds to wait for experiment completion before failing            |
+| `baseline-experiment-id` | No       | —       | Compare scores against this baseline experiment. Adds regression info. |
+| `timeout`                | No       | `600`   | Max seconds to wait for experiment completion before failing           |
 
 ## Outputs
 
-| Output              | Description                                                     |
-|---------------------|-----------------------------------------------------------------|
-| `experiment-id`     | The ID of the experiment created by this run                    |
-| `comparison-url`    | URL to the full comparison view in the Foxhound dashboard       |
+| Output           | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `experiment-id`  | The ID of the experiment created by this run              |
+| `comparison-url` | URL to the full comparison view in the Foxhound dashboard |
 
 ## Permissions
 

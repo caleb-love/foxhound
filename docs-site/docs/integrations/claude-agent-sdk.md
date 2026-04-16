@@ -59,11 +59,11 @@ tracer.onPostToolUse(toolUseId, undefined, "Permission denied");
 
 ## What Gets Traced
 
-| Event | Span Kind | Attributes |
-|-------|-----------|------------|
-| Agent workflow | `workflow` | `agent.prompt`, `agent.cost_usd`, `agent.duration_ms` |
-| LLM turn (AssistantMessage) | `llm_call` | `llm.model`, `llm.prompt_tokens`, `llm.completion_tokens` |
-| Tool call | `tool_call` | `tool.name`, `tool.input.*`, `tool.output` |
+| Event                       | Span Kind   | Attributes                                                |
+| --------------------------- | ----------- | --------------------------------------------------------- |
+| Agent workflow              | `workflow`  | `agent.prompt`, `agent.cost_usd`, `agent.duration_ms`     |
+| LLM turn (AssistantMessage) | `llm_call`  | `llm.model`, `llm.prompt_tokens`, `llm.completion_tokens` |
+| Tool call                   | `tool_call` | `tool.name`, `tool.input.*`, `tool.output`                |
 
 ## Multi-Agent Coordination
 
@@ -107,7 +107,9 @@ const fox = new FoxhoundClient({
   apiKey: process.env.FOXHOUND_API_KEY!,
   endpoint: "https://api.foxhound.ai",
   onBudgetExceeded: (info) => {
-    console.warn(`Agent ${info.agentId} exceeded budget: $${info.currentCost}/$${info.budgetLimit}`);
+    console.warn(
+      `Agent ${info.agentId} exceeded budget: $${info.currentCost}/$${info.budgetLimit}`,
+    );
   },
 });
 ```

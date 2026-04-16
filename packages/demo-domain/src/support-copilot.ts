@@ -33,7 +33,7 @@ const DEMO_WEEK_START_MS = (() => {
 })();
 
 function atDemoTime(dayOffset: number, hour: number, minute: number): number {
-  return DEMO_WEEK_START_MS + (dayOffset * DAY_MS) + (hour * HOUR_MS) + (minute * MINUTE_MS);
+  return DEMO_WEEK_START_MS + dayOffset * DAY_MS + hour * HOUR_MS + minute * MINUTE_MS;
 }
 
 function slugify(value: string): string {
@@ -135,7 +135,8 @@ const agentProfiles: Record<AgentKey, AgentProfile> = {
     id: "shipping-delay-resolution",
     displayName: "Shipping Delay Resolution",
     team: "Logistics Support",
-    mission: "Explains delivery delays, damaged shipments, and replacement paths using logistics knowledge.",
+    mission:
+      "Explains delivery delays, damaged shipments, and replacement paths using logistics knowledge.",
     workflow: "shipping_resolution",
     owner: "Logistics ops",
     primaryPrompt: "shipping-delay-triage",
@@ -206,7 +207,8 @@ export const demoOrgs: DemoOrg[] = [
     plan: "team",
     llmEvaluationEnabled: true,
     role: "primary",
-    description: "Hero demo org for support observability, regressions, experiments, and governance workflows.",
+    description:
+      "Hero demo org for support observability, regressions, experiments, and governance workflows.",
   },
 ];
 
@@ -214,21 +216,53 @@ export const supportCopilotPrompts: DemoPrompt[] = [
   {
     id: "prompt_support_reply",
     name: "support-reply",
-    purpose: "Primary customer-facing support response prompt for refunds, exchanges, and general issue resolution.",
+    purpose:
+      "Primary customer-facing support response prompt for refunds, exchanges, and general issue resolution.",
     versions: [
-      { version: 17, model: "gpt-4o", summary: "Stable baseline with careful refund nuance", narrativeRole: "last known good before the rollout" },
-      { version: 18, model: "gpt-4o-mini", summary: "Compressed low-cost rollout with refund regressions", narrativeRole: "cheaper and faster, but less reliable on edge cases" },
-      { version: 19, model: "gpt-4o-mini", summary: "Recovery candidate with restored policy grounding", narrativeRole: "current best candidate for promotion" },
+      {
+        version: 17,
+        model: "gpt-4o",
+        summary: "Stable baseline with careful refund nuance",
+        narrativeRole: "last known good before the rollout",
+      },
+      {
+        version: 18,
+        model: "gpt-4o-mini",
+        summary: "Compressed low-cost rollout with refund regressions",
+        narrativeRole: "cheaper and faster, but less reliable on edge cases",
+      },
+      {
+        version: 19,
+        model: "gpt-4o-mini",
+        summary: "Recovery candidate with restored policy grounding",
+        narrativeRole: "current best candidate for promotion",
+      },
     ],
   },
   {
     id: "prompt_refund_policy_check",
     name: "refund-policy-check",
-    purpose: "Structured policy interpretation prompt for refund eligibility, clarification, and exception paths.",
+    purpose:
+      "Structured policy interpretation prompt for refund eligibility, clarification, and exception paths.",
     versions: [
-      { version: 3, model: "gpt-4o", summary: "Stable policy grounding baseline", narrativeRole: "reference policy behavior" },
-      { version: 4, model: "gpt-4o-mini", summary: "Overly strict policy branch with hallucinated denials", narrativeRole: "source of the policy hallucination story" },
-      { version: 5, model: "gpt-4o-mini", summary: "Corrected policy grounding with safer escalation fallback", narrativeRole: "restores grounded policy behavior" },
+      {
+        version: 3,
+        model: "gpt-4o",
+        summary: "Stable policy grounding baseline",
+        narrativeRole: "reference policy behavior",
+      },
+      {
+        version: 4,
+        model: "gpt-4o-mini",
+        summary: "Overly strict policy branch with hallucinated denials",
+        narrativeRole: "source of the policy hallucination story",
+      },
+      {
+        version: 5,
+        model: "gpt-4o-mini",
+        summary: "Corrected policy grounding with safer escalation fallback",
+        narrativeRole: "restores grounded policy behavior",
+      },
     ],
   },
   {
@@ -236,17 +270,38 @@ export const supportCopilotPrompts: DemoPrompt[] = [
     name: "escalation-triage",
     purpose: "Determines whether a support case should be handed to a premium human queue.",
     versions: [
-      { version: 7, model: "gpt-4o", summary: "Baseline escalation logic", narrativeRole: "reference escalation behavior" },
-      { version: 8, model: "gpt-4o-mini", summary: "Safer escalation sensitivity tuning", narrativeRole: "candidate under evaluation" },
+      {
+        version: 7,
+        model: "gpt-4o",
+        summary: "Baseline escalation logic",
+        narrativeRole: "reference escalation behavior",
+      },
+      {
+        version: 8,
+        model: "gpt-4o-mini",
+        summary: "Safer escalation sensitivity tuning",
+        narrativeRole: "candidate under evaluation",
+      },
     ],
   },
   {
     id: "prompt_shipping_delay_triage",
     name: "shipping-delay-triage",
-    purpose: "Handles delay attribution, damaged shipment decisions, and replacement recommendations.",
+    purpose:
+      "Handles delay attribution, damaged shipment decisions, and replacement recommendations.",
     versions: [
-      { version: 6, model: "gpt-4o", summary: "Stable logistics baseline", narrativeRole: "healthy resolution path" },
-      { version: 7, model: "gpt-4o-mini", summary: "Faster path with timeout fallback adjustments", narrativeRole: "active optimization path" },
+      {
+        version: 6,
+        model: "gpt-4o",
+        summary: "Stable logistics baseline",
+        narrativeRole: "healthy resolution path",
+      },
+      {
+        version: 7,
+        model: "gpt-4o-mini",
+        summary: "Faster path with timeout fallback adjustments",
+        narrativeRole: "active optimization path",
+      },
     ],
   },
   {
@@ -254,8 +309,18 @@ export const supportCopilotPrompts: DemoPrompt[] = [
     name: "billing-dispute-investigator",
     purpose: "Investigates duplicate charges, chargebacks, and subscription-billing disputes.",
     versions: [
-      { version: 10, model: "gpt-4o", summary: "Reference billing dispute handling", narrativeRole: "baseline billing accuracy" },
-      { version: 11, model: "gpt-4o-mini", summary: "Lean billing investigation path", narrativeRole: "cost-optimized billing path" },
+      {
+        version: 10,
+        model: "gpt-4o",
+        summary: "Reference billing dispute handling",
+        narrativeRole: "baseline billing accuracy",
+      },
+      {
+        version: 11,
+        model: "gpt-4o-mini",
+        summary: "Lean billing investigation path",
+        narrativeRole: "cost-optimized billing path",
+      },
     ],
   },
   {
@@ -263,7 +328,12 @@ export const supportCopilotPrompts: DemoPrompt[] = [
     name: "account-recovery-guide",
     purpose: "Guides customers through account lockout, identity checks, and recovery next steps.",
     versions: [
-      { version: 5, model: "gpt-4o-mini", summary: "Current lockout-recovery workflow", narrativeRole: "stable fast-path prompt" },
+      {
+        version: 5,
+        model: "gpt-4o-mini",
+        summary: "Current lockout-recovery workflow",
+        narrativeRole: "stable fast-path prompt",
+      },
     ],
   },
   {
@@ -271,7 +341,12 @@ export const supportCopilotPrompts: DemoPrompt[] = [
     name: "fraud-risk-review",
     purpose: "Reviews refund, payout, and order behavior for abuse patterns and fraud indicators.",
     versions: [
-      { version: 2, model: "gpt-4o", summary: "Risk-review baseline", narrativeRole: "healthy watchdog prompt" },
+      {
+        version: 2,
+        model: "gpt-4o",
+        summary: "Risk-review baseline",
+        narrativeRole: "healthy watchdog prompt",
+      },
     ],
   },
   {
@@ -279,7 +354,12 @@ export const supportCopilotPrompts: DemoPrompt[] = [
     name: "weekly-support-brief",
     purpose: "Summarizes support incidents, trend shifts, and operator actions for weekly reviews.",
     versions: [
-      { version: 4, model: "gpt-4o-mini", summary: "Current insights summarization template", narrativeRole: "executive recap path" },
+      {
+        version: 4,
+        model: "gpt-4o-mini",
+        summary: "Current insights summarization template",
+        narrativeRole: "executive recap path",
+      },
     ],
   },
 ];
@@ -316,7 +396,8 @@ const scenarioSeeds: ScenarioSeed[] = [
     issueType: "refund",
     customerTier: "self-serve",
     narrativeRole: "regression",
-    expectedOutcome: "Regression should surface as faster and cheaper, but incorrect on edge-case reasoning.",
+    expectedOutcome:
+      "Regression should surface as faster and cheaper, but incorrect on edge-case reasoning.",
     profile: "returns_copilot",
     promptName: "support-reply",
     promptVersion: 18,
@@ -506,24 +587,31 @@ function buildGeneratedStorySummary(
   qualityScore: number,
 ): string {
   const dayLabel = `day ${dayOffset + 1}`;
-  const qualityLabel = qualityScore >= 0.9 ? 'strong quality' : qualityScore >= 0.8 ? 'stable quality' : qualityScore >= 0.7 ? 'mixed quality' : 'fragile quality';
+  const qualityLabel =
+    qualityScore >= 0.9
+      ? "strong quality"
+      : qualityScore >= 0.8
+        ? "stable quality"
+        : qualityScore >= 0.7
+          ? "mixed quality"
+          : "fragile quality";
 
   switch (template.id) {
-    case 'shipping_status_refresh':
+    case "shipping_status_refresh":
       return `${profile.displayName} explained a delayed shipment clearly on ${dayLabel}, keeping the customer on the self-serve path with ${qualityLabel}.`;
-    case 'refund_clarification_needed':
+    case "refund_clarification_needed":
       return `${profile.displayName} avoided an incorrect refund denial on ${dayLabel} by asking for the missing evidence before deciding.`;
-    case 'duplicate_charge_review':
+    case "duplicate_charge_review":
       return `${profile.displayName} separated a likely duplicate charge from standard renewal noise on ${dayLabel} and kept the billing case grounded.`;
-    case 'account_lockout_fastpath':
+    case "account_lockout_fastpath":
       return `${profile.displayName} kept an account-recovery case secure and fast on ${dayLabel} without escalating the customer unnecessarily.`;
-    case 'premium_contract_escalation':
+    case "premium_contract_escalation":
       return `${profile.displayName} escalated an enterprise billing request with the right contract context on ${dayLabel}, preserving the premium support handoff.`;
-    case 'fraud_pattern_review':
+    case "fraud_pattern_review":
       return `${profile.displayName} flagged suspicious refund behavior on ${dayLabel} and routed the account cluster into manual risk review.`;
-    case 'support_weekly_brief':
+    case "support_weekly_brief":
       return `${profile.displayName} produced an operator-ready weekly summary on ${dayLabel}, connecting incident drift, budget pressure, and next actions.`;
-    case 'shipping_delay_warning':
+    case "shipping_delay_warning":
       return `${profile.displayName} returned a usable but slower shipping answer on ${dayLabel} after carrier lookup latency started to climb.`;
     default:
       return `${profile.displayName} handled the ${template.issueType} workflow on ${dayLabel} with ${qualityLabel}.`;
@@ -535,11 +623,11 @@ function makeSupportTrace(params: TraceBuildParams): Trace {
   const workflowDuration = params.durationMs;
   const hasError = Boolean(
     params.kbTimeout ||
-      params.llmFailure ||
-      params.policyResult.includes("incorrect") ||
-      params.policyResult.includes("hallucinated") ||
-      params.policyResult.includes("missed") ||
-      params.policyResult.includes("degraded"),
+    params.llmFailure ||
+    params.policyResult.includes("incorrect") ||
+    params.policyResult.includes("hallucinated") ||
+    params.policyResult.includes("missed") ||
+    params.policyResult.includes("degraded"),
   );
   const qualityScore = params.qualityScore ?? (hasError ? 0.46 : 0.93);
   const tokenScale = params.tokenScale ?? 1;
@@ -637,7 +725,9 @@ function makeSupportTrace(params: TraceBuildParams): Trace {
     makeSpan(
       params.id,
       "tool_2",
-      params.issueType === "shipping" ? "Query shipping knowledge and live status" : "Query policy knowledge base",
+      params.issueType === "shipping"
+        ? "Query shipping knowledge and live status"
+        : "Query policy knowledge base",
       "tool_call",
       start + 1820,
       params.kbTimeout ? 2400 : 1280,
@@ -655,10 +745,14 @@ function makeSupportTrace(params: TraceBuildParams): Trace {
           prompt_name: params.promptName,
           prompt_version: params.promptVersion,
         }),
-        makeSpanEvent(start + (params.kbTimeout ? 4000 : 3000), params.kbTimeout ? "knowledge_lookup_timed_out" : "knowledge_lookup_completed", {
-          policy_result: params.policyResult,
-          timeout: params.kbTimeout ? true : false,
-        }),
+        makeSpanEvent(
+          start + (params.kbTimeout ? 4000 : 3000),
+          params.kbTimeout ? "knowledge_lookup_timed_out" : "knowledge_lookup_completed",
+          {
+            policy_result: params.policyResult,
+            timeout: params.kbTimeout ? true : false,
+          },
+        ),
       ],
     ),
     makeSpan(
@@ -694,7 +788,9 @@ function makeSupportTrace(params: TraceBuildParams): Trace {
     makeSpan(
       params.id,
       "step_1",
-      params.escalationRequired ? "Evaluate escalation and policy confidence" : "Validate policy decision",
+      params.escalationRequired
+        ? "Evaluate escalation and policy confidence"
+        : "Validate policy decision",
       "agent_step",
       start + 6500,
       720,
@@ -765,10 +861,14 @@ function makeSupportTrace(params: TraceBuildParams): Trace {
           prompt_name: params.promptName,
           prompt_version: params.promptVersion,
         }),
-        makeSpanEvent(start + workflowDuration - 40, hasError ? "finalization_degraded" : "finalization_completed", {
-          quality_score: Number(qualityScore.toFixed(2)),
-          cost_usd: Number(params.totalCost.toFixed(4)),
-        }),
+        makeSpanEvent(
+          start + workflowDuration - 40,
+          hasError ? "finalization_degraded" : "finalization_completed",
+          {
+            quality_score: Number(qualityScore.toFixed(2)),
+            cost_usd: Number(params.totalCost.toFixed(4)),
+          },
+        ),
       ],
     ),
   ];
@@ -899,9 +999,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: false,
     policyResult: "correct_refusal",
     storyLabel: "Late return request handled with clear exception guidance",
-    storySummary: "Returns Resolution Copilot explained the refund window, suggested store credit, and stayed fully grounded.",
-    customerIntent: "Customer requested a refund 42 days after delivery and referenced a damaged box photo.",
-    expectedResolution: "Refuse the refund politely, cite the window, and offer the approved recovery path.",
+    storySummary:
+      "Returns Resolution Copilot explained the refund window, suggested store credit, and stayed fully grounded.",
+    customerIntent:
+      "Customer requested a refund 42 days after delivery and referenced a damaged box photo.",
+    expectedResolution:
+      "Refuse the refund politely, cite the window, and offer the approved recovery path.",
     severityTag: "healthy",
     statusLabel: "Healthy baseline",
     qualityScore: 0.93,
@@ -926,9 +1029,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: true,
     policyResult: "incorrect_denial",
     storyLabel: "Compressed refund rollout denied a valid exception path",
-    storySummary: "The cheaper rollout responded faster, but missed the damaged-shipment exception and denied the case incorrectly.",
-    customerIntent: "Customer referenced a damaged shipment and requested review after the standard refund window.",
-    expectedResolution: "Recognize the damage exception or escalate instead of applying the strict time-window refusal.",
+    storySummary:
+      "The cheaper rollout responded faster, but missed the damaged-shipment exception and denied the case incorrectly.",
+    customerIntent:
+      "Customer referenced a damaged shipment and requested review after the standard refund window.",
+    expectedResolution:
+      "Recognize the damage exception or escalate instead of applying the strict time-window refusal.",
     severityTag: "critical",
     statusLabel: "Critical regression",
     llmFailure: true,
@@ -954,9 +1060,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: false,
     policyResult: "correct_exception_handled",
     storyLabel: "Recovery candidate restored refund exception handling",
-    storySummary: "Version 19 preserved the cheaper routing path while restoring the damaged-shipment exception logic.",
-    customerIntent: "Customer requested a refund after the normal window but supplied valid damage evidence.",
-    expectedResolution: "Honor the approved exception path with a grounded explanation and next steps.",
+    storySummary:
+      "Version 19 preserved the cheaper routing path while restoring the damaged-shipment exception logic.",
+    customerIntent:
+      "Customer requested a refund after the normal window but supplied valid damage evidence.",
+    expectedResolution:
+      "Honor the approved exception path with a grounded explanation and next steps.",
     severityTag: "healthy",
     statusLabel: "Validated recovery",
     qualityScore: 0.91,
@@ -981,9 +1090,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: true,
     policyResult: "hallucinated_policy_denial",
     storyLabel: "Damaged-item policy checker invented a denial rule",
-    storySummary: "The policy-grounding path fabricated unsupported policy text instead of asking for clarification or escalating.",
-    customerIntent: "Customer claimed the replacement item arrived broken and asked whether photo evidence was enough for a refund.",
-    expectedResolution: "Ask for clarification or escalate when the policy source is ambiguous, never invent denial language.",
+    storySummary:
+      "The policy-grounding path fabricated unsupported policy text instead of asking for clarification or escalating.",
+    customerIntent:
+      "Customer claimed the replacement item arrived broken and asked whether photo evidence was enough for a refund.",
+    expectedResolution:
+      "Ask for clarification or escalate when the policy source is ambiguous, never invent denial language.",
     severityTag: "critical",
     statusLabel: "Policy hallucination",
     llmFailure: true,
@@ -1009,8 +1121,10 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: true,
     policyResult: "missed_escalation",
     storyLabel: "Premium billing dispute answered directly instead of escalating",
-    storySummary: "A revenue-risk chargeback case stayed on the cheap self-serve path and bypassed the premium human queue.",
-    customerIntent: "VIP customer reported a chargeback warning and threatened cancellation if support could not intervene quickly.",
+    storySummary:
+      "A revenue-risk chargeback case stayed on the cheap self-serve path and bypassed the premium human queue.",
+    customerIntent:
+      "VIP customer reported a chargeback warning and threatened cancellation if support could not intervene quickly.",
     expectedResolution: "Escalate immediately to the premium billing desk.",
     severityTag: "critical",
     statusLabel: "Missed escalation",
@@ -1037,9 +1151,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: true,
     policyResult: "correct_escalation",
     storyLabel: "Premium billing recovery restored the escalation handoff",
-    storySummary: "The recovery path restored immediate human escalation for high-value chargeback risk.",
-    customerIntent: "VIP customer reported a suspicious chargeback and requested urgent intervention.",
-    expectedResolution: "Trigger the premium escalation route and preserve revenue context for the human queue.",
+    storySummary:
+      "The recovery path restored immediate human escalation for high-value chargeback risk.",
+    customerIntent:
+      "VIP customer reported a suspicious chargeback and requested urgent intervention.",
+    expectedResolution:
+      "Trigger the premium escalation route and preserve revenue context for the human queue.",
     severityTag: "healthy",
     statusLabel: "Escalation restored",
     qualityScore: 0.94,
@@ -1064,9 +1181,12 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: false,
     policyResult: "degraded_answer_after_timeout",
     storyLabel: "Shipping resolution degraded during logistics lookup timeout",
-    storySummary: "The shipping agent absorbed a live-status timeout and returned a weak answer after the fallback path kicked in late.",
-    customerIntent: "Customer asked why a replacement shipment had been stalled for 48 hours without an updated carrier scan.",
-    expectedResolution: "Use the fallback path quickly, set expectations clearly, and avoid vague answers.",
+    storySummary:
+      "The shipping agent absorbed a live-status timeout and returned a weak answer after the fallback path kicked in late.",
+    customerIntent:
+      "Customer asked why a replacement shipment had been stalled for 48 hours without an updated carrier scan.",
+    expectedResolution:
+      "Use the fallback path quickly, set expectations clearly, and avoid vague answers.",
     severityTag: "warning",
     statusLabel: "Latency and quality degradation",
     kbTimeout: true,
@@ -1092,8 +1212,10 @@ export const supportCopilotCuratedTraces: DemoCuratedTrace[] = [
     escalationRequired: false,
     policyResult: "recovered_after_fallback",
     storyLabel: "Fallback shipping path recovered after timeout cluster",
-    storySummary: "The revised fallback sequence kept quality high enough even while the logistics knowledge system remained unstable.",
-    customerIntent: "Customer needed a grounded answer on a delayed replacement shipment after a carrier scan gap.",
+    storySummary:
+      "The revised fallback sequence kept quality high enough even while the logistics knowledge system remained unstable.",
+    customerIntent:
+      "Customer needed a grounded answer on a delayed replacement shipment after a carrier scan gap.",
     expectedResolution: "Explain the fallback status honestly and give a clear next checkpoint.",
     severityTag: "healthy",
     statusLabel: "Recovered fallback path",
@@ -1193,7 +1315,8 @@ const backgroundScenarioTemplates: BackgroundScenarioTemplate[] = [
     customerTier: "self-serve",
     releaseVersion: "2026.04.09",
     storyStem: "Account recovery fast path stayed secure and quick",
-    customerIntent: "Customer cannot access a two-factor protected account after device replacement.",
+    customerIntent:
+      "Customer cannot access a two-factor protected account after device replacement.",
     expectedResolution: "Guide recovery safely without leaking internal security details.",
     baseCost: 0.011,
     baseDurationMs: 4200,
@@ -1250,7 +1373,8 @@ const backgroundScenarioTemplates: BackgroundScenarioTemplate[] = [
     customerTier: "internal",
     releaseVersion: "2026.04.13",
     storyStem: "Weekly support brief summarized the incident cluster",
-    customerIntent: "Internal operator needs a concise weekly summary of quality, cost, and incident drift.",
+    customerIntent:
+      "Internal operator needs a concise weekly summary of quality, cost, and incident drift.",
     expectedResolution: "Surface the most important deltas with clear next actions.",
     baseCost: 0.041,
     baseDurationMs: 9800,
@@ -1291,16 +1415,23 @@ function buildBackgroundTrace(
   const hour = 8 + ((index * 3) % 10);
   const minute = (index * 11) % 60;
   const startTimeMs = atDemoTime(dayOffset, hour, minute);
-  const durationMs = template.baseDurationMs + ((index % 5) * 230);
-  const totalCost = Number((template.baseCost + ((index % 7) * 0.0027)).toFixed(4));
-  const qualityScore = template.severityTag === "healthy"
-    ? Number((0.89 + ((index % 4) * 0.02)).toFixed(2))
-    : template.severityTag === "warning"
-      ? Number((0.72 + ((index % 4) * 0.03)).toFixed(2))
-      : Number((0.45 + ((index % 3) * 0.04)).toFixed(2));
+  const durationMs = template.baseDurationMs + (index % 5) * 230;
+  const totalCost = Number((template.baseCost + (index % 7) * 0.0027).toFixed(4));
+  const qualityScore =
+    template.severityTag === "healthy"
+      ? Number((0.89 + (index % 4) * 0.02).toFixed(2))
+      : template.severityTag === "warning"
+        ? Number((0.72 + (index % 4) * 0.03).toFixed(2))
+        : Number((0.45 + (index % 3) * 0.04).toFixed(2));
   const id = `trace_${template.id}_${String(dayOffset + 1).padStart(2, "0")}_${String(index + 1).padStart(3, "0")}`;
   const storyLabel = `${template.storyStem} (${dayOffset + 1}.${index + 1})`;
-  const storySummary = buildGeneratedStorySummary(profile, template, dayOffset, index, qualityScore);
+  const storySummary = buildGeneratedStorySummary(
+    profile,
+    template,
+    dayOffset,
+    index,
+    qualityScore,
+  );
 
   return makeSupportTrace({
     id,
@@ -1328,7 +1459,7 @@ function buildBackgroundTrace(
     kbTimeout: template.kbTimeout,
     llmFailure: template.llmFailure,
     qualityScore,
-    tokenScale: 1 + ((index % 6) * 0.11),
+    tokenScale: 1 + (index % 6) * 0.11,
     extraContext: {
       generated_fixture: true,
       generated_template: template.id,
@@ -1345,7 +1476,9 @@ for (let day = 0; day < 7; day += 1) {
   backgroundScenarioTemplates.forEach((template, templateIndex) => {
     for (let variant = 0; variant < 10; variant += 1) {
       const releaseVersion = day <= 2 ? "2026.04.08" : day <= 4 ? "2026.04.11" : "2026.04.13";
-      backgroundTraces.push(buildBackgroundTrace(template, day, (templateIndex * 10) + variant, releaseVersion));
+      backgroundTraces.push(
+        buildBackgroundTrace(template, day, templateIndex * 10 + variant, releaseVersion),
+      );
     }
   });
 }
@@ -1358,21 +1491,24 @@ export const supportCopilotDiffPairs: DemoDiffPair[] = [
     title: "Returns exception regression",
     baselineTraceId: "trace_returns_exception_v17_baseline",
     comparisonTraceId: "trace_returns_exception_v18_regression",
-    narrative: "The cost-optimized rollout is faster and cheaper, but it mishandles the damaged-shipment refund exception.",
+    narrative:
+      "The cost-optimized rollout is faster and cheaper, but it mishandles the damaged-shipment refund exception.",
   },
   {
     id: "pair_returns_recovery_story",
     title: "Returns recovery validation",
     baselineTraceId: "trace_returns_exception_v18_regression",
     comparisonTraceId: "trace_returns_exception_v19_recovery",
-    narrative: "The recovery candidate restores grounded exception handling with only a modest cost increase.",
+    narrative:
+      "The recovery candidate restores grounded exception handling with only a modest cost increase.",
   },
   {
     id: "pair_policy_hallucination_story",
     title: "Policy hallucination investigation",
     baselineTraceId: "trace_returns_exception_v17_baseline",
     comparisonTraceId: "trace_policy_damage_claim_v4_hallucination",
-    narrative: "The policy-check path invented unsupported denial language instead of clarifying or escalating.",
+    narrative:
+      "The policy-check path invented unsupported denial language instead of clarifying or escalating.",
   },
   {
     id: "pair_premium_escalation_story",
@@ -1386,7 +1522,8 @@ export const supportCopilotDiffPairs: DemoDiffPair[] = [
     title: "Shipping timeout recovery",
     baselineTraceId: "trace_shipping_kb_timeout_failed",
     comparisonTraceId: "trace_shipping_kb_timeout_recovered",
-    narrative: "The fallback path improved both response quality and latency after the logistics timeout cluster.",
+    narrative:
+      "The fallback path improved both response quality and latency after the logistics timeout cluster.",
   },
 ];
 
@@ -1398,7 +1535,8 @@ export const supportCopilotRegressions: DemoRegression[] = [
     traceId: "trace_returns_exception_v18_regression",
     diffPairId: "pair_returns_regression_story",
     promptName: "support-reply",
-    summary: "The flagship refund workflow became cheaper but incorrectly denied a damaged-shipment exception that the baseline handled correctly.",
+    summary:
+      "The flagship refund workflow became cheaper but incorrectly denied a damaged-shipment exception that the baseline handled correctly.",
   },
   {
     id: "reg_policy_grounding_hallucination",
@@ -1407,7 +1545,8 @@ export const supportCopilotRegressions: DemoRegression[] = [
     traceId: "trace_policy_damage_claim_v4_hallucination",
     diffPairId: "pair_policy_hallucination_story",
     promptName: "refund-policy-check",
-    summary: "The stricter policy branch fabricated a denial rule instead of asking for more evidence or escalating.",
+    summary:
+      "The stricter policy branch fabricated a denial rule instead of asking for more evidence or escalating.",
   },
   {
     id: "reg_premium_missed_escalation",
@@ -1416,7 +1555,8 @@ export const supportCopilotRegressions: DemoRegression[] = [
     traceId: "trace_premium_chargeback_v18_missed_escalation",
     diffPairId: "pair_premium_escalation_story",
     promptName: "support-reply",
-    summary: "A VIP billing case stayed on the cheap self-serve path instead of handing off to the premium queue.",
+    summary:
+      "A VIP billing case stayed on the cheap self-serve path instead of handing off to the premium queue.",
   },
   {
     id: "reg_shipping_timeout_cluster",
@@ -1425,7 +1565,8 @@ export const supportCopilotRegressions: DemoRegression[] = [
     traceId: "trace_shipping_kb_timeout_failed",
     diffPairId: "pair_shipping_timeout_story",
     promptName: "shipping-delay-triage",
-    summary: "A live-status timeout raised latency and lowered answer quality during a high-volume shipping-support period.",
+    summary:
+      "A live-status timeout raised latency and lowered answer quality during a high-volume shipping-support period.",
   },
   {
     id: "reg_returns_recovery_validated",
@@ -1434,7 +1575,8 @@ export const supportCopilotRegressions: DemoRegression[] = [
     traceId: "trace_returns_exception_v19_recovery",
     diffPairId: "pair_returns_recovery_story",
     promptName: "support-reply",
-    summary: "The v19 recovery path currently looks safe to promote across the refund exception cohort.",
+    summary:
+      "The v19 recovery path currently looks safe to promote across the refund exception cohort.",
   },
 ];
 
@@ -1442,7 +1584,8 @@ export const supportCopilotDatasets: DemoDataset[] = [
   {
     id: "dataset_returns_exception_week",
     name: "returns-exception-week",
-    description: "Trace-derived refund and return exceptions collected across the incident week to validate the recovery candidate against realistic edge cases.",
+    description:
+      "Trace-derived refund and return exceptions collected across the incident week to validate the recovery candidate against realistic edge cases.",
     itemCount: 214,
     sourceTraceIds: [
       "trace_returns_exception_v17_baseline",
@@ -1457,7 +1600,8 @@ export const supportCopilotDatasets: DemoDataset[] = [
   {
     id: "dataset_premium_billing_guardrails",
     name: "premium-billing-guardrails",
-    description: "Premium billing and chargeback-support cases used to validate escalation behavior and revenue-risk handling.",
+    description:
+      "Premium billing and chargeback-support cases used to validate escalation behavior and revenue-risk handling.",
     itemCount: 93,
     sourceTraceIds: [
       "trace_premium_chargeback_v18_missed_escalation",
@@ -1469,7 +1613,8 @@ export const supportCopilotDatasets: DemoDataset[] = [
   {
     id: "dataset_policy_grounding_failures",
     name: "policy-grounding-failures",
-    description: "Failure cases where policy-heavy outputs drifted, over-fit, or hallucinated unsupported rules.",
+    description:
+      "Failure cases where policy-heavy outputs drifted, over-fit, or hallucinated unsupported rules.",
     itemCount: 76,
     sourceTraceIds: [
       "trace_policy_damage_claim_v4_hallucination",
@@ -1481,7 +1626,8 @@ export const supportCopilotDatasets: DemoDataset[] = [
   {
     id: "dataset_shipping_reliability_window",
     name: "shipping-reliability-window",
-    description: "Shipping and logistics traces used to measure timeout recovery, latency, and operator-visible customer experience.",
+    description:
+      "Shipping and logistics traces used to measure timeout recovery, latency, and operator-visible customer experience.",
     itemCount: 188,
     sourceTraceIds: [
       "trace_shipping_kb_timeout_failed",
@@ -1494,7 +1640,8 @@ export const supportCopilotDatasets: DemoDataset[] = [
   {
     id: "dataset_support_exec_weekly_summary",
     name: "support-exec-weekly-summary",
-    description: "Executive-review cohort connecting customer-visible issues to budgets, SLAs, and experiment decisions.",
+    description:
+      "Executive-review cohort connecting customer-visible issues to budgets, SLAs, and experiment decisions.",
     itemCount: 54,
     sourceTraceIds: [
       "trace_returns_exception_v18_regression",
@@ -1536,7 +1683,8 @@ export const supportCopilotEvaluators: DemoEvaluator[] = [
     scoringType: "numeric",
     model: "gpt-4o-mini",
     health: "warning",
-    summary: "Tracks whether cheaper logistics paths remain inside latency expectations during carrier instability.",
+    summary:
+      "Tracks whether cheaper logistics paths remain inside latency expectations during carrier instability.",
   },
   {
     id: "eval_operator_summary_quality",
@@ -1544,7 +1692,8 @@ export const supportCopilotEvaluators: DemoEvaluator[] = [
     scoringType: "numeric",
     model: "gpt-4o",
     health: "healthy",
-    summary: "Checks whether operator-visible summaries are specific enough to support real investigations.",
+    summary:
+      "Checks whether operator-visible summaries are specific enough to support real investigations.",
   },
 ];
 
@@ -1554,7 +1703,8 @@ export const supportCopilotExperiments: DemoExperiment[] = [
     name: "returns-recovery-v19",
     datasetId: "dataset_returns_exception_week",
     status: "completed",
-    summary: "Version 19 restores grounded refund exception handling across the weekly return-risk cohort while keeping cost close to the compressed rollout.",
+    summary:
+      "Version 19 restores grounded refund exception handling across the weekly return-risk cohort while keeping cost close to the compressed rollout.",
     winningCandidate: "support-reply v19 for Returns Resolution Copilot",
   },
   {
@@ -1562,14 +1712,16 @@ export const supportCopilotExperiments: DemoExperiment[] = [
     name: "premium-escalation-tuning",
     datasetId: "dataset_premium_billing_guardrails",
     status: "running",
-    summary: "Still tuning how aggressively chargeback-like billing cases should be escalated for premium accounts.",
+    summary:
+      "Still tuning how aggressively chargeback-like billing cases should be escalated for premium accounts.",
   },
   {
     id: "exp_shipping_fallback_hardening",
     name: "shipping-fallback-hardening",
     datasetId: "dataset_shipping_reliability_window",
     status: "completed",
-    summary: "The revised fallback sequence cuts the worst timeout impact without forcing every shipping case onto the expensive baseline model.",
+    summary:
+      "The revised fallback sequence cuts the worst timeout impact without forcing every shipping case onto the expensive baseline model.",
     winningCandidate: "shipping-delay-triage v7 with fallback hardening",
   },
   {
@@ -1577,7 +1729,8 @@ export const supportCopilotExperiments: DemoExperiment[] = [
     name: "operator-summary-grounding",
     datasetId: "dataset_support_exec_weekly_summary",
     status: "completed",
-    summary: "Operator summaries are now specific enough to support investigation handoff and executive review without requiring a replay first.",
+    summary:
+      "Operator summaries are now specific enough to support investigation handoff and executive review without requiring a replay first.",
     winningCandidate: "weekly-support-brief v4",
   },
 ];
@@ -1588,42 +1741,48 @@ export const supportCopilotBudgets: DemoBudgetFixture[] = [
     budgetUsd: 18000,
     currentSpendUsd: 21340,
     status: "critical",
-    summary: "The flagship return workflow overspent after the compressed rollout introduced retries, manual reviews, and customer follow-ups.",
+    summary:
+      "The flagship return workflow overspent after the compressed rollout introduced retries, manual reviews, and customer follow-ups.",
   },
   {
     agentId: "Shipping Delay Resolution",
     budgetUsd: 12000,
     currentSpendUsd: 11380,
     status: "warning",
-    summary: "Carrier-status instability and fallback logic pushed the shipping workflow close to its monthly budget guardrail.",
+    summary:
+      "Carrier-status instability and fallback logic pushed the shipping workflow close to its monthly budget guardrail.",
   },
   {
     agentId: "Premium Escalation Triage",
     budgetUsd: 6400,
     currentSpendUsd: 5880,
     status: "warning",
-    summary: "Premium billing reviews and incident-era handoffs increased spend, but still look recoverable.",
+    summary:
+      "Premium billing reviews and incident-era handoffs increased spend, but still look recoverable.",
   },
   {
     agentId: "Billing Operations Guard",
     budgetUsd: 7200,
     currentSpendUsd: 4820,
     status: "healthy",
-    summary: "Billing dispute handling remained steady and mostly avoided the broader refund incident spillover.",
+    summary:
+      "Billing dispute handling remained steady and mostly avoided the broader refund incident spillover.",
   },
   {
     agentId: "Account Recovery Assistant",
     budgetUsd: 4300,
     currentSpendUsd: 1890,
     status: "healthy",
-    summary: "Account-recovery traffic stayed predictable and inexpensive throughout the same week.",
+    summary:
+      "Account-recovery traffic stayed predictable and inexpensive throughout the same week.",
   },
   {
     agentId: "Policy Grounding Reviewer",
     budgetUsd: 5600,
     currentSpendUsd: 5310,
     status: "warning",
-    summary: "Extra policy-verification traffic increased during the hallucination investigation and recovery validation work.",
+    summary:
+      "Extra policy-verification traffic increased during the hallucination investigation and recovery validation work.",
   },
 ];
 
@@ -1635,7 +1794,8 @@ export const supportCopilotSlas: DemoSlaFixture[] = [
     observedDurationMs: 9600,
     observedSuccessRate: 0.918,
     status: "critical",
-    summary: "Returns Resolution Copilot breached both latency and success-rate expectations during the regression window.",
+    summary:
+      "Returns Resolution Copilot breached both latency and success-rate expectations during the regression window.",
   },
   {
     agentId: "Shipping Delay Resolution",
@@ -1644,7 +1804,8 @@ export const supportCopilotSlas: DemoSlaFixture[] = [
     observedDurationMs: 11400,
     observedSuccessRate: 0.952,
     status: "warning",
-    summary: "Shipping fallback improvements helped, but the workflow remains near the SLA edge after the timeout cluster.",
+    summary:
+      "Shipping fallback improvements helped, but the workflow remains near the SLA edge after the timeout cluster.",
   },
   {
     agentId: "Premium Escalation Triage",
@@ -1653,7 +1814,8 @@ export const supportCopilotSlas: DemoSlaFixture[] = [
     observedDurationMs: 4300,
     observedSuccessRate: 0.987,
     status: "warning",
-    summary: "Escalation quality improved, but high-value billing cases remain under close monitoring.",
+    summary:
+      "Escalation quality improved, but high-value billing cases remain under close monitoring.",
   },
   {
     agentId: "Billing Operations Guard",
@@ -1662,7 +1824,8 @@ export const supportCopilotSlas: DemoSlaFixture[] = [
     observedDurationMs: 6400,
     observedSuccessRate: 0.978,
     status: "healthy",
-    summary: "Billing dispute handling remained comfortably inside target during the same weekly narrative.",
+    summary:
+      "Billing dispute handling remained comfortably inside target during the same weekly narrative.",
   },
   {
     agentId: "Account Recovery Assistant",
@@ -1681,28 +1844,32 @@ export const supportCopilotNotifications: DemoNotificationFixture[] = [
     channelName: "#platform-ops",
     kind: "slack",
     status: "warning",
-    summary: "Critical refund, SLA, and timeout alerts route here, including one warning-route delivery hiccup during the incident cluster.",
+    summary:
+      "Critical refund, SLA, and timeout alerts route here, including one warning-route delivery hiccup during the incident cluster.",
   },
   {
     channelId: "channel_returns_watch",
     channelName: "#returns-watch",
     kind: "slack",
     status: "critical",
-    summary: "Refund-regression and policy-grounding alerts route here for the returns operations team.",
+    summary:
+      "Refund-regression and policy-grounding alerts route here for the returns operations team.",
   },
   {
     channelId: "channel_premium_support_watch",
     channelName: "#premium-support-watch",
     kind: "slack",
     status: "healthy",
-    summary: "Premium billing and escalation alerts route here with the corrected v19 handoff path.",
+    summary:
+      "Premium billing and escalation alerts route here with the corrected v19 handoff path.",
   },
   {
     channelId: "channel_exec_digest",
     channelName: "#exec-digest",
     kind: "slack",
     status: "healthy",
-    summary: "Executive-level budget, experiment, and weekly-summary digests route here after major updates.",
+    summary:
+      "Executive-level budget, experiment, and weekly-summary digests route here after major updates.",
   },
 ];
 
@@ -1716,8 +1883,10 @@ export const supportCopilotReplayTargetTraceIds = [
 ];
 
 export function buildMarketingHeroDemo(): MarketingHeroDemo {
-  const allTraces = [...supportCopilotCuratedTraces.map((item) => item.trace), ...supportCopilotBackgroundTraces]
-    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+  const allTraces = [
+    ...supportCopilotCuratedTraces.map((item) => item.trace),
+    ...supportCopilotBackgroundTraces,
+  ].sort((a, b) => a.startTimeMs - b.startTimeMs);
 
   return {
     org: demoOrgs[0]!,
@@ -1741,7 +1910,9 @@ export function buildLocalReviewDemo(): LocalReviewDemo {
   const hero = buildMarketingHeroDemo();
 
   const totalTrackedSpend = hero.budgets.reduce((sum, item) => sum + item.currentSpendUsd, 0);
-  const criticalRegressions = hero.regressions.filter((item) => item.severity === "critical").length;
+  const criticalRegressions = hero.regressions.filter(
+    (item) => item.severity === "critical",
+  ).length;
   const atRiskBudgets = hero.budgets.filter((item) => item.status !== "healthy").length;
 
   return {
@@ -1751,17 +1922,23 @@ export function buildLocalReviewDemo(): LocalReviewDemo {
       {
         label: "Monitored agents",
         value: String(new Set(hero.allTraces.map((trace) => trace.agentId)).size),
-        supportingText: "The sandbox now covers realistic support operations across returns, billing, shipping, account recovery, fraud, and executive reporting.",
+        supportingText:
+          "The sandbox now covers realistic support operations across returns, billing, shipping, account recovery, fraud, and executive reporting.",
       },
       {
         label: "Runs in last 7d",
         value: hero.allTraces.length.toLocaleString(),
-        supportingText: "The seeded sandbox story now spans a dense seven-day operating window instead of a tiny hand-written corpus.",
+        supportingText:
+          "The seeded sandbox story now spans a dense seven-day operating window instead of a tiny hand-written corpus.",
       },
       {
         label: "Open regressions",
-        value: String(criticalRegressions + hero.regressions.filter((item) => item.severity === "warning").length),
-        supportingText: "Refund quality drift, policy hallucination, escalation misses, and shipping reliability are all explorable from the same narrative.",
+        value: String(
+          criticalRegressions +
+            hero.regressions.filter((item) => item.severity === "warning").length,
+        ),
+        supportingText:
+          "Refund quality drift, policy hallucination, escalation misses, and shipping reliability are all explorable from the same narrative.",
       },
       {
         label: "Modeled monthly spend",
@@ -1773,22 +1950,28 @@ export function buildLocalReviewDemo(): LocalReviewDemo {
       {
         label: "Fleet reliability",
         value: "96.1%",
-        supportingText: "Reliability dipped during the v18 rollout and partially recovered as the v19 fixes landed late in the week.",
+        supportingText:
+          "Reliability dipped during the v18 rollout and partially recovered as the v19 fixes landed late in the week.",
       },
       {
         label: "Budget exposure",
         value: "$10.7k at risk",
-        supportingText: "Overspend remains concentrated in return handling, shipping fallback volume, and policy-grounding review work.",
+        supportingText:
+          "Overspend remains concentrated in return handling, shipping fallback volume, and policy-grounding review work.",
       },
       {
         label: "Replay-ready incidents",
         value: String(supportCopilotReplayTargetTraceIds.length),
-        supportingText: "Each replay target now has clear story labels, realistic agent names, and connected prompt history.",
+        supportingText:
+          "Each replay target now has clear story labels, realistic agent names, and connected prompt history.",
       },
       {
         label: "Promotion candidates",
-        value: String(hero.experiments.filter((experiment) => Boolean(experiment.winningCandidate)).length),
-        supportingText: "Multiple candidates are now visible, with returns v19 still leading the recovery narrative.",
+        value: String(
+          hero.experiments.filter((experiment) => Boolean(experiment.winningCandidate)).length,
+        ),
+        supportingText:
+          "Multiple candidates are now visible, with returns v19 still leading the recovery narrative.",
       },
     ],
   };

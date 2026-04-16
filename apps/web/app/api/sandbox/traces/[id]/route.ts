@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildLocalReviewDemo } from "@foxhound/demo-domain";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const demo = buildLocalReviewDemo();
   const trace =

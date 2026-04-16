@@ -26,7 +26,8 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
     {},
     async () => {
       const [health, usage] = await Promise.all([api.getHealth(), api.getUsage()]);
-      const pct = usage.spansLimit > 0 ? ((usage.spansUsed / usage.spansLimit) * 100).toFixed(1) : "∞";
+      const pct =
+        usage.spansLimit > 0 ? ((usage.spansUsed / usage.spansLimit) * 100).toFixed(1) : "∞";
       const lines = [
         `## Foxhound Status`,
         `- API: ${health.status} (v${health.version})`,
@@ -54,7 +55,11 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching budget for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            { type: "text", text: `Error fetching budget for agent "${params.agentId}": ${msg}` },
+          ],
+        };
       }
     },
   );
@@ -82,11 +87,17 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
           slaStatus != null && typeof slaStatus["successRate"] !== "undefined"
             ? `- Success rate: ${String(slaStatus["successRate"])}%`
             : null,
-        ].filter(Boolean).join("\n");
+        ]
+          .filter(Boolean)
+          .join("\n");
         return { content: [{ type: "text", text: lines }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching SLA for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            { type: "text", text: `Error fetching SLA for agent "${params.agentId}": ${msg}` },
+          ],
+        };
       }
     },
   );
@@ -115,9 +126,13 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
           lines.push(`### Regressions (${data.regressions.length})`);
           for (const r of data.regressions) {
             if (r.type === "missing") {
-              lines.push(`- **MISSING** \`${r.span}\` — was present in ${data.previousVersion} (freq: ${r.previousFrequency ?? "?"}) but absent in ${data.newVersion}`);
+              lines.push(
+                `- **MISSING** \`${r.span}\` — was present in ${data.previousVersion} (freq: ${r.previousFrequency ?? "?"}) but absent in ${data.newVersion}`,
+              );
             } else {
-              lines.push(`- **NEW** \`${r.span}\` — appeared in ${data.newVersion} (freq: ${r.newFrequency ?? "?"}) but absent in ${data.previousVersion}`);
+              lines.push(
+                `- **NEW** \`${r.span}\` — appeared in ${data.newVersion} (freq: ${r.newFrequency ?? "?"}) but absent in ${data.previousVersion}`,
+              );
             }
           }
         }
@@ -125,7 +140,14 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error comparing versions for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error comparing versions for agent "${params.agentId}": ${msg}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -138,20 +160,30 @@ export function registerGovernanceTools(server: McpServer, api: FoxhoundApiClien
       try {
         const data = await api.listBaselines(params.agentId);
         if (!data.data.length) {
-          return { content: [{ type: "text", text: `No baselines found for agent "${params.agentId}".` }] };
+          return {
+            content: [{ type: "text", text: `No baselines found for agent "${params.agentId}".` }],
+          };
         }
 
         const lines = [
           `## Baselines: ${params.agentId} (${data.data.length})`,
           "",
           ...data.data.map(
-            (b) => `- **v${b.agentVersion}** | sample size: ${b.sampleSize} | created: ${new Date(b.createdAt).toISOString()}`,
+            (b) =>
+              `- **v${b.agentVersion}** | sample size: ${b.sampleSize} | created: ${new Date(b.createdAt).toISOString()}`,
           ),
         ];
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error fetching baselines for agent "${params.agentId}": ${msg}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching baselines for agent "${params.agentId}": ${msg}`,
+            },
+          ],
+        };
       }
     },
   );

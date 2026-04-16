@@ -1,5 +1,5 @@
-export type StatusFilter = 'all' | 'success' | 'error';
-export type SeverityFilter = 'all' | 'healthy' | 'warning' | 'critical';
+export type StatusFilter = "all" | "success" | "error";
+export type SeverityFilter = "all" | "healthy" | "warning" | "critical";
 
 export interface DashboardDateRange {
   start: Date;
@@ -31,35 +31,35 @@ export interface DashboardFilterOption {
 
 export type DashboardFilterDefinition =
   | {
-      key: 'searchQuery';
-      kind: 'search';
+      key: "searchQuery";
+      kind: "search";
       label: string;
       placeholder?: string;
     }
   | {
-      key: 'status' | 'severity';
-      kind: 'single-select';
+      key: "status" | "severity";
+      kind: "single-select";
       label: string;
       options: DashboardFilterOption[];
     }
   | {
       key:
-        | 'agentIds'
-        | 'environments'
-        | 'promptIds'
-        | 'promptVersionIds'
-        | 'evaluatorIds'
-        | 'datasetIds'
-        | 'models'
-        | 'toolNames'
-        | 'tags';
-      kind: 'multi-select';
+        | "agentIds"
+        | "environments"
+        | "promptIds"
+        | "promptVersionIds"
+        | "evaluatorIds"
+        | "datasetIds"
+        | "models"
+        | "toolNames"
+        | "tags";
+      kind: "multi-select";
       label: string;
       options: DashboardFilterOption[];
     }
   | {
-      key: 'dateRange';
-      kind: 'date-preset';
+      key: "dateRange";
+      kind: "date-preset";
       label: string;
       presets: Array<{ label: string; hours: number }>;
     };

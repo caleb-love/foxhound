@@ -79,13 +79,13 @@ function base64UrlDecode(value: string): string {
 }
 
 function getOidcStateSecret(): string {
-  return process.env["OIDC_STATE_SECRET"] ?? process.env["JWT_SECRET"] ?? "foxhound-dev-state-secret";
+  return (
+    process.env["OIDC_STATE_SECRET"] ?? process.env["JWT_SECRET"] ?? "foxhound-dev-state-secret"
+  );
 }
 
 function signOidcState(stateId: string, orgId: string): string {
-  return createHash("sha256")
-    .update(`${getOidcStateSecret()}:${stateId}:${orgId}`)
-    .digest("hex");
+  return createHash("sha256").update(`${getOidcStateSecret()}:${stateId}:${orgId}`).digest("hex");
 }
 
 function createOidcState(orgId: string): string {
@@ -230,37 +230,45 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     });
   });
 
-  fastify.delete("/v1/sso/config", { preHandler: [fastify.authenticate] }, async (request, reply) => {
-    const deleted = await deleteSsoConfig(request.orgId);
-    if (!deleted) {
-      return reply.code(404).send({ error: "Not Found", message: "No SSO config found" });
-    }
-    return reply.code(200).send({ deleted: true });
-  });
+  fastify.delete(
+    "/v1/sso/config",
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const deleted = await deleteSsoConfig(request.orgId);
+      if (!deleted) {
+        return reply.code(404).send({ error: "Not Found", message: "No SSO config found" });
+      }
+      return reply.code(200).send({ deleted: true });
+    },
+  );
 
-  fastify.patch("/v1/sso/enforce", { preHandler: [fastify.authenticate] }, async (request, reply) => {
-    const result = EnforceSsoSchema.safeParse(request.body);
-    if (!result.success) {
-      return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-    }
+  fastify.patch(
+    "/v1/sso/enforce",
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const result = EnforceSsoSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+      }
 
-    const config = await updateSsoEnforcement(request.orgId, result.data.enforce);
-    if (!config) {
-      return reply
-        .code(404)
-        .send({ error: "Not Found", message: "Configure SSO before enabling enforcement" });
-    }
+      const config = await updateSsoEnforcement(request.orgId, result.data.enforce);
+      if (!config) {
+        return reply
+          .code(404)
+          .send({ error: "Not Found", message: "Configure SSO before enabling enforcement" });
+      }
 
-    void trackPendoEvent({
-      event: "sso_enforcement_toggled",
-      visitorId: request.userId ?? "system",
-      accountId: request.orgId,
-      properties: { enforce: result.data.enforce },
-      context: { ip: request.ip },
-    });
+      void trackPendoEvent({
+        event: "sso_enforcement_toggled",
+        visitorId: request.userId ?? "system",
+        accountId: request.orgId,
+        properties: { enforce: result.data.enforce },
+        context: { ip: request.ip },
+      });
 
-    return reply.code(200).send({ enforceSso: config.enforceSso, updatedAt: config.updatedAt });
-  });
+      return reply.code(200).send({ enforceSso: config.enforceSso, updatedAt: config.updatedAt });
+    },
+  );
 
   fastify.get(
     "/v1/sso/login/:orgSlug",

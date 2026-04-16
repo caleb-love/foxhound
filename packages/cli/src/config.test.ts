@@ -26,7 +26,9 @@ describe("cli config", () => {
   it("loadConfig prefers env vars over file config", async () => {
     process.env["FOXHOUND_API_KEY"] = "env-key";
     process.env["FOXHOUND_ENDPOINT"] = "https://env.example.com";
-    mockReadFileSync.mockReturnValue(JSON.stringify({ apiKey: "file-key", endpoint: "http://file" }));
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({ apiKey: "file-key", endpoint: "http://file" }),
+    );
 
     const { loadConfig } = await import("./config.js");
     expect(loadConfig()).toEqual({

@@ -57,6 +57,7 @@ pnpm dev:demo
 ```
 
 Then open routes like:
+
 - `http://localhost:3001/` ← redirects to `/sandbox` when sandbox mode is enabled
 - `http://localhost:3001/sandbox` ← start here for local review
 - `http://localhost:3001/sandbox/traces` ← canonical seeded traces review surface
@@ -70,6 +71,7 @@ Then open routes like:
 - `http://localhost:3001/sandbox/notifications`
 
 **Important:**
+
 - This is a local preview mode only.
 - Default behavior remains auth-protected when `FOXHOUND_UI_DEMO_MODE` is not set.
 - `pnpm dev:demo` is the simplest way to launch the local dashboard sandbox.
@@ -118,6 +120,7 @@ pnpm start
 For the current `apps/web` sandbox, prefer **Vercel** for public no-auth deployment.
 
 Verified on 2026-04-15:
+
 - `pnpm build:pages` succeeds for Cloudflare via OpenNext
 - but the generated Worker bundle exceeds the Cloudflare Pages free-plan 3 MiB limit
 - that makes Cloudflare Pages free a poor fit for the current `apps/web` bundle unless you are on a paid Workers plan or deliberately shrink the deployment target
@@ -125,6 +128,7 @@ Verified on 2026-04-15:
 #### Vercel project settings
 
 For the `foxhound-sandbox` project:
+
 - **Root Directory must be `apps/web`**
 - if Root Directory is `.` Vercel may fail to detect Next.js correctly for this workspace app
 - if workspace packages are not available during build, explicitly build these from the repo root before the web build:

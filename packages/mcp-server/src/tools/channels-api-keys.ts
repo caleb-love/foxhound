@@ -18,7 +18,12 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
         (c) => `- **${c.id}** | ${c.kind} | "${c.name}" | created ${c.createdAt}`,
       );
       return {
-        content: [{ type: "text", text: `## Notification Channels (${channels.length})\n\n${lines.join("\n")}` }],
+        content: [
+          {
+            type: "text",
+            text: `## Notification Channels (${channels.length})\n\n${lines.join("\n")}`,
+          },
+        ],
       };
     },
   );
@@ -38,7 +43,12 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
         config: { webhookUrl: params.webhook_url, channel: params.slack_channel },
       });
       return {
-        content: [{ type: "text", text: `Channel created: **${channel.id}** ("${channel.name}", ${channel.kind})` }],
+        content: [
+          {
+            type: "text",
+            text: `Channel created: **${channel.id}** ("${channel.name}", ${channel.kind})`,
+          },
+        ],
       };
     },
   );
@@ -49,7 +59,9 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
     { channel_id: z.string().describe("The channel ID to test") },
     async (params) => {
       await api.testChannel(params.channel_id);
-      return { content: [{ type: "text", text: `Test alert sent to channel **${params.channel_id}**.` }] };
+      return {
+        content: [{ type: "text", text: `Test alert sent to channel **${params.channel_id}**.` }],
+      };
     },
   );
 
@@ -85,7 +97,9 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
       const lines = keys.map(
         (k) => `- **${k.id}** | "${k.name}" | prefix: ${k.prefix}... | created ${k.createdAt}`,
       );
-      return { content: [{ type: "text", text: `## API Keys (${keys.length})\n\n${lines.join("\n")}` }] };
+      return {
+        content: [{ type: "text", text: `## API Keys (${keys.length})\n\n${lines.join("\n")}` }],
+      };
     },
   );
 
@@ -114,7 +128,10 @@ export function registerChannelAndApiKeyTools(server: McpServer, api: FoxhoundAp
     "Revoke an API key by ID. The key will immediately stop working. Set confirm=true to execute.",
     {
       key_id: z.string().describe("The API key ID to revoke"),
-      confirm: z.boolean().optional().describe("Set to true to confirm revocation. Omit to preview."),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set to true to confirm revocation. Omit to preview."),
     },
     async (params) => {
       if (!params.confirm) {

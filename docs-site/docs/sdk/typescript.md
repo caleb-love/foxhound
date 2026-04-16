@@ -130,12 +130,12 @@ const fox = new FoxhoundClient({
 
 const prompt = await fox.prompts.get({
   name: "support-agent",
-  label: "production",  // defaults to "production" if omitted
+  label: "production", // defaults to "production" if omitted
 });
 
-console.log(prompt.content);  // The prompt template text
-console.log(prompt.version);  // e.g. 3
-console.log(prompt.model);    // e.g. "gpt-4o" or null
+console.log(prompt.content); // The prompt template text
+console.log(prompt.version); // e.g. 3
+console.log(prompt.model); // e.g. "gpt-4o" or null
 ```
 
 ### Link prompt to a trace

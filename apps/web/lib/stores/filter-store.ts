@@ -5,16 +5,12 @@
  * that current surfaces already use, while extending to a reusable cross-dashboard model.
  */
 
-import { create } from 'zustand';
+import { create } from "zustand";
 import {
   createDateRangeFromHours,
   createDefaultDashboardFilters,
-} from './dashboard-filter-presets';
-import type {
-  DashboardFilters,
-  SeverityFilter,
-  StatusFilter,
-} from './dashboard-filter-types';
+} from "./dashboard-filter-presets";
+import type { DashboardFilters, SeverityFilter, StatusFilter } from "./dashboard-filter-types";
 
 interface FilterState extends DashboardFilters {
   setStatus: (status: StatusFilter) => void;
@@ -24,22 +20,22 @@ interface FilterState extends DashboardFilters {
   setSearchQuery: (query: string) => void;
   setStringArrayFilter: (
     key:
-      | 'agentIds'
-      | 'environments'
-      | 'promptIds'
-      | 'promptVersionIds'
-      | 'evaluatorIds'
-      | 'datasetIds'
-      | 'models'
-      | 'toolNames'
-      | 'tags',
+      | "agentIds"
+      | "environments"
+      | "promptIds"
+      | "promptVersionIds"
+      | "evaluatorIds"
+      | "datasetIds"
+      | "models"
+      | "toolNames"
+      | "tags",
     values: string[],
   ) => void;
   clearFilters: () => void;
   resetDateRangeToLast24Hours: () => void;
 }
 
-export type { StatusFilter, SeverityFilter } from './dashboard-filter-types';
+export type { StatusFilter, SeverityFilter } from "./dashboard-filter-types";
 
 export const useFilterStore = create<FilterState>((set) => ({
   ...createDefaultDashboardFilters(),
@@ -48,7 +44,8 @@ export const useFilterStore = create<FilterState>((set) => ({
   setAgentIds: (agentIds) => set({ agentIds }),
   setDateRange: (start, end) => set({ dateRange: { start, end } }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setStringArrayFilter: (key, values) => set({ [key]: values } as Pick<DashboardFilters, typeof key>),
+  setStringArrayFilter: (key, values) =>
+    set({ [key]: values } as Pick<DashboardFilters, typeof key>),
   clearFilters: () => set(createDefaultDashboardFilters()),
   resetDateRangeToLast24Hours: () => set({ dateRange: createDateRangeFromHours(24) }),
 }));

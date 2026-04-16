@@ -17,7 +17,9 @@ export function registerAlertTools(server: McpServer, api: FoxhoundApiClient): v
           `- **${r.id}** | ${r.eventType} >= ${r.minSeverity} -> channel ${r.channelId} | ${r.enabled ? "enabled" : "disabled"}`,
       );
       return {
-        content: [{ type: "text", text: `## Alert Rules (${rules.length})\n\n${lines.join("\n")}` }],
+        content: [
+          { type: "text", text: `## Alert Rules (${rules.length})\n\n${lines.join("\n")}` },
+        ],
       };
     },
   );

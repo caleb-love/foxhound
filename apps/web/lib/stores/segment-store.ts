@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { createDefaultDashboardFilters } from './dashboard-filter-presets';
-import type { DashboardFilters } from './dashboard-filter-types';
+import { create } from "zustand";
+import { createDefaultDashboardFilters } from "./dashboard-filter-presets";
+import type { DashboardFilters } from "./dashboard-filter-types";
 
 export interface SavedSegment {
   id: string;
@@ -26,34 +26,35 @@ const defaultFilters = createDefaultDashboardFilters();
 
 const seededSegments: SavedSegment[] = [
   {
-    id: 'seg-critical-prod',
-    name: 'Critical production issues',
-    description: 'Critical severity issues in the last 24 hours.',
+    id: "seg-critical-prod",
+    name: "Critical production issues",
+    description: "Critical severity issues in the last 24 hours.",
     filters: {
       ...defaultFilters,
-      severity: 'critical',
+      severity: "critical",
     },
   },
   {
-    id: 'seg-planner-agent',
-    name: 'Planner agent',
-    description: 'Focused view on planner-agent behavior and cost.',
+    id: "seg-planner-agent",
+    name: "Planner agent",
+    description: "Focused view on planner-agent behavior and cost.",
     filters: {
       ...defaultFilters,
-      agentIds: ['planner-agent'],
+      agentIds: ["planner-agent"],
     },
   },
 ];
 
 export const useSegmentStore = create<SegmentState>((set, get) => ({
-  currentSegmentName: 'All traffic',
+  currentSegmentName: "All traffic",
   savedSegments: seededSegments,
   currentFilters: defaultFilters,
   setCurrentFilters: (filters) => set({ currentFilters: filters }),
   updateCurrentFilters: (partial) =>
     set((state) => ({ currentFilters: { ...state.currentFilters, ...partial } })),
   setCurrentSegmentName: (name) => set({ currentSegmentName: name }),
-  resetCurrentSegment: () => set({ currentSegmentName: 'All traffic', currentFilters: createDefaultDashboardFilters() }),
+  resetCurrentSegment: () =>
+    set({ currentSegmentName: "All traffic", currentFilters: createDefaultDashboardFilters() }),
   saveCurrentSegment: (name, description) =>
     set((state) => ({
       currentSegmentName: name,

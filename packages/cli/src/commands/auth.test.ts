@@ -12,7 +12,10 @@ vi.mock("../config.js", () => ({ saveConfig, getClient }));
 vi.mock("../output.js", () => ({ isJsonMode, printJson }));
 vi.mock("@foxhound/api-client", () => ({ FoxhoundApiClient: MockApiClient }));
 vi.mock("node:readline/promises", () => ({
-  createInterface: () => ({ question: vi.fn().mockResolvedValue("interactive-key"), close: vi.fn() }),
+  createInterface: () => ({
+    question: vi.fn().mockResolvedValue("interactive-key"),
+    close: vi.fn(),
+  }),
 }));
 
 describe("registerAuthCommands", () => {

@@ -53,10 +53,10 @@ FOXHOUND_API_KEY=fox_... FOXHOUND_ENDPOINT=https://api.foxhound.caleb-love.com n
 
 ## Environment Variables
 
-| Variable            | Required | Default                   | Description           |
-|---------------------|----------|---------------------------|-----------------------|
-| `FOXHOUND_API_KEY`  | Yes      | —                         | Your Foxhound API key |
-| `FOXHOUND_ENDPOINT` | No       | `http://localhost:3001`   | Foxhound API base URL |
+| Variable            | Required | Default                 | Description           |
+| ------------------- | -------- | ----------------------- | --------------------- |
+| `FOXHOUND_API_KEY`  | Yes      | —                       | Your Foxhound API key |
+| `FOXHOUND_ENDPOINT` | No       | `http://localhost:3001` | Foxhound API base URL |
 
 ## Example prompts
 

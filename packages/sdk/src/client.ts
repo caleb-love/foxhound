@@ -382,11 +382,7 @@ class DatasetsNamespace {
   ): Promise<unknown[]> {
     const results = await Promise.all(
       items.map((item) =>
-        this.request(
-          "POST",
-          `/v1/datasets/${encodeURIComponent(datasetId)}/items`,
-          item,
-        ),
+        this.request("POST", `/v1/datasets/${encodeURIComponent(datasetId)}/items`, item),
       ),
     );
     return results;

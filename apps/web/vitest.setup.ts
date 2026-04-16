@@ -7,7 +7,8 @@ class ResizeObserverMock {
 }
 
 if (!(globalThis as { ResizeObserver?: unknown }).ResizeObserver) {
-  (globalThis as unknown as { ResizeObserver: typeof ResizeObserverMock }).ResizeObserver = ResizeObserverMock;
+  (globalThis as unknown as { ResizeObserver: typeof ResizeObserverMock }).ResizeObserver =
+    ResizeObserverMock;
 }
 
 if (!Element.prototype.scrollIntoView) {

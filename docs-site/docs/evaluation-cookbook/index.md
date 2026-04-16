@@ -12,12 +12,12 @@ Foxhound provides a layered evaluation system that lets you move from quick manu
 
 The best evaluation strategy combines multiple signals:
 
-| Layer | Speed | Scale | Use Case |
-|-------|-------|-------|----------|
-| Manual scoring | Seconds | Low | Quick spot-checks, calibration |
-| LLM-as-a-Judge | Minutes | Medium–High | Automated quality assessment |
-| Dataset curation | Ongoing | High | Building reliable test suites |
-| CI quality gates | Per PR | High | Regression prevention |
+| Layer            | Speed   | Scale       | Use Case                       |
+| ---------------- | ------- | ----------- | ------------------------------ |
+| Manual scoring   | Seconds | Low         | Quick spot-checks, calibration |
+| LLM-as-a-Judge   | Minutes | Medium–High | Automated quality assessment   |
+| Dataset curation | Ongoing | High        | Building reliable test suites  |
+| CI quality gates | Per PR  | High        | Regression prevention          |
 
 Start with manual scoring to build intuition, use LLM-as-a-Judge evaluators to scale, curate a dataset from your best examples, then lock quality in with CI gates.
 

@@ -36,10 +36,10 @@ Add trace abc-123 to dataset ds_helpfulness_golden
 
 ### Parameters
 
-| Parameter    | Type   | Required | Description |
-|--------------|--------|----------|-------------|
-| `trace_id`   | string | Yes | The trace to add |
-| `dataset_id` | string | Yes | The target dataset |
+| Parameter    | Type   | Required | Description        |
+| ------------ | ------ | -------- | ------------------ |
+| `trace_id`   | string | Yes      | The trace to add   |
+| `dataset_id` | string | Yes      | The target dataset |
 
 ### Preview / Confirm Pattern
 
@@ -57,6 +57,7 @@ Confirm to add the trace. The `sourceTraceId` field on the dataset entry records
 ### Lineage Tracking
 
 Every trace added to a dataset has a `sourceTraceId` field. This lets you:
+
 - Trace a dataset entry back to the original production run
 - Audit which version of the agent produced the trace
 - Reproduce the exact input/output context for debugging
@@ -71,14 +72,14 @@ Curate dataset ds_helpfulness_golden: add traces from the last 7 days where help
 
 ### Parameters
 
-| Parameter    | Type    | Required | Description |
-|--------------|---------|----------|-------------|
-| `dataset_id` | string  | Yes | The dataset to curate into |
-| `score_name` | string  | No | Score dimension to filter on (e.g. `helpfulness`) |
-| `operator`   | string  | No | Comparison operator: `>=`, `<=`, `>`, `<`, `==` |
-| `threshold`  | number  | No | Score threshold value (0.0–1.0) |
-| `since_days` | number  | No | Only include traces from the last N days |
-| `limit`      | number  | No | Maximum traces to add in this curation run |
+| Parameter    | Type   | Required | Description                                       |
+| ------------ | ------ | -------- | ------------------------------------------------- |
+| `dataset_id` | string | Yes      | The dataset to curate into                        |
+| `score_name` | string | No       | Score dimension to filter on (e.g. `helpfulness`) |
+| `operator`   | string | No       | Comparison operator: `>=`, `<=`, `>`, `<`, `==`   |
+| `threshold`  | number | No       | Score threshold value (0.0–1.0)                   |
+| `since_days` | number | No       | Only include traces from the last N days          |
+| `limit`      | number | No       | Maximum traces to add in this curation run        |
 
 ### Example: Collecting High-Quality Examples
 

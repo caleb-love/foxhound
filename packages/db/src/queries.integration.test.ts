@@ -1044,7 +1044,11 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
   describe("Prompt management", () => {
     it("createPromptVersion increments versions atomically within one prompt", async () => {
       const org = await createTestOrg();
-      const createdPrompt = await queries.createPrompt({ id: "prompt-1", orgId: org.id, name: "support" });
+      const createdPrompt = await queries.createPrompt({
+        id: "prompt-1",
+        orgId: org.id,
+        name: "support",
+      });
       expect(createdPrompt).toBeDefined();
       const prompt = createdPrompt!;
 
@@ -1072,7 +1076,11 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
 
     it("setPromptLabel moves label between versions of the same prompt", async () => {
       const org = await createTestOrg();
-      const createdPrompt = await queries.createPrompt({ id: "prompt-label", orgId: org.id, name: "router" });
+      const createdPrompt = await queries.createPrompt({
+        id: "prompt-label",
+        orgId: org.id,
+        name: "router",
+      });
       expect(createdPrompt).toBeDefined();
       const prompt = createdPrompt!;
       const createdV1 = await queries.createPromptVersion({

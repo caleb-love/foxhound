@@ -1,4 +1,8 @@
-import type { DashboardFilters, SeverityFilter, StatusFilter } from './stores/dashboard-filter-types';
+import type {
+  DashboardFilters,
+  SeverityFilter,
+  StatusFilter,
+} from "./stores/dashboard-filter-types";
 
 function matchesSearch(text: string, query: string) {
   if (!query) return true;
@@ -6,15 +10,16 @@ function matchesSearch(text: string, query: string) {
 }
 
 function matchesStatus(status: string | undefined, filter: StatusFilter) {
-  if (filter === 'all') return true;
+  if (filter === "all") return true;
   if (!status) return true;
-  if (filter === 'success') return status === 'healthy' || status === 'success';
-  if (filter === 'error') return status === 'critical' || status === 'error' || status === 'warning';
+  if (filter === "success") return status === "healthy" || status === "success";
+  if (filter === "error")
+    return status === "critical" || status === "error" || status === "warning";
   return true;
 }
 
 function matchesSeverity(severity: string | undefined, filter: SeverityFilter) {
-  if (filter === 'all') return true;
+  if (filter === "all") return true;
   if (!severity) return true;
   return severity === filter;
 }

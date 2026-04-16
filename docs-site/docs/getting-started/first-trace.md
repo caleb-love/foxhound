@@ -27,13 +27,13 @@ A **trace** represents one complete agent run — from the initial input to the 
 
 ### Span types
 
-| Kind         | Description                                        |
-|--------------|----------------------------------------------------|
-| `tool_call`  | An external tool invocation (search, database, API)|
-| `llm`        | An LLM completion call                             |
-| `chain`      | A multi-step reasoning chain                       |
-| `agent`      | A top-level agent turn                             |
-| `retrieval`  | A vector store or document retrieval               |
+| Kind        | Description                                         |
+| ----------- | --------------------------------------------------- |
+| `tool_call` | An external tool invocation (search, database, API) |
+| `llm`       | An LLM completion call                              |
+| `chain`     | A multi-step reasoning chain                        |
+| `agent`     | A top-level agent turn                              |
+| `retrieval` | A vector store or document retrieval                |
 
 ### Span tree
 

@@ -12,7 +12,10 @@ vi.mock("node:fs", () => ({
   existsSync: mockExistsSync,
 }));
 vi.mock("node:readline/promises", () => ({
-  createInterface: () => ({ question: vi.fn().mockResolvedValue("interactive-key"), close: vi.fn() }),
+  createInterface: () => ({
+    question: vi.fn().mockResolvedValue("interactive-key"),
+    close: vi.fn(),
+  }),
 }));
 
 describe("registerInitCommand", () => {
@@ -23,7 +26,10 @@ describe("registerInitCommand", () => {
   });
 
   it("detects python langgraph project and writes python setup file", async () => {
-    mockExistsSync.mockImplementation((path: string) => path.endsWith("pyproject.toml") || path.endsWith("foxhound_setup.py") === false);
+    mockExistsSync.mockImplementation(
+      (path: string) =>
+        path.endsWith("pyproject.toml") || path.endsWith("foxhound_setup.py") === false,
+    );
     mockReadFileSync.mockReturnValue("langgraph\n");
     process.env["FOXHOUND_API_KEY"] = "fox-key";
 
@@ -41,7 +47,9 @@ describe("registerInitCommand", () => {
   });
 
   it("prints snippet instead of overwriting existing file", async () => {
-    mockExistsSync.mockImplementation((path: string) => path.endsWith("package.json") || path.endsWith("foxhound_setup.ts"));
+    mockExistsSync.mockImplementation(
+      (path: string) => path.endsWith("package.json") || path.endsWith("foxhound_setup.ts"),
+    );
     mockReadFileSync.mockReturnValue('{"dependencies":{"@anthropic-ai/sdk":"1.0.0"}}');
     process.env["FOXHOUND_API_KEY"] = "fox-key";
 

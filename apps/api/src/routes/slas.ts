@@ -30,8 +30,8 @@ const ListQuerySchema = z.object({
 export function slasRoutes(fastify: FastifyInstance): void {
   fastify.put("/v1/slas/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const result = UpsertSLASchema.safeParse(request.body);
     if (!result.success) {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -97,8 +97,8 @@ export function slasRoutes(fastify: FastifyInstance): void {
 
   fastify.get("/v1/slas/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const config = await getAgentConfig(request.orgId, agentId);
     if (!config || (config.maxDurationMs === null && config.minSuccessRate === null)) {
       return reply.code(404).send({ error: "No SLA configured for this agent" });
@@ -108,8 +108,8 @@ export function slasRoutes(fastify: FastifyInstance): void {
 
   fastify.delete("/v1/slas/:agentId", async (request, reply) => {
     const params = parseParams(request, reply, AgentIdParamSchema);
-      if (!params) return;
-      const { agentId } = params;
+    if (!params) return;
+    const { agentId } = params;
     const config = await getAgentConfig(request.orgId, agentId);
     if (config) {
       if (config.costBudgetUsd !== null) {

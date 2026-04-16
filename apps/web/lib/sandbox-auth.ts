@@ -1,9 +1,9 @@
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 
 export function isDashboardSandboxModeEnabled(): boolean {
-  return process.env['FOXHOUND_UI_DEMO_MODE'] === 'true';
+  return process.env["FOXHOUND_UI_DEMO_MODE"] === "true";
 }
 
 export interface DashboardSessionLike {
@@ -26,14 +26,14 @@ export async function getDashboardSessionOrSandbox(): Promise<DashboardSessionLi
   if (isDashboardSandboxModeEnabled()) {
     return {
       user: {
-        id: 'sandbox-user',
-        name: 'Sandbox Operator',
-        email: 'sandbox@foxhound.local',
-        token: 'sandbox-token',
-        orgId: 'sandbox-org',
+        id: "sandbox-user",
+        name: "Sandbox Operator",
+        email: "sandbox@foxhound.local",
+        token: "sandbox-token",
+        orgId: "sandbox-org",
       },
     };
   }
 
-  redirect('/login');
+  redirect("/login");
 }

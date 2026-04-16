@@ -1,14 +1,15 @@
-import { headers } from 'next/headers';
+import { headers } from "next/headers";
 
 export async function getRequestOrigin() {
   const headerStore = await headers();
-  const host = headerStore.get('x-forwarded-host') ?? headerStore.get('host');
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
 
   if (!host) {
-    throw new Error('Unable to determine request host for server-side fetches.');
+    throw new Error("Unable to determine request host for server-side fetches.");
   }
 
-  const protocol = headerStore.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https');
+  const protocol =
+    headerStore.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
 
   return `${protocol}://${host}`;
 }

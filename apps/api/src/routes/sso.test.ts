@@ -411,9 +411,7 @@ describe("GET /v1/sso/callback/oidc", () => {
 
   it("returns 400 when state was not issued by the server", async () => {
     process.env["OIDC_STATE_SECRET"] = "test-oidc-state-secret";
-    const forgedState = Buffer.from(
-      JSON.stringify({ sid: "fake", orgId: "org_1", sig: "abcd" }),
-    )
+    const forgedState = Buffer.from(JSON.stringify({ sid: "fake", orgId: "org_1", sig: "abcd" }))
       .toString("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
@@ -459,18 +457,25 @@ describe("GET /v1/sso/callback/oidc", () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          token_endpoint: "https://issuer.example.com/token",
-          userinfo_endpoint: "https://issuer.example.com/userinfo",
-        }),
+        json: () =>
+          Promise.resolve({
+            token_endpoint: "https://issuer.example.com/token",
+            userinfo_endpoint: "https://issuer.example.com/userinfo",
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ access_token: "access-token", id_token: "id-token", token_type: "Bearer" }),
+        json: () =>
+          Promise.resolve({
+            access_token: "access-token",
+            id_token: "id-token",
+            token_type: "Bearer",
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ sub: "oidc-subject-1", email: "user@acme.com", name: "Alice" }),
+        json: () =>
+          Promise.resolve({ sub: "oidc-subject-1", email: "user@acme.com", name: "Alice" }),
       });
 
     const app = buildApp();

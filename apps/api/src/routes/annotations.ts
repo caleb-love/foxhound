@@ -97,8 +97,8 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.get("/v1/annotation-queues/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const queue = await getAnnotationQueue(id, request.orgId);
     if (!queue) {
       return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });
@@ -114,8 +114,8 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    */
   fastify.delete("/v1/annotation-queues/:id", async (request, reply) => {
     const p = parseParams(request, reply, IdParamSchema);
-      if (!p) return;
-      const { id } = p;
+    if (!p) return;
+    const { id } = p;
     const deleted = await deleteAnnotationQueue(id, request.orgId);
     if (!deleted) {
       return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });

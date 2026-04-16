@@ -48,7 +48,10 @@ export function createApiHttpClient(config: ApiHttpClientConfig) {
     };
   }
 
-  async function parseJsonResponse<T>(response: Response, errorPrefix = "Foxhound API"): Promise<T> {
+  async function parseJsonResponse<T>(
+    response: Response,
+    errorPrefix = "Foxhound API",
+  ): Promise<T> {
     if (!response.ok) {
       const raw = await response.text().catch(() => "");
       const text = raw.length > 500 ? `${raw.slice(0, 500)}…` : raw;
@@ -96,7 +99,11 @@ export function createApiHttpClient(config: ApiHttpClientConfig) {
         lastError = err instanceof Error ? err : new Error(String(err));
 
         // Do not retry abort/timeout or if out of attempts
-        if (lastError.name === "AbortError" || lastError.name === "TimeoutError" || attempt >= attempts - 1) {
+        if (
+          lastError.name === "AbortError" ||
+          lastError.name === "TimeoutError" ||
+          attempt >= attempts - 1
+        ) {
           throw lastError;
         }
 
