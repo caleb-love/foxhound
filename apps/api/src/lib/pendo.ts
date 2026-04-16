@@ -48,20 +48,16 @@ export function trackPendoEvent(options: PendoTrackOptions): void {
   });
 
   try {
-    const result = fetch(PENDO_TRACK_URL, {
+    void fetch(PENDO_TRACK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-pendo-integration-key": PENDO_INTEGRATION_KEY,
       },
       body,
+    }).catch(() => {
+      // Silently ignore — tracking must not affect application flow
     });
-
-    if (result && typeof (result as Promise<unknown>).catch === "function") {
-      void (result as Promise<unknown>).catch(() => {
-        // Silently ignore — tracking must not affect application flow
-      });
-    }
   } catch {
     // Silently ignore — tracking must not affect application flow
   }

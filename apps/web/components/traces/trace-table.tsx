@@ -108,7 +108,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
     }
 
     return filtered;
-  }, [initialData, status, agentIds, dateRange, searchQuery]);
+  }, [initialData, status, agentIds, dateRange, searchQuery, isSandbox]);
 
   const defaultDateRange = createDateRangeFromHours(24);
   const hasDateFilter =

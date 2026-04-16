@@ -47,5 +47,6 @@ export function parseParams<T extends z.ZodType>(
     void reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     return null;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return result.data;
 }

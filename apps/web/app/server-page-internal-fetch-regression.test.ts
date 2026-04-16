@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 function walk(dir: string): string[] {
-  const { readdirSync, statSync } = require('node:fs') as typeof import('node:fs');
   const entries = readdirSync(dir).sort();
   const files: string[] = [];
 

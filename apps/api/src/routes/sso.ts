@@ -185,7 +185,7 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     if (!config) {
       return reply.code(200).send({ configured: false });
     }
-    const safeConfig = { ...(config.config as Record<string, unknown>) };
+    const safeConfig = { ...(config.config as unknown as Record<string, unknown>) };
     if (config.provider === "oidc") {
       safeConfig["clientSecret"] = "••••••••";
     }
@@ -448,7 +448,7 @@ export function ssoRoutes(fastify: FastifyInstance): void {
 
       const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000";
       const isHttps = frontendUrl.startsWith("https://");
-      reply.header(
+      void reply.header(
         "Set-Cookie",
         `foxhound_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${isHttps ? "; Secure" : ""}; Max-Age=86400`,
       );

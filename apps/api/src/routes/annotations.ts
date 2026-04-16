@@ -209,7 +209,7 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
 
       trackPendoEvent({
         event: "annotation_item_claimed",
-        visitorId: request.userId!,
+        visitorId: request.userId ?? "system",
         accountId: request.orgId,
         properties: {
           queueId: id,

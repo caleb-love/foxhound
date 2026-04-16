@@ -66,10 +66,13 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const nextMode = getPreferredMode();
     const nextResolvedMode = resolveThemeMode(nextMode);
-    setModeState(nextMode);
-    setResolvedMode(nextResolvedMode);
     applyThemeMode(nextResolvedMode);
-    setHasHydrated(true);
+    const timer = setTimeout(() => {
+      setModeState(nextMode);
+      setResolvedMode(nextResolvedMode);
+      setHasHydrated(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const setMode = useCallback((nextMode: ThemeMode) => {

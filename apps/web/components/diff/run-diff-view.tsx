@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Trace, Span } from '@foxhound/types';
@@ -51,13 +51,12 @@ function getSpanFingerprint(trace: Trace, span: Span): string {
 export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTraces = [] }: RunDiffViewProps) {
   const router = useRouter();
   const { setComparePair, setTraceSlot, swapComparePair } = useCompareStore();
-  const [localTraceAId, setLocalTraceAId] = useState(traceA.id);
-  const [localTraceBId, setLocalTraceBId] = useState(traceB.id);
+  const localTraceAId = traceA.id;
+  const localTraceBId = traceB.id;
 
   useEffect(() => {
-    setLocalTraceAId(traceA.id);
-    setLocalTraceBId(traceB.id);
-    setComparePair(traceA.id, traceB.id);
+    const timer = setTimeout(() => setComparePair(traceA.id, traceB.id), 0);
+    return () => clearTimeout(timer);
   }, [traceA.id, traceB.id, setComparePair]);
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -176,13 +175,11 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
   };
 
   const handleSelectTraceA = (nextTraceAId: string) => {
-    setLocalTraceAId(nextTraceAId);
     setTraceSlot('a', nextTraceAId);
     navigateToPair(nextTraceAId, localTraceBId);
   };
 
   const handleSelectTraceB = (nextTraceBId: string) => {
-    setLocalTraceBId(nextTraceBId);
     setTraceSlot('b', nextTraceBId);
     navigateToPair(localTraceAId, nextTraceBId);
   };

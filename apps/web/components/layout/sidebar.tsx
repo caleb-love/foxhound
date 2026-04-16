@@ -124,7 +124,8 @@ export function Sidebar() {
   useEffect(() => {
     const storedValue = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
     if (storedValue === 'true') {
-      setIsCollapsed(true);
+      const timer = setTimeout(() => setIsCollapsed(true), 0);
+      return () => clearTimeout(timer);
     }
   }, []);
 

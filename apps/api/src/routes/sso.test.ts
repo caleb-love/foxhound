@@ -455,22 +455,22 @@ describe("GET /v1/sso/callback/oidc", () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ authorization_endpoint: "https://issuer.example.com/auth" }),
+        json: () => Promise.resolve({ authorization_endpoint: "https://issuer.example.com/auth" }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
+        json: () => Promise.resolve({
           token_endpoint: "https://issuer.example.com/token",
           userinfo_endpoint: "https://issuer.example.com/userinfo",
         }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ access_token: "access-token", id_token: "id-token", token_type: "Bearer" }),
+        json: () => Promise.resolve({ access_token: "access-token", id_token: "id-token", token_type: "Bearer" }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ sub: "oidc-subject-1", email: "user@acme.com", name: "Alice" }),
+        json: () => Promise.resolve({ sub: "oidc-subject-1", email: "user@acme.com", name: "Alice" }),
       });
 
     const app = buildApp();
