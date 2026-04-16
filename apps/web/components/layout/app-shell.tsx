@@ -3,7 +3,8 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { TopBar } from '@/components/layout/top-bar';
 import { OperatorCommandPalette } from '@/components/layout/operator-command-palette';
 import { SegmentPersistenceBridge } from '@/components/layout/segment-persistence-bridge';
-import { TenantThemeProvider } from '@/components/theme/tenant-theme-provider';
+
+import { InvestigationBreadcrumb } from '@/components/investigation/breadcrumb';
 
 interface ShellUser {
   name: string;
@@ -103,11 +104,14 @@ export function AppShell({
           </header>
         ) : null}
         <main className="relative flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">{children}</div>
+          <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+            <InvestigationBreadcrumb />
+            {children}
+          </div>
         </main>
       </div>
     </div>
   );
 
-  return mode === 'sandbox' ? <TenantThemeProvider>{shell}</TenantThemeProvider> : shell;
+  return shell;
 }
