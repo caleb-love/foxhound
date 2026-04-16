@@ -1,58 +1,108 @@
-import { ExecutiveSummaryDashboard, type ExecutiveMetric, type ExecutiveDecisionItem } from '@/components/overview/executive-summary-dashboard';
+import {
+  ExecutiveSummaryV2,
+  type ExecMetricInput,
+  type ExecDecisionInput,
+  type ExecTalkingPoint,
+} from '@/components/overview/executive-summary-v2';
+import type { FleetMetrics } from '@/lib/verdict-engine';
 
-const metrics: ExecutiveMetric[] = [
+const fleetMetrics: FleetMetrics = {
+  healthPercent: 92,
+  previousHealthPercent: 97,
+  criticalRegressions: 2,
+  slaRisks: 4,
+  budgetOverspendUsd: 182,
+  previousBudgetOverspendUsd: 90,
+};
+
+const metricCards: ExecMetricInput[] = [
   {
-    label: 'Platform health',
+    label: 'Reliability',
     value: '92%',
-    supportingText: 'Most monitored workflows remain healthy, with a small set of targeted risks to resolve.',
+    numericValue: 92,
+    previousValue: 97,
+    higherIsBetter: true,
+    tone: 'healthy',
+    sparklineData: [
+      { value: 97 }, { value: 96 }, { value: 94 }, { value: 91 },
+      { value: 89 }, { value: 90 }, { value: 92 },
+    ],
   },
   {
-    label: 'Critical risks',
-    value: '2',
-    supportingText: 'Two issues need active review before the next release decision.',
+    label: 'Cost position',
+    value: '$182 over',
+    numericValue: 182,
+    previousValue: 90,
+    higherIsBetter: false,
+    tone: 'warning',
+    sparklineData: [
+      { value: 40 }, { value: 60 }, { value: 80 }, { value: 100 },
+      { value: 130 }, { value: 160 }, { value: 182 },
+    ],
   },
   {
-    label: 'Projected overspend',
-    value: '$182',
-    supportingText: 'Current cost drift is manageable if the top hotspot is addressed quickly.',
+    label: 'Risk items',
+    value: '2 critical',
+    numericValue: 2,
+    previousValue: 0,
+    higherIsBetter: false,
+    tone: 'critical',
+    sparklineData: [
+      { value: 0 }, { value: 0 }, { value: 1 }, { value: 1 },
+      { value: 2 }, { value: 2 }, { value: 2 },
+    ],
   },
   {
-    label: 'Promotion-ready changes',
+    label: 'Ready to ship',
     value: '1',
-    supportingText: 'One candidate looks safe to promote pending final review.',
+    numericValue: 1,
+    higherIsBetter: true,
+    tone: 'healthy',
   },
 ];
 
-const decisions: ExecutiveDecisionItem[] = [
+const decisions: ExecDecisionInput[] = [
   {
-    title: 'Decide whether support-routing v12 is safe to promote',
+    title: 'Promote support-routing v12 to production?',
     status: 'watch',
-    description: 'Latency improved, but cost rose slightly and needs a final evaluator review.',
+    evidence: 'Latency improved 15%, but cost rose 3%. Evaluator review pending.',
+    recommendation: 'Promote with cost monitoring',
     href: '/experiments',
-    cta: 'Open experiments',
+    cta: 'Review experiment',
   },
   {
-    title: 'Review planner-agent reliability drift',
+    title: 'Planner-agent reliability drift',
     status: 'attention',
-    description: 'Regression and SLA pages both indicate the same high-priority reliability issue.',
+    evidence: 'Regression and SLA pages indicate the same high-priority reliability issue.',
+    recommendation: 'Hold releases until resolved',
     href: '/regressions',
-    cta: 'Open regressions',
+    cta: 'Review regressions',
   },
   {
-    title: 'Confirm budget protections before the next release',
+    title: 'Budget protections before next release',
     status: 'on-track',
-    description: 'Budget guardrails are in place, but one hotspot should be reduced before traffic increases.',
+    evidence: 'Budget guardrails active. One hotspot should be reduced before traffic increases.',
+    recommendation: 'No action required',
     href: '/budgets',
-    cta: 'Open budgets',
+    cta: 'View budgets',
   },
 ];
 
-const highlights = [
-  'Support workflows improved on latency, but cost efficiency still needs validation.',
-  'Planner reliability remains the main risk to customer-facing stability.',
-  'The dashboard now has connected operator surfaces across overview, investigate, improve, and govern workflows.',
+const talkingPoints: ExecTalkingPoint[] = [
+  { text: 'Support workflows improved on latency, but cost efficiency still needs validation.' },
+  { text: 'Planner reliability remains the main risk to customer-facing stability.' },
+  { text: 'Connected operator surfaces now cover overview, investigate, improve, and govern workflows.' },
 ];
 
 export default function ExecutivePage() {
-  return <ExecutiveSummaryDashboard metrics={metrics} decisions={decisions} highlights={highlights} />;
+  return (
+    <ExecutiveSummaryV2
+      fleetMetrics={fleetMetrics}
+      metricCards={metricCards}
+      decisions={decisions}
+      talkingPoints={talkingPoints}
+      fleetOverviewHref="/"
+      periodLabel="Week of Apr 14, 2026"
+    />
+  );
 }

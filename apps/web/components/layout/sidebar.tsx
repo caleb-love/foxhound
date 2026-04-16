@@ -12,7 +12,6 @@ import {
   Activity,
   Beaker,
   Database,
-  Settings,
   BarChart3,
   AlertTriangle,
   GitCompare,
@@ -83,10 +82,7 @@ const navSections: NavSection[] = [
       { href: '/notifications', label: 'Notifications', icon: Bell },
     ],
   },
-  {
-    title: 'Settings',
-    items: [{ href: '/settings', label: 'Workspace Settings', icon: Settings }],
-  },
+
 ];
 
 function isItemActive(pathname: string, fullHref: string, baseHref: string) {

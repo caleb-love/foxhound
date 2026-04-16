@@ -5,6 +5,7 @@ import { OperatorCommandPalette } from '@/components/layout/operator-command-pal
 import { SegmentPersistenceBridge } from '@/components/layout/segment-persistence-bridge';
 
 import { InvestigationBreadcrumb } from '@/components/investigation/breadcrumb';
+import { CompactModeProvider, CompactModeToggle } from '@/components/investigation/compact-mode';
 
 interface ShellUser {
   name: string;
@@ -91,6 +92,7 @@ export function AppShell({
               <Suspense fallback={null}>
                 <OperatorCommandPalette />
               </Suspense>
+              <CompactModeToggle />
               {['Overview', 'Investigate', 'Improve', 'Govern'].map((item) => (
                 <div
                   key={item}
@@ -113,5 +115,5 @@ export function AppShell({
     </div>
   );
 
-  return shell;
+  return <CompactModeProvider>{shell}</CompactModeProvider>;
 }

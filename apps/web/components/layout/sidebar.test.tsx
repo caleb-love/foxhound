@@ -56,7 +56,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('Investigate')).toBeInTheDocument();
     expect(screen.getByText('Improve')).toBeInTheDocument();
     expect(screen.getByText('Govern')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+
   });
 
   it('keeps current routes reachable and includes prompts', () => {

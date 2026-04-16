@@ -10,8 +10,17 @@ import type { PromptResponse } from '@foxhound/api-client';
 import { PageContainer, PageHeader, StatusBadge } from '@/components/system/page';
 import { VerdictBar } from '@/components/investigation';
 
+export interface PromptPerformanceMetrics {
+  traceCount: number;
+  errorRate: number;
+  avgCostUsd: number;
+  latestVersion?: number;
+}
+
 interface PromptListViewProps {
   prompts: PromptResponse[];
+  /** Performance metrics keyed by prompt name */
+  performanceByPrompt?: Record<string, PromptPerformanceMetrics>;
   focusedPromptName?: string;
   baseHref?: string;
 }
@@ -28,7 +37,20 @@ const promptFilters: DashboardFilterDefinition[] = [
   },
 ];
 
-export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: PromptListViewProps) {
+function HealthBar({ value, max = 100 }: { value: number; max?: number }) {
+  const pct = Math.min((value / max) * 100, 100);
+  const color = value >= 95 ? 'var(--tenant-success)' : value >= 85 ? 'var(--tenant-warning)' : 'var(--tenant-danger)';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-panel-stroke) 48%, transparent)' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="font-mono text-[11px] tabular-nums" style={{ color }}>{value.toFixed(1)}%</span>
+    </div>
+  );
+}
+
+export function PromptListView({ prompts, performanceByPrompt, focusedPromptName, baseHref = '' }: PromptListViewProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
   const sortedPrompts = filterByDashboardScope(prompts, filters, {
@@ -70,13 +92,22 @@ export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: Pr
           <div
             className="grid items-center border-b px-4 py-2"
             style={{
-              gridTemplateColumns: '1fr 100px 120px',
+              gridTemplateColumns: performanceByPrompt ? '1.2fr 60px 80px 100px 110px 90px' : '1fr 100px 120px',
               borderColor: 'var(--tenant-panel-stroke)',
               background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
             }}
           >
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Prompt</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Updated</span>
+            {performanceByPrompt ? (
+              <>
+                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Ver</span>
+                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Traces</span>
+                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Health</span>
+                <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Avg cost</span>
+              </>
+            ) : (
+              <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Updated</span>
+            )}
             <span className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Actions</span>
           </div>
 
@@ -84,13 +115,15 @@ export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: Pr
           <div className="divide-y" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
             {sortedPrompts.map((prompt) => {
               const isFocused = focusedPromptName?.toLowerCase() === prompt.name.toLowerCase();
+              const perf = performanceByPrompt?.[prompt.name];
+              const healthPct = perf ? (1 - perf.errorRate) * 100 : null;
 
               return (
                 <div
                   key={prompt.id}
                   className="grid items-center px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
                   style={{
-                    gridTemplateColumns: '1fr 100px 120px',
+                    gridTemplateColumns: performanceByPrompt ? '1.2fr 60px 80px 100px 110px 90px' : '1fr 100px 120px',
                     borderLeft: isFocused ? '3px solid var(--tenant-accent)' : '3px solid transparent',
                     background: isFocused ? 'color-mix(in srgb, var(--tenant-accent) 6%, var(--card))' : undefined,
                   }}
@@ -106,10 +139,34 @@ export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: Pr
                     <div className="mt-0.5 truncate font-mono text-[11px] text-tenant-text-muted">{prompt.id}</div>
                   </div>
 
-                  {/* Updated */}
-                  <div className="text-center text-xs text-tenant-text-muted">
-                    {new Date(prompt.updatedAt).toLocaleDateString()}
-                  </div>
+                  {performanceByPrompt ? (
+                    <>
+                      {/* Version */}
+                      <div className="text-center text-xs font-semibold text-tenant-text-secondary">
+                        {perf?.latestVersion !== undefined ? `v${perf.latestVersion}` : '-'}
+                      </div>
+
+                      {/* Trace count */}
+                      <div className="text-center font-mono text-xs text-tenant-text-secondary">
+                        {perf ? perf.traceCount.toLocaleString() : '-'}
+                      </div>
+
+                      {/* Health bar */}
+                      <div className="flex justify-center">
+                        {healthPct !== null ? <HealthBar value={healthPct} /> : <span className="text-xs text-tenant-text-muted">-</span>}
+                      </div>
+
+                      {/* Avg cost */}
+                      <div className="text-center font-mono text-xs text-tenant-text-secondary">
+                        {perf ? `$${perf.avgCostUsd.toFixed(4)}` : '-'}
+                      </div>
+                    </>
+                  ) : (
+                    /* Fallback: just updated date */
+                    <div className="text-center text-xs text-tenant-text-muted">
+                      {new Date(prompt.updatedAt).toLocaleDateString()}
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-2">
