@@ -164,7 +164,7 @@ describe("FoxhoundClient.datasets.addItems", () => {
   it("submits one request per dataset item using the server-supported single-item contract", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ id: "item-created" }),
+      json: () => Promise.resolve({ id: "item-created" }),
     });
 
     const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
