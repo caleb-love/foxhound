@@ -28,12 +28,24 @@ pnpm dev:demo
 
 **Sandbox features:**
 
-- realistic seeded traces with mixed success and error states
-- multiple agent types and workflows
-- LLM calls, tool calls, and agent steps
-- session grouping and replayable stories
-- no authentication required
-- strong review surface for screenshots, walkthroughs, and marketing previews
+- **568 seeded traces** across a realistic seven-day operating story with 8 named agents
+- **Trace timeline** with tree-structured span indentation, kind-colored dots, cost badges on LLM calls
+- **Run Diff** with side-by-side timeline comparison and metrics delta
+- **Session Replay** with play/pause, step forward/back, speed control (0.5x/1x/2x/4x), seek bar, and live state diff
+- **Regression detection** with linked investigation paths to traces, diffs, and prompts
+- **Experiments** with dataset-backed evaluation and promotion-ready candidates
+- **Budgets and SLAs** per agent with threshold alerting
+- **Prompt management** with versioned history, label-based promotion, and diff view
+- **Notification routing** to Slack, webhook, GitHub, Linear, PagerDuty
+- **Guided tour** (8-step first-visit walkthrough with keyboard navigation)
+- **Command palette** (`Cmd+K`) for quick navigation
+- **SDK simulation** (JSON payload editor, Python/TS code snippets)
+- **CI quality gate demo** (animated pipeline with evaluator results table)
+- **Theme switcher** (light/dark presets, whitelabel-ready tenant theming)
+- **Mobile responsive** (hamburger menu with slide-over drawer)
+- **Recharts** for trend charts and metric sparklines
+- **Loading skeletons** and **error boundaries** on all sandbox routes
+- No authentication required
 
 ### Local Dashboard Sandbox Bypass (No Login Required)
 

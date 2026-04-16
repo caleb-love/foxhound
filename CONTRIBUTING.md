@@ -7,7 +7,7 @@ Thank you for your interest in contributing to Foxhound! This document provides 
 1. **Clone and setup:**
 
    ```bash
-   git clone https://github.com/yourusername/foxhound.git
+   git clone https://github.com/caleb-love/foxhound.git
    cd foxhound
    pnpm install
    pnpm build

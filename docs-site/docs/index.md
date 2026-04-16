@@ -23,6 +23,19 @@ Foxhound gives you deep visibility into every AI agent call — traces, evals, c
 | [CI/CD Quality Gate](/ci-cd/quality-gate-action) | Block deploys when eval scores regress |
 | [Evaluation Cookbook](/evaluation-cookbook/manual-scoring) | Recipes for scoring, judging, and curating eval datasets |
 
+## Live sandbox
+
+Explore Foxhound without setting up infrastructure. The sandbox ships with 568 seeded traces across a realistic seven-day operating story:
+
+```bash
+git clone https://github.com/caleb-love/foxhound.git
+cd foxhound && pnpm install
+pnpm dev:web:demo
+# Open http://localhost:3001/sandbox
+```
+
+The sandbox includes fleet overview, trace investigation, run diff, session replay, regression detection, experiments, budgets, SLAs, prompt management, and an SDK ingestion simulator.
+
 ## Quick install
 
 ```bash

@@ -18,6 +18,7 @@ Trace every decision. Evaluate every response. Budget every dollar.
 
 <p>
   <a href="https://docs.foxhound.caleb-love.com">Docs</a> ·
+  <a href="#sandbox">Live Sandbox</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#tooling">Tooling</a> ·
   <a href="#self-hosting">Self-Hosting</a> ·
@@ -48,6 +49,34 @@ Foxhound gives you the missing layer:
 - **audit and isolate tenant data** for security-sensitive deployments
 
 **Not a generic logging product. AI agent observability.**
+
+## Sandbox
+
+The sandbox is a self-contained demo workspace that tells a realistic seven-day story: a returns resolution agent regresses after a prompt rollout, gets detected through traces and regressions, is investigated via run diff and session replay, and recovers through a dataset-backed experiment.
+
+Run locally with no external dependencies:
+
+```bash
+pnpm install
+pnpm dev:web:demo
+# Open http://localhost:3001/sandbox
+```
+
+What you will see:
+
+- **Fleet Overview**: platform posture, operator focus items, and trend charts (Recharts)
+- **Traces**: 568 seeded traces with tree-structured span timelines, cost badges on LLM calls, and parent/child indentation
+- **Run Diff**: side-by-side comparison showing exactly where two agent runs diverged
+- **Session Replay**: step-through playback with play/pause, speed control, seek bar, and live state diff
+- **Regressions**: behavior drift detection by agent version with linked investigation paths
+- **Experiments**: dataset-backed evaluation with promotion-ready candidates
+- **Budgets and SLAs**: per-agent cost budgets and latency/reliability targets
+- **Prompts**: versioned prompt registry with label-based promotion and diff view
+- **Notifications**: alert routing to Slack, webhook, GitHub, Linear, PagerDuty
+- **Settings**: theme switcher, SDK ingestion simulator, CI quality gate demo
+- **Guided tour**: first-visit walkthrough with keyboard navigation (auto-shows once, re-trigger from the Tour button)
+- **Command palette**: `Cmd+K` for quick navigation across all surfaces
+- **Mobile responsive**: hamburger menu with slide-over drawer on small screens
 
 ## Core capabilities
 

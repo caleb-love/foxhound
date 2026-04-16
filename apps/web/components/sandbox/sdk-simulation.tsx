@@ -64,10 +64,10 @@ const EXAMPLE_PAYLOAD = `{
   }
 }`;
 
-const PYTHON_SNIPPET = `from foxhound import Foxhound
+const PYTHON_SNIPPET = `from foxhound import FoxhoundClient
 
-fox = Foxhound(
-    api_key="fh_sk_...",
+fox = FoxhoundClient(
+    api_key="fox_...",
     endpoint="https://api.foxhound.dev"
 )
 
@@ -80,7 +80,7 @@ with fox.trace("returns-copilot") as trace:
 const TYPESCRIPT_SNIPPET = `import { FoxhoundClient } from '@foxhound-ai/sdk';
 
 const fox = new FoxhoundClient({
-  apiKey: 'fh_sk_...',
+  apiKey: 'fox_...',
   endpoint: 'https://api.foxhound.dev',
 });
 
