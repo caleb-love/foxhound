@@ -70,7 +70,7 @@ if [[ ${#bad_paths[@]} -gt 0 ]]; then
 fi
 
 docs_warnings=()
-active_plan_count=$(find docs/plans/active -maxdepth 1 -type f ! -name 'README.md' | wc -l | tr -d ' ')
+active_plan_count=$(find docs/plans/active -maxdepth 1 -type f ! -name 'README.md' 2>/dev/null | wc -l | tr -d ' ')
 if [[ ${active_plan_count} -gt 8 ]]; then
   docs_warnings+=("docs/plans/active contains ${active_plan_count} files (target: <= 8 active plans)")
 fi
@@ -78,12 +78,12 @@ fi
 while IFS= read -r path; do
   [[ -z "$path" ]] && continue
   docs_warnings+=("active plan artifact should be archived or moved: ${path}")
-done < <(find docs/plans/active -maxdepth 1 -type f \( -name '*.html' -o -name '*.json' \) | sort)
+done < <(find docs/plans/active -maxdepth 1 -type f \( -name '*.html' -o -name '*.json' \) 2>/dev/null | sort)
 
 while IFS= read -r path; do
   [[ -z "$path" ]] && continue
   docs_warnings+=("supporting template/research artifact should usually not stay active: ${path}")
-done < <(find docs/plans/active -maxdepth 1 -type f \( -iname '*template*' -o -iname '*tracker*' -o -iname '*interview-guide*' \) | sort)
+done < <(find docs/plans/active -maxdepth 1 -type f \( -iname '*template*' -o -iname '*tracker*' -o -iname '*interview-guide*' \) 2>/dev/null | sort)
 
 if [[ ${#docs_warnings[@]} -gt 0 ]]; then
   echo "Repo hygiene check passed with docs warnings:" >&2
