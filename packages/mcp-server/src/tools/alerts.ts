@@ -59,18 +59,16 @@ export function registerAlertTools(server: McpServer, api: FoxhoundApiClient): v
       rule_id: z.string().describe("The alert rule ID to delete"),
       confirm: z.boolean().optional().describe("Set to true to confirm deletion. Omit to preview."),
     },
-    async (params) => {
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Alert rule deletion is not supported by the current Foxhound API. ` +
-              `Do not rely on MCP for this operation until the backend route exists. ` +
-              `Requested rule: **${params.rule_id}**.`,
-          },
-        ],
-      };
-    },
+    (params) => ({
+      content: [
+        {
+          type: "text" as const,
+          text:
+            `Alert rule deletion is not supported by the current Foxhound API. ` +
+            `Do not rely on MCP for this operation until the backend route exists. ` +
+            `Requested rule: **${params.rule_id}**.`,
+        },
+      ],
+    }),
   );
 }
