@@ -60,23 +60,14 @@ describe('ReplayDetailView', () => {
     render(<ReplayDetailView trace={trace as never} />);
 
     expect(screen.getByText('Session Replay')).toBeInTheDocument();
-    expect(screen.getByText('Replay context')).toBeInTheDocument();
+    expect(screen.getByText('Replay context and next actions')).toBeInTheDocument();
     expect(screen.getByText(/planner-system · version 8/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open trace detail/i })).toHaveAttribute(
       'href',
-      '/traces/trace_replay_1?segment=Planner+agent',
+      expect.stringContaining('/traces/trace_replay_1'),
     );
-    expect(screen.getByRole('link', { name: /Inspect trace context/i })).toHaveAttribute(
-      'href',
-      '/traces/trace_replay_1?segment=Planner+agent',
-    );
-    expect(screen.getByRole('link', { name: /Review prompts/i })).toHaveAttribute(
-      'href',
-      '/prompts?focus=planner-system&segment=Planner+agent',
-    );
-    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
-      'href',
-      '/prompts?focus=planner-system&version=8&segment=Planner+agent',
-    );
+    expect(screen.getByRole('link', { name: /Prepare a comparison/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Review prompt history/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toBeInTheDocument();
   });
 });

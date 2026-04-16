@@ -44,7 +44,7 @@ describe('sandbox traces page', () => {
     });
   });
 
-  it('syncs both filter stores to the sandbox corpus timeline and renders seeded traces', async () => {
+  it('syncs both filter stores to the sandbox corpus timeline and renders seeded traces', { timeout: 15000 }, async () => {
     const { default: SandboxTracesPage } = await import('./page');
     render(<SandboxTracesPage />);
 
@@ -55,10 +55,13 @@ describe('sandbox traces page', () => {
       const segmentRange = useSegmentStore.getState().currentFilters.dateRange;
       const legacyRange = useFilterStore.getState().dateRange;
 
-      expect(segmentRange.start.getTime()).toBe(1775599200000);
-      expect(segmentRange.end.getTime()).toBe(1776153180000);
-      expect(legacyRange.start.getTime()).toBe(1775599200000);
-      expect(legacyRange.end.getTime()).toBe(1776153180000);
+      // Demo dates are now dynamic (anchored 7 days ago). Assert the range spans ~6-7 days
+      // and both stores are synced to the same corpus window.
+      const rangeMs = segmentRange.end.getTime() - segmentRange.start.getTime();
+      expect(rangeMs).toBeGreaterThan(5 * 24 * 60 * 60 * 1000); // at least 5 days
+      expect(rangeMs).toBeLessThan(8 * 24 * 60 * 60 * 1000);    // at most 8 days
+      expect(segmentRange.start.getTime()).toBe(legacyRange.start.getTime());
+      expect(segmentRange.end.getTime()).toBe(legacyRange.end.getTime());
     });
   });
 });

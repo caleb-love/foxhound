@@ -65,7 +65,7 @@ export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps
             <DropdownMenuLabel>
               <div className="flex flex-col">
                 <span className="font-medium">{user.name}</span>
-                <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{user.email}</span>
+                <span className="text-xs text-tenant-text-muted">{user.email}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

@@ -8,6 +8,7 @@ import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar'
 import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
+import { getPromptMetadata } from '@/lib/trace-utils';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import { getSandboxPromptDetailHref, getSandboxReplayHref, getSandboxSessionHref, getSandboxRootHref } from '@/lib/sandbox-routes';
@@ -54,23 +55,6 @@ const replayFilters: DashboardFilterDefinition[] = [
     ],
   },
 ];
-
-function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
-  const promptName = typeof trace.metadata?.prompt_name === 'string'
-    ? trace.metadata.prompt_name
-    : typeof trace.metadata?.promptName === 'string'
-      ? trace.metadata.promptName
-      : undefined;
-
-  const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
-      ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
-        ? trace.metadata.promptVersion
-        : undefined;
-
-  return { promptName, promptVersion };
-}
 
 function getReplayHref(baseHref: string, traceId: string) {
   return baseHref === getSandboxRootHref() ? getSandboxReplayHref(traceId) : `${baseHref}/replay/${traceId}`;
@@ -227,10 +211,10 @@ export function ReplayIndexView({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                       {hasError ? 'Error path' : 'Healthy path'} · {trace.agentId}
                     </div>
-                    <div className="mt-2 text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
+                    <div className="mt-2 text-lg font-semibold text-tenant-text-primary">
                       <Link href={replayHref} className="transition-colors hover:underline">
                         {storyLabel}
                       </Link>
@@ -250,20 +234,20 @@ export function ReplayIndexView({
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Trace</div>
-                    <div className="mt-1 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Trace</div>
+                    <div className="mt-1 font-mono text-sm text-tenant-text-primary">{trace.id}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Session</div>
-                    <div className="mt-1 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.sessionId ?? 'No session id'}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Session</div>
+                    <div className="mt-1 font-mono text-sm text-tenant-text-primary">{trace.sessionId ?? 'No session id'}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Spans</div>
-                    <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.spans.length} total, {trace.spans.filter((span) => span.status === 'error').length} errors</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Spans</div>
+                    <div className="mt-1 text-sm text-tenant-text-primary">{trace.spans.length} total, {trace.spans.filter((span) => span.status === 'error').length} errors</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Prompt context</div>
-                    <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-primary)' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Prompt context</div>
+                    <div className="mt-1 text-sm text-tenant-text-primary">
                       {promptName ? `${promptName}${promptVersion !== undefined ? ` · v${promptVersion}` : ''}` : 'Prompt metadata unavailable'}
                     </div>
                   </div>

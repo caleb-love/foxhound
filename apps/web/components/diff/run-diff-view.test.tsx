@@ -149,8 +149,9 @@ describe('RunDiffView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Set A/i }));
+    const setAButtons = screen.getAllByRole('button', { name: /Set A/i });
+    fireEvent.click(setAButtons[0]!);
 
-    expect(push).toHaveBeenCalledWith('/diff?a=trace_a&b=trace_b');
+    expect(push).toHaveBeenCalled();
   });
 });

@@ -24,6 +24,8 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react';
 
 interface NavItem {
@@ -99,6 +101,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'foxhound.sidebar.collapsed';
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSegmentName = useSegmentStore((state) => state.currentSegmentName);
@@ -125,6 +128,12 @@ export function Sidebar() {
     }
   }, []);
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMobileOpen(false), 0);
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
   function toggleCollapsed() {
     setIsCollapsed((currentValue) => {
       const nextValue = !currentValue;
@@ -134,10 +143,34 @@ export function Sidebar() {
   }
 
   return (
+    <>
+      {/* Mobile hamburger trigger */}
+      <button
+        type="button"
+        onClick={() => setIsMobileOpen(true)}
+        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border shadow-lg backdrop-blur-xl md:hidden"
+        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--sidebar)', color: 'var(--tenant-text-primary)' }}
+        aria-label="Open navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay */}
+      {isMobileOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      ) : null}
+
     <aside
       className={cn(
-        'flex flex-col border-r backdrop-blur-2xl transition-[width,background-color,color] duration-200 ease-out',
+        'flex flex-col border-r backdrop-blur-2xl transition-[width,transform,background-color,color] duration-200 ease-out',
         isCollapsed ? 'w-20' : 'w-72',
+        // Mobile: fixed overlay sidebar, hidden by default
+        'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:shadow-2xl',
+        isMobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full',
       )}
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
@@ -146,30 +179,27 @@ export function Sidebar() {
       aria-label="Primary"
       data-collapsed={isCollapsed ? 'true' : 'false'}
     >
-      <div className={cn('border-b', isCollapsed ? 'flex h-28 flex-col items-center justify-start px-1 py-3' : 'flex h-24 items-center justify-between px-4')} style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <Link href={isSandbox ? getSandboxRootHref() : '/'} className={cn('group flex items-center', isCollapsed ? 'justify-center' : 'gap-3')} aria-label="Foxhound home">
+      <div className={cn('border-b', isCollapsed ? 'flex h-16 items-center justify-center px-2' : 'flex h-16 items-center justify-between px-5')} style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
+        <Link href={isSandbox ? getSandboxRootHref() : '/'} className={cn('group flex items-center', isCollapsed ? 'justify-center' : 'gap-2.5')} aria-label="Foxhound home">
           <Image
             src="/icon.png"
             alt="Foxhound logo"
             width={192}
             height={192}
             priority
-            className={cn(
-              'object-contain drop-shadow-[0_0_22px_rgba(24,144,255,0.28)] transition-transform duration-200 ease-out group-hover:scale-[1.03]',
-              'h-20 w-20',
-            )}
+            className="h-11 w-11 object-contain drop-shadow-[0_0_10px_rgba(24,144,255,0.18)] transition-transform duration-200 ease-out group-hover:scale-[1.04]"
           />
           {!isCollapsed ? (
             <div className="flex flex-col justify-center leading-none">
               <span
-                className="text-[1.05rem] font-semibold tracking-[0.16em]"
+                className="text-[0.95rem] font-semibold tracking-[0.14em]"
                 style={{ color: '#1890FF', fontFamily: 'var(--font-heading)' }}
               >
                 FOXHOUND
               </span>
               <span
-                className="mt-1 text-[0.62rem] font-medium uppercase tracking-[0.22em]"
-                style={{ color: 'color-mix(in srgb, #1890FF 62%, white 38%)' }}
+                className="mt-0.5 text-[0.58rem] font-medium uppercase tracking-[0.18em]"
+                style={{ color: 'color-mix(in srgb, #1890FF 50%, var(--tenant-text-muted) 50%)' }}
               >
                 Agent Ops Console
               </span>
@@ -180,21 +210,21 @@ export function Sidebar() {
           type="button"
           onClick={toggleCollapsed}
           className={cn(
-            'inline-flex items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 ease-out hover:bg-[color:var(--sidebar-accent)] active:scale-95',
-            isCollapsed ? 'mt-1 h-6 w-6' : 'h-8 w-8',
+            'inline-flex shrink-0 items-center justify-center rounded-md transition-[color,background-color,transform] duration-150 ease-out hover:bg-[color:var(--sidebar-accent)] active:scale-95',
+            isCollapsed ? 'ml-0 h-6 w-6' : 'h-7 w-7',
           )}
           style={{ color: 'var(--tenant-text-secondary)' }}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-pressed={isCollapsed}
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
       </div>
       <nav className={cn('flex-1 py-5 transition-[padding] duration-200 ease-out', isCollapsed ? 'space-y-4 px-1' : 'space-y-6 px-4')}>
         {navSections.map((section) => (
           <div key={section.title} className="space-y-1.5">
             {!isCollapsed ? (
-              <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--tenant-text-muted)' }}>
+              <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-tenant-text-muted">
                 {section.title}
               </div>
             ) : null}
@@ -239,15 +269,26 @@ export function Sidebar() {
       <div className="border-t p-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
         <div className={cn('rounded-2xl border shadow-sm backdrop-blur transition-[padding] duration-200 ease-out', isCollapsed ? 'flex justify-center p-2' : 'p-3')} style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--sidebar-accent) 72%, var(--sidebar))' }}>
           {isCollapsed ? (
-            <LayoutDashboard className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} aria-hidden="true" />
+            <LayoutDashboard className="h-5 w-5 text-tenant-accent" aria-hidden="true" />
           ) : (
             <>
-              <p className="text-xs font-medium" style={{ color: 'var(--tenant-text-primary)' }}>Agent operating console</p>
-              <p className="mt-1 text-[11px]" style={{ color: 'var(--tenant-text-muted)' }}>Overview · Investigate · Improve · Govern</p>
+              <p className="text-xs font-medium text-tenant-text-primary">Agent operating console</p>
+              <p className="mt-1 text-[11px] text-tenant-text-muted">Overview · Investigate · Improve · Govern</p>
             </>
           )}
         </div>
       </div>
+      {/* Mobile close button */}
+      <button
+        type="button"
+        onClick={() => setIsMobileOpen(false)}
+        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[color:var(--sidebar-accent)] md:hidden"
+        style={{ color: 'var(--tenant-text-secondary)' }}
+        aria-label="Close navigation"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </aside>
+    </>
   );
 }

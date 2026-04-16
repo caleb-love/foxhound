@@ -13,6 +13,7 @@ import { MetricsDelta } from './metrics-delta';
 import { TimelineDiff } from './timeline-diff';
 import { InsightsPanel } from './insights-panel';
 import { DiffTracePicker } from './diff-trace-picker';
+import { getPromptMetadata, getPromptDetailHref, getPromptDiffHref } from '@/lib/trace-utils';
 
 interface RunDiffViewProps {
   traceA: Trace;
@@ -45,49 +46,6 @@ function getSpanFingerprint(trace: Trace, span: Span): string {
   }
 
   return buildSpanFingerprintKey({ name: span.name, kind: span.kind, occurrence: 1 });
-}
-
-function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
-  const promptName = typeof trace.metadata?.prompt_name === 'string'
-    ? trace.metadata.prompt_name
-    : typeof trace.metadata?.promptName === 'string'
-      ? trace.metadata.promptName
-      : undefined;
-
-  const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
-      ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
-        ? trace.metadata.promptVersion
-        : undefined;
-
-  return { promptName, promptVersion };
-}
-
-function getPromptDetailHref(basePrefix: string, promptName?: string): string | null {
-  if (!promptName) return null;
-
-  const promptIdByName: Record<string, string> = {
-    'support-reply': 'prompt_support_reply',
-    'refund-policy-check': 'prompt_refund_policy_check',
-    'escalation-triage': 'prompt_escalation_triage',
-  };
-
-  const promptId = promptIdByName[promptName];
-  return promptId ? `${basePrefix}/prompts/${promptId}` : null;
-}
-
-function getPromptDiffHref(basePrefix: string, promptName?: string, versionA?: string | number, versionB?: string | number): string | null {
-  if (!promptName || versionA === undefined || versionB === undefined || versionA === versionB) return null;
-
-  const promptIdByName: Record<string, string> = {
-    'support-reply': 'prompt_support_reply',
-    'refund-policy-check': 'prompt_refund_policy_check',
-    'escalation-triage': 'prompt_escalation_triage',
-  };
-
-  const promptId = promptIdByName[promptName];
-  return promptId ? `${basePrefix}/prompts/${promptId}/diff?versionA=${encodeURIComponent(String(versionA))}&versionB=${encodeURIComponent(String(versionB))}` : null;
 }
 
 export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTraces = [] }: RunDiffViewProps) {
@@ -251,7 +209,7 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
                 subtitle={narrative}
                 primaryBadge={<StatusBadge status="Baseline vs comparison" variant="neutral" />}
               />
-              <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+              <p className="text-sm text-tenant-text-muted">
                 Comparing {traceA.agentId} runs to explain what changed, why it mattered, and which realistic support story this diff belongs to.
               </p>
             </div>

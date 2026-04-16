@@ -54,10 +54,10 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
             className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
           >
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Experiment id
             </div>
-            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{experiment.id}</div>
+            <div className="mt-2 font-mono text-sm text-tenant-text-primary">{experiment.id}</div>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
 
       <EvidenceCard title="Attached experiment runs">
         {experiment.runs.length === 0 ? (
-          <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-sm text-tenant-text-muted">
             No runs are attached yet. This usually means the experiment is still pending or the worker has not completed its first execution wave.
           </div>
         ) : (
@@ -167,8 +167,8 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{run.id}</div>
-                    <div className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="font-medium text-tenant-text-primary">{run.id}</div>
+                    <div className="mt-1 text-xs text-tenant-text-muted">
                       Dataset item {run.datasetItemId} · created {formatRelativeDayLabel(run.createdAt)}
                     </div>
                   </div>
@@ -176,20 +176,20 @@ export function ExperimentDetailView({ experiment, datasetName, baseHref = '' }:
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Latency</div>
-                    <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-primary)' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Latency</div>
+                    <div className="mt-1 text-sm text-tenant-text-primary">
                       {typeof run.latencyMs === 'number' ? `${run.latencyMs}ms` : 'Unavailable'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Tokens</div>
-                    <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-primary)' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Tokens</div>
+                    <div className="mt-1 text-sm text-tenant-text-primary">
                       {typeof run.tokenCount === 'number' ? String(run.tokenCount) : 'Unavailable'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Cost</div>
-                    <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-primary)' }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Cost</div>
+                    <div className="mt-1 text-sm text-tenant-text-primary">
                       {typeof run.cost === 'number' ? `$${run.cost.toFixed(4)}` : 'Unavailable'}
                     </div>
                   </div>

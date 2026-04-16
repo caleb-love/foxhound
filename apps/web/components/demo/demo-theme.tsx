@@ -36,8 +36,8 @@ export function DemoHero({
           {eyebrow}
         </div>
         <div className="space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl" style={{ color: 'var(--tenant-text-primary)' }}>{title}</h1>
-          <p className="max-w-3xl text-sm leading-7 sm:text-base" style={{ color: 'var(--tenant-text-secondary)' }}>{description}</p>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl text-tenant-text-primary">{title}</h1>
+          <p className="max-w-3xl text-sm leading-7 sm:text-base text-tenant-text-secondary">{description}</p>
         </div>
         {children ? <div className="flex flex-wrap gap-3 pt-2">{children}</div> : null}
       </div>

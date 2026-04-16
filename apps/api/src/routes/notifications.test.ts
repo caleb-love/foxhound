@@ -286,6 +286,7 @@ describe("POST /v1/notifications/test", () => {
       traceId: null,
       status: "sent",
       error: null,
+      dedupeKey: null,
       sentAt: NOW,
     });
 
@@ -331,6 +332,7 @@ describe("POST /v1/notifications/test", () => {
       traceId: null,
       status: "failed",
       error: "Slack down",
+      dedupeKey: null,
       sentAt: NOW,
     });
 

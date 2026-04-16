@@ -56,10 +56,10 @@ export function DiffTracePicker({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
             Compare picker
           </div>
-          <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+          <div className="mt-1 text-sm text-tenant-text-secondary">
             Replace baseline or comparison in-place, then keep investigating without leaving Run Diff.
           </div>
         </div>
@@ -70,16 +70,16 @@ export function DiffTracePicker({
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
             Baseline, A
           </div>
-          <div className="mt-1 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{traceAId}</div>
+          <div className="mt-1 font-mono text-sm text-tenant-text-primary">{traceAId}</div>
         </div>
         <div className="rounded-[var(--tenant-radius-panel-tight)] border p-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
             Comparison, B
           </div>
-          <div className="mt-1 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{traceBId}</div>
+          <div className="mt-1 font-mono text-sm text-tenant-text-primary">{traceBId}</div>
         </div>
       </div>
 

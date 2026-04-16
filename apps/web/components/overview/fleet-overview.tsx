@@ -10,7 +10,6 @@ import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import {
-  MetricGrid,
   PremiumActionLink,
   PremiumActions,
   PremiumPanel,
@@ -140,6 +139,14 @@ const overviewTrendSeries: TrendSeries[] = [
   },
 ];
 
+function inferAgentIds(title: string, description: string): string[] {
+  const text = `${title} ${description}`.toLowerCase();
+  if (text.includes('planner')) return ['planner-agent'];
+  if (text.includes('support') || text.includes('prompt')) return ['support-agent'];
+  if (text.includes('onboarding') || text.includes('run')) return ['onboarding-router'];
+  return [];
+}
+
 export function FleetOverview({
   metrics,
   changeFeed,
@@ -153,38 +160,19 @@ export function FleetOverview({
     searchableText: (item) => `${item.title} ${item.description}`,
     status: (item) => item.status,
     severity: (item) => item.status,
-    agentIds: (item) =>
-      item.title.toLowerCase().includes('planner') || item.description.toLowerCase().includes('planner')
-        ? ['planner-agent']
-        : item.title.toLowerCase().includes('support') || item.description.toLowerCase().includes('support')
-          ? ['support-agent']
-          : item.title.toLowerCase().includes('onboarding') || item.description.toLowerCase().includes('onboarding')
-            ? ['onboarding-router']
-            : [],
+    agentIds: (item) => inferAgentIds(item.title, item.description),
   });
 
   const filteredActionQueue = filterByDashboardScope(actionQueue, filters, {
     searchableText: (item) => `${item.title} ${item.description}`,
     status: (item) => item.status,
     severity: (item) => item.status,
-    agentIds: (item) =>
-      item.title.toLowerCase().includes('planner') || item.description.toLowerCase().includes('planner')
-        ? ['planner-agent']
-        : item.title.toLowerCase().includes('support') || item.description.toLowerCase().includes('support')
-          ? ['support-agent']
-          : item.title.toLowerCase().includes('onboarding') || item.description.toLowerCase().includes('onboarding')
-            ? ['onboarding-router']
-            : [],
+    agentIds: (item) => inferAgentIds(item.title, item.description),
   });
 
   const filteredNextActions = filterByDashboardScope(nextActions, filters, {
     searchableText: (item) => `${item.title} ${item.description}`,
-    agentIds: (item) =>
-      item.title.toLowerCase().includes('prompt')
-        ? ['support-agent']
-        : item.title.toLowerCase().includes('run')
-          ? ['onboarding-router']
-          : ['planner-agent'],
+    agentIds: (item) => inferAgentIds(item.title, item.description),
   });
 
   return (

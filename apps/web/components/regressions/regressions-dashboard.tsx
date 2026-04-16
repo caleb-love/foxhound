@@ -234,10 +234,10 @@ export function RegressionsDashboard({
                 className="rounded-[var(--tenant-radius-panel)] border p-4"
                 style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel-alt) 94%, transparent)' }}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                   {regression.changedAt}
                 </div>
-                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{regression.title}</div>
+                <div className="mt-2 font-medium text-tenant-text-primary">{regression.title}</div>
                 <div className="mt-3">
                   <RecordBody>{regression.description}</RecordBody>
                 </div>

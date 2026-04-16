@@ -84,7 +84,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
 
   if (spans.length === 0 || !currentSpan) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+      <div className="flex h-full items-center justify-center p-6 text-sm text-tenant-text-muted">
         No replay steps are available for this trace yet.
       </div>
     );
@@ -96,10 +96,10 @@ export function SessionReplay({ trace }: SessionReplayProps) {
       <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Playback controls
             </div>
-            <div className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+            <div className="mt-1 text-sm text-tenant-text-secondary">
               Scrub the run to inspect state transitions and isolate the exact step where behavior diverged.
             </div>
           </div>
@@ -145,7 +145,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
 
           {/* Progress Bar & Counter */}
           <div className="flex flex-1 items-center gap-3">
-            <span className="text-xs font-mono whitespace-nowrap" style={{ color: 'var(--tenant-text-muted)' }}>
+            <span className="text-xs font-mono whitespace-nowrap text-tenant-text-muted">
               Step {safeSpanIndex + 1} / {spans.length}
             </span>
             <div className="relative h-2 w-full rounded-full" style={{ background: 'color-mix(in srgb, var(--tenant-accent) 12%, var(--card))' }}>
@@ -205,10 +205,10 @@ export function SessionReplay({ trace }: SessionReplayProps) {
           </div>
           {/* Labels for current span */}
           <div className="absolute bottom-0 inset-x-0 text-center">
-            <div className="text-xs font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>
+            <div className="text-xs font-medium text-tenant-text-secondary">
               {currentSpan.name}
             </div>
-            <div className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-xs text-tenant-text-muted">
               {currentSpan.kind}
             </div>
           </div>
@@ -220,10 +220,10 @@ export function SessionReplay({ trace }: SessionReplayProps) {
         <div className="mx-auto max-w-5xl space-y-6">
           {/* Current Span Highlight */}
           <div className="rounded-[var(--tenant-radius-panel)] border-2 p-5" style={{ borderColor: 'var(--tenant-accent)', background: 'color-mix(in srgb, var(--tenant-accent) 14%, var(--card))' }}>
-            <div className="mb-2 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--tenant-accent)' }}>
+            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-tenant-accent">
               Currently Executing
             </div>
-            <div className="mb-3 font-mono text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
+            <div className="mb-3 font-mono text-lg font-semibold text-tenant-text-primary">
               {currentSpan.name}
             </div>
             <div className="flex gap-6 text-sm">
@@ -244,7 +244,7 @@ export function SessionReplay({ trace }: SessionReplayProps) {
               {currentSpan.endTimeMs && (
                 <div>
                   <span style={{ color: 'var(--tenant-text-muted)' }}>Duration:</span>{' '}
-                  <span className="font-mono font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+                  <span className="font-mono font-medium text-tenant-text-primary">
                     {((currentSpan.endTimeMs - currentSpan.startTimeMs) / 1000).toFixed(2)}s
                   </span>
                 </div>
@@ -267,11 +267,11 @@ export function SessionReplay({ trace }: SessionReplayProps) {
           {/* Current Span Attributes */}
           {Object.keys(currentSpan.attributes || {}).length > 0 && (
             <div>
-              <h3 className="mb-3 text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
+              <h3 className="mb-3 text-sm font-semibold text-tenant-text-primary">
                 Current Step Attributes
               </h3>
               <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
-                <pre className="overflow-x-auto text-xs font-mono" style={{ color: 'var(--tenant-text-secondary)' }}>
+                <pre className="overflow-x-auto text-xs font-mono text-tenant-text-secondary">
                   {JSON.stringify(currentSpan.attributes, null, 2)}
                 </pre>
               </div>
@@ -292,14 +292,14 @@ interface StateItem {
 function StateCard({ title, items }: { title: string; items: StateItem[] }) {
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>{title}</h3>
+      <h3 className="mb-3 text-sm font-semibold text-tenant-text-primary">{title}</h3>
       <div className="divide-y overflow-hidden rounded-lg" style={tenantStyles.panel}>
         {items.map((item, i) => (
           <div
             key={i}
             className="flex items-center justify-between px-4 py-3"
           >
-            <span className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>{item.label}</span>
+            <span className="text-sm text-tenant-text-secondary">{item.label}</span>
             <span
               className="text-sm font-mono font-medium"
               style={{ color: item.type === 'success' ? 'var(--tenant-success)' : item.type === 'error' ? 'var(--tenant-danger)' : 'var(--tenant-text-primary)' }}

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { createScore, queryScores, getScoresByTraceId, deleteScore, getTrace } from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema } from "../lib/params.js";
 
 const CreateScoreSchema = z.object({
   traceId: z.string().min(1),
@@ -107,8 +108,9 @@ export function scoresRoutes(fastify: FastifyInstance): void {
    * Get all scores for a specific trace.
    */
   fastify.get("/v1/traces/:id/scores", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const rows = await getScoresByTraceId(id, request.orgId);
+    const params = parseParams(request, reply, IdParamSchema);
+    if (!params) return;
+    const rows = await getScoresByTraceId(params.id, request.orgId);
     return reply.code(200).send({ data: rows });
   });
 
@@ -117,8 +119,9 @@ export function scoresRoutes(fastify: FastifyInstance): void {
    * Delete a score by ID — scoped to the authenticated org.
    */
   fastify.delete("/v1/scores/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const deleted = await deleteScore(id, request.orgId);
+    const params = parseParams(request, reply, IdParamSchema);
+    if (!params) return;
+    const deleted = await deleteScore(params.id, request.orgId);
     if (!deleted) {
       return reply.code(404).send({ error: "Not Found", message: "Score not found" });
     }

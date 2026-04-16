@@ -26,6 +26,7 @@ import {
 } from "@foxhound/db";
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema, IdLabelParamSchema } from "../lib/params.js";
 
 const CreatePromptSchema = z.object({
   name: z
@@ -183,7 +184,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     "/v1/prompts/:id",
     { preHandler: [requireEntitlement("canManagePrompts")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const prompt = await getPrompt(id, request.orgId);
       if (!prompt) {
         return reply.code(404).send({ error: "Not Found", message: "Prompt not found" });
@@ -200,7 +203,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
     "/v1/prompts/:id",
     { preHandler: [requireEntitlement("canManagePrompts")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const deleted = await deletePrompt(id, request.orgId);
       if (!deleted) {
         return reply.code(404).send({ error: "Not Found", message: "Prompt not found" });
@@ -233,7 +238,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const result = CreateVersionSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -300,7 +307,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 600, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const prompt = await getPrompt(id, request.orgId);
       if (!prompt) {
         return reply.code(404).send({ error: "Not Found", message: "Prompt not found" });
@@ -337,7 +346,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 300, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const query = PromptDiffQuerySchema.safeParse(request.query);
       if (!query.success) {
         return reply.code(400).send({ error: "Bad Request", issues: query.error.issues });
@@ -378,7 +389,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const result = SetLabelSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -442,7 +455,9 @@ export function promptsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id, label } = request.params as { id: string; label: string };
+      const p = parseParams(request, reply, IdLabelParamSchema);
+      if (!p) return;
+      const { id, label } = p;
 
       const prompt = await getPrompt(id, request.orgId);
       if (!prompt) {

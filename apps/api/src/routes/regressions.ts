@@ -7,6 +7,7 @@ import {
   getSpanStructureForVersion,
 } from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, AgentIdParamSchema } from "../lib/params.js";
 
 const CompareSchema = z.object({
   versionA: z.string().min(1),
@@ -55,7 +56,9 @@ function detectStructuralDrift(
 export function regressionsRoutes(fastify: FastifyInstance): void {
   // GET latest regression report for an agent
   fastify.get("/v1/regressions/:agentId", async (request, reply) => {
-    const { agentId } = request.params as { agentId: string };
+    const params = parseParams(request, reply, AgentIdParamSchema);
+      if (!params) return;
+      const { agentId } = params;
     const baselines = await getRecentBaselines(request.orgId, agentId, 2);
 
     if (baselines.length < 2) {
@@ -81,7 +84,9 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
     "/v1/regressions/:agentId/compare",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
-      const { agentId } = request.params as { agentId: string };
+      const params = parseParams(request, reply, AgentIdParamSchema);
+      if (!params) return;
+      const { agentId } = params;
       const result = CompareSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -132,7 +137,9 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
 
   // List baselines
   fastify.get("/v1/regressions/:agentId/baselines", async (request, reply) => {
-    const { agentId } = request.params as { agentId: string };
+    const params = parseParams(request, reply, AgentIdParamSchema);
+      if (!params) return;
+      const { agentId } = params;
     const query = ListQuerySchema.safeParse(request.query);
     if (!query.success) {
       return reply.code(400).send({ error: "Bad Request", issues: query.error.issues });
@@ -143,7 +150,9 @@ export function regressionsRoutes(fastify: FastifyInstance): void {
 
   // Delete baseline
   fastify.delete("/v1/regressions/:agentId/baselines", async (request, reply) => {
-    const { agentId } = request.params as { agentId: string };
+    const params = parseParams(request, reply, AgentIdParamSchema);
+      if (!params) return;
+      const { agentId } = params;
     const { version } = request.query as { version?: string };
     if (!version) {
       return reply.code(400).send({ error: "version query parameter is required" });

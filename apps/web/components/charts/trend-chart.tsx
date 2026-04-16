@@ -1,15 +1,14 @@
+'use client';
+
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ChartPanel } from './chart-shell';
 import type { TrendSeries } from './chart-types';
 
-function maxValue(series: TrendSeries[]): number {
-  return Math.max(1, ...series.flatMap((entry) => entry.values.map((point) => point.value)));
-}
-
-function toneClasses(tone: TrendSeries['tone']) {
-  if (tone === 'healthy') return 'bg-emerald-400/80';
-  if (tone === 'warning') return 'bg-amber-400/80';
-  if (tone === 'critical') return 'bg-rose-400/80';
-  return 'bg-sky-400/80';
+function toneColor(tone: TrendSeries['tone']): string {
+  if (tone === 'healthy') return '#34d399';
+  if (tone === 'warning') return '#fbbf24';
+  if (tone === 'critical') return '#f87171';
+  return '#38bdf8';
 }
 
 export function TrendChart({
@@ -21,37 +20,99 @@ export function TrendChart({
   description: string;
   series: TrendSeries[];
 }) {
-  const peak = maxValue(series);
-
   return (
     <ChartPanel title={title} description={description}>
-      <div className="space-y-4">
-        {series.map((entry) => (
-          <div key={entry.id} className="space-y-3 rounded-[var(--tenant-radius-panel)] border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
-                {entry.label}
-              </div>
-              <div className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
-                Latest: {entry.values.at(-1)?.value ?? 0}
-              </div>
-            </div>
-            <div className="flex items-end gap-2" aria-label={`${entry.label} trend`}>
-              {entry.values.map((point) => (
-                <div key={`${entry.id}-${point.label}`} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+      <div className="space-y-5">
+        {series.map((entry) => {
+          const color = toneColor(entry.tone);
+          const gradientId = `gradient-${entry.id}`;
+
+          return (
+            <div
+              key={entry.id}
+              className="rounded-[var(--tenant-radius-panel)] border p-4"
+              style={{
+                borderColor: 'var(--tenant-panel-stroke)',
+                background: 'var(--tenant-panel-strong)',
+              }}
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
                   <div
-                    className={`w-full rounded-t-[var(--tenant-radius-control-tight)] ${toneClasses(entry.tone)}`}
-                    style={{ height: `${Math.max(12, (point.value / peak) * 120)}px` }}
-                    title={`${point.label}: ${point.value}`}
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: color, boxShadow: `0 0 8px ${color}60` }}
                   />
-                  <div className="text-[11px]" style={{ color: 'var(--tenant-text-muted)' }}>
-                    {point.label}
+                  <div className="text-sm font-medium text-tenant-text-primary">
+                    {entry.label}
                   </div>
                 </div>
-              ))}
+                <div
+                  className="rounded-full border px-2.5 py-0.5 text-xs font-semibold tabular-nums"
+                  style={{
+                    borderColor: `${color}30`,
+                    background: `${color}12`,
+                    color,
+                  }}
+                >
+                  {entry.values.at(-1)?.value ?? 0}
+                </div>
+              </div>
+
+              <div className="h-32">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={entry.values}
+                    margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
+                  >
+                    <defs>
+                      <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--tenant-panel-stroke)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: 'var(--tenant-text-muted)' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--tenant-text-muted)' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--tenant-panel)',
+                        border: '1px solid var(--tenant-panel-stroke)',
+                        borderRadius: '0.5rem',
+                        backdropFilter: 'blur(12px)',
+                        color: 'var(--tenant-text-primary)',
+                        fontSize: '0.8rem',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                      }}
+                      labelStyle={{ color: 'var(--tenant-text-secondary)', fontWeight: 600 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke={color}
+                      strokeWidth={2}
+                      fill={`url(#${gradientId})`}
+                      dot={{ r: 3, fill: color, strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: color, stroke: `${color}40`, strokeWidth: 4 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </ChartPanel>
   );

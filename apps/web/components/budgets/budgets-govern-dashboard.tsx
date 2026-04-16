@@ -241,10 +241,10 @@ export function BudgetsGovernDashboard({
                 className="rounded-[var(--tenant-radius-panel)] border p-4"
                 style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                   {hotspot.spend} / {hotspot.budget}
                 </div>
-                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{hotspot.agent}</div>
+                <div className="mt-2 font-medium text-tenant-text-primary">{hotspot.agent}</div>
                 <div className="mt-3">
                   <RecordBody>{hotspot.description}</RecordBody>
                 </div>

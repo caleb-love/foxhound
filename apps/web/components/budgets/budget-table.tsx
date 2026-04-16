@@ -24,8 +24,8 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
   if (budgetStatuses.length === 0) {
     return (
       <div className="rounded-lg border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-        <p className="text-lg font-medium" style={{ color: 'var(--tenant-text-primary)' }}>No budgets configured</p>
-        <p className="mt-2 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+        <p className="text-lg font-medium text-tenant-text-primary">No budgets configured</p>
+        <p className="mt-2 text-sm text-tenant-text-muted">
           Click &ldquo;Add Budget&rdquo; to set spending limits for your agents
         </p>
       </div>
@@ -35,8 +35,8 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
       <div className="border-b px-6 py-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)' }}>
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Agent Budgets</h2>
-        <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+        <h2 className="text-lg font-semibold text-tenant-text-primary">Agent Budgets</h2>
+        <p className="mt-1 text-sm text-tenant-text-secondary">
           Monthly spending limits and current usage
         </p>
       </div>
@@ -101,7 +101,7 @@ export function BudgetTable({ budgetStatuses, onEdit }: BudgetTableProps) {
                   {status.percentage.toFixed(1)}% used
                 </span>
                 {status.projectedMonthEnd > status.budget && (
-                  <span className="font-medium" style={{ color: 'var(--tenant-warning)' }}>
+                  <span className="font-medium text-tenant-warning">
                     Projected: ${status.projectedMonthEnd.toFixed(2)}
                   </span>
                 )}

@@ -16,6 +16,7 @@ import {
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { getEvaluatorQueue } from "../queue.js";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema } from "../lib/params.js";
 
 const CreateEvaluatorSchema = z.object({
   name: z.string().min(1).max(100),
@@ -120,7 +121,9 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     "/v1/evaluators/:id",
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const evaluator = await getEvaluator(id, request.orgId);
       if (!evaluator) {
         return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
@@ -137,7 +140,9 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     "/v1/evaluators/:id",
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const result = UpdateEvaluatorSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -182,7 +187,9 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     "/v1/evaluators/:id",
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const deleted = await deleteEvaluator(id, request.orgId);
       if (!deleted) {
         return reply.code(404).send({ error: "Not Found", message: "Evaluator not found" });
@@ -317,7 +324,9 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
     "/v1/evaluator-runs/:id",
     { preHandler: [requireEntitlement("canEvaluate")] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const run = await getEvaluatorRunForOrg(id, request.orgId);
       if (!run) {
         return reply.code(404).send({ error: "Not Found", message: "Evaluator run not found" });

@@ -20,7 +20,17 @@ import type {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
-const DEMO_WEEK_START_MS = Date.UTC(2026, 3, 7, 14, 0, 0);
+/**
+ * Anchor the demo week to 7 days before the current moment so sandbox
+ * data always looks recent. Snapped to 14:00 UTC on that day.
+ */
+const DEMO_WEEK_START_MS = (() => {
+  const now = Date.now();
+  const sevenDaysAgo = now - 7 * DAY_MS;
+  // Snap to 14:00 UTC on that day
+  const d = new Date(sevenDaysAgo);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 14, 0, 0);
+})();
 
 function atDemoTime(dayOffset: number, hour: number, minute: number): number {
   return DEMO_WEEK_START_MS + (dayOffset * DAY_MS) + (hour * HOUR_MS) + (minute * MINUTE_MS);

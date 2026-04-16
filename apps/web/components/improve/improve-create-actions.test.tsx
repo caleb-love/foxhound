@@ -23,9 +23,9 @@ describe('improve action dialogs', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Curate from traces/i }));
 
-    expect(screen.getByLabelText(/Dataset/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Score name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Threshold/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Dataset')).toBeInTheDocument();
+    expect(screen.getByLabelText('Score name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Threshold')).toBeInTheDocument();
   });
 
   it('renders evaluator run-trigger controls after opening', () => {
@@ -38,7 +38,7 @@ describe('improve action dialogs', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Trigger runs/i }));
 
-    expect(screen.getByLabelText(/Evaluator/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Trace IDs/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Evaluator')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Trace IDs/)).toBeInTheDocument();
   });
 });

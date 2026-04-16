@@ -76,7 +76,7 @@ describe('RegressionsDashboard', () => {
       />,
     );
 
-    expect(screen.getByText('Onboarding agent now fails after tool selection')).toBeInTheDocument();
+    expect(screen.getAllByText('Onboarding agent now fails after tool selection').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /Compare runs/i })).toHaveAttribute('href', '/diff?a=trace_good&b=trace_reg_1');
   });
 

@@ -9,10 +9,11 @@ const API_KEY = "fox_test_key_abc123";
 const mockFetch = vi.fn();
 const originalFetch = globalThis.fetch;
 
-function makeClient(overrides?: Partial<{ endpoint: string; apiKey: string }>): FoxhoundApiClient {
+function makeClient(overrides?: Partial<{ endpoint: string; apiKey: string; maxRetries: number }>): FoxhoundApiClient {
   return new FoxhoundApiClient({
     endpoint: overrides?.endpoint ?? BASE_URL,
     apiKey: overrides?.apiKey ?? API_KEY,
+    maxRetries: overrides?.maxRetries ?? 0,
   });
 }
 

@@ -1001,7 +1001,8 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
         agentId: "agent-a",
         status: "sent",
       });
-      expect(log.orgId).toBe(orgA.id);
+      expect(log).not.toBeNull();
+      expect(log!.orgId).toBe(orgA.id);
 
       expect(await queries.deleteAlertRule(rule.id, orgB.id)).toBe(false);
       expect(await queries.deleteAlertRule(rule.id, orgA.id)).toBe(true);

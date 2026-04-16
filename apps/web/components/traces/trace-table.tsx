@@ -27,26 +27,10 @@ import {
   getSandboxSessionHref,
   isSandboxPath,
 } from '@/lib/sandbox-routes';
+import { getPromptMetadata } from '@/lib/trace-utils';
 
 interface TraceTableProps {
   initialData: Trace[];
-}
-
-function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
-  const promptName = typeof trace.metadata?.prompt_name === 'string'
-    ? trace.metadata.prompt_name
-    : typeof trace.metadata?.promptName === 'string'
-      ? trace.metadata.promptName
-      : undefined;
-
-  const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
-      ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
-        ? trace.metadata.promptVersion
-        : undefined;
-
-  return { promptName, promptVersion };
 }
 
 export function TraceTable({ initialData }: TraceTableProps) {
@@ -142,10 +126,10 @@ export function TraceTable({ initialData }: TraceTableProps) {
         description="Use this table to scan recent executions, isolate unhealthy runs, and launch a run comparison from two selected traces."
       >
         <div className="rounded-lg p-12 text-center" style={{ border: '1px solid var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
-          <p className="text-lg font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+          <p className="text-lg font-medium text-tenant-text-primary">
             {isTrulyEmpty || !hasFilters ? 'No traces yet' : 'No traces match your filters'}
           </p>
-          <p className="mt-2 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+          <p className="mt-2 text-sm text-tenant-text-muted">
             {isTrulyEmpty || !hasFilters
               ? 'Traces will appear here once your agents start sending data.'
               : 'Try adjusting your filters or clearing them to see more results.'}
@@ -162,8 +146,8 @@ export function TraceTable({ initialData }: TraceTableProps) {
     >
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
         <div className="flex items-center justify-between">
-          <div className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
-            Showing <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
+          <div className="text-sm text-tenant-text-secondary">
+            Showing <span className="font-medium text-tenant-text-primary">{traces.length}</span> trace{traces.length !== 1 ? 's' : ''}
             {traces.length !== initialData.length && (
               <span style={{ color: 'var(--tenant-text-muted)' }}> (filtered from {initialData.length})</span>
             )}
@@ -174,10 +158,10 @@ export function TraceTable({ initialData }: TraceTableProps) {
           className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
           style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
         >
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
             Compare guidance
           </div>
-          <p className="mt-2 text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
+          <p className="mt-2 text-sm leading-6 text-tenant-text-secondary">
             Pick the failing trace first, then the healthy or newer run second. That preserves the clearest before-versus-after investigation path when you jump into Run Diff.
           </p>
         </div>
@@ -258,11 +242,11 @@ export function TraceTable({ initialData }: TraceTableProps) {
                       className="block transition-colors hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="truncate font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+                      <div className="truncate font-mono text-sm font-medium text-tenant-text-primary">
                         {trace.agentId}
                       </div>
                     </Link>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
                       {hasError ? 'Needs investigation' : 'Healthy execution'}
                     </div>
                   </TableCell>
@@ -292,19 +276,19 @@ export function TraceTable({ initialData }: TraceTableProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{duration}s</div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="font-medium text-tenant-text-primary">{duration}s</div>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
                       runtime
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{trace.spans.length}</span>
-                      <span className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                      <span className="font-medium text-tenant-text-primary">{trace.spans.length}</span>
+                      <span className="text-xs text-tenant-text-muted">
                         ({trace.spans.filter((s) => s.kind === 'llm_call').length} LLM)
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
                       total spans
                     </div>
                   </TableCell>
@@ -312,7 +296,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
                     <div style={{ color: 'var(--tenant-text-secondary)' }}>
                       {format(new Date(trace.startTimeMs), 'yyyy-MM-dd HH:mm')}
                     </div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-tenant-text-muted">
                       started
                     </div>
                   </TableCell>

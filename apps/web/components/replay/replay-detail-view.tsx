@@ -4,27 +4,11 @@ import { SessionReplay } from './session-replay';
 import type { Trace } from '@foxhound/types';
 import { getSandboxPromptDetailHref, getSandboxPromptDiffHref, getSandboxRootHref } from '@/lib/sandbox-routes';
 import { ActionCard, DetailActionPanel, DetailHeader, EvidenceCard, StatusBadge, SummaryStatCard } from '@/components/system/detail';
+import { getPromptMetadata } from '@/lib/trace-utils';
 
 interface ReplayDetailViewProps {
   trace: Trace;
   baseHref?: string;
-}
-
-function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
-  const promptName = typeof trace.metadata?.prompt_name === 'string'
-    ? trace.metadata.prompt_name
-    : typeof trace.metadata?.promptName === 'string'
-      ? trace.metadata.promptName
-      : undefined;
-
-  const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
-      ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
-        ? trace.metadata.promptVersion
-        : undefined;
-
-  return { promptName, promptVersion };
 }
 
 export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps) {
@@ -55,10 +39,10 @@ export function ReplayDetailView({ trace, baseHref = '' }: ReplayDetailViewProps
             className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
           >
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Replay id
             </div>
-            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
+            <div className="mt-2 font-mono text-sm text-tenant-text-primary">{trace.id}</div>
           </div>
         </div>
 

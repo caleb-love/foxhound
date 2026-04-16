@@ -14,6 +14,10 @@ import type {
 export interface FoxhoundApiConfig {
   endpoint: string;
   apiKey: string;
+  /** Maximum retry attempts for transient failures (default: 2) */
+  maxRetries?: number;
+  /** Request timeout in milliseconds (default: 30000) */
+  timeoutMs?: number;
 }
 
 // ── Traces ──────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import {
 } from "@foxhound/db";
 import type { JwtPayload } from "../plugins/auth.js";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, OrgSlugParamSchema } from "../lib/params.js";
 
 const SamlConfigSchema = z.object({
   provider: z.literal("saml"),
@@ -265,7 +266,9 @@ export function ssoRoutes(fastify: FastifyInstance): void {
     "/v1/sso/login/:orgSlug",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
-      const { orgSlug } = request.params as { orgSlug: string };
+      const p = parseParams(request, reply, OrgSlugParamSchema);
+      if (!p) return;
+      const { orgSlug } = p;
       const org = await getOrganizationBySlug(orgSlug);
 
       if (!org) {

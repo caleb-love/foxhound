@@ -9,6 +9,7 @@ import {
   writeAuditLog,
 } from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema } from "../lib/params.js";
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
@@ -103,7 +104,9 @@ export function apiKeysRoutes(fastify: FastifyInstance): void {
     "/v1/api-keys/:id",
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const params = parseParams(request, reply, IdParamSchema);
+      if (!params) return;
+      const { id } = params;
       const revoked = await revokeApiKey(id, request.orgId);
       if (!revoked) {
         return reply

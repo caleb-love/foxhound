@@ -64,8 +64,8 @@ describe('ExecutiveSummaryDashboard', () => {
     );
 
     expect(screen.getByText('Decision queue')).toBeInTheDocument();
-    expect(screen.getByText('Decide whether support-routing v12 is safe to promote')).toBeInTheDocument();
-    expect(screen.getByText('Review planner-agent reliability drift')).toBeInTheDocument();
+    expect(screen.getAllByText('Decide whether support-routing v12 is safe to promote').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Review planner-agent reliability drift').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /Open experiments/i })).toHaveAttribute('href', '/experiments');
     expect(screen.getByRole('link', { name: /Open regressions/i })).toHaveAttribute('href', '/regressions');
   });

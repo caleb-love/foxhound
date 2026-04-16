@@ -6,6 +6,8 @@ import { ThemePreviewCard } from '@/components/theme/theme-preview-card';
 import { useTenantTheme } from '@/components/theme/tenant-theme-provider';
 import { useThemeMode } from '@/components/theme/theme-mode-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SdkSimulation } from '@/components/sandbox/sdk-simulation';
+import { QualityGateDemo } from '@/components/sandbox/quality-gate-demo';
 
 export default function SandboxSettingsPage() {
   const { theme, themes, setThemeById } = useTenantTheme();
@@ -84,6 +86,10 @@ export default function SandboxSettingsPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SdkSimulation />
+        <QualityGateDemo />
       </div>
     </SandboxPage>
   );

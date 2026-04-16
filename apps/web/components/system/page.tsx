@@ -63,12 +63,12 @@ export function PageHeader({
       </div>
       <div className="space-y-2">
         <h1
-          className="text-3xl font-semibold tracking-tight"
-          style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}
+          className="text-3xl font-semibold tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading)' }}
         >
           {title}
         </h1>
-        <p className="max-w-3xl text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
+        <p className="max-w-3xl text-sm leading-6 text-tenant-text-secondary">
           {description}
         </p>
       </div>
@@ -90,10 +90,10 @@ export function SectionPanel({
   return (
     <section className={cn('rounded-3xl p-5 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
       <div className="space-y-1 pb-4">
-        <h2 className="text-xl font-semibold" style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}>
+        <h2 className="text-xl font-semibold text-tenant-text-primary" style={{ fontFamily: 'var(--font-heading)' }}>
           {title}
         </h2>
-        <p className="text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>{description}</p>
+        <p className="text-sm text-tenant-text-secondary">{description}</p>
       </div>
       <div className="space-y-4">{children}</div>
     </section>
@@ -109,17 +109,20 @@ export function MetricCard({
   value,
   supportingText,
   className,
+  children,
 }: {
   label: string;
   value: string;
   supportingText: string;
   className?: string;
+  children?: ReactNode;
 }) {
   return (
     <div className={cn('flex h-full flex-col rounded-3xl p-5 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
-      <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
-      <div className="mt-3 text-3xl font-semibold tracking-tight" style={{ color: 'var(--tenant-text-primary)' }}>{value}</div>
-      <p className="mt-3 text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>{supportingText}</p>
+      <div className="text-sm text-tenant-text-muted">{label}</div>
+      <div className="mt-3 text-3xl font-semibold tracking-tight text-tenant-text-primary">{value}</div>
+      <p className="mt-3 text-sm leading-6 text-tenant-text-secondary">{supportingText}</p>
+      {children}
     </div>
   );
 }
@@ -143,8 +146,8 @@ export function RecordHeader({ title, badge, meta }: { title: string; badge?: Re
   return (
     <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
       <div>
-        <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{title}</div>
-        {meta ? <div className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{meta}</div> : null}
+        <div className="font-medium text-tenant-text-primary">{title}</div>
+        {meta ? <div className="mt-1 text-xs text-tenant-text-muted">{meta}</div> : null}
       </div>
       {badge}
     </div>
@@ -152,7 +155,7 @@ export function RecordHeader({ title, badge, meta }: { title: string; badge?: Re
 }
 
 export function RecordBody({ children }: { children: ReactNode }) {
-  return <div className="text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>{children}</div>;
+  return <div className="text-sm leading-6 text-tenant-text-secondary">{children}</div>;
 }
 
 export function ActionsRow({ children }: { children: ReactNode }) {

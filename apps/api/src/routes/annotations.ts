@@ -16,6 +16,7 @@ import {
   getTrace,
 } from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema } from "../lib/params.js";
 
 const ScoreConfigSchema = z.object({
   name: z.string().min(1).max(100),
@@ -95,7 +96,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    * Get an annotation queue with item counts.
    */
   fastify.get("/v1/annotation-queues/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
     const queue = await getAnnotationQueue(id, request.orgId);
     if (!queue) {
       return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });
@@ -110,7 +113,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
    * Delete an annotation queue and all its items.
    */
   fastify.delete("/v1/annotation-queues/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
     const deleted = await deleteAnnotationQueue(id, request.orgId);
     if (!deleted) {
       return reply.code(404).send({ error: "Not Found", message: "Annotation queue not found" });
@@ -126,7 +131,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
     "/v1/annotation-queues/:id/items",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const result = AddItemsSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -182,7 +189,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
 
       if (!request.userId) {
         return reply.code(401).send({ error: "JWT auth required for claiming items" });
@@ -223,7 +232,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const result = SubmitScoresSchema.safeParse(request.body);
       if (!result.success) {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
@@ -288,7 +299,9 @@ export function annotationsRoutes(fastify: FastifyInstance): void {
       config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const p = parseParams(request, reply, IdParamSchema);
+      if (!p) return;
+      const { id } = p;
       const orgId = request.orgId;
       const item = await getAnnotationQueueItem(id, orgId);
       if (!item) {

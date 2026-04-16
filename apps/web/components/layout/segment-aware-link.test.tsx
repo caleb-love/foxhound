@@ -27,12 +27,12 @@ describe('SegmentAwareLink', () => {
 
   it('preserves the active segment in generated hrefs', () => {
     render(<HrefProbe href="/regressions" />);
-    expect(screen.getByText('/regressions?foo=bar&segment=Planner+agent')).toBeInTheDocument();
+    expect(screen.getByText('/regressions?segment=Planner+agent')).toBeInTheDocument();
   });
 
   it('renders a link with segment-aware href', () => {
     render(<SegmentAwareLink href="/traces">Open traces</SegmentAwareLink>);
-    expect(screen.getByRole('link', { name: 'Open traces' })).toHaveAttribute('href', '/traces?foo=bar&segment=Planner+agent');
+    expect(screen.getByRole('link', { name: 'Open traces' })).toHaveAttribute('href', '/traces?segment=Planner+agent');
   });
 
   it('omits the segment query for all traffic', () => {
@@ -43,6 +43,6 @@ describe('SegmentAwareLink', () => {
     });
 
     render(<HrefProbe href="/budgets" />);
-    expect(screen.getByText('/budgets?foo=bar')).toBeInTheDocument();
+    expect(screen.getByText('/budgets')).toBeInTheDocument();
   });
 });

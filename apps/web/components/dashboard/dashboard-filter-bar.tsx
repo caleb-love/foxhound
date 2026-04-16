@@ -54,7 +54,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
           if (definition.kind === 'search') {
             return (
               <div key={definition.key} className="relative min-w-[260px] flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--tenant-text-muted)' }} />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tenant-text-muted" />
                 <Input
                   placeholder={definition.placeholder ?? 'Search...'}
                   value={store.searchQuery}
@@ -81,7 +81,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
 
             return (
               <div key={definition.key} className="flex items-center gap-2">
-                <span className="text-sm font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>{definition.label}:</span>
+                <span className="text-sm font-medium text-tenant-text-secondary">{definition.label}:</span>
                 <Select value={selectValue} onValueChange={(next) => setValue(next as never)}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder={definition.label} />
@@ -191,7 +191,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
             } as Partial<typeof store>;
             applyPartial(reset);
             setCurrentSegmentName('All traffic');
-          }} className="gap-2" style={{ color: 'var(--tenant-text-secondary)' }}>
+          }} className="gap-2 text-tenant-text-secondary">
             <X className="h-4 w-4" />
             Clear filters
           </Button>
@@ -199,7 +199,7 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
       </div>
 
       {activeCount > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-tenant-text-secondary">
           <span>Active filters:</span>
           {store.status !== 'all' ? <Badge variant="secondary">Status: {store.status}</Badge> : null}
           {store.severity !== 'all' ? <Badge variant="secondary">Severity: {store.severity}</Badge> : null}

@@ -1,3 +1,8 @@
+/**
+ * Compatibility aliases for the legacy "Premium" naming convention.
+ * New code should import directly from '@/components/system/page' instead.
+ * These aliases exist to avoid a mass-rename of existing sandbox pages.
+ */
 import type { ReactNode } from 'react';
 import {
   ActionLink,

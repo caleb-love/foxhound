@@ -102,12 +102,12 @@ export function InsightsPanel({
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="h-5 w-5" style={{ color: 'var(--tenant-success)' }} />;
+        return <CheckCircle2 className="h-5 w-5 text-tenant-success" />;
       case 'warning':
-        return <AlertCircle className="h-5 w-5" style={{ color: 'var(--tenant-warning)' }} />;
+        return <AlertCircle className="h-5 w-5 text-tenant-warning" />;
       case 'info':
       default:
-        return <Info className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />;
+        return <Info className="h-5 w-5 text-tenant-accent" />;
     }
   };
   
@@ -115,8 +115,8 @@ export function InsightsPanel({
     <div className="p-6" style={tenantStyles.panel}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5" style={{ color: 'var(--tenant-accent)' }} />
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Insights</h3>
+          <Lightbulb className="h-5 w-5 text-tenant-accent" />
+          <h3 className="text-lg font-semibold text-tenant-text-primary">Insights</h3>
         </div>
         <div className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}>
           Comparison summary
@@ -142,7 +142,7 @@ export function InsightsPanel({
             }}
           >
             <div className="mt-0.5">{getIcon(insight.type)}</div>
-            <p className="text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{insight.message}</p>
+            <p className="text-sm text-tenant-text-primary">{insight.message}</p>
           </div>
         ))}
       </div>

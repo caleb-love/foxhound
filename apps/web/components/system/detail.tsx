@@ -79,12 +79,12 @@ export function SummaryStatCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium" style={{ color: 'var(--tenant-text-muted)' }}>{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-tenant-text-muted">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{value}</div>
+        <div className="text-2xl font-bold text-tenant-text-primary">{value}</div>
         {supportingText ? (
-          <p className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>{supportingText}</p>
+          <p className="mt-1 text-xs text-tenant-text-muted">{supportingText}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -104,8 +104,8 @@ export function CompareContextCard({
     <RecordCard>
       <RecordHeader title={label} />
       <RecordBody>
-        <div className="font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{id}</div>
-        <div className="mt-2 space-y-1 text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>
+        <div className="font-mono text-sm text-tenant-text-primary">{id}</div>
+        <div className="mt-2 space-y-1 text-xs text-tenant-text-secondary">
           {meta.map((item) => (
             <div key={item}>{item}</div>
           ))}

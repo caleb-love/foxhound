@@ -2,6 +2,14 @@
 "use strict";
 
 // ../../../packages/api-client/dist/http.js
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function getBackoffMs(attempt) {
+  const base = 500;
+  const delay = base * Math.pow(2, attempt) + Math.random() * 200;
+  return Math.min(delay, 5e3);
+}
 function normalizeEndpoint(endpoint) {
   let normalized = endpoint;
   while (normalized.endsWith("/"))
@@ -14,6 +22,8 @@ function normalizeEndpoint(endpoint) {
 function createApiHttpClient(config) {
   const endpoint = normalizeEndpoint(config.endpoint);
   const apiKey = config.apiKey;
+  const maxRetries = config.maxRetries ?? 2;
+  const timeoutMs = config.timeoutMs ?? 3e4;
   function authHeaders(includeJsonContentType = false) {
     return {
       ...includeJsonContentType ? { "Content-Type": "application/json" } : {},
@@ -35,10 +45,32 @@ function createApiHttpClient(config) {
     const init = {
       method,
       headers: authHeaders(body !== void 0),
-      ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+      ...body !== void 0 ? { body: JSON.stringify(body) } : {},
+      signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : void 0
     };
-    const response = await fetch(`${endpoint}${path}`, init);
-    return parseJsonResponse(response, options?.errorPrefix ?? "Foxhound API");
+    let lastError;
+    const attempts = maxRetries + 1;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        const response = await fetch(`${endpoint}${path}`, init);
+        if (response.status >= 400 && response.status < 500) {
+          return parseJsonResponse(response, options?.errorPrefix ?? "Foxhound API");
+        }
+        if (response.status >= 500 && attempt < attempts - 1) {
+          lastError = new Error(`${options?.errorPrefix ?? "Foxhound API"} ${response.status}`);
+          await sleep(getBackoffMs(attempt));
+          continue;
+        }
+        return parseJsonResponse(response, options?.errorPrefix ?? "Foxhound API");
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (lastError.name === "AbortError" || lastError.name === "TimeoutError" || attempt >= attempts - 1) {
+          throw lastError;
+        }
+        await sleep(getBackoffMs(attempt));
+      }
+    }
+    throw lastError ?? new Error("Request failed after retries");
   }
   return {
     endpoint,

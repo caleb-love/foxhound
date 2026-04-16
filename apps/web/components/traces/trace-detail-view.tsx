@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActionCard, DetailActionPanel, DetailHeader, StatusBadge, SummaryStatCard } from '@/components/system/detail';
 import { TraceTimeline } from './trace-timeline';
 import type { Span, Trace } from '@foxhound/types';
+import { getPromptMetadata, getPromptDetailHref, getPromptDiffHref, getSuggestedCompareHref } from '@/lib/trace-utils';
 
 interface TraceDetailViewProps {
   trace: Trace;
@@ -21,74 +22,6 @@ function getTraceCost(trace: Trace): number {
     const cost = span.attributes.cost;
     return sum + (typeof cost === 'number' ? cost : 0);
   }, 0);
-}
-
-function getPromptMetadata(trace: Trace): { promptName?: string; promptVersion?: string | number } {
-  const promptName = typeof trace.metadata?.prompt_name === 'string'
-    ? trace.metadata.prompt_name
-    : typeof trace.metadata?.promptName === 'string'
-      ? trace.metadata.promptName
-      : undefined;
-
-  const promptVersion =
-    typeof trace.metadata?.prompt_version === 'string' || typeof trace.metadata?.prompt_version === 'number'
-      ? trace.metadata.prompt_version
-      : typeof trace.metadata?.promptVersion === 'string' || typeof trace.metadata?.promptVersion === 'number'
-        ? trace.metadata.promptVersion
-        : undefined;
-
-  return { promptName, promptVersion };
-}
-
-function getPromptDetailHref(baseHref: string, promptName?: string): string | null {
-  if (!promptName) return null;
-
-  const promptIdByName: Record<string, string> = {
-    'support-reply': 'prompt_support_reply',
-    'refund-policy-check': 'prompt_refund_policy_check',
-    'escalation-triage': 'prompt_escalation_triage',
-  };
-
-  const promptId = promptIdByName[promptName];
-  return promptId ? `${baseHref}/prompts/${promptId}` : null;
-}
-
-function getPromptDiffHref(baseHref: string, promptName?: string, promptVersion?: string | number): string | null {
-  if (!promptName || promptVersion === undefined) return null;
-
-  const promptIdByName: Record<string, string> = {
-    'support-reply': 'prompt_support_reply',
-    'refund-policy-check': 'prompt_refund_policy_check',
-    'escalation-triage': 'prompt_escalation_triage',
-  };
-
-  const promptId = promptIdByName[promptName];
-  if (!promptId) return null;
-
-  const version = Number(promptVersion);
-  if (Number.isNaN(version)) return null;
-
-  const baselineVersion = version > 1 ? version - 1 : version;
-  return `${baseHref}/prompts/${promptId}/diff?versionA=${baselineVersion}&versionB=${version}`;
-}
-
-function getSuggestedCompareHref(baseHref: string, trace: Trace): string {
-  const traceId = trace.id;
-  const comparisons: Record<string, string> = {
-    trace_returns_exception_v17_baseline: 'trace_returns_exception_v18_regression',
-    trace_returns_exception_v18_regression: 'trace_returns_exception_v19_fix',
-    trace_returns_exception_v19_fix: 'trace_returns_exception_v18_regression',
-    trace_damage_receipt_v18_hallucination: 'trace_returns_exception_v17_baseline',
-    trace_vip_chargeback_v18_missed_escalation: 'trace_vip_chargeback_v19_restored_escalation',
-    trace_vip_chargeback_v19_restored_escalation: 'trace_vip_chargeback_v18_missed_escalation',
-    trace_kb_timeout_failed: 'trace_kb_timeout_recovered',
-    trace_kb_timeout_recovered: 'trace_kb_timeout_failed',
-  };
-
-  const comparisonTraceId = comparisons[traceId];
-  return comparisonTraceId
-    ? `${baseHref}/diff?a=${traceId}&b=${comparisonTraceId}`
-    : `${baseHref}/traces`;
 }
 
 export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) {
@@ -119,10 +52,10 @@ export function TraceDetailView({ trace, baseHref = '' }: TraceDetailViewProps) 
             className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
           >
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Trace id
             </div>
-            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{trace.id}</div>
+            <div className="mt-2 font-mono text-sm text-tenant-text-primary">{trace.id}</div>
           </div>
         </div>
 

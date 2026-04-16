@@ -69,8 +69,8 @@ export function ThemeModeSettings() {
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{option.label}</div>
-                  <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>{option.description}</div>
+                  <div className="font-medium text-tenant-text-primary">{option.label}</div>
+                  <div className="text-sm text-tenant-text-muted">{option.description}</div>
                 </div>
               </div>
               <div
@@ -85,7 +85,7 @@ export function ThemeModeSettings() {
               </div>
             </div>
             {option.mode === 'system' ? (
-              <div className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+              <div className="text-xs text-tenant-text-muted">
                 Current resolved mode: <span style={{ color: 'var(--tenant-text-primary)' }}>{resolvedMode}</span>
               </div>
             ) : null}

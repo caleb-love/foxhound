@@ -86,7 +86,7 @@ describe('ExperimentsDashboard', () => {
 
     expect(screen.getByText('Experiments')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search experiments, datasets, or winning signals...')).toBeInTheDocument();
-    expect(screen.getByText('support-routing-v12-vs-v11')).toBeInTheDocument();
+    expect(screen.getAllByText('support-routing-v12-vs-v11').length).toBeGreaterThan(0);
   });
 
   it('respects active segment dataset filters', () => {

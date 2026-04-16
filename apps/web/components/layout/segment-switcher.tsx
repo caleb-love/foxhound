@@ -60,7 +60,7 @@ export function SegmentSwitcher() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <div className="px-2 py-2">
-          <div className="mb-2 text-xs font-medium" style={{ color: 'var(--tenant-text-muted)' }}>Save current segment</div>
+          <div className="mb-2 text-xs font-medium text-tenant-text-muted">Save current segment</div>
           <div className="flex gap-2">
             <Input
               value={draftName}

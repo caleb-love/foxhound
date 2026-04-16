@@ -168,9 +168,10 @@ describe('TraceTable', () => {
   it('renders direct replay and compare-slot actions for each trace', () => {
     render(<TraceTable initialData={traces as never} />);
 
-    expect(screen.getByRole('link', { name: /Replay/i })).toHaveAttribute('href', '/replay/trace_a');
-    expect(screen.getByRole('button', { name: /Set A/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Set B/i })).toBeInTheDocument();
+    const replayLinks = screen.getAllByRole('link', { name: /Replay/i });
+    expect(replayLinks[0]).toHaveAttribute('href', '/replay/trace_a');
+    expect(screen.getAllByRole('button', { name: /Set A/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /Set B/i }).length).toBeGreaterThan(0);
   });
 
   it('updates compare slots explicitly from trace actions', () => {

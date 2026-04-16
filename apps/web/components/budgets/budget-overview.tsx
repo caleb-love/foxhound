@@ -29,14 +29,14 @@ export function BudgetOverview({
       <div className="rounded-lg border p-6" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
         <div className="flex items-center gap-3">
           <div className="rounded-full p-3" style={{ background: 'var(--tenant-accent-soft)' }}>
-            <DollarSign className="h-6 w-6" style={{ color: 'var(--tenant-accent)' }} />
+            <DollarSign className="h-6 w-6 text-tenant-accent" />
           </div>
           <div>
-            <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Total Budget</p>
-            <p className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>${totalBudget.toFixed(2)}</p>
+            <p className="text-sm text-tenant-text-muted">Total Budget</p>
+            <p className="text-2xl font-bold text-tenant-text-primary">${totalBudget.toFixed(2)}</p>
           </div>
         </div>
-        <div className="mt-4 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+        <div className="mt-4 text-xs text-tenant-text-muted">
           {budgetCount} agent{budgetCount !== 1 ? 's' : ''} configured
         </div>
       </div>
@@ -45,11 +45,11 @@ export function BudgetOverview({
       <div className="rounded-lg border p-6" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
         <div className="flex items-center gap-3">
           <div className="rounded-full p-3" style={{ background: 'var(--tenant-accent-soft)' }}>
-            <TrendingUp className="h-6 w-6" style={{ color: 'var(--tenant-accent)' }} />
+            <TrendingUp className="h-6 w-6 text-tenant-accent" />
           </div>
           <div>
-            <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Spent This Month</p>
-            <p className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>${totalSpent.toFixed(2)}</p>
+            <p className="text-sm text-tenant-text-muted">Spent This Month</p>
+            <p className="text-2xl font-bold text-tenant-text-primary">${totalSpent.toFixed(2)}</p>
           </div>
         </div>
         <div className="mt-4">
@@ -69,16 +69,16 @@ export function BudgetOverview({
       <div className="rounded-lg border p-6" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
         <div className="flex items-center gap-3">
           <div className="rounded-full p-3" style={{ background: 'color-mix(in srgb, var(--tenant-success) 14%, white)' }}>
-            <Shield className="h-6 w-6" style={{ color: 'var(--tenant-success)' }} />
+            <Shield className="h-6 w-6 text-tenant-success" />
           </div>
           <div>
-            <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Remaining</p>
-            <p className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>
+            <p className="text-sm text-tenant-text-muted">Remaining</p>
+            <p className="text-2xl font-bold text-tenant-text-primary">
               ${remaining >= 0 ? remaining.toFixed(2) : '0.00'}
             </p>
           </div>
         </div>
-        <div className="mt-4 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+        <div className="mt-4 text-xs text-tenant-text-muted">
           {remaining >= 0
             ? 'Within budget'
             : `Over by $${Math.abs(remaining).toFixed(2)}`}
@@ -92,11 +92,11 @@ export function BudgetOverview({
             <AlertTriangle className="h-6 w-6" style={{ color: alertCount > 0 ? 'var(--tenant-danger)' : 'var(--tenant-text-muted)' }} />
           </div>
           <div>
-            <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>Active Alerts</p>
-            <p className="text-2xl font-bold" style={{ color: 'var(--tenant-text-primary)' }}>{alertCount}</p>
+            <p className="text-sm text-tenant-text-muted">Active Alerts</p>
+            <p className="text-2xl font-bold text-tenant-text-primary">{alertCount}</p>
           </div>
         </div>
-        <div className="mt-4 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+        <div className="mt-4 text-xs text-tenant-text-muted">
           {alertCount === 0
             ? 'All agents on track'
             : `${alertCount} agent${alertCount !== 1 ? 's' : ''} need attention`}

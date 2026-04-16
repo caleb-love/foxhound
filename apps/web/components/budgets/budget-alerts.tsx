@@ -34,17 +34,17 @@ export function BudgetAlerts({ budgetStatuses }: BudgetAlertsProps) {
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-full p-2" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 14%, white)' }}>
-                <AlertTriangle className="h-5 w-5" style={{ color: 'var(--tenant-danger)' }} />
+                <AlertTriangle className="h-5 w-5 text-tenant-danger" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: 'var(--tenant-danger)' }}>
+                <h3 className="font-semibold text-tenant-danger">
                   🚨 Budget Exceeded: {alert.agentId}
                 </h3>
-                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-danger)' }}>
+                <p className="mt-1 text-sm text-tenant-danger">
                   Over budget by <span className="font-medium">${Math.abs(alert.remaining).toFixed(2)}</span>
                   {' '}({alert.percentage.toFixed(1)}% of ${alert.budget.toFixed(2)} limit)
                 </p>
-                <p className="mt-2 text-xs" style={{ color: 'var(--tenant-danger)' }}>
+                <p className="mt-2 text-xs text-tenant-danger">
                   <strong>Action required:</strong> Review usage and increase budget or pause agent
                 </p>
               </div>
@@ -70,18 +70,18 @@ export function BudgetAlerts({ budgetStatuses }: BudgetAlertsProps) {
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-full p-2" style={{ background: 'color-mix(in srgb, var(--tenant-warning) 14%, white)' }}>
-                <DollarSign className="h-5 w-5" style={{ color: 'var(--tenant-warning)' }} />
+                <DollarSign className="h-5 w-5 text-tenant-warning" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: 'var(--tenant-warning)' }}>
+                <h3 className="font-semibold text-tenant-warning">
                   {alert.status === 'critical' ? '🔶 Near Budget Limit' : '⚠️ Approaching Budget Limit'}: {alert.agentId}
                 </h3>
-                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-warning)' }}>
+                <p className="mt-1 text-sm text-tenant-warning">
                   Used <span className="font-medium">${alert.spent.toFixed(2)}</span> of ${alert.budget.toFixed(2)}
                   {' '}({alert.percentage.toFixed(1)}%)
                 </p>
                 {alert.projectedMonthEnd > alert.budget && (
-                  <p className="mt-1 text-xs" style={{ color: 'var(--tenant-warning)' }}>
+                  <p className="mt-1 text-xs text-tenant-warning">
                     Projected month-end: ${alert.projectedMonthEnd.toFixed(2)}
                   </p>
                 )}

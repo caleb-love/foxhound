@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { Span } from '@foxhound/types';
 import { Badge } from '@/components/ui/badge';
 import { SpanDetailPanel } from './span-detail-panel';
@@ -51,17 +51,53 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
     setTimeout(() => setSelectedSpan(null), 300);
   };
 
-  if (!spans || spans.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-12" style={{ color: 'var(--tenant-text-muted)' }}>
-        No spans in this trace
-      </div>
-    );
-  }
+  // Build a parent lookup and compute tree depth for indentation
+  const parentMap = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    for (const span of spans) {
+      map.set(span.spanId, span.parentSpanId);
+    }
+    return map;
+  }, [spans]);
 
-  const sortedSpans = [...spans].sort((a, b) => a.startTimeMs - b.startTimeMs);
-  const minTime = sortedSpans[0]?.startTimeMs || 0;
-  const maxTime = sortedSpans[sortedSpans.length - 1]?.endTimeMs || minTime;
+  const getDepth = useCallback((spanId: string): number => {
+    let depth = 0;
+    let current = parentMap.get(spanId);
+    while (current) {
+      depth++;
+      current = parentMap.get(current);
+      if (depth > 10) break; // safety limit
+    }
+    return depth;
+  }, [parentMap]);
+
+  // Tree-order sort: group children under their parent, preserving start time within siblings
+  const sortedSpans = useMemo(() => {
+    const childrenOf = new Map<string | undefined, Span[]>();
+    for (const span of spans) {
+      const key = span.parentSpanId ?? '__root__';
+      const list = childrenOf.get(key) ?? [];
+      list.push(span);
+      childrenOf.set(key, list);
+    }
+    for (const list of childrenOf.values()) {
+      list.sort((a, b) => a.startTimeMs - b.startTimeMs);
+    }
+
+    function walkTree(parentId: string | undefined): Span[] {
+      const children = childrenOf.get(parentId ?? '__root__') ?? [];
+      const result: Span[] = [];
+      for (const child of children) {
+        result.push(child);
+        result.push(...walkTree(child.spanId));
+      }
+      return result;
+    }
+    return walkTree(undefined);
+  }, [spans]);
+
+  const minTime = useMemo(() => Math.min(...spans.map((s) => s.startTimeMs)), [spans]);
+  const maxTime = useMemo(() => Math.max(...spans.map((s) => s.endTimeMs ?? s.startTimeMs)), [spans]);
   const totalDuration = maxTime - minTime || 1;
 
   const spanStats = useMemo(
@@ -72,6 +108,14 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
     }),
     [sortedSpans],
   );
+
+  if (!spans || spans.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12 text-tenant-text-muted">
+        No spans in this trace
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -84,10 +128,10 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Investigate execution path
             </div>
-            <p className="max-w-2xl text-sm leading-6" style={{ color: 'var(--tenant-text-secondary)' }}>
+            <p className="max-w-2xl text-sm leading-6 text-tenant-text-secondary">
               Each row shows when a span entered the trace, how long it ran, and where to open deeper evidence. Use the rail to spot handoffs, bottlenecks, and suspicious late-stage drift.
             </p>
           </div>
@@ -102,8 +146,8 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
                 className="rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2.5"
                 style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
               >
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>{label}</div>
-                <div className="mt-1 text-base font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{value}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">{label}</div>
+                <div className="mt-1 text-base font-semibold tracking-[-0.02em] text-tenant-text-primary">{value}</div>
               </div>
             ))}
           </div>
@@ -118,6 +162,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
           const isSelected = selectedSpanId === span.spanId && isPanelOpen;
           const accent = SPAN_KIND_COLORS[span.kind] || 'var(--tenant-text-muted)';
           const offsetLabel = formatOffsetLabel(span.startTimeMs - minTime);
+          const depth = getDepth(span.spanId);
 
           return (
             <div
@@ -133,15 +178,30 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
                   : '0 8px 24px color-mix(in srgb, black 3%, transparent)',
               }}
             >
-              <div className="min-w-0 space-y-3">
+              <div className="min-w-0 space-y-3" style={{ marginLeft: `${depth * 20}px` }}>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--tenant-radius-control-tight)] border text-[11px] font-semibold"
-                    style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-muted)' }}
+                  {depth > 0 ? (
+                    <div className="flex h-8 shrink-0 items-center gap-1" style={{ color: 'var(--tenant-panel-stroke)' }}>
+                      <svg width="16" height="32" viewBox="0 0 16 32" fill="none">
+                        <path d="M8 0 V16 H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                  ) : null}
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                    style={{ background: accent, color: '#0B1120', boxShadow: `0 0 10px ${accent}40` }}
                   >
                     {index + 1}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{span.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="truncate text-[15px] font-semibold tracking-[-0.02em] text-tenant-text-primary">{span.name}</div>
+                      {span.kind === 'llm_call' && typeof span.attributes?.cost_usd === 'number' ? (
+                        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'color-mix(in srgb, var(--tenant-warning) 15%, transparent)', color: 'var(--tenant-warning)', border: '1px solid color-mix(in srgb, var(--tenant-warning) 25%, transparent)' }}>
+                          ${span.attributes.cost_usd.toFixed(4)}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
                         {SPAN_KIND_LABELS[span.kind] || span.kind}
@@ -163,10 +223,10 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
 
               <div className="min-w-0">
                 <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                     Execution rail
                   </div>
-                  <div className="text-xs" style={{ color: 'var(--tenant-text-secondary)' }}>{formatSpanDuration(duration)}</div>
+                  <div className="text-xs text-tenant-text-secondary">{formatSpanDuration(duration)}</div>
                 </div>
                 <div className="relative h-14 overflow-hidden rounded-[var(--tenant-radius-panel-tight)] border px-3" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'linear-gradient(180deg, color-mix(in srgb, var(--card) 84%, var(--background)), color-mix(in srgb, var(--card) 92%, var(--background)))' }}>
                   <div className="absolute inset-y-0 left-0 right-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--tenant-panel-stroke)_65%,transparent)_1px,transparent_1px)] bg-[length:12.5%_100%] opacity-50" />
@@ -197,8 +257,8 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
                 <div className="rounded-[var(--tenant-radius-panel-tight)] border px-3 py-2 text-right"
                   style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
                 >
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--tenant-text-muted)' }}>Duration</div>
-                  <div className="mt-1 text-base font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>{formatSpanDuration(duration)}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Duration</div>
+                  <div className="mt-1 text-base font-semibold tracking-[-0.02em] text-tenant-text-primary">{formatSpanDuration(duration)}</div>
                 </div>
                 <button
                   type="button"
@@ -215,7 +275,7 @@ export function TraceTimeline({ spans }: TraceTimelineProps) {
       </div>
 
       <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
-        <div className="flex flex-wrap items-center gap-6 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+        <div className="flex flex-wrap items-center gap-6 text-xs text-tenant-text-muted">
           {[
             ['LLM Call', SPAN_KIND_COLORS.llm_call],
             ['Tool Call', SPAN_KIND_COLORS.tool_call],

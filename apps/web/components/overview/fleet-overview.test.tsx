@@ -84,8 +84,8 @@ describe('FleetOverview', () => {
 
     expect(screen.getByText('What changed')).toBeInTheDocument();
     expect(screen.getByText('What needs action')).toBeInTheDocument();
-    expect(screen.getByText('Prompt label moved to v12')).toBeInTheDocument();
-    expect(screen.getByText('Regression spike in onboarding agent')).toBeInTheDocument();
+    expect(screen.getAllByText('Prompt label moved to v12').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Regression spike in onboarding agent').length).toBeGreaterThan(0);
   });
 
   it('renders sandbox quick links when sandbox mode is enabled', () => {

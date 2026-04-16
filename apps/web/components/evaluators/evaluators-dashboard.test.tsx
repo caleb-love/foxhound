@@ -87,7 +87,7 @@ describe('EvaluatorsDashboard', () => {
     expect(screen.getByText('Evaluators')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search evaluators, models, or scoring coverage...')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('helpfulness-judge')).toBeInTheDocument();
+    expect(screen.getAllByText('helpfulness-judge').length).toBeGreaterThan(0);
   });
 
   it('respects active segment model filters', () => {
@@ -102,7 +102,7 @@ describe('EvaluatorsDashboard', () => {
       <EvaluatorsDashboard metrics={metrics} evaluators={evaluators} nextActions={nextActions} />,
     );
 
-    expect(screen.getByText('tool-routing-review')).toBeInTheDocument();
+    expect(screen.getAllByText('tool-routing-review').length).toBeGreaterThan(0);
     expect(screen.queryByText('helpfulness-judge')).not.toBeInTheDocument();
   });
 });

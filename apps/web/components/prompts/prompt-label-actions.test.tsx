@@ -23,8 +23,8 @@ describe('SetPromptLabelDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Set label/i }));
 
-    expect(screen.getByLabelText(/Label/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Version/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Label')).toBeInTheDocument();
+    expect(screen.getByLabelText('Version')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Set label$/i })).toBeInTheDocument();
   });
 });

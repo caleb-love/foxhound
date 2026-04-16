@@ -23,6 +23,7 @@ import { getRedis } from "../lib/redis.js";
 import { getConfigFromCache } from "../lib/config-cache.js";
 import { getCostMonitorQueue, getRegressionDetectorQueue } from "../queue.js";
 import { trackPendoEvent } from "../lib/pendo.js";
+import { parseParams, IdParamSchema, TraceSpanParamSchema } from "../lib/params.js";
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -392,8 +393,9 @@ export function tracesRoutes(fastify: FastifyInstance): void {
    * Fetch a single trace by ID — scoped to the authenticated org.
    */
   fastify.get("/v1/traces/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const trace = await getTraceWithSpans(id, request.orgId);
+    const params = parseParams(request, reply, IdParamSchema);
+    if (!params) return;
+    const trace = await getTraceWithSpans(params.id, request.orgId);
     if (!trace) {
       return reply.code(404).send({ error: "Not Found", message: "Trace not found" });
     }
@@ -409,7 +411,9 @@ export function tracesRoutes(fastify: FastifyInstance): void {
     "/v1/traces/:traceId/spans/:spanId/replay",
     { preHandler: [requireEntitlement("canReplay")] },
     async (request, reply) => {
-      const { traceId, spanId } = request.params as { traceId: string; spanId: string };
+      const params = parseParams(request, reply, TraceSpanParamSchema);
+      if (!params) return;
+      const { traceId, spanId } = params;
       const context = await getReplayContext(traceId, spanId, request.orgId);
       if (!context) {
         return reply.code(404).send({

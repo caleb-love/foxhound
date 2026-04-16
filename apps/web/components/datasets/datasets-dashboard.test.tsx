@@ -79,8 +79,8 @@ describe('DatasetsDashboard', () => {
       <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
     );
 
-    expect(screen.getByText('onboarding-regressions')).toBeInTheDocument();
-    expect(screen.getByText(/Built from failing onboarding traces/)).toBeInTheDocument();
+    expect(screen.getAllByText('onboarding-regressions').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Built from failing onboarding traces/).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /Review source traces/i })).toHaveAttribute('href', '/traces');
   });
 

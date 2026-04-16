@@ -8,6 +8,12 @@ vi.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => '/sandbox/settings',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 describe('SandboxSettingsPage', () => {
   beforeEach(() => {
     const localStorageState = new Map<string, string>();
@@ -55,10 +61,11 @@ describe('SandboxSettingsPage', () => {
     );
 
     expect(screen.getByText('Appearance mode')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /dark/i })).toBeInTheDocument();
+    const darkButtons = screen.getAllByRole('button', { name: /dark/i });
+    expect(darkButtons.length).toBeGreaterThan(0);
     expect(screen.getByText(/Appearance mode: light/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /dark/i }));
+    fireEvent.click(darkButtons[0]!);
 
     await waitFor(() => {
       expect(document.documentElement.classList.contains('dark')).toBe(true);

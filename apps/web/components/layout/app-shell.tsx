@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { TopBar } from '@/components/layout/top-bar';
+import { OperatorCommandPalette } from '@/components/layout/operator-command-palette';
 import { SegmentPersistenceBridge } from '@/components/layout/segment-persistence-bridge';
 import { TenantThemeProvider } from '@/components/theme/tenant-theme-provider';
 
@@ -32,8 +33,8 @@ function ShellModeHeader({ mode }: { mode: 'dashboard' | 'sandbox' }) {
           Sandbox
         </div>
         <div>
-          <p className="text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>Shared narrative sandbox workspace</p>
-          <p className="text-xs" style={{ color: 'var(--tenant-text-muted)' }}>Whitelabel-friendly shell, reusable data-driven surfaces</p>
+          <p className="text-sm font-medium text-tenant-text-primary">Shared narrative sandbox workspace</p>
+          <p className="text-xs text-tenant-text-muted">Whitelabel-friendly shell, reusable data-driven surfaces</p>
         </div>
       </div>
     );
@@ -81,11 +82,14 @@ export function AppShell({
           <TopBar user={user} mode={mode} leadingContent={<ShellModeHeader mode={mode} />} />
         ) : mode === 'sandbox' ? (
           <header
-            className="relative flex h-18 items-center justify-between border-b px-6 backdrop-blur-xl"
+            className="relative flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 85%, transparent)' }}
           >
             <ShellModeHeader mode={mode} />
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-3 md:flex">
+              <Suspense fallback={null}>
+                <OperatorCommandPalette />
+              </Suspense>
               {['Overview', 'Investigate', 'Improve', 'Govern'].map((item) => (
                 <div
                   key={item}

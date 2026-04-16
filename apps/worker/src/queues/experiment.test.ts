@@ -289,7 +289,7 @@ describe("processExperimentJob (via processor)", () => {
         datasetItemId: "item_1",
         output: { content: "already-complete" },
       },
-    ] as Awaited<ReturnType<typeof db.listExperimentRuns>>);
+    ] as unknown as Awaited<ReturnType<typeof db.listExperimentRuns>>);
 
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -364,7 +364,7 @@ describe("processExperimentJob (via processor)", () => {
         datasetItemId: "item_1",
         output: { content: "already-complete" },
       },
-    ] as Awaited<ReturnType<typeof db.listExperimentRuns>>);
+    ] as unknown as Awaited<ReturnType<typeof db.listExperimentRuns>>);
 
     vi.mocked(db.listEvaluators).mockResolvedValue([
       {

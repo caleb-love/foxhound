@@ -70,7 +70,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
     <div className="space-y-4">
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--tenant-text-muted)' }} />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tenant-text-muted" />
         <Input
           placeholder="Search traces by ID, agent, or workflow..."
           value={searchQuery}
@@ -92,7 +92,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
       <div className="flex flex-wrap items-center gap-3">
         {/* Status Pills */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium" style={{ color: 'var(--tenant-text-secondary)' }}>Status:</span>
+          <span className="text-sm font-medium text-tenant-text-secondary">Status:</span>
           {STATUS_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -198,7 +198,7 @@ export function TraceFilters({ availableAgents }: TraceFiltersProps) {
 
       {/* Active Filters Summary */}
       {hasActiveFilters && (
-        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+        <div className="flex items-center gap-2 text-sm text-tenant-text-secondary">
           <span>Active filters:</span>
           {status !== 'all' && (
             <Badge variant="secondary">Status: {status}</Badge>

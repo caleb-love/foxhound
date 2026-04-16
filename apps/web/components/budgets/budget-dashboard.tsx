@@ -62,7 +62,7 @@ export function BudgetDashboard({ traces }: BudgetDashboardProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: 'var(--tenant-text-primary)', fontFamily: 'var(--font-heading)' }}>Cost Budgets</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+          <p className="mt-1 text-sm text-tenant-text-muted">
             Monitor and control agent spending
           </p>
         </div>

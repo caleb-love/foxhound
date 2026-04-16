@@ -37,10 +37,10 @@ export function DatasetDetailView({ dataset, items, baseHref = '' }: DatasetDeta
             className="rounded-[var(--tenant-radius-panel)] border px-4 py-3"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-strong)' }}
           >
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
               Dataset id
             </div>
-            <div className="mt-2 font-mono text-sm" style={{ color: 'var(--tenant-text-primary)' }}>{dataset.id}</div>
+            <div className="mt-2 font-mono text-sm text-tenant-text-primary">{dataset.id}</div>
           </div>
         </div>
 
@@ -77,7 +77,7 @@ export function DatasetDetailView({ dataset, items, baseHref = '' }: DatasetDeta
 
       <EvidenceCard title="Dataset items">
         {items.length === 0 ? (
-          <div className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+          <div className="text-sm text-tenant-text-muted">
             This dataset has no visible items yet. Add items manually or curate from traces to turn it into a reusable evaluation asset.
           </div>
         ) : (
@@ -90,8 +90,8 @@ export function DatasetDetailView({ dataset, items, baseHref = '' }: DatasetDeta
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{item.id}</div>
-                    <div className="mt-1 text-xs" style={{ color: 'var(--tenant-text-muted)' }}>
+                    <div className="font-medium text-tenant-text-primary">{item.id}</div>
+                    <div className="mt-1 text-xs text-tenant-text-muted">
                       Added {formatRelativeDayLabel(item.createdAt)}
                     </div>
                   </div>
@@ -104,13 +104,13 @@ export function DatasetDetailView({ dataset, items, baseHref = '' }: DatasetDeta
 
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Input</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Input</div>
                     <pre className="mt-2 overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-4 text-xs whitespace-pre-wrap" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-inset)', color: 'var(--tenant-text-secondary)' }}>
                       {JSON.stringify(item.input, null, 2)}
                     </pre>
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>Expected output</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">Expected output</div>
                     <pre className="mt-2 overflow-auto rounded-[var(--tenant-radius-panel-tight)] border p-4 text-xs whitespace-pre-wrap" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-inset)', color: 'var(--tenant-text-secondary)' }}>
                       {JSON.stringify(item.expectedOutput ?? {}, null, 2)}
                     </pre>

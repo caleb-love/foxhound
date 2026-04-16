@@ -23,7 +23,7 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
   if (!previousSpan) {
     return (
       <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
-        <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+        <p className="text-sm text-tenant-text-muted">
           First step, no previous state to compare.
         </p>
       </div>
@@ -38,7 +38,7 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
   if (diffs.length === 0) {
     return (
       <div className="rounded-[var(--tenant-radius-panel-tight)] border p-4" style={{ ...tenantStyles.panelAlt, borderColor: 'var(--tenant-panel-stroke)' }}>
-        <p className="text-sm" style={{ color: 'var(--tenant-text-muted)' }}>
+        <p className="text-sm text-tenant-text-muted">
           No attribute changes from previous step.
         </p>
       </div>
@@ -47,7 +47,7 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>
+      <h3 className="text-sm font-semibold text-tenant-text-primary">
         State Changes from Previous Step
       </h3>
       <div className="divide-y overflow-hidden rounded-[var(--tenant-radius-panel)]" style={tenantStyles.panel}>
@@ -61,10 +61,10 @@ export function StateDiff({ previousSpan, currentSpan }: StateDiffProps) {
 
 function DiffRow({ diff }: { diff: AttributeDiff }) {
   const icons = {
-    added: <Plus className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />,
-    removed: <Minus className="h-4 w-4" style={{ color: 'var(--tenant-danger)' }} />,
-    changed: <ArrowRight className="h-4 w-4" style={{ color: 'var(--tenant-accent)' }} />,
-    unchanged: <Equal className="h-4 w-4" style={{ color: 'var(--tenant-text-muted)' }} />,
+    added: <Plus className="h-4 w-4 text-tenant-success" />,
+    removed: <Minus className="h-4 w-4 text-tenant-danger" />,
+    changed: <ArrowRight className="h-4 w-4 text-tenant-accent" />,
+    unchanged: <Equal className="h-4 w-4 text-tenant-text-muted" />,
   };
 
   const badges = {
@@ -79,7 +79,7 @@ function DiffRow({ diff }: { diff: AttributeDiff }) {
       <div className="mt-0.5">{icons[diff.type]}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-sm font-medium" style={{ color: 'var(--tenant-text-primary)' }}>
+          <span className="font-mono text-sm font-medium text-tenant-text-primary">
             {diff.key}
           </span>
           {badges[diff.type]}
@@ -89,19 +89,19 @@ function DiffRow({ diff }: { diff: AttributeDiff }) {
             <span className="rounded px-2 py-1 font-mono line-through" style={{ background: 'color-mix(in srgb, var(--tenant-danger) 12%, var(--card))', color: 'var(--tenant-danger)' }}>
               {formatValue(diff.oldValue)}
             </span>
-            <ArrowRight className="h-3 w-3" style={{ color: 'var(--tenant-text-muted)' }} />
+            <ArrowRight className="h-3 w-3 text-tenant-text-muted" />
             <span className="rounded px-2 py-1 font-mono" style={{ background: 'color-mix(in srgb, var(--tenant-success) 12%, var(--card))', color: 'var(--tenant-success)' }}>
               {formatValue(diff.newValue)}
             </span>
           </div>
         )}
         {diff.type === 'added' && (
-          <span className="text-xs font-mono" style={{ color: 'var(--tenant-success)' }}>
+          <span className="text-xs font-mono text-tenant-success">
             {formatValue(diff.newValue)}
           </span>
         )}
         {diff.type === 'removed' && (
-          <span className="text-xs font-mono line-through" style={{ color: 'var(--tenant-danger)' }}>
+          <span className="text-xs font-mono line-through text-tenant-danger">
             {formatValue(diff.oldValue)}
           </span>
         )}

@@ -22,5 +22,7 @@ export function themeToCssVars(theme: TenantTheme): CSSProperties {
     ['--tenant-radius-button' as string]: theme.radius.button,
     ['--tenant-shadow-panel' as string]: theme.shadow.panel,
     ['--tenant-shadow-hero' as string]: theme.shadow.hero,
+    ['--tenant-panel-strong' as string]: theme.colors.panelAlt,
+    ['--tenant-radius-control-tight' as string]: `calc(${theme.radius.button} - 0.25rem)`,
   };
 }

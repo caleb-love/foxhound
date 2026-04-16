@@ -71,10 +71,10 @@ function EvidenceRow({
           : 'color-mix(in srgb, var(--card) 88%, var(--background))',
       }}
     >
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
         {label}
       </div>
-      <div className="min-w-0 text-right text-[15px] font-semibold tracking-[-0.02em]" style={{ color: 'var(--tenant-text-primary)' }}>
+      <div className="min-w-0 text-right text-[15px] font-semibold tracking-[-0.02em] text-tenant-text-primary">
         {value}
       </div>
     </div>
@@ -139,7 +139,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
               />
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <SheetTitle className="text-[1.55rem] font-semibold tracking-[-0.03em] sm:text-[1.7rem]" style={{ color: 'var(--tenant-text-primary)' }}>
+                  <SheetTitle className="text-[1.55rem] font-semibold tracking-[-0.03em] sm:text-[1.7rem] text-tenant-text-primary">
                     {span.name}
                   </SheetTitle>
                   <Badge
@@ -155,11 +155,11 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                     {span.status}
                   </Badge>
                 </div>
-                <SheetDescription className="max-w-2xl text-[15px] leading-7 sm:text-base" style={{ color: 'var(--tenant-text-secondary)' }}>
+                <SheetDescription className="max-w-2xl text-[15px] leading-7 sm:text-base text-tenant-text-secondary">
                   Trace the execution evidence for this span, inspect the structured attributes, and capture the exact unit you want to compare or escalate.
                 </SheetDescription>
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                     Span id
                   </span>
                   <span
@@ -189,8 +189,8 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           {(isLlmCall || isToolCall) && (
             <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
               <div className="mb-4">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Focus details</h3>
-                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+                <h3 className="text-sm font-semibold text-tenant-text-primary">Focus details</h3>
+                <p className="mt-1 text-sm text-tenant-text-secondary">
                   Primary execution data surfaced first, so the inspector reads like evidence review, not a cramped admin form.
                 </p>
               </div>
@@ -216,8 +216,8 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Attributes</h3>
-                <p className="mt-1 text-sm" style={{ color: 'var(--tenant-text-secondary)' }}>
+                <h3 className="text-sm font-semibold text-tenant-text-primary">Attributes</h3>
+                <p className="mt-1 text-sm text-tenant-text-secondary">
                   Full structured payload for debugging, export, and comparison.
                 </p>
               </div>
@@ -230,7 +230,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
               >
                 {copiedField === 'attributes' ? (
                   <>
-                    <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
+                    <Check className="h-4 w-4 text-tenant-success" />
                     Copied
                   </>
                 ) : (
@@ -250,7 +250,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           </section>
 
           <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Timing</h3>
+            <h3 className="text-sm font-semibold text-tenant-text-primary">Timing</h3>
             <div className="mt-4 grid gap-3">
               <EvidenceRow label="Started" value={formatDateTime(span.startTimeMs)} />
               {span.endTimeMs ? <EvidenceRow label="Ended" value={formatDateTime(span.endTimeMs)} /> : null}
@@ -258,7 +258,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
           </section>
 
           <section className="rounded-[var(--tenant-radius-panel)] border p-4 sm:p-5" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--tenant-text-primary)' }}>Actions</h3>
+            <h3 className="text-sm font-semibold text-tenant-text-primary">Actions</h3>
             <div className="mt-4 flex flex-col gap-2.5">
               <Button
                 variant="outline"
@@ -266,7 +266,7 @@ export function SpanDetailPanel({ span, isOpen, onClose }: SpanDetailPanelProps)
                 className="justify-start gap-2 rounded-[var(--tenant-radius-control-tight)]"
               >
                 {copiedField === 'spanId' ? (
-                  <Check className="h-4 w-4" style={{ color: 'var(--tenant-success)' }} />
+                  <Check className="h-4 w-4 text-tenant-success" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}

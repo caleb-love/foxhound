@@ -224,10 +224,10 @@ export function SlasGovernDashboard({
                 className="rounded-[var(--tenant-radius-panel)] border p-4"
                 style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tenant-text-muted)' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
                   {agent.successRate} · {agent.latency}
                 </div>
-                <div className="mt-2 font-medium" style={{ color: 'var(--tenant-text-primary)' }}>{agent.agent}</div>
+                <div className="mt-2 font-medium text-tenant-text-primary">{agent.agent}</div>
                 <div className="mt-3">
                   <RecordBody>{agent.description}</RecordBody>
                 </div>
