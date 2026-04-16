@@ -1,181 +1,147 @@
 'use client';
 
-import { EventTimeline } from '@/components/charts/event-timeline';
-import { MetricTile } from '@/components/charts/metric-tile';
-import { TopNList } from '@/components/charts/top-n-list';
-import type { TimelineItem, TopListItem } from '@/components/charts/chart-types';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
+import { PageContainer, PageHeader } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
-import { SplitPanelLayout } from '@/components/sandbox/primitives';
-
-export interface DatasetMetric {
-  label: string;
-  value: string;
-  supportingText: string;
-}
+import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { Plus, FlaskConical, Eye, Database } from 'lucide-react';
 
 export interface DatasetRecord {
+  id: string;
   name: string;
+  description?: string;
   itemCount: number;
-  sourceSummary: string;
-  lastUpdated: string;
-  scoreSignal: string;
-  traceHref: string;
-  evaluatorsHref: string;
-  experimentHref: string;
+  sourceTraceIds?: string[];
 }
 
 interface DatasetsDashboardProps {
-  metrics: DatasetMetric[];
   datasets: DatasetRecord[];
-  nextActions: Array<{
-    title: string;
-    description: string;
-    href: string;
-    cta: string;
-  }>;
+  baseHref?: string;
 }
 
 const datasetFilters: DashboardFilterDefinition[] = [
-  {
-    key: 'searchQuery',
-    kind: 'search',
-    label: 'Search',
-    placeholder: 'Search datasets, source signals, or trace lineage...',
-  },
-  {
-    key: 'datasetIds',
-    kind: 'multi-select',
-    label: 'Datasets',
-    options: [
-      { value: 'onboarding-regressions', label: 'onboarding-regressions' },
-      { value: 'support-latency-outliers', label: 'support-latency-outliers' },
-      { value: 'planner-behavior-drift', label: 'planner-behavior-drift' },
-    ],
-  },
+  { key: 'searchQuery', kind: 'search', label: 'Search', placeholder: 'Search datasets...' },
 ];
 
-function toDatasetTimelineItems(datasets: DatasetRecord[]): TimelineItem[] {
-  return datasets.map((dataset) => ({
-    title: dataset.name,
-    description: `${dataset.sourceSummary}. Primary signal: ${dataset.scoreSignal}. Last updated: ${dataset.lastUpdated}.`,
-    status: 'healthy',
-    href: dataset.traceHref,
-    cta: 'Review source traces',
-    meta: `${dataset.itemCount} cases`,
-  }));
-}
-
-function toActionItems(actions: Array<{ title: string; description: string; href: string; cta: string }>): TopListItem[] {
-  return actions.map((action) => ({
-    title: action.title,
-    description: action.description,
-    href: action.href,
-  }));
-}
-
-export function DatasetsDashboard({
-  metrics,
-  datasets,
-  nextActions,
-}: DatasetsDashboardProps) {
+export function DatasetsDashboard({ datasets, baseHref = '' }: DatasetsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
-  const filteredDatasets = filterByDashboardScope(datasets, filters, {
-    searchableText: (item) => `${item.name} ${item.sourceSummary} ${item.scoreSignal}`,
-    datasetIds: (item) => [item.name],
-  }).filter((item) => (filters.datasetIds.length === 0 ? true : filters.datasetIds.includes(item.name)));
-
-  const filteredNextActions = filterByDashboardScope(nextActions, filters, {
-    searchableText: (item) => `${item.title} ${item.description}`,
+  const filtered = filterByDashboardScope(datasets, filters, {
+    searchableText: (item) => `${item.name} ${item.description ?? ''}`,
   });
+
+  const totalCases = datasets.reduce((sum, d) => sum + d.itemCount, 0);
+  const verdictSeverity = datasets.length === 0 ? 'info' as const : 'success' as const;
+  const verdictHeadline = datasets.length === 0
+    ? 'No datasets yet'
+    : `${datasets.length} dataset${datasets.length !== 1 ? 's' : ''} with ${totalCases} total cases`;
+  const verdictSummary = datasets.length === 0
+    ? 'Create your first dataset from production traces to start the evaluation loop.'
+    : 'Use these datasets to run evaluators and experiments, then promote winning candidates.';
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Improve"
-        title="Datasets"
-        description="Turn production failures and low-scoring traces into reusable evaluation cases, then push them into experiment workflows to improve prompts, routing, and agent behavior."
-      >
-        <div
-          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
-        >
-          Evidence workbench
-        </div>
-      </PageHeader>
+      <PageHeader eyebrow="Improve" title="Datasets" description="Turn production failures into reusable evaluation cases, then push them into experiment workflows." />
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
-        <SectionPanel
-          title="Read dataset posture before you trust the experiment loop"
-          description="This page should frame datasets as the evidence backbone of the Improve family. Show collection posture first, then filtering, then the strongest signals and next build paths."
-        >
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-            ))}
-          </section>
-        </SectionPanel>
+      <DashboardFilterBar definitions={datasetFilters} />
 
-        <SectionPanel
-          title="Filter dataset posture"
-          description="Slice by dataset lineage before widening the evaluation and experiment review."
-        >
-          <DashboardFilterBar definitions={datasetFilters} />
-        </SectionPanel>
-      </section>
+      <VerdictBar
+        severity={verdictSeverity}
+        headline={verdictHeadline}
+        summary={verdictSummary}
+        actions={
+          <InlineActionBar>
+            <InlineAction href={`${baseHref}/traces`} variant="primary">
+              <Plus className="h-3.5 w-3.5" />
+              Create from traces
+            </InlineAction>
+            <InlineAction href={`${baseHref}/evaluators`} variant="secondary">
+              <FlaskConical className="h-3.5 w-3.5" />
+              Evaluators
+            </InlineAction>
+            <InlineAction href={`${baseHref}/experiments`} variant="secondary">
+              <FlaskConical className="h-3.5 w-3.5" />
+              Experiments
+            </InlineAction>
+          </InlineActionBar>
+        }
+      />
 
-      <WorkbenchPanel
-        title="Dataset improvement workbench"
-        description="Use trace-derived datasets to connect production evidence to evaluator coverage and experiment decisions without leaving the improvement workflow."
-      >
-        <SplitPanelLayout
-          main={
-            <EventTimeline
-              title="Improvement datasets"
-              description="Datasets derived from trace evidence and ready for evaluation or experimentation."
-              items={toDatasetTimelineItems(filteredDatasets)}
-            />
-          }
-          side={
-            <TopNList
-              title="Recommended next actions"
-              description="Keep the improve loop moving from trace evidence to validated changes."
-              items={toActionItems(filteredNextActions)}
-            />
-          }
-        />
+      <MetricStrip>
+        <MetricChip label="Datasets" value={String(datasets.length)} />
+        <MetricChip label="Total cases" value={String(totalCases)} />
+        <MetricChip label="Linked traces" value={String(new Set(datasets.flatMap((d) => d.sourceTraceIds ?? [])).size)} />
+      </MetricStrip>
 
-        <SectionPanel
-          title="Dataset triage framing"
-          description="A compact interpretation layer between posture metrics and dataset records, so operators can see what evidence is strongest, what signal produced it, and where to route it next."
-        >
-          <div className="grid gap-4 md:grid-cols-3">
-            {filteredDatasets.map((dataset) => (
-              <div
-                key={dataset.name}
-                className="rounded-[var(--tenant-radius-panel)] border p-4"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
-              >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
-                  {dataset.itemCount} cases · {dataset.lastUpdated}
-                </div>
-                <div className="mt-2 font-medium text-tenant-text-primary">{dataset.name}</div>
-                <div className="mt-3">
-                  <RecordBody>{dataset.sourceSummary}</RecordBody>
-                </div>
-                <div className="mt-3 text-xs text-tenant-text-muted">
-                  Primary signal: {dataset.scoreSignal}
-                </div>
-              </div>
-            ))}
+      {filtered.length === 0 ? (
+        <WorkbenchPanel title="Datasets" description="No datasets match your search.">
+          <div className="py-12 text-center text-sm text-tenant-text-muted">
+            {datasets.length === 0
+              ? 'Create your first dataset by selecting traces and adding them as evaluation cases.'
+              : 'No datasets match the current filter. Try adjusting your search.'}
           </div>
-        </SectionPanel>
-      </WorkbenchPanel>
+        </WorkbenchPanel>
+      ) : (
+        <div
+          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
+        >
+          {/* Header */}
+          <div
+            className="grid items-center border-b px-4 py-2"
+            style={{ gridTemplateColumns: '1fr 80px 100px 140px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Dataset</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Cases</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Sources</span>
+            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
+          </div>
+
+          {/* Rows */}
+          {filtered.map((dataset) => (
+            <div
+              key={dataset.id}
+              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+              style={{ gridTemplateColumns: '1fr 80px 100px 140px', borderColor: 'var(--tenant-panel-stroke)' }}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Database className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{dataset.name}</span>
+                </div>
+                {dataset.description ? (
+                  <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{dataset.description}</div>
+                ) : null}
+              </div>
+
+              <div className="text-center">
+                <span className="text-sm font-medium text-tenant-text-primary">{dataset.itemCount}</span>
+              </div>
+
+              <div className="text-center">
+                <span className="text-xs text-tenant-text-muted">{dataset.sourceTraceIds?.length ?? 0} traces</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-1">
+                <InlineAction href={`${baseHref}/datasets/${dataset.id}`} variant="primary" className="text-[11px] px-2 py-0.5">
+                  <Eye className="h-3 w-3" /> View
+                </InlineAction>
+                <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                  <FlaskConical className="h-3 w-3" /> Run
+                </InlineAction>
+              </div>
+            </div>
+          ))}
+
+          {/* Footer */}
+          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            {filtered.length} dataset{filtered.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

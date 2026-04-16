@@ -4,55 +4,9 @@ import { DatasetsDashboard } from './datasets-dashboard';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-presets';
 
-const metrics = [
-  {
-    label: 'Active datasets',
-    value: '4',
-    supportingText: 'Collections currently used for evaluation and experiment preparation.',
-  },
-  {
-    label: 'Trace-derived cases',
-    value: '128',
-    supportingText: 'Cases imported from real traces with poor scores or failures.',
-  },
-  {
-    label: 'Experiment-ready',
-    value: '3',
-    supportingText: 'Datasets with enough coverage to compare prompt or routing variants.',
-  },
-  {
-    label: 'Latest ingestion',
-    value: '15m ago',
-    supportingText: 'Recent failures were converted into evaluation cases automatically.',
-  },
-];
-
 const datasets = [
-  {
-    name: 'onboarding-regressions',
-    itemCount: 42,
-    sourceSummary: 'Built from failing onboarding traces where success score fell below threshold.',
-    lastUpdated: '15 minutes ago',
-    scoreSignal: 'success_score < 0.6',
-    traceHref: '/traces',
-    evaluatorsHref: '/evaluators',
-    experimentHref: '/experiments',
-  },
-];
-
-const nextActions = [
-  {
-    title: 'Inspect the newest low-scoring traces',
-    description: 'Confirm the latest dataset additions came from the right production failures.',
-    href: '/traces',
-    cta: 'Open traces',
-  },
-  {
-    title: 'Launch a prompt or routing experiment',
-    description: 'Use the current dataset to evaluate whether a candidate change fixes the regression.',
-    href: '/experiments',
-    cta: 'Open experiments',
-  },
+  { id: 'ds_1', name: 'refund-edge-cases', description: 'Refund regression cases', itemCount: 42, sourceTraceIds: ['t1', 't2'] },
+  { id: 'ds_2', name: 'onboarding-regressions', description: 'Onboarding flow regressions', itemCount: 18, sourceTraceIds: ['t3'] },
 ];
 
 describe('DatasetsDashboard', () => {
@@ -64,33 +18,24 @@ describe('DatasetsDashboard', () => {
     });
   });
 
-  it('renders dataset metrics and hero copy', () => {
-    render(
-      <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
-    );
+  it('renders dataset table with names and item counts', () => {
+    render(<DatasetsDashboard datasets={datasets} />);
 
-    expect(screen.getByRole('heading', { name: 'Datasets' })).toBeInTheDocument();
-    expect(screen.getByText('128')).toBeInTheDocument();
-    expect(screen.getByText('15m ago')).toBeInTheDocument();
+    expect(screen.getByText('refund-edge-cases')).toBeInTheDocument();
+    expect(screen.getByText('onboarding-regressions')).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('18')).toBeInTheDocument();
   });
 
-  it('renders dataset lineage framing and action links', () => {
-    render(
-      <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
-    );
+  it('shows verdict with dataset count', () => {
+    render(<DatasetsDashboard datasets={datasets} />);
 
-    expect(screen.getAllByText('onboarding-regressions').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Built from failing onboarding traces/).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /Review source traces/i })).toHaveAttribute('href', '/traces');
+    expect(screen.getByText(/2 datasets with 60 total cases/)).toBeInTheDocument();
   });
 
-  it('renders next-action links for the improve workflow', () => {
-    render(
-      <DatasetsDashboard metrics={metrics} datasets={datasets} nextActions={nextActions} />,
-    );
+  it('shows empty state when no datasets exist', () => {
+    render(<DatasetsDashboard datasets={[]} />);
 
-    const actionLinks = screen.getAllByRole('link', { name: /Open/i });
-    expect(actionLinks.some((link) => link.getAttribute('href') === '/traces')).toBe(true);
-    expect(actionLinks.some((link) => link.getAttribute('href') === '/experiments')).toBe(true);
+    expect(screen.getByText(/No datasets yet/)).toBeInTheDocument();
   });
 });

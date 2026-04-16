@@ -1,196 +1,149 @@
 'use client';
 
-import { EventTimeline } from '@/components/charts/event-timeline';
-import { MetricTile } from '@/components/charts/metric-tile';
-import { TopNList } from '@/components/charts/top-n-list';
-import type { TimelineItem, TopListItem } from '@/components/charts/chart-types';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
-import { PageContainer, PageHeader, RecordBody, SectionPanel } from '@/components/system/page';
-import { WorkbenchPanel } from '@/components/system/workbench';
-import { SplitPanelLayout } from '@/components/sandbox/primitives';
-
-export interface EvaluatorMetric {
-  label: string;
-  value: string;
-  supportingText: string;
-}
+import { PageContainer, PageHeader } from '@/components/system/page';
+import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
+import { Plus, Play, Eye, CheckSquare } from 'lucide-react';
 
 export interface EvaluatorRecord {
+  id: string;
   name: string;
-  scoringType: 'numeric' | 'categorical';
+  scoringType: string;
   model: string;
-  lastRunStatus: 'healthy' | 'warning' | 'critical';
-  adoptionSummary: string;
-  lastRunSummary: string;
-  tracesHref: string;
-  datasetsHref: string;
-  experimentsHref: string;
-  compareHref?: string;
+  health: string;
+  summary: string;
+  enabled?: boolean;
 }
 
 interface EvaluatorsDashboardProps {
-  metrics: EvaluatorMetric[];
   evaluators: EvaluatorRecord[];
-  nextActions: Array<{
-    title: string;
-    description: string;
-    href: string;
-    cta: string;
-  }>;
+  baseHref?: string;
 }
 
 const evaluatorFilters: DashboardFilterDefinition[] = [
-  {
-    key: 'searchQuery',
-    kind: 'search',
-    label: 'Search',
-    placeholder: 'Search evaluators, models, or scoring coverage...',
-  },
-  {
-    key: 'severity',
-    kind: 'single-select',
-    label: 'Severity',
-    options: [
-      { value: 'all', label: 'All severities' },
-      { value: 'healthy', label: 'Healthy' },
-      { value: 'warning', label: 'Warning' },
-      { value: 'critical', label: 'Critical' },
-    ],
-  },
-  {
-    key: 'models',
-    kind: 'multi-select',
-    label: 'Models',
-    options: [
-      { value: 'gpt-4o-mini', label: 'gpt-4o-mini' },
-      { value: 'claude-3-5-sonnet', label: 'claude-3-5-sonnet' },
-      { value: 'gpt-4o', label: 'gpt-4o' },
-    ],
-  },
+  { key: 'searchQuery', kind: 'search', label: 'Search', placeholder: 'Search evaluators...' },
 ];
 
-function toEvaluatorTimelineItems(evaluators: EvaluatorRecord[]): TimelineItem[] {
-  return evaluators.map((evaluator) => ({
-    title: evaluator.name,
-    description: `${evaluator.adoptionSummary}. ${evaluator.lastRunSummary}. Model: ${evaluator.model}.`,
-    status: evaluator.lastRunStatus,
-    href: evaluator.tracesHref,
-    cta: 'Review traces',
-    meta: evaluator.scoringType,
-  }));
-}
-
-function toActionItems(actions: Array<{ title: string; description: string; href: string; cta: string }>): TopListItem[] {
-  return actions.map((action) => ({
-    title: action.title,
-    description: action.description,
-    href: action.href,
-  }));
-}
-
-export function EvaluatorsDashboard({
-  metrics,
-  evaluators,
-  nextActions,
-}: EvaluatorsDashboardProps) {
+export function EvaluatorsDashboard({ evaluators, baseHref = '' }: EvaluatorsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
 
-  const filteredEvaluators = filterByDashboardScope(evaluators, filters, {
-    searchableText: (item) => `${item.name} ${item.model} ${item.adoptionSummary} ${item.lastRunSummary}`,
-    severity: (item) => item.lastRunStatus,
-    status: (item) => item.lastRunStatus,
-    models: (item) => [item.model],
+  const filtered = filterByDashboardScope(evaluators, filters, {
+    searchableText: (item) => `${item.name} ${item.model} ${item.summary}`,
   });
 
-  const filteredNextActions = filterByDashboardScope(nextActions, filters, {
-    searchableText: (item) => `${item.title} ${item.description}`,
-  });
+  const healthyCount = evaluators.filter((e) => e.health === 'healthy').length;
+  const warningCount = evaluators.filter((e) => e.health === 'warning' || e.health === 'critical').length;
+  const verdictSeverity = evaluators.length === 0 ? 'info' as const : warningCount > 0 ? 'warning' as const : 'success' as const;
+  const verdictHeadline = evaluators.length === 0
+    ? 'No evaluators configured'
+    : `${evaluators.length} evaluator${evaluators.length !== 1 ? 's' : ''} active, ${healthyCount} healthy`;
+  const verdictSummary = evaluators.length === 0
+    ? 'Create your first evaluator to start scoring agent outputs against quality criteria.'
+    : warningCount > 0
+      ? `${warningCount} evaluator${warningCount !== 1 ? 's' : ''} showing degraded health. Review the affected evaluators and check recent scoring trends.`
+      : 'All evaluators are healthy. Use them with datasets and experiments to validate agent behavior.';
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Improve"
-        title="Evaluators"
-        description="Monitor evaluator health, understand scoring adoption, and keep the improve loop moving from production traces to datasets, experiments, and release decisions."
-      >
-        <div
-          className="inline-flex items-center rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)' }}
-        >
-          Scoring workbench
+      <PageHeader eyebrow="Improve" title="Evaluators" description="Configure scoring criteria for agent outputs, then use evaluators to grade dataset cases and experiment runs." />
+
+      <DashboardFilterBar definitions={evaluatorFilters} />
+
+      <VerdictBar
+        severity={verdictSeverity}
+        headline={verdictHeadline}
+        summary={verdictSummary}
+        actions={
+          <InlineActionBar>
+            <InlineAction href={`${baseHref}/evaluators`} variant="primary">
+              <Plus className="h-3.5 w-3.5" />
+              Create evaluator
+            </InlineAction>
+            <InlineAction href={`${baseHref}/datasets`} variant="secondary">
+              Datasets
+            </InlineAction>
+            <InlineAction href={`${baseHref}/experiments`} variant="secondary">
+              Experiments
+            </InlineAction>
+          </InlineActionBar>
+        }
+      />
+
+      <MetricStrip>
+        <MetricChip label="Total" value={String(evaluators.length)} />
+        <MetricChip label="Healthy" value={String(healthyCount)} accent="success" />
+        {warningCount > 0 ? <MetricChip label="Degraded" value={String(warningCount)} accent="warning" /> : null}
+      </MetricStrip>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+          <p className="text-sm text-tenant-text-muted">
+            {evaluators.length === 0 ? 'Create your first evaluator to start scoring outputs.' : 'No evaluators match the current filter.'}
+          </p>
         </div>
-      </PageHeader>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(320px,0.76fr)]">
-        <SectionPanel
-          title="Read evaluator posture before you trust the scores"
-          description="This page should frame evaluators as scoring infrastructure, not just configuration. Show evaluator health first, then filtering, then coverage and the strongest next route into datasets, experiments, and traces."
+      ) : (
+        <div
+          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
         >
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricTile key={metric.label} label={metric.label} value={metric.value} supportingText={metric.supportingText} />
-            ))}
-          </section>
-        </SectionPanel>
-
-        <SectionPanel
-          title="Filter evaluator posture"
-          description="Slice by severity or model before widening the scoring review."
-        >
-          <DashboardFilterBar definitions={evaluatorFilters} />
-        </SectionPanel>
-      </section>
-
-      <WorkbenchPanel
-        title="Evaluator coverage workbench"
-        description="Use this surface to understand evaluator health, trace coverage, and whether current scoring signals are strong enough to support a promotion decision."
-      >
-        <SplitPanelLayout
-          main={
-            <EventTimeline
-              title="Evaluator coverage"
-              description="Which evaluators are active, what they score, and where to investigate weak signals next."
-              items={toEvaluatorTimelineItems(filteredEvaluators)}
-            />
-          }
-          side={
-            <TopNList
-              title="Recommended next actions"
-              description="Tighten evaluation coverage before promoting a change or dismissing a regression."
-              items={toActionItems(filteredNextActions)}
-            />
-          }
-        />
-
-        <SectionPanel
-          title="Evaluator triage framing"
-          description="A compact interpretation layer between posture metrics and evaluator records, so operators can see which scoring systems are reliable, which are drifting, and where to intervene next."
-        >
-          <div className="grid gap-4 md:grid-cols-3">
-            {filteredEvaluators.map((evaluator) => (
-              <div
-                key={evaluator.name}
-                className="rounded-[var(--tenant-radius-panel)] border p-4"
-                style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
-              >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-tenant-text-muted">
-                  {evaluator.model} · {evaluator.scoringType}
-                </div>
-                <div className="mt-2 font-medium text-tenant-text-primary">{evaluator.name}</div>
-                <div className="mt-3">
-                  <RecordBody>{evaluator.lastRunSummary}</RecordBody>
-                </div>
-                <div className="mt-3 text-xs text-tenant-text-muted">
-                  {evaluator.adoptionSummary}
-                </div>
-              </div>
-            ))}
+          <div className="grid items-center border-b px-4 py-2" style={{ gridTemplateColumns: '1fr 100px 100px 80px 140px', borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Evaluator</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Type</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Model</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Health</span>
+            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">Actions</span>
           </div>
-        </SectionPanel>
-      </WorkbenchPanel>
+
+          {filtered.map((evaluator) => (
+            <div
+              key={evaluator.id}
+              className="grid items-center border-b px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+              style={{ gridTemplateColumns: '1fr 100px 100px 80px 140px', borderColor: 'var(--tenant-panel-stroke)' }}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="h-3.5 w-3.5 shrink-0 text-tenant-accent" />
+                  <span className="truncate text-sm font-semibold text-tenant-text-primary">{evaluator.name}</span>
+                </div>
+                <div className="mt-0.5 truncate text-[11px] text-tenant-text-muted">{evaluator.summary}</div>
+              </div>
+
+              <div className="text-center">
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: 'color-mix(in srgb, var(--card) 88%, var(--background))', color: 'var(--tenant-text-secondary)', border: '1px solid var(--tenant-panel-stroke)' }}>
+                  {evaluator.scoringType}
+                </span>
+              </div>
+
+              <div className="text-center text-xs text-tenant-text-muted">{evaluator.model}</div>
+
+              <div className="text-center">
+                <div
+                  className="mx-auto h-2 w-2 rounded-full"
+                  style={{
+                    background: evaluator.health === 'healthy' ? 'var(--tenant-success)' : evaluator.health === 'warning' ? 'var(--tenant-warning)' : 'var(--tenant-danger)',
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-1">
+                <InlineAction href={`${baseHref}/evaluators`} variant="primary" className="text-[11px] px-2 py-0.5">
+                  <Eye className="h-3 w-3" /> View
+                </InlineAction>
+                <InlineAction href={`${baseHref}/experiments`} variant="ghost" className="text-[11px] px-2 py-0.5">
+                  <Play className="h-3 w-3" /> Run
+                </InlineAction>
+              </div>
+            </div>
+          ))}
+
+          <div className="border-t px-4 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
+            {filtered.length} evaluator{filtered.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }
