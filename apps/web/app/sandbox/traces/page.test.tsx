@@ -11,6 +11,20 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: Math.min(count, 20) }, (_, i) => ({
+        index: i,
+        start: i * 56,
+        size: 56,
+        key: String(i),
+      })),
+    getTotalSize: () => count * 56,
+    measureElement: () => {},
+  }),
+}));
+
 describe('sandbox traces page', () => {
   beforeEach(() => {
     vi.clearAllMocks();

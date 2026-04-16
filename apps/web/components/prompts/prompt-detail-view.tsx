@@ -6,15 +6,21 @@ import { Badge } from '@/components/ui/badge';
 import { PageWarningState } from '@/components/ui/page-state';
 import type { PromptResponse, PromptVersionResponse } from '@foxhound/api-client';
 import { InlineAction, InlineActionBar, CopyButton, MetricChip, MetricStrip } from '@/components/investigation';
+import { VersionImpactStrip, type VersionMetrics, type VersionImpact } from '@/components/prompts/version-impact-strip';
+import { computeWordDiff } from '@/lib/word-diff';
 import { ArrowLeft, GitCompare, Eye, FlaskConical } from 'lucide-react';
 
 interface PromptDetailViewProps {
   prompt: PromptResponse;
   versions: PromptVersionResponse[];
+  /** Per-version performance metrics keyed by version number */
+  performanceByVersion?: Record<number, VersionMetrics>;
+  /** Overall prompt performance metrics */
+  promptMetrics?: { traceCount: number; errorRate: number; avgCostUsd: number };
   baseHref?: string;
 }
 
-export function PromptDetailView({ prompt, versions, baseHref = '' }: PromptDetailViewProps) {
+export function PromptDetailView({ prompt, versions, performanceByVersion, promptMetrics, baseHref = '' }: PromptDetailViewProps) {
   const sortedVersions = useMemo(
     () => [...versions].sort((a, b) => b.version - a.version),
     [versions],
@@ -85,10 +91,22 @@ export function PromptDetailView({ prompt, versions, baseHref = '' }: PromptDeta
       <MetricStrip>
         <MetricChip label="Versions" value={String(sortedVersions.length)} />
         <MetricChip label="Latest" value={latestVersion ? `v${latestVersion.version}` : 'None'} />
-        <MetricChip
-          label="Labels"
-          value={latestVersion?.labels?.length ? latestVersion.labels.join(', ') : 'None'}
-        />
+        {promptMetrics ? (
+          <>
+            <MetricChip label="Traces" value={promptMetrics.traceCount.toLocaleString()} />
+            <MetricChip
+              label="Error rate"
+              value={`${(promptMetrics.errorRate * 100).toFixed(1)}%`}
+              accent={promptMetrics.errorRate > 0.05 ? 'danger' : promptMetrics.errorRate > 0.02 ? 'warning' : 'success'}
+            />
+            <MetricChip label="Avg cost" value={`$${promptMetrics.avgCostUsd.toFixed(4)}`} />
+          </>
+        ) : (
+          <MetricChip
+            label="Labels"
+            value={latestVersion?.labels?.length ? latestVersion.labels.join(', ') : 'None'}
+          />
+        )}
       </MetricStrip>
 
       {sortedVersions.length === 0 ? (
@@ -194,6 +212,73 @@ export function PromptDetailView({ prompt, versions, baseHref = '' }: PromptDeta
                 >
                   {selectedVersion.content}
                 </pre>
+
+                {/* Performance impact strip */}
+                {(() => {
+                  if (!performanceByVersion || !previousVersion) return null;
+                  const before = performanceByVersion[previousVersion.version];
+                  const after = performanceByVersion[selectedVersion.version];
+                  if (!before || !after) return null;
+                  const impact: VersionImpact = {
+                    fromVersion: previousVersion.version,
+                    toVersion: selectedVersion.version,
+                    before,
+                    after,
+                  };
+                  return <VersionImpactStrip impact={impact} />;
+                })()}
+
+                {/* Inline auto-diff against previous version */}
+                {previousVersion && previousVersion.content !== selectedVersion.content ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">
+                        Changes from v{previousVersion.version}
+                      </span>
+                      <Link
+                        href={`${baseHref}/prompts/${prompt.id}/diff?versionA=${previousVersion.version}&versionB=${selectedVersion.version}`}
+                        className="text-[11px] font-medium hover:underline"
+                        style={{ color: 'var(--tenant-accent)' }}
+                      >
+                        Full diff view
+                      </Link>
+                    </div>
+                    <div
+                      className="overflow-x-auto rounded-[var(--tenant-radius-panel-tight)] border p-3 text-[13px] leading-relaxed whitespace-pre-wrap font-mono"
+                      style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 92%, var(--background))' }}
+                    >
+                      {computeWordDiff(previousVersion.content, selectedVersion.content).map((seg, idx) => {
+                        if (seg.type === 'equal') {
+                          return <span key={idx} className="text-tenant-text-secondary">{seg.text}</span>;
+                        }
+                        if (seg.type === 'added') {
+                          return (
+                            <span
+                              key={idx}
+                              className="rounded px-0.5"
+                              style={{ background: 'color-mix(in srgb, var(--tenant-success) 18%, transparent)', color: 'var(--tenant-success)' }}
+                            >
+                              {seg.text}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span
+                            key={idx}
+                            className="rounded px-0.5 line-through"
+                            style={{ background: 'color-mix(in srgb, var(--tenant-danger) 18%, transparent)', color: 'var(--tenant-danger)' }}
+                          >
+                            {seg.text}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : previousVersion && previousVersion.content === selectedVersion.content ? (
+                  <div className="text-[11px] text-tenant-text-muted">
+                    Content identical to v{previousVersion.version}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="flex h-[300px] items-center justify-center text-sm text-tenant-text-muted">

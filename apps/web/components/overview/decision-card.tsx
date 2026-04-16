@@ -39,6 +39,8 @@ export function DecisionCard({ title, status, evidence, recommendation, href, ct
 
   return (
     <div
+      role="article"
+      aria-label={`Decision: ${title}. Status: ${config.label}`}
       className="rounded-xl border p-4"
       style={{
         borderColor: 'var(--tenant-panel-stroke)',

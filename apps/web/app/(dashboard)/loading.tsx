@@ -1,5 +1,5 @@
 import { FleetOverviewSkeleton } from '@/components/overview/skeletons';
 
-export default function SandboxLoading() {
+export default function DashboardLoading() {
   return <FleetOverviewSkeleton />;
 }

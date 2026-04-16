@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Trace, Span } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowLeftRight, Download, BookOpen, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Check, Download, BookOpen, Eye } from 'lucide-react';
 import { VerdictBar, generateDiffVerdict, InlineAction, InlineActionBar, ComparisonBar } from '@/components/investigation';
 import { getSandboxRootHref } from '@/lib/sandbox-routes';
 import { useCompareStore } from '@/lib/stores/compare-store';
@@ -53,6 +53,7 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
   const { setComparePair, setTraceSlot, swapComparePair } = useCompareStore();
   const localTraceAId = traceA.id;
   const localTraceBId = traceB.id;
+  const [exportCopied, setExportCopied] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setComparePair(traceA.id, traceB.id), 0);
@@ -215,9 +216,11 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
             <InlineAction href="#" variant="ghost" onClick={() => {
               const md = exportDiffAsMarkdown(traceA, traceB, metrics, spanDiff, verdict);
               copyToClipboard(md);
+              setExportCopied(true);
+              setTimeout(() => setExportCopied(false), 2000);
             }}>
-              <Download className="h-3.5 w-3.5" />
-              Export
+              {exportCopied ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--tenant-success)' }} /> : <Download className="h-3.5 w-3.5" />}
+              {exportCopied ? 'Copied!' : 'Export'}
             </InlineAction>
           </InlineActionBar>
         }

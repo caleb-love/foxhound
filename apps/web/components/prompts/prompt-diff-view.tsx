@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { PageWarningState } from '@/components/ui/page-state';
 import type { PromptVersionDiffResponse, PromptVersionResponse } from '@foxhound/api-client';
 import { VerdictBar, InlineAction, InlineActionBar } from '@/components/investigation';
+import { VersionImpactStrip, type VersionMetrics, type VersionImpact } from '@/components/prompts/version-impact-strip';
+import { computeWordDiff, type DiffSegment } from '@/lib/word-diff';
 import { ArrowLeft, GitCompare, Eye, FlaskConical } from 'lucide-react';
 
 interface PromptDiffViewProps {
@@ -14,73 +16,12 @@ interface PromptDiffViewProps {
   initialDiff: PromptVersionDiffResponse | null;
   initialVersionA?: number;
   initialVersionB?: number;
+  /** Per-version performance metrics keyed by version number */
+  performanceByVersion?: Record<number, VersionMetrics>;
   baseHref?: string;
 }
 
-/* ---------- Character-level diff engine ---------- */
-
-interface DiffSegment {
-  type: 'equal' | 'added' | 'removed';
-  text: string;
-}
-
-/**
- * Simple word-level diff using longest common subsequence.
- * Splits on whitespace boundaries to produce readable chunks.
- */
-function computeWordDiff(before: string, after: string): DiffSegment[] {
-  const wordsA = before.split(/(\s+)/);
-  const wordsB = after.split(/(\s+)/);
-
-  // LCS table
-  const m = wordsA.length;
-  const n = wordsB.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (wordsA[i - 1] === wordsB[j - 1]) {
-        dp[i]![j] = dp[i - 1]![j - 1]! + 1;
-      } else {
-        dp[i]![j] = Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!);
-      }
-    }
-  }
-
-  // Backtrack to produce diff segments
-  const segments: DiffSegment[] = [];
-  let i = m;
-  let j = n;
-
-  const rawSegments: DiffSegment[] = [];
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && wordsA[i - 1] === wordsB[j - 1]) {
-      rawSegments.push({ type: 'equal', text: wordsA[i - 1]! });
-      i--;
-      j--;
-    } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
-      rawSegments.push({ type: 'added', text: wordsB[j - 1]! });
-      j--;
-    } else {
-      rawSegments.push({ type: 'removed', text: wordsA[i - 1]! });
-      i--;
-    }
-  }
-
-  rawSegments.reverse();
-
-  // Merge consecutive segments of the same type
-  for (const seg of rawSegments) {
-    const last = segments[segments.length - 1];
-    if (last && last.type === seg.type) {
-      last.text += seg.text;
-    } else {
-      segments.push({ ...seg });
-    }
-  }
-
-  return segments;
-}
+/* The diff algorithm is shared: see lib/word-diff.ts */
 
 function formatValue(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -93,6 +34,7 @@ export function PromptDiffView({
   initialDiff,
   initialVersionA,
   initialVersionB,
+  performanceByVersion,
   baseHref = '',
 }: PromptDiffViewProps) {
   const sortedVersions = useMemo(
@@ -208,6 +150,16 @@ export function PromptDiffView({
 
       {/* Verdict */}
       <VerdictBar severity={verdictSeverity} headline={verdictHeadline} summary={verdictSummary} />
+
+      {/* Performance impact strip */}
+      {(() => {
+        if (!performanceByVersion || !initialVersionA || !initialVersionB) return null;
+        const before = performanceByVersion[initialVersionA];
+        const after = performanceByVersion[initialVersionB];
+        if (!before || !after) return null;
+        const impact: VersionImpact = { fromVersion: initialVersionA, toVersion: initialVersionB, before, after };
+        return <VersionImpactStrip impact={impact} />;
+      })()}
 
       {!initialDiff ? (
         <PageWarningState

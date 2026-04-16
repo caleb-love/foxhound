@@ -75,6 +75,7 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
 
   const content = (
     <div
+      aria-label={`${item.label}: ${item.value}${item.delta ? `, ${item.delta.label}` : ''}`}
       className={cn(
         'flex flex-1 items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
         item.href && 'cursor-pointer hover:bg-white/[0.03]',
@@ -117,7 +118,7 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
 
 export function MetricStrip({ items }: MetricStripProps) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-3" role="group" aria-label="Key metrics">
       {items.map((item) => (
         <MetricStripCell key={item.label} item={item} />
       ))}

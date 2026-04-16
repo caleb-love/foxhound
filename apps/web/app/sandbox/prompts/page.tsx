@@ -20,7 +20,7 @@ export default function SandboxPromptsPage() {
   for (const prompt of demo.prompts) {
     // Count traces linked to this prompt
     const linkedTraces = demo.allTraces.filter(
-      (trace) => trace.promptName === prompt.name,
+      (trace) => trace.metadata.prompt_name === prompt.name,
     );
     const traceCount = linkedTraces.length;
     const errorCount = linkedTraces.filter(

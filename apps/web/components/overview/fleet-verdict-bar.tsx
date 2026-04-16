@@ -41,6 +41,8 @@ export function FleetVerdictBar({ verdict, trailing }: FleetVerdictBarProps) {
 
   return (
     <div
+      role="status"
+      aria-label={`Fleet status: ${verdict.severity}. ${verdict.headline}`}
       className="rounded-2xl p-5"
       style={{
         background: config.bg,

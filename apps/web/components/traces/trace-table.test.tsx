@@ -14,6 +14,22 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
+// Mock useVirtualizer: jsdom has no layout, so virtualizer renders nothing.
+// Return all items as virtual rows with a pass-through implementation.
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, i) => ({
+        index: i,
+        start: i * 56,
+        size: 56,
+        key: String(i),
+      })),
+    getTotalSize: () => count * 56,
+    measureElement: () => {},
+  }),
+}));
+
 describe('TraceTable', () => {
   const traces = [
     {

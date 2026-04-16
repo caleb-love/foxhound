@@ -84,7 +84,7 @@ export function ExecutiveSummaryV2({
       <MetricStrip items={metricStripItems} />
 
       {/* 3. Decision cards */}
-      <div>
+      <div role="region" aria-label="Decisions requiring review">
         <h2
           className="mb-3 text-base font-semibold text-tenant-text-primary"
           style={{ fontFamily: 'var(--font-heading)' }}

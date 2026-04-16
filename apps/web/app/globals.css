@@ -217,4 +217,16 @@
 .density-compact .p-6 { padding: calc(1.5rem * var(--density-spacing)); }
 .density-compact .px-4 { padding-left: calc(1rem * var(--density-spacing)); padding-right: calc(1rem * var(--density-spacing)); }
 .density-compact .py-3 { padding-top: calc(0.75rem * var(--density-spacing)); padding-bottom: calc(0.75rem * var(--density-spacing)); }
+.density-compact .py-3\.5 { padding-top: calc(0.875rem * var(--density-spacing)); padding-bottom: calc(0.875rem * var(--density-spacing)); }
 .density-compact .py-2\.5 { padding-top: calc(0.625rem * var(--density-spacing)); padding-bottom: calc(0.625rem * var(--density-spacing)); }
+.density-compact .py-2 { padding-top: calc(0.5rem * var(--density-spacing)); padding-bottom: calc(0.5rem * var(--density-spacing)); }
+.density-compact .py-4 { padding-top: calc(1rem * var(--density-spacing)); padding-bottom: calc(1rem * var(--density-spacing)); }
+.density-compact .px-3 { padding-left: calc(0.75rem * var(--density-spacing)); padding-right: calc(0.75rem * var(--density-spacing)); }
+.density-compact .px-5 { padding-left: calc(1.25rem * var(--density-spacing)); padding-right: calc(1.25rem * var(--density-spacing)); }
+.density-compact .p-3 { padding: calc(0.75rem * var(--density-spacing)); }
+.density-compact .gap-2 { gap: calc(0.5rem * var(--density-spacing)); }
+.density-compact .gap-2\.5 { gap: calc(0.625rem * var(--density-spacing)); }
+.density-compact .gap-1\.5 { gap: calc(0.375rem * var(--density-spacing)); }
+.density-compact .space-y-3 > * + * { margin-top: calc(0.75rem * var(--density-spacing)); }
+.density-compact .space-y-2 > * + * { margin-top: calc(0.5rem * var(--density-spacing)); }
+.density-compact .space-y-1\.5 > * + * { margin-top: calc(0.375rem * var(--density-spacing)); }

@@ -59,7 +59,7 @@ export function SandboxQuickBar({ links = defaultLinks }: { links?: QuickLink[] 
       <button
         type="button"
         onClick={() => {
-          setDismissed(true);
+          setVisible(false);
           window.localStorage.setItem(DISMISSED_KEY, 'true');
         }}
         className="ml-1 rounded-md p-1 transition-colors hover:bg-white/[0.06]"

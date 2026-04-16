@@ -61,7 +61,7 @@ export function ActionQueue({ items, limit = 6 }: ActionQueueProps) {
         boxShadow: 'var(--tenant-shadow-panel)',
       }}
     >
-      <div className="px-5 pt-4 pb-2">
+      <div className="px-5 pt-4 pb-2" role="region" aria-label="Action queue">
         <h2
           className="text-base font-semibold text-tenant-text-primary"
           style={{ fontFamily: 'var(--font-heading)' }}

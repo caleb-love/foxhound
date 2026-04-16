@@ -39,6 +39,8 @@ export function RagIndicator({ verdict, periodLabel, generatedAt }: RagIndicator
 
   return (
     <div
+      role="status"
+      aria-label={`Platform status: ${config.label}. ${verdict.headline}`}
       className="rounded-2xl p-6 text-center"
       style={{
         background: config.bg,
