@@ -31,7 +31,7 @@ describe('PromptListView', () => {
     render(<PromptListView prompts={prompts} />);
 
     expect(screen.getByRole('heading', { name: 'Prompts' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search prompts, versions, or linked workflows...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search prompts...')).toBeInTheDocument();
     expect(screen.getByText('support-routing')).toBeInTheDocument();
     expect(screen.getByText('onboarding-router')).toBeInTheDocument();
   });

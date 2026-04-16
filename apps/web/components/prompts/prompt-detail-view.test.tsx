@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PromptDetailView } from './prompt-detail-view';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/prompts/pmt_123',
+}));
 
 const prompt = {
   id: 'pmt_123',
@@ -36,33 +40,28 @@ const versions = [
 ];
 
 describe('PromptDetailView', () => {
-  it('renders prompt metadata and versions', () => {
+  it('renders prompt name and version timeline', () => {
     render(<PromptDetailView prompt={prompt as never} versions={versions as never} />);
 
     expect(screen.getByText('support-agent')).toBeInTheDocument();
-    expect(screen.getByText('Release posture')).toBeInTheDocument();
+    // Version timeline should show both versions
+    expect(screen.getAllByText('v2').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('v1').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders inline action buttons', () => {
+    render(<PromptDetailView prompt={prompt as never} versions={versions as never} />);
+
+    expect(screen.getByText('Compare latest')).toBeInTheDocument();
+    expect(screen.getByText('Linked traces')).toBeInTheDocument();
+  });
+
+  it('shows the latest version content by default', () => {
+    render(<PromptDetailView prompt={prompt as never} versions={versions as never} />);
+
+    // Latest version (v2) content should be visible
+    expect(screen.getByText('Second prompt version')).toBeInTheDocument();
     expect(screen.getByText('Version 2')).toBeInTheDocument();
-    expect(screen.getByText('Version 1')).toBeInTheDocument();
-  });
-
-  it('renders compare links to the prompt diff page', () => {
-    render(<PromptDetailView prompt={prompt as never} versions={versions as never} />);
-
-    expect(screen.getByRole('link', { name: /compare against v1/i })).toHaveAttribute(
-      'href',
-      '/prompts/pmt_123/diff?versionA=1&versionB=2',
-    );
-  });
-
-  it('renders release decision framing actions', () => {
-    render(<PromptDetailView prompt={prompt as never} versions={versions as never} />);
-
-    expect(screen.getByText('Release decision framing')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Review latest candidate against baseline/i })).toHaveAttribute(
-      'href',
-      '/prompts/pmt_123/diff?versionA=1&versionB=2',
-    );
-    expect(screen.getByRole('link', { name: /Review experiment evidence/i })).toHaveAttribute('href', '/experiments');
   });
 
   it('shows a warning state when no versions exist', () => {

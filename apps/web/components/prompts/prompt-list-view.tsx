@@ -1,13 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { PageWarningState } from '@/components/ui/page-state';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
 import type { PromptResponse } from '@foxhound/api-client';
-import { PageContainer, PageHeader, RecordBody, RecordCard, RecordHeader, StatusBadge } from '@/components/system/page';
-import { WorkbenchPanel } from '@/components/system/workbench';
+import { PageContainer, PageHeader, StatusBadge } from '@/components/system/page';
+import { VerdictBar } from '@/components/investigation';
 
 interface PromptListViewProps {
   prompts: PromptResponse[];
@@ -16,16 +17,9 @@ interface PromptListViewProps {
 }
 
 const promptFilters: DashboardFilterDefinition[] = [
+  { key: 'searchQuery', kind: 'search', label: 'Search', placeholder: 'Search prompts...' },
   {
-    key: 'searchQuery',
-    kind: 'search',
-    label: 'Search',
-    placeholder: 'Search prompts, versions, or linked workflows...',
-  },
-  {
-    key: 'promptIds',
-    kind: 'multi-select',
-    label: 'Prompts',
+    key: 'promptIds', kind: 'multi-select', label: 'Prompts',
     options: [
       { value: 'support-routing', label: 'support-routing' },
       { value: 'onboarding-router', label: 'onboarding-router' },
@@ -47,12 +41,20 @@ export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: Pr
       <PageHeader
         eyebrow="Investigate"
         title="Prompts"
-        description="Browse saved prompts, inspect version history, and move into side-by-side prompt comparisons using the same operator workflow conventions as traces and run diff."
+        description="Browse prompt families, compare versions, and correlate prompt changes with trace regressions."
       >
         {focusedPromptName ? <StatusBadge status={`Focused: ${focusedPromptName}`} variant="warning" /> : null}
       </PageHeader>
 
       <DashboardFilterBar definitions={promptFilters} />
+
+      {focusedPromptName ? (
+        <VerdictBar
+          severity="info"
+          headline={`Focused on ${focusedPromptName}`}
+          summary="This prompt was carried in from another investigation workflow. Review the matching prompt first, then branch into version comparison."
+        />
+      ) : null}
 
       {sortedPrompts.length === 0 ? (
         <PageWarningState
@@ -60,42 +62,70 @@ export function PromptListView({ prompts, focusedPromptName, baseHref = '' }: Pr
           message="Create a prompt in the API first, then return here to review versions and compare changes."
         />
       ) : (
-        <WorkbenchPanel
-          title="Prompt catalog workbench"
-          description="Use this catalog to find the relevant prompt family quickly, then move into prompt history or prompt comparison without losing investigation context."
+        <div
+          className="overflow-hidden rounded-[var(--tenant-radius-panel)] border"
+          style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
         >
-          {focusedPromptName ? (
-            <div className="rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel-alt)', color: 'var(--tenant-text-secondary)' }}>
-              Prompt focus was carried in from another workflow. Review the matching prompt first, then branch into prompt history or comparison.
-            </div>
-          ) : null}
-          <div className="grid gap-4">
+          {/* Table header */}
+          <div
+            className="grid items-center border-b px-4 py-2"
+            style={{
+              gridTemplateColumns: '1fr 100px 120px',
+              borderColor: 'var(--tenant-panel-stroke)',
+              background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+            }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Prompt</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Updated</span>
+            <span className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">Actions</span>
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y" style={{ borderColor: 'var(--tenant-panel-stroke)' }}>
             {sortedPrompts.map((prompt) => {
               const isFocused = focusedPromptName?.toLowerCase() === prompt.name.toLowerCase();
 
               return (
-                <RecordCard key={prompt.id} style={isFocused ? { boxShadow: '0 0 0 2px color-mix(in srgb, var(--tenant-accent) 20%, transparent)' } : undefined}>
-                  <RecordHeader
-                    title={prompt.name}
-                    meta={prompt.id}
-                    badge={isFocused ? <StatusBadge status="Focused" variant="warning" /> : undefined}
-                  />
-                  <RecordBody>
-                    Updated {new Date(prompt.updatedAt).toLocaleString()}
-                  </RecordBody>
-                  <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
-                    <a
+                <div
+                  key={prompt.id}
+                  className="grid items-center px-4 py-3 transition-colors hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_4%,var(--card))]"
+                  style={{
+                    gridTemplateColumns: '1fr 100px 120px',
+                    borderLeft: isFocused ? '3px solid var(--tenant-accent)' : '3px solid transparent',
+                    background: isFocused ? 'color-mix(in srgb, var(--tenant-accent) 6%, var(--card))' : undefined,
+                  }}
+                >
+                  {/* Name and ID */}
+                  <div className="min-w-0">
+                    <Link
                       href={`${baseHref}/prompts/${prompt.id}`}
-                      className="text-primary underline-offset-4 hover:underline"
+                      className="text-sm font-semibold text-tenant-text-primary hover:underline"
                     >
-                      View prompt
-                    </a>
+                      {prompt.name}
+                    </Link>
+                    <div className="mt-0.5 truncate font-mono text-[11px] text-tenant-text-muted">{prompt.id}</div>
                   </div>
-                </RecordCard>
+
+                  {/* Updated */}
+                  <div className="text-center text-xs text-tenant-text-muted">
+                    {new Date(prompt.updatedAt).toLocaleDateString()}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`${baseHref}/prompts/${prompt.id}`}
+                      className="rounded-[var(--tenant-radius-control-tight)] border px-2.5 py-1 text-xs font-medium transition-colors hover:border-[color:var(--tenant-accent)]"
+                      style={{ borderColor: 'var(--tenant-panel-stroke)', color: 'var(--tenant-accent)' }}
+                    >
+                      View
+                    </Link>
+                  </div>
+                </div>
               );
             })}
           </div>
-        </WorkbenchPanel>
+        </div>
       )}
     </PageContainer>
   );

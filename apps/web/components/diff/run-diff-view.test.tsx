@@ -6,6 +6,7 @@ const push = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
+  usePathname: () => '/diff',
 }));
 
 const traceA = {
@@ -89,42 +90,45 @@ describe('RunDiffView', () => {
   beforeEach(() => {
     push.mockReset();
   });
-  it('renders trace identifiers and comparison sections', () => {
+
+  it('renders the verdict and key sections', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
-    expect(screen.getByText('Run Diff')).toBeInTheDocument();
-    expect(screen.getByText('Baseline vs comparison')).toBeInTheDocument();
-    expect(screen.getByText('trace_a')).toBeInTheDocument();
-    expect(screen.getByText('trace_b')).toBeInTheDocument();
-    expect(screen.getByText('Insights')).toBeInTheDocument();
-    expect(screen.getByText('Timeline Comparison')).toBeInTheDocument();
+    // Should show verdict bar with a headline
+    // traceB has 1 error vs 0 in A, so verdict should indicate regression
+    expect(screen.getByText(/Regression detected/i)).toBeInTheDocument();
+
+    // Should show insights section
+    expect(screen.getByText(/Insights and recommended actions/i)).toBeInTheDocument();
+
+    // Should show waterfall diff section
+    expect(screen.getAllByText(/waterfall diff/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows improvement/regression insights based on metrics', () => {
+  it('shows trace pair strip with agent info', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
-    expect(screen.getByText('🎉 Both cost and latency improved!')).toBeInTheDocument();
-    expect(screen.getByText(/Cost reduced by/)).toBeInTheDocument();
-    expect(screen.getByText(/Latency improved by/)).toBeInTheDocument();
-    expect(screen.getByText(/Added 1 span/)).toBeInTheDocument();
+    // Should show agent IDs in the trace pair strip
+    expect(screen.getAllByText('agent-alpha').length).toBeGreaterThanOrEqual(2);
+
+    // Should have a swap button
+    expect(screen.getByText('Swap')).toBeInTheDocument();
   });
 
-  it('renders direct investigation links', () => {
+  it('renders comparison bars for cost, latency, spans, errors', () => {
     render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
-    expect(screen.getByRole('link', { name: /Inspect baseline trace/i })).toHaveAttribute('href', '/traces/trace_a');
-    expect(screen.getByRole('link', { name: /Inspect comparison trace/i })).toHaveAttribute('href', '/traces/trace_b');
-    expect(screen.getByRole('link', { name: /Review prompt history/i })).toHaveAttribute('href', '/prompts?focus=support-routing');
-    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
-      'href',
-      '/prompts?focus=support-routing&baseline=3&comparison=4',
-    );
+    expect(screen.getByText('Cost')).toBeInTheDocument();
+    expect(screen.getByText('Latency')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
   });
 
-  it('uses the provided back link when supplied', () => {
-    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} backHref="/sandbox/traces" />);
+  it('renders inline action links', () => {
+    render(<RunDiffView traceA={traceA as never} traceB={traceB as never} />);
 
-    expect(screen.getByRole('link', { name: /back to traces/i })).toHaveAttribute('href', '/sandbox/traces');
+    expect(screen.getByText('Baseline')).toBeInTheDocument();
+    expect(screen.getByText('Comparison')).toBeInTheDocument();
   });
 
   it('renders an in-place compare picker when available traces are provided', () => {
@@ -137,10 +141,9 @@ describe('RunDiffView', () => {
     );
 
     expect(screen.getByText('Compare picker')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Swap A ↔ B/i })).toBeInTheDocument();
   });
 
-  it('navigates to a new diff pair when a replacement trace is selected', () => {
+  it('navigates to a new diff pair when swap is clicked', () => {
     render(
       <RunDiffView
         traceA={traceA as never}
@@ -149,9 +152,10 @@ describe('RunDiffView', () => {
       />,
     );
 
-    const setAButtons = screen.getAllByRole('button', { name: /Set A/i });
-    fireEvent.click(setAButtons[0]!);
+    const swapButton = screen.getByText('Swap');
+    fireEvent.click(swapButton);
 
-    expect(push).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith(expect.stringContaining('a=trace_b'));
+    expect(push).toHaveBeenCalledWith(expect.stringContaining('b=trace_a'));
   });
 });

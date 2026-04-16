@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Trace, Span } from '@foxhound/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { DetailActionPanel, DetailHeader, CompareContextCard, ActionCard, StatusBadge } from '@/components/system/detail';
+import { ArrowLeft, ArrowLeftRight, Download, BookOpen, Eye } from 'lucide-react';
+import { VerdictBar, generateDiffVerdict, InlineAction, InlineActionBar, ComparisonBar } from '@/components/investigation';
 import { getSandboxRootHref } from '@/lib/sandbox-routes';
 import { useCompareStore } from '@/lib/stores/compare-store';
-import { MetricsDelta } from './metrics-delta';
-import { TimelineDiff } from './timeline-diff';
 import { InsightsPanel } from './insights-panel';
+import { WaterfallDiff } from './waterfall-diff';
 import { DiffTracePicker } from './diff-trace-picker';
 import { getPromptMetadata, getPromptDetailHref, getPromptDiffHref } from '@/lib/trace-utils';
 
@@ -58,43 +57,27 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
     const timer = setTimeout(() => setComparePair(traceA.id, traceB.id), 0);
     return () => clearTimeout(timer);
   }, [traceA.id, traceB.id, setComparePair]);
+
   // Calculate metrics
   const metrics = useMemo(() => {
-    // Cost calculation
-    const costA = traceA.spans.reduce((sum, span) => {
-      const cost = span.attributes.cost as number | undefined;
-      return sum + (cost || 0);
-    }, 0);
-    
-    const costB = traceB.spans.reduce((sum, span) => {
-      const cost = span.attributes.cost as number | undefined;
-      return sum + (cost || 0);
-    }, 0);
-    
+    const costA = traceA.spans.reduce((sum, span) => sum + ((span.attributes.cost as number) || 0), 0);
+    const costB = traceB.spans.reduce((sum, span) => sum + ((span.attributes.cost as number) || 0), 0);
     const costDelta = costB - costA;
     const costPercentage = costA > 0 ? ((costDelta / costA) * 100) : 0;
-    
-    // Duration calculation
-    const durationA = traceA.endTimeMs
-      ? (traceA.endTimeMs - traceA.startTimeMs) / 1000
-      : 0;
-    const durationB = traceB.endTimeMs
-      ? (traceB.endTimeMs - traceB.startTimeMs) / 1000
-      : 0;
-    
+
+    const durationA = traceA.endTimeMs ? (traceA.endTimeMs - traceA.startTimeMs) / 1000 : 0;
+    const durationB = traceB.endTimeMs ? (traceB.endTimeMs - traceB.startTimeMs) / 1000 : 0;
     const durationDelta = durationB - durationA;
     const durationPercentage = durationA > 0 ? ((durationDelta / durationA) * 100) : 0;
-    
-    // Span count
+
     const spanCountA = traceA.spans.length;
     const spanCountB = traceB.spans.length;
     const spanDelta = spanCountB - spanCountA;
-    
-    // Error count
+
     const errorsA = traceA.spans.filter(s => s.status === 'error').length;
     const errorsB = traceB.spans.filter(s => s.status === 'error').length;
     const errorDelta = errorsB - errorsA;
-    
+
     return {
       cost: { valueA: costA, valueB: costB, delta: costDelta, percentage: costPercentage },
       duration: { valueA: durationA, valueB: durationB, delta: durationDelta, percentage: durationPercentage },
@@ -102,32 +85,27 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
       errors: { valueA: errorsA, valueB: errorsB, delta: errorDelta },
     };
   }, [traceA, traceB]);
-  
+
   // Span diff computation
   const spanDiff = useMemo(() => {
-    // Map spans by name for comparison
     const spansAMap = new Map(traceA.spans.map((span) => [getSpanFingerprint(traceA, span), span]));
     const spansBMap = new Map(traceB.spans.map((span) => [getSpanFingerprint(traceB, span), span]));
-    
+
     const added: Span[] = [];
     const removed: Span[] = [];
     const modified: Span[] = [];
     const unchanged: Span[] = [];
-    
-    // Check what's in B
+
     spansBMap.forEach((spanB, fingerprint) => {
       const spanA = spansAMap.get(fingerprint);
-      
       if (!spanA) {
-        // Only in B = added
         added.push(spanB);
       } else {
-        // In both - check if modified
         const durationA = spanA.endTimeMs ? spanA.endTimeMs - spanA.startTimeMs : 0;
         const durationB = spanB.endTimeMs ? spanB.endTimeMs - spanB.startTimeMs : 0;
         const costA = (spanA.attributes.cost as number) || 0;
         const costB = (spanB.attributes.cost as number) || 0;
-        
+
         if (Math.abs(durationB - durationA) > 100 || Math.abs(costB - costA) > 0.001) {
           modified.push(spanB);
         } else {
@@ -135,14 +113,13 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
         }
       }
     });
-    
-    // Check what's only in A
+
     spansAMap.forEach((spanA, fingerprint) => {
       if (!spansBMap.has(fingerprint)) {
         removed.push(spanA);
       }
     });
-    
+
     return { added, removed, modified, unchanged };
   }, [traceA, traceB]);
 
@@ -151,23 +128,27 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
   const sandboxTracesHref = `${getSandboxRootHref()}/traces`;
   const isSandbox = backHref === sandboxTracesHref;
   const basePrefix = isSandbox ? getSandboxRootHref() : '';
-  const hasPromptLink = Boolean(promptNameA || promptNameB);
-  const promptHistoryHref = isSandbox
-    ? getPromptDetailHref(basePrefix, promptNameB ?? promptNameA)
-    : promptNameB ?? promptNameA
-      ? `${basePrefix}/prompts?focus=${encodeURIComponent(String(promptNameB ?? promptNameA))}`
-      : null;
+  const promptHistoryHref = promptNameB ?? promptNameA
+    ? isSandbox
+      ? getPromptDetailHref(basePrefix, promptNameB ?? promptNameA)
+      : `${basePrefix}/prompts?focus=${encodeURIComponent(String(promptNameB ?? promptNameA))}`
+    : null;
   const promptDiffHref = promptNameA && promptNameB && promptNameA === promptNameB
     ? isSandbox
       ? getPromptDiffHref(basePrefix, promptNameA, promptVersionA, promptVersionB)
       : `${basePrefix}/prompts?focus=${encodeURIComponent(String(promptNameA))}&baseline=${encodeURIComponent(String(promptVersionA))}&comparison=${encodeURIComponent(String(promptVersionB))}`
     : null;
-  const narrative =
-    metrics.errors.delta > 0
-      ? 'The comparison run introduced more failing spans and should be treated as a likely regression candidate.'
-      : metrics.duration.delta < 0 && metrics.cost.delta < 0
-        ? 'The comparison run is cheaper and faster, suggesting an improvement worth validating before promotion.'
-        : 'Use the span-level diff below to understand how behavior changed between the baseline and comparison runs.';
+
+  const verdict = generateDiffVerdict({
+    costDelta: metrics.cost.delta,
+    costPercentage: metrics.cost.percentage,
+    durationDelta: metrics.duration.delta,
+    durationPercentage: metrics.duration.percentage,
+    errorDelta: metrics.errors.delta,
+    addedSpans: spanDiff.added.length,
+    removedSpans: spanDiff.removed.length,
+    modifiedSpans: spanDiff.modified.length,
+  });
 
   const navigateToPair = (nextTraceAId: string, nextTraceBId: string) => {
     const params = new URLSearchParams({ a: nextTraceAId, b: nextTraceBId });
@@ -189,138 +170,110 @@ export function RunDiffView({ traceA, traceB, backHref = '/traces', availableTra
     navigateToPair(localTraceBId, localTraceAId);
   };
 
+  const storyLabelA = typeof traceA.metadata?.story_label === 'string' ? traceA.metadata.story_label : traceA.id.slice(0, 12);
+  const storyLabelB = typeof traceB.metadata?.story_label === 'string' ? traceB.metadata.story_label : traceB.id.slice(0, 12);
+
   return (
-    <div className="space-y-6 lg:space-y-8">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
-        <div className="space-y-4">
-          <div className="flex items-start gap-4">
-            <Link href={backHref}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Traces
-              </Button>
-            </Link>
-            <div className="space-y-2">
-              <DetailHeader
-                title="Run Diff"
-                subtitle={narrative}
-                primaryBadge={<StatusBadge status="Baseline vs comparison" variant="neutral" />}
-              />
-              <p className="text-sm text-tenant-text-muted">
-                Comparing {traceA.agentId} runs to explain what changed, why it mattered, and which realistic support story this diff belongs to.
-              </p>
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* Back navigation */}
+      <Link
+        href={backHref}
+        className="inline-flex items-center gap-1.5 text-sm text-tenant-text-muted transition-colors hover:text-tenant-text-primary"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Traces
+      </Link>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <CompareContextCard
-              label="Baseline (A)"
-              id={typeof traceA.metadata?.story_label === 'string' ? String(traceA.metadata.story_label) : traceA.id}
-              meta={[
-                `Agent: ${traceA.agentId}`,
-                typeof traceA.metadata?.status_label === 'string' ? `Story status: ${traceA.metadata.status_label}` : `Trace ID: ${traceA.id}`,
-                promptNameA ? `Prompt: ${promptNameA}${promptVersionA ? ` · v${promptVersionA}` : ''}` : 'Prompt context unavailable',
-              ]}
-            />
-            <CompareContextCard
-              label="Comparison (B)"
-              id={typeof traceB.metadata?.story_label === 'string' ? String(traceB.metadata.story_label) : traceB.id}
-              meta={[
-                `Agent: ${traceB.agentId}`,
-                typeof traceB.metadata?.status_label === 'string' ? `Story status: ${traceB.metadata.status_label}` : `Trace ID: ${traceB.id}`,
-                promptNameB ? `Prompt: ${promptNameB}${promptVersionB ? ` · v${promptVersionB}` : ''}` : 'Prompt context unavailable',
-              ]}
-            />
-          </div>
+      {/* Verdict */}
+      <VerdictBar
+        severity={verdict.severity}
+        headline={verdict.headline}
+        summary={verdict.summary}
+        actions={
+          <InlineActionBar>
+            <InlineAction href={`${basePrefix}/traces/${traceA.id}`} variant="secondary">
+              <Eye className="h-3.5 w-3.5" />
+              Baseline
+            </InlineAction>
+            <InlineAction href={`${basePrefix}/traces/${traceB.id}`} variant="secondary">
+              <Eye className="h-3.5 w-3.5" />
+              Comparison
+            </InlineAction>
+            {promptHistoryHref ? (
+              <InlineAction href={promptHistoryHref} variant="secondary">
+                <BookOpen className="h-3.5 w-3.5" />
+                Prompt history
+              </InlineAction>
+            ) : null}
+            {promptDiffHref ? (
+              <InlineAction href={promptDiffHref} variant="secondary">
+                <BookOpen className="h-3.5 w-3.5" />
+                Prompt diff
+              </InlineAction>
+            ) : null}
+            <InlineAction href="#" variant="ghost" onClick={() => {}}>
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </InlineAction>
+          </InlineActionBar>
+        }
+      />
+
+      {/* Trace pair strip */}
+      <div
+        className="flex flex-wrap items-center gap-3 rounded-[var(--tenant-radius-panel)] border px-4 py-3"
+        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--tenant-accent)_16%,var(--card))] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-tenant-accent">A</span>
+          <span className="truncate text-sm font-medium text-tenant-text-primary">{storyLabelA}</span>
+          <span className="text-xs text-tenant-text-muted">{traceA.agentId}</span>
         </div>
-
-        <DetailActionPanel title="Recommended next actions">
-          <ActionCard
-            href={`${basePrefix}/traces/${traceA.id}`}
-            title="Inspect baseline trace"
-            description="Review the last known-good execution and its timeline in detail."
+        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2" onClick={handleSwap}>
+          <ArrowLeftRight className="h-3.5 w-3.5" />
+          <span className="text-xs">Swap</span>
+        </Button>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--tenant-accent)_16%,var(--card))] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-tenant-accent">B</span>
+          <span className="truncate text-sm font-medium text-tenant-text-primary">{storyLabelB}</span>
+          <span className="text-xs text-tenant-text-muted">{traceB.agentId}</span>
+        </div>
+        {availableTraces.length > 0 ? (
+          <DiffTracePicker
+            traces={availableTraces}
+            traceAId={localTraceAId}
+            traceBId={localTraceBId}
+            onSelectTraceA={handleSelectTraceA}
+            onSelectTraceB={handleSelectTraceB}
+            onSwap={handleSwap}
           />
-          <ActionCard
-            href={`${basePrefix}/traces/${traceB.id}`}
-            title="Inspect comparison trace"
-            description="Open the changed run directly to inspect metadata, spans, and prompt context."
-          />
-          <ActionCard
-            href={promptHistoryHref ?? '#'}
-            title="Review prompt history"
-            description={hasPromptLink
-              ? `Compare prompt context${promptNameA ? ` (${promptNameA}${promptVersionA ? ` v${promptVersionA}` : ''})` : ''}${promptNameB ? ` and (${promptNameB}${promptVersionB ? ` v${promptVersionB}` : ''})` : ''} to determine whether prompt changes explain the run divergence.`
-              : 'Prompt metadata is not attached to these traces yet.'}
-            disabled={!promptHistoryHref}
-          />
-          <ActionCard
-            href={promptDiffHref ?? '#'}
-            title="Compare prompt versions"
-            description={promptDiffHref
-              ? `Jump directly into prompt comparison for ${promptNameA} between v${promptVersionA} and v${promptVersionB}.`
-              : 'Prompt diff is available when both runs share a prompt name with distinct versions.'}
-            disabled={!promptDiffHref}
-          />
-        </DetailActionPanel>
+        ) : null}
       </div>
-      
-      {availableTraces.length > 0 ? (
-        <DiffTracePicker
-          traces={availableTraces}
-          traceAId={localTraceAId}
-          traceBId={localTraceBId}
-          onSelectTraceA={handleSelectTraceA}
-          onSelectTraceB={handleSelectTraceB}
-          onSwap={handleSwap}
-        />
-      ) : null}
 
-      {/* Metrics Comparison */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricsDelta
-          label="Cost"
-          valueA={metrics.cost.valueA}
-          valueB={metrics.cost.valueB}
-          delta={metrics.cost.delta}
-          percentage={metrics.cost.percentage}
-          format="currency"
-        />
-        <MetricsDelta
-          label="Duration"
-          valueA={metrics.duration.valueA}
-          valueB={metrics.duration.valueB}
-          delta={metrics.duration.delta}
-          percentage={metrics.duration.percentage}
-          format="duration"
-        />
-        <MetricsDelta
-          label="Spans"
-          valueA={metrics.spans.valueA}
-          valueB={metrics.spans.valueB}
-          delta={metrics.spans.delta}
-          format="number"
-        />
-        <MetricsDelta
-          label="Errors"
-          valueA={metrics.errors.valueA}
-          valueB={metrics.errors.valueB}
-          delta={metrics.errors.delta}
-          format="number"
-          lowerIsBetter
-        />
+      {/* Visual comparison bars */}
+      <div
+        className="grid gap-4 rounded-[var(--tenant-radius-panel)] border p-4 sm:grid-cols-2 xl:grid-cols-4"
+        style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}
+      >
+        <ComparisonBar label="Cost" valueA={metrics.cost.valueA} valueB={metrics.cost.valueB} format="currency" lowerIsBetter />
+        <ComparisonBar label="Latency" valueA={metrics.duration.valueA} valueB={metrics.duration.valueB} format="duration" lowerIsBetter />
+        <ComparisonBar label="Spans" valueA={metrics.spans.valueA} valueB={metrics.spans.valueB} format="number" lowerIsBetter={false} />
+        <ComparisonBar label="Errors" valueA={metrics.errors.valueA} valueB={metrics.errors.valueB} format="number" lowerIsBetter />
       </div>
-      
-      {/* Insights */}
+
+      {/* Prescriptive insights */}
       <InsightsPanel
         costDelta={metrics.cost.delta}
         costPercentage={metrics.cost.percentage}
         durationDelta={metrics.duration.delta}
         durationPercentage={metrics.duration.percentage}
         spanDiff={spanDiff}
+        traceA={traceA}
+        traceB={traceB}
       />
-      
-      {/* Timeline Diff */}
-      <TimelineDiff
+
+      {/* Unified waterfall diff */}
+      <WaterfallDiff
         traceA={traceA}
         traceB={traceB}
         spanDiff={spanDiff}

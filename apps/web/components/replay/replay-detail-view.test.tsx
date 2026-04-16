@@ -8,6 +8,7 @@ const useSearchParams = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => useSearchParams(),
+  usePathname: () => '/replay/trace_replay_1',
 }));
 
 const trace = {
@@ -56,18 +57,31 @@ describe('ReplayDetailView', () => {
     });
   });
 
-  it('renders replay hero, context, and action links', () => {
+  it('renders the debugger layout with transport controls and execution flow', () => {
     render(<ReplayDetailView trace={trace as never} />);
 
-    expect(screen.getByText('Session Replay')).toBeInTheDocument();
-    expect(screen.getByText('Replay context and next actions')).toBeInTheDocument();
-    expect(screen.getByText(/planner-system · version 8/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open trace detail/i })).toHaveAttribute(
-      'href',
-      expect.stringContaining('/traces/trace_replay_1'),
-    );
-    expect(screen.getByRole('link', { name: /Prepare a comparison/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Review prompt history/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toBeInTheDocument();
+    // Should show agent name in header
+    expect(screen.getByText('planner-agent')).toBeInTheDocument();
+
+    // Should show error indicator
+    expect(screen.getByText(/error/i)).toBeInTheDocument();
+
+    // Should show step counter
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+
+    // Should show execution flow with span names (may appear in flow + inspector)
+    expect(screen.getAllByText('plan').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('execute').length).toBeGreaterThanOrEqual(1);
+
+    // Should show the current step info
+    expect(screen.getByText(/Step 1 of 2/i)).toBeInTheDocument();
+  });
+
+  it('shows inline navigation actions', () => {
+    render(<ReplayDetailView trace={trace as never} />);
+
+    // Should have Trace and Compare actions
+    expect(screen.getByText('Trace')).toBeInTheDocument();
+    expect(screen.getByText('Compare')).toBeInTheDocument();
   });
 });

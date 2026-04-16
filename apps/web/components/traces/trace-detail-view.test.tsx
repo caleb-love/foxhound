@@ -8,6 +8,7 @@ const useSearchParams = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => useSearchParams(),
+  usePathname: () => '/traces/trace_123',
 }));
 
 const trace = {
@@ -56,42 +57,46 @@ describe('TraceDetailView', () => {
     });
   });
 
-  it('renders richer summary cards and prompt context', () => {
+  it('renders verdict bar with error information', () => {
     render(<TraceDetailView trace={trace as never} />);
 
-    expect(screen.getByText('Trace investigation')).toBeInTheDocument();
-    expect(screen.getByText('Error path')).toBeInTheDocument();
-    expect(screen.getByText('$0.0140')).toBeInTheDocument();
-    expect(screen.getByText('support-routing')).toBeInTheDocument();
-    expect(screen.getByText('Version 12')).toBeInTheDocument();
+    // Verdict should mention the error
+    expect(screen.getByText(/knowledge-search failed/i)).toBeInTheDocument();
   });
 
-  it('renders direct investigation CTAs with segment-aware links', () => {
+  it('renders metric strip with key values', () => {
     render(<TraceDetailView trace={trace as never} />);
 
-    expect(screen.getByRole('link', { name: /Compare against another run/i })).toHaveAttribute(
-      'href',
-      '/traces?segment=Support+agent',
-    );
-    expect(screen.getByRole('link', { name: /Review trace timeline/i })).toHaveAttribute(
-      'href',
-      '/traces/trace_123?segment=Support+agent',
-    );
-    expect(screen.getByRole('link', { name: /Inspect prompt history/i })).toHaveAttribute(
-      'href',
-      '/?segment=Support+agent',
-    );
-    expect(screen.getByRole('link', { name: /Compare prompt versions/i })).toHaveAttribute(
-      'href',
-      '/?segment=Support+agent',
-    );
-    expect(screen.getByRole('link', { name: /Add to evaluation workflow/i })).toHaveAttribute(
-      'href',
-      '/datasets?sourceTrace=trace_123&segment=Support+agent',
-    );
+    // Check metric chip labels exist
+    expect(screen.getByText('Duration')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Cost')).toBeInTheDocument();
   });
 
-  it('shows fallback prompt copy when prompt metadata is absent', () => {
+  it('renders inline action buttons', () => {
+    render(<TraceDetailView trace={trace as never} />);
+
+    expect(screen.getByText('Compare')).toBeInTheDocument();
+    expect(screen.getByText('Replay')).toBeInTheDocument();
+  });
+
+  it('renders waterfall timeline with span names', () => {
+    render(<TraceDetailView trace={trace as never} />);
+
+    // Spans should be visible in the waterfall
+    expect(screen.getByText('planner')).toBeInTheDocument();
+    expect(screen.getByText('knowledge-search')).toBeInTheDocument();
+  });
+
+  it('shows prompt action when prompt metadata is available', () => {
+    render(<TraceDetailView trace={trace as never} />);
+
+    // Should have a prompt action link
+    expect(screen.getByText(/Prompt/)).toBeInTheDocument();
+  });
+
+  it('handles missing prompt metadata', () => {
     render(
       <TraceDetailView
         trace={{
@@ -101,7 +106,8 @@ describe('TraceDetailView', () => {
       />,
     );
 
-    expect(screen.getByText('No prompt metadata')).toBeInTheDocument();
-    expect(screen.getByText('Prompt version unavailable')).toBeInTheDocument();
+    // Should not crash; Compare and Replay still present
+    expect(screen.getByText('Compare')).toBeInTheDocument();
+    expect(screen.getByText('Replay')).toBeInTheDocument();
   });
 });
