@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { checkSpanLimit } from "@foxhound/billing";
 import { bufferTrace, initTraceBuffer } from "../trace-buffer.js";
+import { setIngestSpanCount } from "../observability/register.js";
 import type { Trace, Span, SpanKind, SpanEvent } from "@foxhound/types";
 
 // ---------------------------------------------------------------------------
@@ -305,6 +306,8 @@ export function otlpRoutes(fastify: FastifyInstance): void {
       }
 
       const traces = mapOtlpToFoxhoundTraces(parsed.data);
+      const totalSpansParsed = traces.reduce((n, t) => n + t.spans.length, 0);
+      setIngestSpanCount(request, totalSpansParsed);
 
       if (traces.length === 0) {
         // Empty payload — OTLP spec says return success
