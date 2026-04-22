@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Span, SpanKind, Trace } from "@foxhound/types";
+import { currentAgentScope } from "./helpers/agent.js";
 
 interface TracerOptions {
   agentId: string;
@@ -25,7 +26,17 @@ export class Tracer {
     kind: SpanKind;
     parentSpanId?: string;
     attributes?: Record<string, string | number | boolean | null>;
+    /**
+     * Per-span agent scope (WP15). Overrides the trace-level agentId
+     * on the wire. When omitted, the tracer consults the `withAgent(...)`
+     * stack; if that is also empty, the trace-level `agentId` applies.
+     */
+    agentId?: string;
   }): ActiveSpan {
+    // Resolution order: explicit param > withAgent(...) scope > unset
+    // (in which case the wire encoder falls back to the trace-level
+    // agentId at map time).
+    const scopedAgentId = params.agentId ?? currentAgentScope(this);
     const span: Span = {
       traceId: this.traceId,
       spanId: randomUUID(),
@@ -36,6 +47,7 @@ export class Tracer {
       status: "unset",
       attributes: params.attributes ?? {},
       events: [],
+      ...(scopedAgentId !== undefined ? { agentId: scopedAgentId } : {}),
     };
     this.spans.set(span.spanId, span);
     return new ActiveSpan(span, this.spans);
@@ -81,6 +93,16 @@ export class ActiveSpan {
 
   setAttribute(key: string, value: string | number | boolean | null): this {
     this.span.attributes[key] = value;
+    return this;
+  }
+
+  /**
+   * Attach this span to a specific subagent (WP15). Overrides any trace-
+   * level or scope-based `agentId` for this span only. Idempotent; the
+   * last call wins.
+   */
+  setAgent(agentId: string): this {
+    this.span.agentId = agentId;
     return this;
   }
 

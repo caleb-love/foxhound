@@ -41,18 +41,26 @@ describe('BudgetsGovernDashboard', () => {
     expect(screen.getByText(/No budgets configured/)).toBeInTheDocument();
   });
 
-  it('filters budgets by date range when timestamps are present', () => {
+  it('keeps older budgets visible under the default date window', () => {
+    render(<BudgetsGovernDashboard budgets={[...budgets, olderBudget]} />);
+
+    expect(screen.getByText('support-agent')).toBeInTheDocument();
+    expect(screen.getByText('codegen-agent')).toBeInTheDocument();
+    expect(screen.getByText('legacy-budget-agent')).toBeInTheDocument();
+  });
+
+  it('filters budgets by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<BudgetsGovernDashboard budgets={[...budgets, olderBudget]} />);
 
     expect(screen.getByText('support-agent')).toBeInTheDocument();
-    expect(screen.getByText('codegen-agent')).toBeInTheDocument();
+    expect(screen.queryByText('codegen-agent')).not.toBeInTheDocument();
     expect(screen.queryByText('legacy-budget-agent')).not.toBeInTheDocument();
   });
 });

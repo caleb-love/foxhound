@@ -490,6 +490,66 @@ export const modelPricingOverrides = pgTable(
   }),
 );
 
+// ── WP16 · Versioned pricing table (time-series) ─────────────────────────
+//
+// `pricing_rows` is an append-only, time-bounded record of model pricing.
+// A price change creates a new row with `effective_from = now()` and sets
+// the predecessor row's `effective_to = now()` in the same transaction
+// (see `addPriceRow` in `queries-pricing.ts`). Historical cost compute
+// looks up the row whose half-open `[effective_from, effective_to)`
+// window contains the span's `start_time`, so a retroactive backfill
+// produces the pre-change price, never the current one. See RFC-016
+// for the full rationale.
+//
+// Immutability: `effective_from` is never edited after insert; a UI /
+// admin mistake corrects itself by appending a new row, not by mutating
+// an existing one. This invariant is enforced in the `addPriceRow`
+// implementation and by the lack of an `updatePriceRow` in the query
+// layer. If a DBA ever edits `effective_from` directly, the query
+// layer's `assertNoRetroactiveEdit` guard catches it at boot.
+
+export const pricingRows = pgTable(
+  "pricing_rows",
+  {
+    id: text("id").primaryKey(),
+    // Model identifier (e.g. "openai/gpt-4o"). Matched exactly by the
+    // persistence consumer; longest-prefix fallback belongs in
+    // `model_pricing_overrides`, not here. Pricing history is per exact
+    // model id so historical cost is unambiguous.
+    model: text("model").notNull(),
+    provider: text("provider").notNull(),
+    // USD per 1k tokens with high-precision numeric storage.
+    inputPricePer1k: numeric("input_price_per_1k", { precision: 14, scale: 10 }).notNull(),
+    outputPricePer1k: numeric("output_price_per_1k", { precision: 14, scale: 10 }).notNull(),
+    cacheHitPricePer1k: numeric("cache_hit_price_per_1k", { precision: 14, scale: 10 }),
+    // Half-open effective window. `effective_to IS NULL` marks the
+    // currently-active row for (model, provider).
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull(),
+    effectiveTo: timestamp("effective_to", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    // Identity of whoever authored the row (admin user id or system).
+    // Required for audit; appears in the admin-tool CLI output.
+    createdBy: text("created_by").notNull(),
+  },
+  (table) => ({
+    // Accelerates the time-window lookup, which is the hot path: the
+    // consumer asks "which row for model X at timestamp T". ORDER BY
+    // effective_from DESC means the first matching row is the newest
+    // whose window starts at or before T.
+    lookupIdx: index("pricing_rows_lookup_idx").on(
+      table.model,
+      table.provider,
+      table.effectiveFrom,
+    ),
+    // Admin queries ("show me the current price for X") match this.
+    activeIdx: index("pricing_rows_active_idx").on(
+      table.model,
+      table.provider,
+      table.effectiveTo,
+    ),
+  }),
+);
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Evaluation tables (Phase 2)
 // ──────────────────────────────────────────────────────────────────────────────

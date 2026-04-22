@@ -1,0 +1,30 @@
+{
+  "name": "@foxhound/stream-processor",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Real-time stream processor for alerts (WP14). Consumes the durable span queue as its own consumer group; fires SLA, budget, regression, and eval-trigger alerts via push — no BullMQ poll.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@foxhound/db": "workspace:*",
+    "@foxhound/notifications": "workspace:*",
+    "@foxhound/proto": "workspace:*",
+    "@foxhound/queue": "workspace:*",
+    "@foxhound/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  }
+}

@@ -26,6 +26,8 @@ import { getCostMonitorQueue, getRegressionDetectorQueue } from "../queue.js";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, IdParamSchema, TraceSpanParamSchema } from "../lib/params.js";
 import { paginatedResponse } from "../lib/pagination.js";
+import { decodeProtoBatch, isProtobufRequest } from "./traces-proto.js";
+import { enqueueTrace, isQueueIngestEnabled } from "../ingest-producer.js";
 
 /**
  * Checks whether the trace contains any error spans and, if so, dispatches
@@ -196,7 +198,14 @@ async function handlePhase4Ingestion(
         const outputTokens =
           typeof attrs["token_count_output"] === "number" ? attrs["token_count_output"] : 0;
         if (inputTokens > 0 || outputTokens > 0) {
-          const pricing = await lookupPricing(orgId, model);
+          // WP16: price at span time, not ingest time. Backfills and
+          // replays reproduce historical cost byte-for-byte because the
+          // time-series `pricing_rows` table resolves to the row whose
+          // `[effective_from, effective_to)` contains the span's
+          // `startTimeMs`. A span with no end timestamp uses its
+          // start timestamp.
+          const at = new Date(span.startTimeMs);
+          const pricing = await lookupPricing(orgId, model, at);
           if (pricing) {
             cost =
               inputTokens * pricing.inputCostPerToken + outputTokens * pricing.outputCostPerToken;
@@ -328,13 +337,48 @@ export function tracesRoutes(fastify: FastifyInstance): void {
     "/v1/traces",
     { config: { rateLimit: { max: 1000, timeWindow: "1 minute" } } },
     async (request, reply) => {
-      const result = IngestTraceSchema.safeParse(request.body);
-      if (!result.success) {
-        return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
-      }
-
-      const trace = result.data;
       const orgId = request.orgId;
+
+      // Content-type negotiation (WP04). Protobuf is now the SDK default;
+      // JSON remains supported for the transition window defined in RFC-004.
+      let trace: z.infer<typeof IngestTraceSchema>;
+      if (isProtobufRequest(request)) {
+        if (!Buffer.isBuffer(request.body)) {
+          return reply.code(400).send({
+            error: "Bad Request",
+            message:
+              "Protobuf ingest requires a binary body. " +
+              "Check that your SDK sends `Content-Type: application/x-protobuf`.",
+          });
+        }
+        // WP05: thread `Content-Encoding` through so the decoder can
+        // decompress gzip and reject oversize decompressed bodies with
+        // 413 before the Protobuf decoder runs.
+        const ce = request.headers["content-encoding"];
+        const decoded = decodeProtoBatch(
+          request.body,
+          orgId,
+          typeof ce === "string" ? ce : undefined,
+        );
+        if (!decoded.ok) {
+          // Emit oversize-drop metric on 413 so operators see payload
+          // drops in `/metrics`.
+          if (decoded.status === 413) {
+            request.server.ingestMetrics.recordOversizeDrop({ orgId, reason: "payload" });
+          }
+          return reply.code(decoded.status).send({
+            error: decoded.error,
+            message: decoded.message,
+          });
+        }
+        trace = decoded.trace as z.infer<typeof IngestTraceSchema>;
+      } else {
+        const result = IngestTraceSchema.safeParse(request.body);
+        if (!result.success) {
+          return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
+        }
+        trace = result.data;
+      }
 
       const spanCount = trace.spans.length;
       const limitCheck = await checkSpanLimit(orgId, spanCount);
@@ -369,6 +413,30 @@ export function tracesRoutes(fastify: FastifyInstance): void {
           hasSessionId: !!trace.sessionId,
         },
       });
+
+      // WP08 durable-queue path. When `FOXHOUND_USE_QUEUE` is set, the
+      // edge enqueues + returns 202, and a worker consumer group persists.
+      // When unset, behaviour is exactly the legacy synchronous path.
+      if (isQueueIngestEnabled()) {
+        try {
+          await enqueueTrace(trace as unknown as Trace, orgId);
+        } catch (err) {
+          fastify.log.error(
+            { err, traceId: trace.id, orgId },
+            "Queue enqueue failed; falling back to direct persistence",
+          );
+          // Fall through to the legacy path so a queue outage does not drop data.
+          setImmediate(() => {
+            persistTraceWithRetry(fastify.log, trace as unknown as Trace, orgId).catch((e) => {
+              fastify.log.error(
+                { err: e, traceId: trace.id, orgId },
+                "Fallback persistence after queue failure also failed",
+              );
+            });
+          });
+        }
+        return reply.code(202).send({ accepted: true, id: trace.id, queued: true });
+      }
 
       void reply.code(202).send({ accepted: true, id: trace.id });
 

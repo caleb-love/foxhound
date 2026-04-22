@@ -25,3 +25,4 @@ export * from "./queries-prompts.js";
 export * from "./queries-notifications.js";
 export * from "./queries-annotations.js";
 export * from "./queries-platform.js";
+export * from "./queries-pricing.js";

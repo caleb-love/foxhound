@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -22,6 +22,8 @@ import { slasRoutes } from "./routes/slas.js";
 import { regressionsRoutes } from "./routes/regressions.js";
 import { promptsRoutes } from "./routes/prompts.js";
 import { startRetentionCleanup, stopRetentionCleanup } from "./jobs/retention-cleanup.js";
+import { registerMetrics } from "./observability/register.js";
+import { setTraceBufferMetrics } from "./trace-buffer.js";
 
 const app = Fastify({
   logger: { level: process.env["LOG_LEVEL"] ?? "info" },
@@ -50,6 +52,60 @@ await app.register(rateLimit, {
 
 // Register auth plugin (JWT + API key middleware)
 registerAuth(app);
+
+// Register self-observability (prom-client /metrics + ingest histograms)
+const ingestMetrics = await registerMetrics(app);
+setTraceBufferMetrics(ingestMetrics);
+
+// Register raw Buffer parser for Protobuf ingest (WP04). Must run before
+// route registration so `request.body` is a Buffer for Protobuf requests.
+//
+// WP05: the parser itself leaves the body untouched (still a Buffer).
+// `decodeProtoBatch` in `traces-proto.ts` applies the gzip decompress +
+// 1 MiB ceiling using the shared `decompressIfNeeded` helper. Doing the
+// decompression inside the decoder keeps tenant-scope checks and the
+// gzip/413 guard in one place; the parser stays simple.
+app.addContentTypeParser(
+  ["application/x-protobuf", "application/vnd.google.protobuf"],
+  { parseAs: "buffer", bodyLimit: 10 * 1024 * 1024 },
+  (_req, body, done) => done(null, body),
+);
+
+// WP05: JSON ingest also honors `Content-Encoding: gzip`. Fastify's
+// built-in JSON parser does not decompress, so we register our own
+// content-type parser that reads the raw Buffer, decompresses when
+// needed, enforces the 1 MiB decompressed ceiling, and JSON.parses the
+// result. Non-ingest JSON endpoints keep the stdlib parser because
+// they are small enough that gzip is a net loss; the route scoping via
+// `ingestRouteUrls` in `registerMetrics` naturally aligns with that.
+app.addContentTypeParser(
+  "application/json",
+  { parseAs: "buffer", bodyLimit: 10 * 1024 * 1024 },
+  async (req: FastifyRequest, body: Buffer): Promise<unknown> => {
+    const { decompressIfNeeded } = await import("./middleware/decompress.js");
+    const ce = req.headers["content-encoding"];
+    const result = decompressIfNeeded(
+      body,
+      typeof ce === "string" ? ce : undefined,
+    );
+    if (!result.ok) {
+      const err = new Error(result.message) as Error & {
+        statusCode?: number;
+      };
+      err.statusCode = result.status;
+      throw err;
+    }
+    try {
+      return JSON.parse(result.body.toString("utf8")) as unknown;
+    } catch (parseErr) {
+      const err = new Error(
+        `invalid JSON: ${(parseErr as Error).message}`,
+      ) as Error & { statusCode?: number };
+      err.statusCode = 400;
+      throw err;
+    }
+  },
+);
 
 app.get("/health", async () => {
   const packageJson = (await import("../package.json", { with: { type: "json" } })) as {

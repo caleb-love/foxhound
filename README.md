@@ -1,3 +1,13 @@
+# Foxhound
+
+**Scale targets** — 1B spans/day per customer · ingest p99 &lt; 500 ms · trace query p95 &lt; 2 s · dashboard query p95 &lt; 300 ms.
+**Architecture tour** — [10-minute walk from SDK to dashboard](./docs/tour/README.md).
+**Scale readiness** — [live gap matrix](./docs/reference/scale-readiness.md) · [RFC index](./docs/rfcs/README.md).
+
+Source-available, self-hostable observability for AI agent fleets. Multi-tenant. OTel-compatible. Evaluators, Run Diff, Session Replay, cost budgets, SLA monitoring, behavior regression, CI quality gate.
+
+---
+
 <div align="center">
 
 <p>

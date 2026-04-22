@@ -64,18 +64,26 @@ describe('ExperimentsDashboard', () => {
     expect(screen.getByText(/No experiments yet/)).toBeInTheDocument();
   });
 
-  it('filters experiments by date range when timestamps are present', () => {
+  it('keeps older experiments visible under the default date window', () => {
+    render(<ExperimentsDashboard experiments={[...experiments, olderExperiment]} />);
+
+    expect(screen.getByText('refund-prompt-v8')).toBeInTheDocument();
+    expect(screen.getByText('tone-routing-test')).toBeInTheDocument();
+    expect(screen.getByText('legacy-experiment')).toBeInTheDocument();
+  });
+
+  it('filters experiments by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<ExperimentsDashboard experiments={[...experiments, olderExperiment]} />);
 
     expect(screen.getByText('refund-prompt-v8')).toBeInTheDocument();
-    expect(screen.getByText('tone-routing-test')).toBeInTheDocument();
+    expect(screen.queryByText('tone-routing-test')).not.toBeInTheDocument();
     expect(screen.queryByText('legacy-experiment')).not.toBeInTheDocument();
   });
 });

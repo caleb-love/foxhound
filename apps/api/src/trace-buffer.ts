@@ -1,6 +1,7 @@
 import { persistTraceWithRetry } from "./persistence.js";
 import type { Trace } from "@foxhound/types";
 import type { FastifyBaseLogger } from "fastify";
+import type { IngestMetrics } from "./observability/metrics.js";
 
 /**
  * Micro-batch trace buffer for high-throughput ingestion.
@@ -27,6 +28,22 @@ const MAX_BUFFER_SIZE = 200;
 let buffer: BufferedTrace[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let logger: FastifyBaseLogger | null = null;
+let metrics: IngestMetrics | null = null;
+
+/** Publish current buffer depth to the metrics gauge. */
+function publishDepth(): void {
+  if (metrics) metrics.setBufferDepth(buffer.length);
+}
+
+/**
+ * Inject the metrics recorder. Called once during server startup after the
+ * metrics plugin registers. Kept separate from `initTraceBuffer` so the
+ * buffer remains testable without the metrics dependency.
+ */
+export function setTraceBufferMetrics(m: IngestMetrics): void {
+  metrics = m;
+  publishDepth();
+}
 
 function scheduleFlush(): void {
   if (flushTimer) return;
@@ -45,6 +62,7 @@ function flush(): void {
 
   const batch = buffer;
   buffer = [];
+  publishDepth();
 
   if (flushTimer) {
     clearTimeout(flushTimer);
@@ -87,6 +105,7 @@ export function bufferTrace(trace: Trace, orgId: string): void {
       { traceId: trace.id, bufferSize: buffer.length },
       "Trace buffer full, persisting immediately",
     );
+    metrics?.recordError({ orgId, reason: "buffer_overflow" });
     persistTraceWithRetry(logger, trace, orgId).catch((err) => {
       logger?.error({ err, traceId: trace.id, orgId }, "Trace persistence failed (overflow)");
     });
@@ -94,6 +113,7 @@ export function bufferTrace(trace: Trace, orgId: string): void {
   }
 
   buffer.push({ trace, orgId });
+  publishDepth();
 
   if (buffer.length >= FLUSH_SIZE_THRESHOLD) {
     flush();

@@ -1,5 +1,11 @@
 import type { Trace, Score, ScoreSource } from "@foxhound/types";
 import { Tracer } from "./tracer.js";
+import {
+  createTransport,
+  type SpanTransport,
+  type WireFormat,
+} from "./transport/index.js";
+import { BatchSpanProcessor } from "./transport/batch-processor.js";
 
 export interface BudgetExceededInfo {
   agentId: string;
@@ -13,6 +19,68 @@ export interface FoxhoundClientOptions {
   flushIntervalMs?: number;
   maxBatchSize?: number;
   onBudgetExceeded?: (info: BudgetExceededInfo) => void;
+  /**
+   * Wire format for trace ingest. Defaults to `"protobuf"` per RFC-004.
+   * `"json"` is retained as a fallback during the transition window.
+   */
+  wireFormat?: WireFormat;
+  /**
+   * Optional org ID hint embedded in the Protobuf batch envelope. The
+   * server still authenticates via the API key; this is a routing aid for
+   * downstream queue consumers (WP08).
+   */
+  orgId?: string;
+  /** Override the fetch implementation (primarily for testing). */
+  fetchImpl?: typeof fetch;
+  /**
+   * WP05 compression algorithm. Default `"gzip"`. `"none"` disables
+   * compression (useful for debugging or when the transport sits behind
+   * a load balancer that already compresses). `"lz4"` is reserved and
+   * falls back to `"none"` without the optional `lz4-napi` peer.
+   */
+  compression?: import("./transport/compression.js").CompressionKind;
+  /**
+   * WP05 drop callback. Fires for each span whose payload exceeded
+   * `MAX_SPAN_PAYLOAD_BYTES` and was trimmed pre-send. When omitted,
+   * the SDK emits a single-line `console.warn` per drop.
+   */
+  onDrop?: (record: import("./transport/size-cap.js").DropRecord) => void;
+
+  // ── WP06 BatchSpanProcessor options ──────────────────────────────────────
+
+  /**
+   * Maximum number of traces held in the in-memory export queue before
+   * the backpressure policy kicks in. Default: 2048. Set to `0` to
+   * disable the batch processor and revert to the pre-WP06 inline-export
+   * behaviour (useful for tests that need synchronous delivery).
+   */
+  maxQueueSize?: number;
+
+  /**
+   * Maximum traces exported per transport round-trip. Matches Pendo's
+   * OTel default of 512. Default: 512.
+   */
+  maxExportBatchSize?: number;
+
+  /**
+   * How often the batch processor's pump fires, in milliseconds.
+   * Matches Pendo's OTel default of 2000 ms. Default: 2000.
+   */
+  exportScheduleDelayMs?: number;
+
+  /**
+   * What to do when the export queue is full. Default: `"drop-oldest"`
+   * (keeps the most recent telemetry). Use `"block"` in development
+   * for lossless export; use `"drop-newest"` when early traces are
+   * the forensic ground truth. See RFC-006.
+   */
+  backpressurePolicy?: import("./transport/batch-processor.js").BackpressurePolicy;
+
+  /**
+   * Callback fired when a trace is discarded due to backpressure.
+   * Defaults to a single-line `console.warn`.
+   */
+  onQueueDrop?: (trace: import("@foxhound/types").Trace, reason: "queue-full") => void;
 }
 
 export interface CreateScoreParams {
@@ -565,8 +633,19 @@ export class FoxhoundClient {
   private readonly options: Required<
     Pick<FoxhoundClientOptions, "apiKey" | "endpoint" | "flushIntervalMs" | "maxBatchSize">
   > &
-    Pick<FoxhoundClientOptions, "onBudgetExceeded">;
+    Pick<
+      FoxhoundClientOptions,
+      | "onBudgetExceeded" | "wireFormat" | "orgId" | "fetchImpl"
+      | "compression" | "onDrop"
+      | "maxQueueSize" | "maxExportBatchSize" | "exportScheduleDelayMs"
+      | "backpressurePolicy" | "onQueueDrop"
+    >;
   private readonly tracers: Map<string, Tracer> = new Map();
+  /**
+   * WP06: lazy-initialised BatchSpanProcessor. `undefined` when
+   * `maxQueueSize === 0` (opt-out, synchronous export preserved).
+   */
+  private _bsp: BatchSpanProcessor | undefined;
 
   /** Namespaced API for scores. */
   readonly scores: ScoresNamespace;
@@ -602,6 +681,47 @@ export class FoxhoundClient {
     this.datasets = new DatasetsNamespace(this.options.endpoint, this.options.apiKey);
     this.experiments = new ExperimentsNamespace(this.options.endpoint, this.options.apiKey);
     this.prompts = new PromptsNamespace(this.options.endpoint, this.options.apiKey);
+    // WP06: initialise the BSP unless the caller explicitly opts out
+    // via `maxQueueSize: 0`. The BSP uses the same lazy transport getter.
+    if ((this.options.maxQueueSize ?? 2048) > 0) {
+      // Adapter: the BSP calls `transport.send(trace)` expecting a SpanTransport
+      // interface. We wrap `directSend` so it satisfies the shape without
+      // exposing the budget-header check result to the BSP (it doesn't need it).
+      const bspTransport: import("./transport/index.js").SpanTransport = {
+        wireFormat: "protobuf",
+        send: async (t) => {
+          await this.directSend(t);
+          // Return a stub SendResult; the BSP only cares about resolution/rejection.
+          return { status: 202, wireFormat: "protobuf" as const, payloadBytes: 0, headers: new Headers() };
+        },
+        close: async () => {},
+      };
+      this._bsp = new BatchSpanProcessor({
+        transport: bspTransport,
+        ...(this.options.maxQueueSize !== undefined ? { maxQueueSize: this.options.maxQueueSize } : {}),
+        ...(this.options.maxExportBatchSize !== undefined ? { maxExportBatchSize: this.options.maxExportBatchSize } : {}),
+        ...(this.options.exportScheduleDelayMs !== undefined ? { scheduleDelayMs: this.options.exportScheduleDelayMs } : {}),
+        ...(this.options.backpressurePolicy !== undefined ? { backpressurePolicy: this.options.backpressurePolicy } : {}),
+        ...(this.options.onQueueDrop !== undefined ? { onDrop: this.options.onQueueDrop } : {}),
+      });
+    }
+  }
+
+  /**
+   * WP06: flush all queued traces and shut down the batch processor.
+   *
+   * Call this before process exit to avoid losing in-flight traces:
+   *
+   *   process.on("SIGTERM", () => fox.shutdown().then(() => process.exit(0)));
+   *
+   * Returns `true` if every pending trace was exported within `timeoutMs`
+   * (default 5 s); `false` if the timeout was reached with items still
+   * pending.
+   */
+  async shutdown(timeoutMs = 5000): Promise<boolean> {
+    if (this._bsp) return this._bsp.shutdown(timeoutMs);
+    await this.transport.close().catch(() => {});
+    return true;
   }
 
   startTrace(params: {
@@ -643,23 +763,44 @@ export class FoxhoundClient {
     return headers;
   }
 
-  private async sendTrace(trace: Trace): Promise<void> {
-    const response = await fetch(`${this.options.endpoint}/v1/traces`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.options.apiKey}`,
-      },
-      body: JSON.stringify(trace),
-    });
+  private _transport: SpanTransport | undefined;
 
-    if (!response.ok) {
-      throw new Error(
-        `Failed to send trace ${trace.id}: ${response.status} ${response.statusText}`,
-      );
+  private get transport(): SpanTransport {
+    if (!this._transport) {
+      this._transport = createTransport({
+        endpoint: this.options.endpoint,
+        apiKey: this.options.apiKey,
+        wireFormat: this.options.wireFormat ?? "protobuf",
+        ...(this.options.orgId !== undefined ? { orgId: this.options.orgId } : {}),
+        ...(this.options.fetchImpl !== undefined ? { fetchImpl: this.options.fetchImpl } : {}),
+        ...(this.options.compression !== undefined ? { compression: this.options.compression } : {}),
+        ...(this.options.onDrop !== undefined ? { onDrop: this.options.onDrop } : {}),
+      });
     }
+    return this._transport;
+  }
 
-    this.checkBudgetHeaders(response);
+  /**
+   * WP06: route via the BSP when available; fall through to direct
+   * export when `maxQueueSize: 0` was set (test / sync mode).
+   */
+  private async sendTrace(trace: Trace): Promise<void> {
+    if (this._bsp) {
+      // Non-blocking enqueue. The BSP pump calls `directSend()` later.
+      this._bsp.enqueue(trace);
+      return;
+    }
+    await this.directSend(trace);
+  }
+
+  /**
+   * The synchronous transport call that the BSP's background pump uses.
+   * Budget headers are checked here so the callback fires regardless of
+   * whether the BSP is in use.
+   */
+  private async directSend(trace: Trace): Promise<void> {
+    const result = await this.transport.send(trace);
+    this.checkBudgetHeaders({ headers: result.headers } as unknown as Response);
   }
 
   private checkBudgetHeaders(response: Response): void {

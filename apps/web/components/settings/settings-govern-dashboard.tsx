@@ -17,6 +17,7 @@ import {
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-types';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface SettingsMetric {
   label: string;
@@ -82,13 +83,17 @@ export function SettingsGovernDashboard({
   nextActions,
 }: SettingsGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filteredControls = filterByDashboardScope(controls, filters, {
     searchableText: (item) => `${item.name} ${item.category} ${item.summary} ${item.owner}`,
     severity: (item) => item.status,
     status: (item) => item.status,
     agentIds: (item) => [item.owner],
-    timestampMs: (item) => (item.lastChangedAt ? new Date(item.lastChangedAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.lastChangedAt ? new Date(item.lastChangedAt).getTime() : undefined) : undefined,
   });
 
   const filteredNextActions = filterByDashboardScope(nextActions, filters, {

@@ -8,6 +8,7 @@ import { PageContainer, PageHeader } from '@/components/system/page';
 import { WorkbenchPanel } from '@/components/system/workbench';
 import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, FlaskConical, Eye, Database } from 'lucide-react';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface DatasetRecord {
   id: string;
@@ -29,10 +30,14 @@ const datasetFilters: DashboardFilterDefinition[] = [
 
 export function DatasetsDashboard({ datasets, baseHref = '' }: DatasetsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(datasets, filters, {
     searchableText: (item) => `${item.name} ${item.description ?? ''}`,
-    timestampMs: (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined) : undefined,
   });
 
   const totalCases = datasets.reduce((sum, d) => sum + d.itemCount, 0);

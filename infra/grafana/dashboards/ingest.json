@@ -1,0 +1,172 @@
+{
+  "annotations": { "list": [] },
+  "description": "Foxhound ingest-path SLIs (WP02). Use with the Prometheus datasource provisioned in the local observability stack.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Ingest RPS (5m)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(foxhound_ingest_requests_total[5m]))" }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 1 } }
+    },
+    {
+      "type": "stat",
+      "title": "Error Rate (5m)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(foxhound_ingest_errors_total[5m])) / clamp_min(sum(rate(foxhound_ingest_requests_total[5m])), 1)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.005 },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Ingest Buffer Depth",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "foxhound_ingest_buffer_depth" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 } }
+    },
+    {
+      "type": "stat",
+      "title": "Consumer Lag (WP08)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "max(foxhound_worker_queue_consumer_lag_seconds)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 2 } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ingest Latency (p50, p95, p99)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "p50",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum(rate(foxhound_ingest_request_duration_seconds_bucket[5m])) by (le))"
+        },
+        {
+          "refId": "p95",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum(rate(foxhound_ingest_request_duration_seconds_bucket[5m])) by (le))"
+        },
+        {
+          "refId": "p99",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum(rate(foxhound_ingest_request_duration_seconds_bucket[5m])) by (le))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Payload Size (p50, p95, p99)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "p50",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum(rate(foxhound_ingest_payload_bytes_bucket[5m])) by (le))"
+        },
+        {
+          "refId": "p95",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum(rate(foxhound_ingest_payload_bytes_bucket[5m])) by (le))"
+        },
+        {
+          "refId": "p99",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum(rate(foxhound_ingest_payload_bytes_bucket[5m])) by (le))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Per-Org RPS (top 10)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{org_id}}",
+          "expr": "topk(10, sum by (org_id) (rate(foxhound_ingest_per_org_requests_total[5m])))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors by Reason",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{reason}}",
+          "expr": "sum by (reason) (rate(foxhound_ingest_errors_total[5m]))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Oversize Drops (WP05)",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{reason}}",
+          "expr": "sum by (reason) (rate(foxhound_ingest_oversize_drops_total[5m]))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["foxhound", "ingest", "sli"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Foxhound — Ingest SLIs",
+  "uid": "foxhound-ingest-slis",
+  "version": 1,
+  "weekStart": ""
+}

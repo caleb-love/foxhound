@@ -15,7 +15,10 @@
   },
   "dependencies": {
     "@foxhound/db": "workspace:*",
+    "@foxhound/db-analytics": "workspace:*",
     "@foxhound/notifications": "workspace:*",
+    "@foxhound/proto": "workspace:*",
+    "@foxhound/queue": "workspace:*",
     "@foxhound/types": "workspace:*",
     "bullmq": "^5.0.0",
     "ioredis": "^5.4.0"

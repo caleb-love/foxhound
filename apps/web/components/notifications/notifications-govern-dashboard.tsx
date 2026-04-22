@@ -7,6 +7,7 @@ import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-ty
 import { PageContainer, PageHeader } from '@/components/system/page';
 import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Bell, Settings } from 'lucide-react';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface NotificationRecord {
   channelId: string;
@@ -28,10 +29,14 @@ const notificationFilters: DashboardFilterDefinition[] = [
 
 export function NotificationsGovernDashboard({ channels, baseHref = '' }: NotificationsGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(channels, filters, {
     searchableText: (item) => `${item.channelName} ${item.kind} ${item.summary}`,
-    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined) : undefined,
   });
 
   const healthyCount = channels.filter((c) => c.status === 'healthy').length;

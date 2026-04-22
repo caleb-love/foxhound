@@ -8,6 +8,7 @@ import { PageContainer, PageHeader } from '@/components/system/page';
 import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Eye, Settings } from 'lucide-react';
 import { ComparisonScorecard } from '@/components/charts/comparison-scorecard';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface SlaRecord {
   agentId: string;
@@ -31,10 +32,14 @@ const slaFilters: DashboardFilterDefinition[] = [
 
 export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(slas, filters, {
     searchableText: (item) => `${item.agentId} ${item.summary}`,
-    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined) : undefined,
   });
 
   const atRisk = slas.filter((s) => s.status === 'critical' || s.status === 'warning').length;

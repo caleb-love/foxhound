@@ -58,6 +58,15 @@ export async function runMigrations(): Promise<void> {
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Cleanup — truncate all tables between tests
+//
+// IMPORTANT: when you add a new `pgTable(...)` in `schema.ts`, append
+// the table name to `ALL_TABLES` below in the same commit. Integration
+// tests share one Postgres; a missing entry leaks state across
+// `beforeEach` and manifests as intermittent unique-constraint
+// failures. See `docs/reference/typescript-patterns.md#pattern-11`.
+//
+// `truncateAll()` takes NO arguments. It does a single
+// `TRUNCATE ... CASCADE` across every entry in this list.
 // ──────────────────────────────────────────────────────────────────────────────
 
 const ALL_TABLES = [
@@ -79,6 +88,7 @@ const ALL_TABLES = [
   "usage_records",
   "behavior_baselines",
   "model_pricing_overrides",
+  "pricing_rows", // WP16 versioned pricing table
   "agent_configs",
   "spans",
   "audit_events",
