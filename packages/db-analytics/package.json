@@ -1,0 +1,36 @@
+{
+  "name": "@foxhound/db-analytics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ClickHouse-backed analytics store for Foxhound telemetry (WP09). Sister of @foxhound/db; control plane stays Postgres, telemetry moves here.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/testing.js",
+      "types": "./dist/testing.d.ts"
+    }
+  },
+  "files": ["dist", "src/migrations"],
+  "scripts": {
+    "build": "tsc && mkdir -p dist/migrations && cp src/migrations/*.sql dist/migrations/",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.7.0",
+    "@foxhound/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
