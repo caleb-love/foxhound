@@ -18,6 +18,14 @@ export interface Span {
   status: SpanStatus;
   attributes: Record<string, string | number | boolean | null>;
   events: SpanEvent[];
+  /**
+   * Per-span agent scope (WP15). When set, this overrides the parent
+   * Trace's `agentId` for this span only, letting a single trace carry
+   * spans attributed to different subagents (e.g. a planner that
+   * delegates to research and code subagents). When absent, the
+   * span inherits `Trace.agentId` at wire-encode time.
+   */
+  agentId?: string;
 }
 
 export interface SpanEvent {

@@ -15,18 +15,28 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+// WP06 note: `FoxhoundClient` now routes exports through the
+// `BatchSpanProcessor` by default (non-blocking background queue). Tests
+// that need synchronous delivery (i.e. that assert on `mockFetch` after
+// `await tracer.flush()` without an explicit `await fox.shutdown()`) pass
+// `maxQueueSize: 0` to disable the BSP and restore pre-WP06 inline export.
+// New tests that want to exercise the BSP itself should NOT set
+// `maxQueueSize: 0`; they live in `batch-processor.test.ts` instead.
+const SYNC_OPTS = { maxQueueSize: 0 } as const;
+
+// ---------------------------------------------------------------------------
 // FoxhoundClient — constructor
 // ---------------------------------------------------------------------------
 
 describe("FoxhoundClient constructor", () => {
   it("requires apiKey and endpoint", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     expect(client).toBeInstanceOf(FoxhoundClient);
   });
 
   it("applies default flushIntervalMs and maxBatchSize", () => {
     // Indirect: we verify defaults via startTrace -> flush behaviour
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     expect(client).toBeDefined();
   });
 });
@@ -37,22 +47,30 @@ describe("FoxhoundClient constructor", () => {
 
 describe("FoxhoundClient.startTrace()", () => {
   it("returns a Tracer instance", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const tracer = client.startTrace({ agentId: "agent_1" });
     expect(tracer).toBeInstanceOf(Tracer);
   });
 
   it("returns a tracer with a unique traceId each call", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const t1 = client.startTrace({ agentId: "agent_1" });
     const t2 = client.startTrace({ agentId: "agent_1" });
     expect(t1.traceId).not.toBe(t2.traceId);
   });
 
+  // These three tests exercise the legacy JSON wire shape explicitly,
+  // since the default wire format switched to Protobuf in WP04 (RFC-004).
+  // Protobuf-wire coverage lives in src/transport/transport.test.ts.
   it("passes agentId to the tracer", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_42" });
     await tracer.flush();
 
@@ -63,7 +81,12 @@ describe("FoxhoundClient.startTrace()", () => {
   it("passes sessionId to the tracer when provided", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1", sessionId: "sess_99" });
     await tracer.flush();
 
@@ -74,7 +97,12 @@ describe("FoxhoundClient.startTrace()", () => {
   it("passes metadata to the tracer when provided", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1", metadata: { env: "test", version: 2 } });
     await tracer.flush();
 
@@ -91,7 +119,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("POSTs to the correct URL", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
@@ -104,7 +132,12 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("sends Bearer auth header with the api key", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-abc123", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-abc123",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
@@ -115,7 +148,12 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("sends Content-Type application/json", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
@@ -126,7 +164,13 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("sends the trace payload as JSON body", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      wireFormat: "json",
+      compression: "none",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1", sessionId: "sess_1" });
     const span = tracer.startSpan({ name: "step", kind: "agent_step" });
     span.end("ok");
@@ -142,7 +186,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("throws when the server returns a non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 429, statusText: "Too Many Requests" });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await expect(tracer.flush()).rejects.toThrow("429");
   });
@@ -150,7 +194,7 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("throws when fetch rejects (network failure)", async () => {
     mockFetch.mockRejectedValue(new Error("Network error"));
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await expect(tracer.flush()).rejects.toThrow("Network error");
   });
@@ -167,7 +211,7 @@ describe("FoxhoundClient.datasets.addItems", () => {
       json: () => Promise.resolve({ id: "item-created" }),
     });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com" });
+    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
     const result = await client.datasets.addItems("ds_1", [
       { input: { prompt: "one" }, expectedOutput: { response: "1" } },
       { input: { prompt: "two" }, expectedOutput: { response: "2" }, sourceTraceId: "trace_2" },
@@ -217,6 +261,7 @@ describe("FoxhoundClient.onBudgetExceeded callback", () => {
       apiKey: "sk-test",
       endpoint: "https://api.example.com",
       onBudgetExceeded: callback,
+      ...SYNC_OPTS,
     });
 
     const tracer = client.startTrace({ agentId: "agent_42" });
@@ -239,6 +284,7 @@ describe("FoxhoundClient.onBudgetExceeded callback", () => {
       apiKey: "sk-test",
       endpoint: "https://api.example.com",
       onBudgetExceeded: callback,
+      ...SYNC_OPTS,
     });
 
     const tracer = client.startTrace({ agentId: "agent_1" });
@@ -260,6 +306,7 @@ describe("FoxhoundClient.onBudgetExceeded callback", () => {
       apiKey: "sk-test",
       endpoint: "https://api.example.com",
       onBudgetExceeded: callback,
+      ...SYNC_OPTS,
     });
 
     const tracer = client.startTrace({ agentId: "agent_1" });
@@ -281,6 +328,7 @@ describe("FoxhoundClient.onBudgetExceeded callback", () => {
     const client = new FoxhoundClient({
       apiKey: "sk-test",
       endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
     });
 
     const tracer = client.startTrace({ agentId: "agent_1" });
@@ -303,6 +351,7 @@ describe("FoxhoundClient.onBudgetExceeded callback", () => {
       apiKey: "sk-test",
       endpoint: "https://api.example.com",
       onBudgetExceeded: callback,
+      ...SYNC_OPTS,
     });
 
     const tracer = client.startTrace({ agentId: "agent_1" });
