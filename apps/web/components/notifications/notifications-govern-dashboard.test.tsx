@@ -41,18 +41,26 @@ describe('NotificationsGovernDashboard', () => {
     expect(screen.getByText(/No notification channels/)).toBeInTheDocument();
   });
 
-  it('filters channels by date range when timestamps are present', () => {
+  it('keeps older channels visible under the default date window', () => {
+    render(<NotificationsGovernDashboard channels={[...channels, olderChannel]} />);
+
+    expect(screen.getByText('#ops-alerts')).toBeInTheDocument();
+    expect(screen.getByText('#eng-alerts')).toBeInTheDocument();
+    expect(screen.getByText('#nightly-alerts')).toBeInTheDocument();
+  });
+
+  it('filters channels by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<NotificationsGovernDashboard channels={[...channels, olderChannel]} />);
 
     expect(screen.getByText('#ops-alerts')).toBeInTheDocument();
-    expect(screen.getByText('#eng-alerts')).toBeInTheDocument();
+    expect(screen.queryByText('#eng-alerts')).not.toBeInTheDocument();
     expect(screen.queryByText('#nightly-alerts')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { filterByDashboardScope } from '@/lib/dashboard-segmentation';
 import { useSegmentStore } from '@/lib/stores/segment-store';
@@ -7,6 +8,7 @@ import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-ty
 import { PageContainer, PageHeader } from '@/components/system/page';
 import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Eye, GitCompare, AlertTriangle } from 'lucide-react';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface RegressionRecord {
   id: string;
@@ -30,11 +32,23 @@ const regressionFilters: DashboardFilterDefinition[] = [
 
 export function RegressionsDashboard({ regressions, baseHref = '' }: RegressionsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
-  const filtered = filterByDashboardScope(regressions, filters, {
-    searchableText: (item) => `${item.title} ${item.summary} ${item.promptName ?? ''}`,
-    timestampMs: (item) => (item.detectedAt ? new Date(item.detectedAt).getTime() : undefined),
-  });
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
+
+  const filtered = hasHydrated
+    ? filterByDashboardScope(regressions, filters, {
+        searchableText: (item) => `${item.title} ${item.summary} ${item.promptName ?? ''}`,
+        timestampMs: hasExplicitDateFilter ? (item) => (item.detectedAt ? new Date(item.detectedAt).getTime() : undefined) : undefined,
+      })
+    : regressions;
 
   const criticalCount = regressions.filter((r) => r.severity === 'critical').length;
   const warningCount = regressions.filter((r) => r.severity === 'warning').length;

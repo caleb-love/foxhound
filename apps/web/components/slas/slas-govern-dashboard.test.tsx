@@ -41,18 +41,26 @@ describe('SlasGovernDashboard', () => {
     expect(screen.getByText(/No SLAs configured/)).toBeInTheDocument();
   });
 
-  it('filters SLA rows by date range when timestamps are present', () => {
+  it('keeps older SLA rows visible under the default date window', () => {
+    render(<SlasGovernDashboard slas={[...slas, olderSla]} />);
+
+    expect(screen.getByText('support-agent')).toBeInTheDocument();
+    expect(screen.getByText('billing-agent')).toBeInTheDocument();
+    expect(screen.getByText('legacy-agent')).toBeInTheDocument();
+  });
+
+  it('filters SLA rows by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<SlasGovernDashboard slas={[...slas, olderSla]} />);
 
     expect(screen.getByText('support-agent')).toBeInTheDocument();
-    expect(screen.getByText('billing-agent')).toBeInTheDocument();
+    expect(screen.queryByText('billing-agent')).not.toBeInTheDocument();
     expect(screen.queryByText('legacy-agent')).not.toBeInTheDocument();
   });
 });

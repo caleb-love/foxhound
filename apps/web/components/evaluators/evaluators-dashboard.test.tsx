@@ -42,18 +42,26 @@ describe('EvaluatorsDashboard', () => {
     expect(screen.getByText(/No evaluators configured/)).toBeInTheDocument();
   });
 
-  it('filters evaluators by date range when timestamps are present', () => {
+  it('keeps older evaluators visible under the default date window', () => {
+    render(<EvaluatorsDashboard evaluators={[...evaluators, olderEvaluator]} />);
+
+    expect(screen.getByText('refund-quality')).toBeInTheDocument();
+    expect(screen.getByText('tone-check')).toBeInTheDocument();
+    expect(screen.getByText('legacy-check')).toBeInTheDocument();
+  });
+
+  it('filters evaluators by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<EvaluatorsDashboard evaluators={[...evaluators, olderEvaluator]} />);
 
     expect(screen.getByText('refund-quality')).toBeInTheDocument();
-    expect(screen.getByText('tone-check')).toBeInTheDocument();
+    expect(screen.queryByText('tone-check')).not.toBeInTheDocument();
     expect(screen.queryByText('legacy-check')).not.toBeInTheDocument();
   });
 });

@@ -129,8 +129,10 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
 
       {sortedPrompts.length === 0 ? (
         <PageWarningState
-          title="No prompts yet"
-          message="Create a prompt in the API first, then return here to review versions and compare changes."
+          title={prompts.length === 0 ? 'No prompts yet' : 'No prompts match the current filter'}
+          message={prompts.length === 0
+            ? 'Create a prompt in the API first, then return here to review versions and compare changes.'
+            : 'Adjust the active search or segment filters to see the seeded prompt catalog again.'}
         />
       ) : (
         <DataGrid>

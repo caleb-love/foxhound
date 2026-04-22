@@ -8,6 +8,7 @@ import { PageContainer, PageHeader } from '@/components/system/page';
 import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Eye, AlertTriangle, Settings } from 'lucide-react';
 import { StackedBarChart } from '@/components/charts/stacked-bar-chart';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface BudgetRecord {
   agentId: string;
@@ -37,10 +38,14 @@ function spendPercent(spend: number, budget: number): number {
 
 export function BudgetsGovernDashboard({ budgets, baseHref = '' }: BudgetsGovernDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(budgets, filters, {
     searchableText: (item) => `${item.agentId} ${item.summary}`,
-    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined) : undefined,
   });
 
   const criticalCount = budgets.filter((b) => b.status === 'critical').length;

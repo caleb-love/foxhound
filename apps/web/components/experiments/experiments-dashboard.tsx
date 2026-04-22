@@ -9,6 +9,7 @@ import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, Dat
 import { Plus, Eye, Beaker, GitCompare } from 'lucide-react';
 import { CompareExperimentsDialog } from './experiment-compare-actions';
 import { ComparisonScorecard } from '@/components/charts/comparison-scorecard';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface ExperimentRecord {
   id: string;
@@ -38,10 +39,14 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 
 export function ExperimentsDashboard({ experiments, baseHref = '' }: ExperimentsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(experiments, filters, {
     searchableText: (item) => `${item.name} ${item.summary} ${item.winningCandidate ?? ''}`,
-    timestampMs: (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.createdAt ? new Date(item.createdAt).getTime() : undefined) : undefined,
   });
 
   const completedCount = experiments.filter((e) => e.status === 'completed').length;

@@ -43,18 +43,26 @@ describe('RegressionsDashboard', () => {
     expect(screen.getAllByText(/No regressions detected/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('filters regressions by date range when timestamps are present', () => {
+  it('keeps older regressions visible under the default date window', () => {
+    render(<RegressionsDashboard regressions={[...regressions, olderRegression]} />);
+
+    expect(screen.getByText('Refund policy check regression')).toBeInTheDocument();
+    expect(screen.getByText('Onboarding latency spike')).toBeInTheDocument();
+    expect(screen.getByText('Legacy regression')).toBeInTheDocument();
+  });
+
+  it('filters regressions by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<RegressionsDashboard regressions={[...regressions, olderRegression]} />);
 
     expect(screen.getByText('Refund policy check regression')).toBeInTheDocument();
-    expect(screen.getByText('Onboarding latency spike')).toBeInTheDocument();
+    expect(screen.queryByText('Onboarding latency spike')).not.toBeInTheDocument();
     expect(screen.queryByText('Legacy regression')).not.toBeInTheDocument();
   });
 });

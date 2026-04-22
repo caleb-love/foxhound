@@ -3,6 +3,7 @@ import { RegressionsDashboard, type RegressionRecord } from '@/components/regres
 
 export default function SandboxRegressionsPage() {
   const demo = buildLocalReviewDemo();
+  const traceStartById = new Map(demo.allTraces.map((trace) => [trace.id, trace.startTimeMs]));
 
   const regressions: RegressionRecord[] = demo.regressions.map((r) => ({
     id: r.id,
@@ -12,7 +13,9 @@ export default function SandboxRegressionsPage() {
     diffPairId: r.diffPairId,
     promptName: r.promptName,
     summary: r.summary,
-    detectedAt: new Date().toISOString(),
+    detectedAt: traceStartById.get(r.traceId)
+      ? new Date(Number(traceStartById.get(r.traceId))).toISOString()
+      : undefined,
   }));
 
   return <RegressionsDashboard regressions={regressions} baseHref="/sandbox" />;

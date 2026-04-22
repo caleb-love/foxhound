@@ -63,18 +63,26 @@ describe('DatasetsDashboard', () => {
     expect(screen.getByText(/No datasets yet/)).toBeInTheDocument();
   });
 
-  it('filters datasets by date range when timestamps are present', () => {
+  it('keeps older datasets visible under the default date window', () => {
+    render(<DatasetsDashboard datasets={[...datasets, olderDataset]} />);
+
+    expect(screen.getByText('refund-edge-cases')).toBeInTheDocument();
+    expect(screen.getByText('onboarding-regressions')).toBeInTheDocument();
+    expect(screen.getByText('legacy-dataset')).toBeInTheDocument();
+  });
+
+  it('filters datasets by date range when the user explicitly changes the date window', () => {
     useSegmentStore.getState().updateCurrentFilters({
       dateRange: {
         start: new Date(now - 24 * 60 * 60 * 1000),
-        end: new Date(now),
+        end: new Date(now - 12 * 60 * 60 * 1000),
       },
     });
 
     render(<DatasetsDashboard datasets={[...datasets, olderDataset]} />);
 
     expect(screen.getByText('refund-edge-cases')).toBeInTheDocument();
-    expect(screen.getByText('onboarding-regressions')).toBeInTheDocument();
+    expect(screen.queryByText('onboarding-regressions')).not.toBeInTheDocument();
     expect(screen.queryByText('legacy-dataset')).not.toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import type { DashboardFilterDefinition } from '@/lib/stores/dashboard-filter-ty
 import { PageContainer, PageHeader } from '@/components/system/page';
 import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, DataGridHeader, DataGridRow, VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Plus, Play, Eye, CheckSquare } from 'lucide-react';
+import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
 
 export interface EvaluatorRecord {
   id: string;
@@ -30,10 +31,14 @@ const evaluatorFilters: DashboardFilterDefinition[] = [
 
 export function EvaluatorsDashboard({ evaluators, baseHref = '' }: EvaluatorsDashboardProps) {
   const filters = useSegmentStore((state) => state.currentFilters);
+  const defaultDateRange = createDateRangeFromHours(24);
+  const hasExplicitDateFilter =
+    Math.abs(filters.dateRange.start.getTime() - defaultDateRange.start.getTime()) > 5 * 60 * 1000 ||
+    Math.abs(filters.dateRange.end.getTime() - defaultDateRange.end.getTime()) > 5 * 60 * 1000;
 
   const filtered = filterByDashboardScope(evaluators, filters, {
     searchableText: (item) => `${item.name} ${item.model} ${item.summary}`,
-    timestampMs: (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined),
+    timestampMs: hasExplicitDateFilter ? (item) => (item.updatedAt ? new Date(item.updatedAt).getTime() : undefined) : undefined,
   });
 
   const healthyCount = evaluators.filter((e) => e.health === 'healthy').length;
