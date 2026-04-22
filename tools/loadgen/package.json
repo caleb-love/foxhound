@@ -1,0 +1,31 @@
+{
+  "name": "@foxhound/loadgen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Load-test harness for the Foxhound ingest path.",
+  "type": "module",
+  "scripts": {
+    "scale": "tsx src/cli.ts",
+    "baseline": "tsx src/cli.ts --scenario=baseline",
+    "burst": "tsx src/cli.ts --scenario=burst",
+    "sustained": "tsx src/cli.ts --scenario=sustained",
+    "smoke": "tsx src/cli.ts --scenario=smoke",
+    "otlp": "tsx src/cli.ts --scenario=otlp",
+    "build-proto-fixture": "tsx scripts/build-proto-fixture.ts",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@foxhound/proto": "workspace:*",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

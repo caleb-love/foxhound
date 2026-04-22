@@ -1,0 +1,57 @@
+# Local observability stack for Foxhound.
+#
+# Brings up Prometheus (scraping the API's /metrics endpoint) + Grafana
+# (pre-provisioned with the Prometheus datasource and the ingest dashboard).
+#
+# Usage (from repo root):
+#   docker compose -f infra/compose/observability.yml up
+#   # Then in another terminal:
+#   pnpm --filter api dev
+#
+# Grafana:    http://localhost:3100  (admin / admin; anonymous read also on)
+# Prometheus: http://localhost:9090
+#
+# `host.docker.internal` resolves to the host machine on Docker Desktop
+# (macOS, Windows, and recent Linux). On Linux without Docker Desktop,
+# add `extra_hosts: ["host.docker.internal:host-gateway"]` or point
+# PROM_API_TARGET at your LAN IP.
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: foxhound-prom
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../prom/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - foxhound-prom-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: foxhound-grafana
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_USERS_DEFAULT_THEME=dark
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - foxhound-grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  foxhound-prom-data:
+  foxhound-grafana-data:

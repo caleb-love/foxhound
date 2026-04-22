@@ -1,0 +1,81 @@
+# Local durable-queue dev stack (WP08).
+#
+# Three services, pick whichever adapter you want to test:
+#   - nats        → nats-server with JetStream enabled (smallest footprint)
+#   - redpanda    → Kafka-wire-compatible broker (production adapter)
+#   - redis       → Redis Streams (share with existing BullMQ infra)
+#
+# Bring up just one:
+#   docker compose -f infra/compose/queue.yml up nats
+#   docker compose -f infra/compose/queue.yml up redpanda
+#   docker compose -f infra/compose/queue.yml up redis
+#
+# Then set the corresponding env on the API + worker:
+#   FOXHOUND_USE_QUEUE=true
+#   FOXHOUND_QUEUE_ADAPTER=nats | redpanda | redis-streams
+#   NATS_URL=nats://localhost:4222
+#   KAFKA_BROKERS=localhost:9092
+#   REDIS_QUEUE_URL=redis://localhost:6379
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: foxhound-nats
+    restart: unless-stopped
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "4222:4222"  # client port
+      - "8222:8222"  # HTTP monitoring
+    volumes:
+      - foxhound-nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/varz"]
+      interval: 5s
+      retries: 10
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.1
+    container_name: foxhound-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://localhost:9092
+      - --pandaproxy-addr=0.0.0.0:8082
+      - --advertise-pandaproxy-addr=localhost:8082
+    ports:
+      - "9092:9092"   # Kafka API
+      - "8081:8081"   # Schema Registry
+      - "8082:8082"   # Pandaproxy (HTTP)
+      - "9644:9644"   # Admin API
+    volumes:
+      - foxhound-redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: foxhound-redis-queue
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - foxhound-redis-queue-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  foxhound-nats-data:
+  foxhound-redpanda-data:
+  foxhound-redis-queue-data:

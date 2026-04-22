@@ -1,0 +1,25 @@
+# Prometheus scrape configuration for the local Foxhound observability stack.
+#
+# Targets:
+#   host.docker.internal:3000 — apps/api running on the host (default)
+#
+# To scrape a remote API, add a new job_name block or use the
+# PROM_API_TARGET environment variable in docker-compose.
+global:
+  scrape_interval: 15s
+  scrape_timeout: 5s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local
+    service: foxhound
+
+scrape_configs:
+  - job_name: foxhound-api
+    metrics_path: /metrics
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+          - host.docker.internal:3000
+        labels:
+          app: foxhound-api
+          instance: local

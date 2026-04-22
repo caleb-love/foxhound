@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: foxhound-ingest
+    orgId: 1
+    folder: Foxhound
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

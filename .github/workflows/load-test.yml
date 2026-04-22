@@ -1,0 +1,131 @@
+name: load-test
+
+# Nightly load-test run against the Foxhound ingest path.
+# Produces a LoadReport JSON artifact (tools/loadgen/last-run.json) and fails
+# when the program's regression thresholds are crossed (see RFC-001).
+#
+# Scoped intentionally: this workflow does NOT replace the main CI job. It
+# runs the smoke + baseline scenarios only; burst and sustained scenarios
+# require a higher-spec runner and are triggered manually via workflow_dispatch.
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily at 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Scenario to run"
+        required: true
+        default: "baseline"
+        type: choice
+        options:
+          - smoke
+          - baseline
+          - burst
+          - sustained
+      duration:
+        description: "Override duration (seconds). Leave blank for scenario default."
+        required: false
+        type: string
+      rps:
+        description: "Override target RPS. Leave blank for scenario default."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load-test:
+    name: "load · ${{ github.event.inputs.scenario || 'baseline' }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PNPM_VERSION: "10.33.0"
+      NODE_VERSION: "20"
+      LOAD_TEST_URL: "http://localhost:3000"
+      LOAD_TEST_API_KEY: ${{ secrets.LOAD_TEST_API_KEY }}
+      LOAD_TEST_SPANS_PER_TRACE: "4"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (loadgen)
+        run: pnpm --filter @foxhound/loadgen test
+
+      - name: Typecheck (loadgen)
+        run: pnpm --filter @foxhound/loadgen typecheck
+
+      # NOTE: this step boots the API against ephemeral Postgres + Redis.
+      # It assumes the repo's docker-compose infra (landed in a later WP) is
+      # available. Until that lands, this workflow is smoke-only and the
+      # scale scenarios are run by operators on a beefy host; see RFC-001.
+      - name: Boot local API
+        if: ${{ hashFiles('infra/docker-compose.yml') != '' }}
+        run: |
+          docker compose -f infra/docker-compose.yml up -d postgres redis
+          pnpm --filter api build
+          pnpm --filter api start &
+          echo $! > api.pid
+          # Wait for readiness
+          for i in {1..60}; do
+            curl -fsS http://localhost:3000/health && break || sleep 2
+          done
+
+      - name: Run scenario
+        id: run
+        if: ${{ hashFiles('infra/docker-compose.yml') != '' }}
+        run: |
+          SCENARIO="${{ github.event.inputs.scenario || 'baseline' }}"
+          EXTRA=""
+          if [ -n "${{ github.event.inputs.duration }}" ]; then
+            EXTRA="$EXTRA --duration=${{ github.event.inputs.duration }}"
+          fi
+          if [ -n "${{ github.event.inputs.rps }}" ]; then
+            EXTRA="$EXTRA --rps=${{ github.event.inputs.rps }}"
+          fi
+          pnpm load:scale -- --scenario="$SCENARIO" $EXTRA --notes="ci-${{ github.sha }}"
+
+      - name: Upload LoadReport
+        if: always() && hashFiles('tools/loadgen/last-run.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-report-${{ github.run_id }}
+          path: |
+            tools/loadgen/last-run.json
+            tools/loadgen/.k6-summary.json
+          retention-days: 90
+
+      - name: Stop API
+        if: ${{ always() && hashFiles('infra/docker-compose.yml') != '' }}
+        run: |
+          if [ -f api.pid ]; then kill "$(cat api.pid)" || true; fi
+          docker compose -f infra/docker-compose.yml down || true
