@@ -6,6 +6,13 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "build/**"]
     },
+    "@foxhound/loadgen#build": {
+      "cache": false,
+      "outputs": []
+    },
+    "@foxhound/loadgen#test": {
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

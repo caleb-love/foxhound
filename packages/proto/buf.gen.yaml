@@ -1,0 +1,16 @@
+# Codegen configuration for future operator-driven regeneration of typed
+# bindings. Until an operator installs `buf` locally (see README), the
+# committed hand-aligned bindings in `src/v1/` are the canonical output.
+version: v2
+plugins:
+  # TypeScript bindings for the TS SDK and the API.
+  - remote: buf.build/bufbuild/es
+    out: src/v1/gen
+    opt:
+      - target=ts
+      - import_extension=js
+  # Python bindings for the Py SDK.
+  - remote: buf.build/protocolbuffers/python
+    out: ../sdk-py/foxhound_sdk/_proto
+inputs:
+  - directory: proto

@@ -1,0 +1,23 @@
+# Buf module configuration for the Foxhound wire schema.
+#
+# `buf lint` enforces Google protobuf style (PascalCase messages,
+# SCREAMING_SNAKE_CASE enums, lower_snake_case fields).
+#
+# `buf breaking` is the teeth of the versioning policy: a PR that introduces
+# a breaking change to an existing v1 message without bumping to v2 fails
+# the build. The backward-compat test suite in `tests/` provides a second
+# line of defence for repos that don't have `buf` installed.
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+  except:
+    # Allow Foxhound's flat v1 package structure instead of forcing a per-
+    # directory subpackage.
+    - PACKAGE_DIRECTORY_MATCH
+breaking:
+  use:
+    - FILE
+deps: []

@@ -1,0 +1,43 @@
+// Foxhound wire schema v1 — TraceBatch envelope.
+//
+// This is the top-level message the SDK sends to the ingest endpoint post
+// WP04. Multiple spans across potentially multiple traces may share one
+// batch. All spans in a batch MUST share the same org_id; mixing tenants
+// in a single request is a protocol violation the edge will reject.
+syntax = "proto3";
+
+package foxhound.v1;
+
+import "v1/span.proto";
+
+message TraceBatch {
+  // Wire schema version. Must be "v1" for this message family. Tools that
+  // see a non-v1 value on a v1 endpoint must reject the batch and emit a
+  // structured drop record (WP05).
+  string schema_version = 1;
+
+  // Monotonically increasing batch identifier assigned by the sending SDK.
+  // Used post WP12 for idempotency and replay. Duplicate batch_ids within
+  // a short idempotency window are safe to drop.
+  int64 batch_id = 2;
+
+  // Tenant scope for every span in this batch. Duplicated into each Span
+  // as a defensive measure; the API cross-checks.
+  string org_id = 3;
+
+  // The spans themselves. Order is preserved but not required to be
+  // causal; consumers must handle parent_span_id arriving after child.
+  repeated Span spans = 4;
+
+  // Optional SDK self-identification. Used for compatibility bucketing
+  // and deprecation telemetry.
+  optional string sdk_language = 5; // "ts", "py"
+  optional string sdk_version = 6;  // e.g. "0.7.2"
+
+  // Optional compression hint from the sender. Advisory only; the transport
+  // layer (WP04 + WP05) decides the authoritative Content-Encoding.
+  optional string sdk_compression_hint = 7; // "gzip" | "zstd" | "none"
+
+  // Reserved for future additions that must not collide with renames.
+  reserved 100 to 199;
+}

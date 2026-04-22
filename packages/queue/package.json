@@ -1,0 +1,37 @@
+{
+  "name": "@foxhound/queue",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Durable ingestion queue abstraction for Foxhound. One interface, four adapters (in-memory, NATS JetStream, Redpanda/Kafka, Redis Streams).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/testing.js",
+      "types": "./dist/testing.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.0",
+    "kafkajs": "^2.2.4",
+    "nats": "^2.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

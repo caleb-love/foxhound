@@ -1,0 +1,40 @@
+{
+  "name": "@foxhound/proto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Foxhound wire-format Protobuf schema and runtime bindings. Canonical source of truth for cross-language data contracts.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./v1": {
+      "import": "./dist/v1/index.js",
+      "types": "./dist/v1/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "proto"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "generate": "bash generate.sh",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "protobufjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

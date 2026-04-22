@@ -1,0 +1,30 @@
+// Foxhound wire schema v1 — Pricing (stub).
+//
+// This file is a deliberate placeholder. WP16 (versioned pricing table)
+// expands this into a full time-series pricing record with retroactive
+// re-cost semantics. Today it exists only so that:
+//   (a) the `foxhound.v1` package is complete enough to deploy codegen
+//       tooling end-to-end before WP16 lands, and
+//   (b) the `buf breaking` check is wired against a non-empty file.
+//
+// Do NOT expand this beyond the minimum until RFC-016 is drafted.
+syntax = "proto3";
+
+package foxhound.v1;
+
+message PricingRowV1Stub {
+  // Model identifier, e.g. "openai/gpt-4o".
+  string model = 1;
+
+  // USD per million input tokens, encoded as USD-micros × 1000 for
+  // precision. A fully-fledged pricing record lands in WP16.
+  int64 input_usd_micros_per_million = 2;
+
+  // USD per million output tokens, same encoding.
+  int64 output_usd_micros_per_million = 3;
+
+  // ISO-8601 timestamp at which this rate became effective.
+  string effective_from = 4;
+
+  reserved 100 to 199;
+}

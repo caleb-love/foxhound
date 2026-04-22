@@ -3,3 +3,4 @@ packages:
   - "packages/*"
   - ".github/actions/*"
   - "docs-site"
+  - "tools/*"

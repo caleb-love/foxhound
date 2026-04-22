@@ -1,0 +1,123 @@
+// Foxhound wire schema v1 — Span message.
+//
+// Versioning policy (see RFC-003):
+//   v1 is additive-only. New optional fields may be added. No field number
+//   or type may be changed; removing a field is forbidden. Breaking changes
+//   bump to v2 in a sibling directory.
+//
+// OTLP alignment:
+//   The field set mirrors OTel span semantics where sensible so an OTLP
+//   collector can forward Foxhound payloads without reshaping. Foxhound-
+//   specific fields (agent_id, cost, eval_* reserved for future WPs) live
+//   in this message rather than in attributes so they can be queried as
+//   first-class columns in the analytics tier (WP09+).
+syntax = "proto3";
+
+package foxhound.v1;
+
+// --------------------------------------------------------------------------
+// Shared value types
+// --------------------------------------------------------------------------
+
+// AttributeValue is the Foxhound-flavoured equivalent of OTel AnyValue,
+// pruned to the shapes we actually ingest. Adding new variants is additive
+// (a new oneof case with a new tag number).
+message AttributeValue {
+  oneof value {
+    string string_value = 1;
+    int64 int_value = 2;
+    double double_value = 3;
+    bool bool_value = 4;
+    // Binary payload (base64 in JSON wire form). Used for tool IO snapshots.
+    bytes bytes_value = 5;
+    // Nested list / map support intentionally deferred; flatten before send.
+  }
+}
+
+// SpanKind is a pruned OTel SpanKind. Values are deliberately offset by +0
+// so wire compatibility with OTel ingesters is preserved.
+enum SpanKind {
+  SPAN_KIND_UNSPECIFIED = 0;
+  SPAN_KIND_INTERNAL = 1;
+  SPAN_KIND_SERVER = 2;
+  SPAN_KIND_CLIENT = 3;
+  SPAN_KIND_PRODUCER = 4;
+  SPAN_KIND_CONSUMER = 5;
+}
+
+enum StatusCode {
+  STATUS_CODE_UNSET = 0;
+  STATUS_CODE_OK = 1;
+  STATUS_CODE_ERROR = 2;
+}
+
+message Status {
+  StatusCode code = 1;
+  string message = 2;
+}
+
+message SpanEvent {
+  int64 time_unix_nano = 1;
+  string name = 2;
+  map<string, AttributeValue> attributes = 3;
+}
+
+// --------------------------------------------------------------------------
+// Span — the core telemetry record.
+// --------------------------------------------------------------------------
+
+message Span {
+  // Tenancy. Required on every ingested span. The API verifies that the
+  // authenticated API key is scoped to this org_id before persisting.
+  string org_id = 1;
+
+  // Identifiers. trace_id is 16 random bytes hex-encoded; span_id is 8.
+  string trace_id = 2;
+  string span_id = 3;
+  // parent_span_id is absent for root spans. proto3 requires `optional`
+  // to distinguish "unset" from "empty string" on the wire.
+  optional string parent_span_id = 4;
+
+  // Naming + classification.
+  string name = 5;
+  SpanKind kind = 6;
+
+  // Timing (Unix epoch nanoseconds, consistent with OTel and the current
+  // ingest surface). int64 is large enough for dates beyond year 2262.
+  int64 start_time_unix_nano = 7;
+  int64 end_time_unix_nano = 8;
+
+  // Outcome.
+  Status status = 9;
+
+  // Free-form attributes.
+  map<string, AttributeValue> attributes = 10;
+
+  // Time-ordered events (log-like annotations).
+  repeated SpanEvent events = 11;
+
+  // Foxhound-specific promoted columns. Each field notes when it was lit
+  // up; historical spans may have it unset until the producing SDK is
+  // upgraded past that WP.
+
+  // agent_id — first-class agent identity. Active (WP15). Populated by
+  // the SDK from the trace-level `agent_id` and, when present, the
+  // per-span scope set via `withAgent(tracer, agent_id, ...)` in TS or
+  // `with with_agent(tracer, agent_id):` in Python. ClickHouse column
+  // indexed with a bloom_filter (WP15 used the WP09 reservation; no
+  // v2 schema bump required).
+  optional string agent_id = 12;
+
+  // cost_usd_micros — cost of this span in USD-millionths. Lit up by WP16.
+  // Stored as int64 to avoid floating-point drift.
+  optional int64 cost_usd_micros = 13;
+
+  // session_id — stable agent session identifier for cross-trace grouping.
+  optional string session_id = 14;
+
+  // Reserved field numbers below this line ensure we never re-use a number
+  // that historically belonged to a deleted field. This is how Protobuf
+  // enforces no-surprise wire compat across renames/removals.
+  reserved 100 to 199;
+  reserved "eval_score", "eval_label"; // reserved names for WP14 eval work
+}
