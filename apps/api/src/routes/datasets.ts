@@ -88,9 +88,8 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const datasetIds = typeof result.data.datasetId === "string"
-      ? [result.data.datasetId]
-      : result.data.datasetId;
+    const datasetIds =
+      typeof result.data.datasetId === "string" ? [result.data.datasetId] : result.data.datasetId;
 
     const rows = await listDatasets({
       orgId: request.orgId,
@@ -189,9 +188,9 @@ export function datasetsRoutes(fastify: FastifyInstance): void {
       countDatasetItems(id, request.orgId),
     ]);
 
-    return reply.code(200).send(
-      paginatedResponse(rows, result.data.page, result.data.limit, totalCount),
-    );
+    return reply
+      .code(200)
+      .send(paginatedResponse(rows, result.data.page, result.data.limit, totalCount));
   });
 
   // DELETE /v1/datasets/:id/items/:itemId — Delete a single item

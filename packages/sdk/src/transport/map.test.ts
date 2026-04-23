@@ -23,9 +23,7 @@ function buildTrace(partial?: Partial<Trace>): Trace {
           cached: true,
           nullable: null,
         },
-        events: [
-          { timeMs: 1_700_000_000_005, name: "request.start", attributes: { seq: 1 } },
-        ],
+        events: [{ timeMs: 1_700_000_000_005, name: "request.start", attributes: { seq: 1 } }],
       },
       {
         traceId: "11111111-1111-1111-1111-111111111111",

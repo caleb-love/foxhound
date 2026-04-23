@@ -1,6 +1,6 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-const STORAGE_KEY = 'foxhound-experiment-compare';
+const STORAGE_KEY = "foxhound-experiment-compare";
 
 type PersistedPair = {
   baselineExperimentId: string | null;
@@ -14,7 +14,7 @@ interface ExperimentCompareState extends PersistedPair {
 }
 
 function loadPersistedPair(): PersistedPair {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return {
       baselineExperimentId: null,
       candidateExperimentId: null,
@@ -33,9 +33,9 @@ function loadPersistedPair(): PersistedPair {
     const parsed = JSON.parse(raw) as Partial<PersistedPair>;
     return {
       baselineExperimentId:
-        typeof parsed.baselineExperimentId === 'string' ? parsed.baselineExperimentId : null,
+        typeof parsed.baselineExperimentId === "string" ? parsed.baselineExperimentId : null,
       candidateExperimentId:
-        typeof parsed.candidateExperimentId === 'string' ? parsed.candidateExperimentId : null,
+        typeof parsed.candidateExperimentId === "string" ? parsed.candidateExperimentId : null,
     };
   } catch {
     return {
@@ -46,7 +46,7 @@ function loadPersistedPair(): PersistedPair {
 }
 
 function persistPair(pair: PersistedPair) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 

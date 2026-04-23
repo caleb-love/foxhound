@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const budgets = [
-  { agentId: 'support-agent', budgetUsd: 500, currentSpendUsd: 480, status: 'critical', summary: 'Over budget on refund workflows', updatedAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() },
+  { agentId: 'support-agent', budgetUsd: 500, currentSpendUsd: 480, status: 'critical', summary: 'Over budget on refund workflows', updatedAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { agentId: 'codegen-agent', budgetUsd: 1000, currentSpendUsd: 300, status: 'healthy', summary: 'Within budget', updatedAt: new Date(now - 8 * 60 * 60 * 1000).toISOString() },
 ];
 

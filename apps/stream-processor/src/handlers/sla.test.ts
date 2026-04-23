@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { SlaHandler, percentile } from "./sla.js";
-import { makeCloseObs, makeSpan, makeTrace, setConfig, spyEmitter, stubData } from "./test-utils.js";
+import {
+  makeCloseObs,
+  makeSpan,
+  makeTrace,
+  setConfig,
+  spyEmitter,
+  stubData,
+} from "./test-utils.js";
 
 describe("percentile helper", () => {
   it("returns 0 on empty input", () => {
@@ -163,7 +170,13 @@ describe("SlaHandler", () => {
         spans: [makeSpan({ traceId: `b-${i}`, startTimeMs: now, endTimeMs: now + 9999 })],
       });
       await h.onTraceClose(
-        makeCloseObs({ orgId: "org-b", agentId: "shared", trace: traceB, traceId: traceB.id, observedMs: now }),
+        makeCloseObs({
+          orgId: "org-b",
+          agentId: "shared",
+          trace: traceB,
+          traceId: traceB.id,
+          observedMs: now,
+        }),
       );
     }
     expect(emitter.events).toHaveLength(0);

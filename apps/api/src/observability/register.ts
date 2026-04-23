@@ -16,6 +16,8 @@
  *   - Per-route latency for non-ingest endpoints (can be added later by
  *     attaching the hook to more routes).
  */
+import { Buffer } from "node:buffer";
+import { timingSafeEqual } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createIngestMetrics, type IngestErrorReason, type IngestMetrics } from "./metrics.js";
 
@@ -40,9 +42,17 @@ export interface RegisterMetricsOpts {
   maxOrgLabels?: number;
   /** Include default Node process metrics. */
   collectNodeDefaults?: boolean;
+  /**
+   * Bearer token required on GET /metrics. Defaults to
+   * `process.env.METRICS_SCRAPE_TOKEN`. When unset, the endpoint
+   * fails closed with 503 — per-org Prometheus labels would otherwise
+   * leak tenant identifiers and activity levels to any unauthenticated
+   * caller on the public listener.
+   */
+  scrapeToken?: string;
 }
 
-export async function registerMetrics(
+export function registerMetrics(
   app: FastifyInstance,
   opts: RegisterMetricsOpts = {},
 ): Promise<IngestMetrics> {
@@ -51,7 +61,9 @@ export async function registerMetrics(
     opts.metrics ??
     createIngestMetrics({
       ...(opts.maxOrgLabels !== undefined ? { maxOrgLabels: opts.maxOrgLabels } : {}),
-      ...(opts.collectNodeDefaults !== undefined ? { collectNodeDefaults: opts.collectNodeDefaults } : {}),
+      ...(opts.collectNodeDefaults !== undefined
+        ? { collectNodeDefaults: opts.collectNodeDefaults }
+        : {}),
     });
 
   // WP05: decorate the Fastify instance so route handlers can record
@@ -70,8 +82,8 @@ export async function registerMetrics(
   };
 
   // onRequest: start the timer, capture payload size + orgId when visible.
-  app.addHook("onRequest", async (request: FastifyRequest) => {
-    if (!routeMatches(request)) return;
+  app.addHook("onRequest", (request: FastifyRequest, _reply, done) => {
+    if (!routeMatches(request)) return done();
     const req = request as Augmented;
     req[METRICS_STARTED_AT] = process.hrtime.bigint();
     const lenHeader = request.headers["content-length"];
@@ -79,23 +91,25 @@ export async function registerMetrics(
       const n = Number.parseInt(lenHeader, 10);
       if (Number.isFinite(n) && n >= 0) req[METRICS_PAYLOAD_BYTES] = n;
     }
+    done();
   });
 
   // preHandler: orgId is now available from auth.
-  app.addHook("preHandler", async (request: FastifyRequest) => {
-    if (!routeMatches(request)) return;
+  app.addHook("preHandler", (request: FastifyRequest, _reply, done) => {
+    if (!routeMatches(request)) return done();
     const req = request as Augmented;
     const orgId = (request as unknown as { orgId?: string }).orgId;
     if (typeof orgId === "string" && orgId.length > 0) req[METRICS_ORG_ID] = orgId;
+    done();
   });
 
   // onResponse: emit the recorded data point. This runs after body flush,
   // so duration captures the full request-handling time.
-  app.addHook("onResponse", async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!routeMatches(request)) return;
+  app.addHook("onResponse", (request: FastifyRequest, reply: FastifyReply, done) => {
+    if (!routeMatches(request)) return done();
     const req = request as Augmented;
     const started = req[METRICS_STARTED_AT];
-    if (started === undefined) return;
+    if (started === undefined) return done();
     const durationSeconds = Number(process.hrtime.bigint() - started) / 1e9;
     const orgId = req[METRICS_ORG_ID] ?? "anonymous";
     const payloadBytes = req[METRICS_PAYLOAD_BYTES] ?? 0;
@@ -108,16 +122,38 @@ export async function registerMetrics(
       const reason = statusCodeToReason(statusCode);
       metrics.recordError({ orgId, reason });
     }
+    done();
   });
 
-  // GET /metrics
-  app.get("/metrics", async (_req, reply) => {
+  const scrapeToken = opts.scrapeToken ?? process.env["METRICS_SCRAPE_TOKEN"];
+
+  // GET /metrics — gated by bearer token. Per-org labels on these series
+  // leak tenant identifiers + activity, so the endpoint fails closed when
+  // no token is configured rather than serving unauthenticated.
+  app.get("/metrics", async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!scrapeToken || scrapeToken.length === 0) {
+      return reply.code(503).send({ error: "metrics_not_configured" });
+    }
+    const header = request.headers["authorization"];
+    if (typeof header !== "string" || !isValidBearer(header, scrapeToken)) {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
     const body = await metrics.registry.metrics();
     void reply.header("content-type", metrics.registry.contentType);
     return body;
   });
 
-  return metrics;
+  return Promise.resolve(metrics);
+}
+
+function isValidBearer(header: string, expected: string): boolean {
+  const prefix = "Bearer ";
+  if (!header.startsWith(prefix)) return false;
+  const provided = header.slice(prefix.length);
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 function statusCodeToReason(code: number): IngestErrorReason {

@@ -1,11 +1,10 @@
 import type { Trace, Score, ScoreSource } from "@foxhound/types";
 import { Tracer } from "./tracer.js";
-import {
-  createTransport,
-  type SpanTransport,
-  type WireFormat,
-} from "./transport/index.js";
+import { createTransport, type SpanTransport, type WireFormat } from "./transport/index.js";
 import { BatchSpanProcessor } from "./transport/batch-processor.js";
+import type { CompressionKind } from "./transport/compression.js";
+import type { DropRecord } from "./transport/size-cap.js";
+import type { BackpressurePolicy } from "./transport/batch-processor.js";
 
 export interface BudgetExceededInfo {
   agentId: string;
@@ -38,13 +37,13 @@ export interface FoxhoundClientOptions {
    * a load balancer that already compresses). `"lz4"` is reserved and
    * falls back to `"none"` without the optional `lz4-napi` peer.
    */
-  compression?: import("./transport/compression.js").CompressionKind;
+  compression?: CompressionKind;
   /**
    * WP05 drop callback. Fires for each span whose payload exceeded
    * `MAX_SPAN_PAYLOAD_BYTES` and was trimmed pre-send. When omitted,
    * the SDK emits a single-line `console.warn` per drop.
    */
-  onDrop?: (record: import("./transport/size-cap.js").DropRecord) => void;
+  onDrop?: (record: DropRecord) => void;
 
   // ── WP06 BatchSpanProcessor options ──────────────────────────────────────
 
@@ -74,13 +73,13 @@ export interface FoxhoundClientOptions {
    * for lossless export; use `"drop-newest"` when early traces are
    * the forensic ground truth. See RFC-006.
    */
-  backpressurePolicy?: import("./transport/batch-processor.js").BackpressurePolicy;
+  backpressurePolicy?: BackpressurePolicy;
 
   /**
    * Callback fired when a trace is discarded due to backpressure.
    * Defaults to a single-line `console.warn`.
    */
-  onQueueDrop?: (trace: import("@foxhound/types").Trace, reason: "queue-full") => void;
+  onQueueDrop?: (trace: Trace, reason: "queue-full") => void;
 }
 
 export interface CreateScoreParams {
@@ -635,10 +634,17 @@ export class FoxhoundClient {
   > &
     Pick<
       FoxhoundClientOptions,
-      | "onBudgetExceeded" | "wireFormat" | "orgId" | "fetchImpl"
-      | "compression" | "onDrop"
-      | "maxQueueSize" | "maxExportBatchSize" | "exportScheduleDelayMs"
-      | "backpressurePolicy" | "onQueueDrop"
+      | "onBudgetExceeded"
+      | "wireFormat"
+      | "orgId"
+      | "fetchImpl"
+      | "compression"
+      | "onDrop"
+      | "maxQueueSize"
+      | "maxExportBatchSize"
+      | "exportScheduleDelayMs"
+      | "backpressurePolicy"
+      | "onQueueDrop"
     >;
   private readonly tracers: Map<string, Tracer> = new Map();
   /**
@@ -687,21 +693,34 @@ export class FoxhoundClient {
       // Adapter: the BSP calls `transport.send(trace)` expecting a SpanTransport
       // interface. We wrap `directSend` so it satisfies the shape without
       // exposing the budget-header check result to the BSP (it doesn't need it).
-      const bspTransport: import("./transport/index.js").SpanTransport = {
+      const bspTransport: SpanTransport = {
         wireFormat: "protobuf",
         send: async (t) => {
           await this.directSend(t);
           // Return a stub SendResult; the BSP only cares about resolution/rejection.
-          return { status: 202, wireFormat: "protobuf" as const, payloadBytes: 0, headers: new Headers() };
+          return {
+            status: 202,
+            wireFormat: "protobuf" as const,
+            payloadBytes: 0,
+            headers: new Headers(),
+          };
         },
         close: async () => {},
       };
       this._bsp = new BatchSpanProcessor({
         transport: bspTransport,
-        ...(this.options.maxQueueSize !== undefined ? { maxQueueSize: this.options.maxQueueSize } : {}),
-        ...(this.options.maxExportBatchSize !== undefined ? { maxExportBatchSize: this.options.maxExportBatchSize } : {}),
-        ...(this.options.exportScheduleDelayMs !== undefined ? { scheduleDelayMs: this.options.exportScheduleDelayMs } : {}),
-        ...(this.options.backpressurePolicy !== undefined ? { backpressurePolicy: this.options.backpressurePolicy } : {}),
+        ...(this.options.maxQueueSize !== undefined
+          ? { maxQueueSize: this.options.maxQueueSize }
+          : {}),
+        ...(this.options.maxExportBatchSize !== undefined
+          ? { maxExportBatchSize: this.options.maxExportBatchSize }
+          : {}),
+        ...(this.options.exportScheduleDelayMs !== undefined
+          ? { scheduleDelayMs: this.options.exportScheduleDelayMs }
+          : {}),
+        ...(this.options.backpressurePolicy !== undefined
+          ? { backpressurePolicy: this.options.backpressurePolicy }
+          : {}),
         ...(this.options.onQueueDrop !== undefined ? { onDrop: this.options.onQueueDrop } : {}),
       });
     }
@@ -773,7 +792,9 @@ export class FoxhoundClient {
         wireFormat: this.options.wireFormat ?? "protobuf",
         ...(this.options.orgId !== undefined ? { orgId: this.options.orgId } : {}),
         ...(this.options.fetchImpl !== undefined ? { fetchImpl: this.options.fetchImpl } : {}),
-        ...(this.options.compression !== undefined ? { compression: this.options.compression } : {}),
+        ...(this.options.compression !== undefined
+          ? { compression: this.options.compression }
+          : {}),
         ...(this.options.onDrop !== undefined ? { onDrop: this.options.onDrop } : {}),
       });
     }

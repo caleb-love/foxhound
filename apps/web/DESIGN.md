@@ -220,6 +220,7 @@ For evidence-heavy operator workflows (trace detail, replay, run diff, timeline 
 Use pushed or split layouts when the operator needs to keep source context visible while inspecting a selected item.
 
 Keep modal dialogs for:
+
 - create and configure flows
 - destructive confirmations
 - short focused forms

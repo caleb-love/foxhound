@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const datasets = [
-  { id: 'ds_1', name: 'refund-edge-cases', description: 'Refund regression cases', itemCount: 42, sourceTraceIds: ['t1', 't2'], createdAt: new Date(now - 90 * 60 * 1000).toISOString() },
+  { id: 'ds_1', name: 'refund-edge-cases', description: 'Refund regression cases', itemCount: 42, sourceTraceIds: ['t1', 't2'], createdAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { id: 'ds_2', name: 'onboarding-regressions', description: 'Onboarding flow regressions', itemCount: 18, sourceTraceIds: ['t3'], createdAt: new Date(now - 10 * 60 * 60 * 1000).toISOString() },
 ];
 

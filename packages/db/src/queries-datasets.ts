@@ -274,7 +274,9 @@ export async function listExperiments(filters: ExperimentListFilters) {
   const conditions = [eq(experiments.orgId, filters.orgId)];
   if (filters.datasetId) conditions.push(eq(experiments.datasetId, filters.datasetId));
   if (filters.searchQuery) {
-    conditions.push(sql`lower(${experiments.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+    conditions.push(
+      sql`lower(${experiments.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`,
+    );
   }
   if (filters.experimentIds && filters.experimentIds.length > 0) {
     conditions.push(inArray(experiments.id, filters.experimentIds));

@@ -140,8 +140,9 @@ describe("api · ingest-producer · enqueueTrace → InMemory bus round-trip", (
     await consumer.subscribe({
       topic: TOPIC_SPANS_V1,
       groupId: "test-e2e",
-      handler: async (m) => {
+      handler: (m) => {
         received.push(m);
+        return Promise.resolve();
       },
     });
 
@@ -171,8 +172,9 @@ describe("api · ingest-producer · enqueueTrace → InMemory bus round-trip", (
     await consumer.subscribe({
       topic: TOPIC_SPANS_V1,
       groupId: "test-tenant",
-      handler: async (m) => {
+      handler: (m) => {
         bodies.push(m.value);
+        return Promise.resolve();
       },
     });
     await enqueueTrace(mkTrace(), "org_strict");

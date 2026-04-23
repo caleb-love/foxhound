@@ -30,13 +30,21 @@ const SYNC_OPTS = { maxQueueSize: 0 } as const;
 
 describe("FoxhoundClient constructor", () => {
   it("requires apiKey and endpoint", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     expect(client).toBeInstanceOf(FoxhoundClient);
   });
 
   it("applies default flushIntervalMs and maxBatchSize", () => {
     // Indirect: we verify defaults via startTrace -> flush behaviour
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     expect(client).toBeDefined();
   });
 });
@@ -47,13 +55,21 @@ describe("FoxhoundClient constructor", () => {
 
 describe("FoxhoundClient.startTrace()", () => {
   it("returns a Tracer instance", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     expect(tracer).toBeInstanceOf(Tracer);
   });
 
   it("returns a tracer with a unique traceId each call", () => {
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const t1 = client.startTrace({ agentId: "agent_1" });
     const t2 = client.startTrace({ agentId: "agent_1" });
     expect(t1.traceId).not.toBe(t2.traceId);
@@ -119,7 +135,11 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("POSTs to the correct URL", async () => {
     mockFetch.mockResolvedValue({ ok: true });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await tracer.flush();
 
@@ -186,7 +206,11 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("throws when the server returns a non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 429, statusText: "Too Many Requests" });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await expect(tracer.flush()).rejects.toThrow("429");
   });
@@ -194,7 +218,11 @@ describe("FoxhoundClient HTTP request (via Tracer.flush)", () => {
   it("throws when fetch rejects (network failure)", async () => {
     mockFetch.mockRejectedValue(new Error("Network error"));
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const tracer = client.startTrace({ agentId: "agent_1" });
     await expect(tracer.flush()).rejects.toThrow("Network error");
   });
@@ -211,7 +239,11 @@ describe("FoxhoundClient.datasets.addItems", () => {
       json: () => Promise.resolve({ id: "item-created" }),
     });
 
-    const client = new FoxhoundClient({ apiKey: "sk-test", endpoint: "https://api.example.com", ...SYNC_OPTS });
+    const client = new FoxhoundClient({
+      apiKey: "sk-test",
+      endpoint: "https://api.example.com",
+      ...SYNC_OPTS,
+    });
     const result = await client.datasets.addItems("ds_1", [
       { input: { prompt: "one" }, expectedOutput: { response: "1" } },
       { input: { prompt: "two" }, expectedOutput: { response: "2" }, sourceTraceId: "trace_2" },

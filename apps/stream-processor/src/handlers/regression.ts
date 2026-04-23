@@ -223,7 +223,13 @@ export function significantDrifts(
   n2: number,
   zThreshold: number,
   minAbsChange: number,
-): Array<{ span: string; type: "missing" | "new" | "shift"; baselineFreq: number; currentFreq: number; z: number }> {
+): Array<{
+  span: string;
+  type: "missing" | "new" | "shift";
+  baselineFreq: number;
+  currentFreq: number;
+  z: number;
+}> {
   const keys = new Set<string>([...Object.keys(baseline), ...Object.keys(current)]);
   const drifts: Array<{
     span: string;

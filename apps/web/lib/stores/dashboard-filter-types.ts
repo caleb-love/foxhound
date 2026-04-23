@@ -2,7 +2,7 @@ import type {
   SegmentationQuery,
   SegmentationSeverityFilter,
   SegmentationStatusFilter,
-} from '@foxhound/types';
+} from "@foxhound/types";
 
 export type StatusFilter = SegmentationStatusFilter;
 export type SeverityFilter = SegmentationSeverityFilter;
@@ -20,16 +20,16 @@ export interface DashboardDatePreset {
 export interface DashboardFilters {
   status: StatusFilter;
   severity: SeverityFilter;
-  agentIds: NonNullable<SegmentationQuery['agentIds']>;
-  environments: NonNullable<SegmentationQuery['environmentIds']>;
-  promptIds: NonNullable<SegmentationQuery['promptIds']>;
-  promptVersionIds: NonNullable<SegmentationQuery['promptVersionIds']>;
-  evaluatorIds: NonNullable<SegmentationQuery['evaluatorIds']>;
-  datasetIds: NonNullable<SegmentationQuery['datasetIds']>;
-  models: NonNullable<SegmentationQuery['modelIds']>;
-  toolNames: NonNullable<SegmentationQuery['toolNames']>;
-  tags: NonNullable<SegmentationQuery['tags']>;
-  searchQuery: NonNullable<SegmentationQuery['searchQuery']>;
+  agentIds: NonNullable<SegmentationQuery["agentIds"]>;
+  environments: NonNullable<SegmentationQuery["environmentIds"]>;
+  promptIds: NonNullable<SegmentationQuery["promptIds"]>;
+  promptVersionIds: NonNullable<SegmentationQuery["promptVersionIds"]>;
+  evaluatorIds: NonNullable<SegmentationQuery["evaluatorIds"]>;
+  datasetIds: NonNullable<SegmentationQuery["datasetIds"]>;
+  models: NonNullable<SegmentationQuery["modelIds"]>;
+  toolNames: NonNullable<SegmentationQuery["toolNames"]>;
+  tags: NonNullable<SegmentationQuery["tags"]>;
+  searchQuery: NonNullable<SegmentationQuery["searchQuery"]>;
   dateRange: DashboardDateRange;
 }
 

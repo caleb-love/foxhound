@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 import {
   buildExecutiveDecisions,
   buildExecutiveTalkingPoints,
   buildFleetActionItems,
-} from './overview-narrative';
+} from "./overview-narrative";
 
-describe('overview narrative derivation', () => {
+describe("overview narrative derivation", () => {
   const metrics = {
     healthPercent: 92,
     previousHealthPercent: 97,
@@ -17,38 +17,40 @@ describe('overview narrative derivation', () => {
     previousBudgetOverspendUsd: 90,
   };
 
-  it('derives fleet action items from route-level metrics', () => {
+  it("derives fleet action items from route-level metrics", () => {
     const items = buildFleetActionItems(metrics, {
-      traces: '/traces',
-      regressions: '/regressions',
-      slas: '/slas',
-      budgets: '/budgets',
-      prompts: '/prompts',
-      experiments: '/experiments',
+      traces: "/traces",
+      regressions: "/regressions",
+      slas: "/slas",
+      budgets: "/budgets",
+      prompts: "/prompts",
+      experiments: "/experiments",
     });
 
     expect(items.length).toBeGreaterThanOrEqual(3);
     expect(items[0]?.title).toMatch(/critical regressions/i);
-    expect(items.some((item) => item.actions.some((action) => action.href === '/experiments'))).toBe(true);
+    expect(
+      items.some((item) => item.actions.some((action) => action.href === "/experiments")),
+    ).toBe(true);
   });
 
-  it('derives executive decisions from route-level metrics', () => {
+  it("derives executive decisions from route-level metrics", () => {
     const decisions = buildExecutiveDecisions(metrics, {
-      experiments: '/experiments',
-      regressions: '/regressions',
-      budgets: '/budgets',
+      experiments: "/experiments",
+      regressions: "/regressions",
+      budgets: "/budgets",
     });
 
     expect(decisions).toHaveLength(3);
-    expect(decisions[0]?.status).toBe('watch');
-    expect(decisions[1]?.status).toBe('attention');
-    expect(decisions[2]?.href).toBe('/budgets');
+    expect(decisions[0]?.status).toBe("watch");
+    expect(decisions[1]?.status).toBe("attention");
+    expect(decisions[2]?.href).toBe("/budgets");
   });
 
-  it('derives executive talking points from reliability and risk posture', () => {
+  it("derives executive talking points from reliability and risk posture", () => {
     const talkingPoints = buildExecutiveTalkingPoints(
       metrics,
-      'Connected operator surfaces now cover overview, investigate, improve, and govern workflows.',
+      "Connected operator surfaces now cover overview, investigate, improve, and govern workflows.",
     );
 
     expect(talkingPoints).toHaveLength(3);
@@ -57,7 +59,7 @@ describe('overview narrative derivation', () => {
     expect(talkingPoints[2]?.text).toMatch(/projected overspend/i);
   });
 
-  it('can fold in route-evidence highlights ahead of generic connected-surface summary', () => {
+  it("can fold in route-evidence highlights ahead of generic connected-surface summary", () => {
     const talkingPoints = buildExecutiveTalkingPoints(
       {
         healthPercent: 99,
@@ -65,8 +67,10 @@ describe('overview narrative derivation', () => {
         slaRisks: 0,
         budgetOverspendUsd: 0,
       },
-      'Connected operator surfaces now cover overview, investigate, improve, and govern workflows.',
-      ['Replay-ready incidents and winning candidates are both present in the current route evidence.'],
+      "Connected operator surfaces now cover overview, investigate, improve, and govern workflows.",
+      [
+        "Replay-ready incidents and winning candidates are both present in the current route evidence.",
+      ],
     );
 
     expect(talkingPoints).toHaveLength(2);

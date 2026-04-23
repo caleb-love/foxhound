@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const evaluators = [
-  { id: 'ev_1', name: 'refund-quality', scoringType: 'numeric', model: 'gpt-4o', health: 'healthy', summary: 'Scores refund response quality', updatedAt: new Date(now - 30 * 60 * 1000).toISOString() },
+  { id: 'ev_1', name: 'refund-quality', scoringType: 'numeric', model: 'gpt-4o', health: 'healthy', summary: 'Scores refund response quality', updatedAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { id: 'ev_2', name: 'tone-check', scoringType: 'categorical', model: 'gpt-4o-mini', health: 'warning', summary: 'Checks response tone', updatedAt: new Date(now - 10 * 60 * 60 * 1000).toISOString() },
 ];
 

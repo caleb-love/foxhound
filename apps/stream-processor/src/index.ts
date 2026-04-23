@@ -9,10 +9,7 @@
  * stay authoritative for alerts until the operator-gated cutover.
  */
 
-import {
-  dispatchAlert,
-  type AlertEvent,
-} from "@foxhound/notifications";
+import { dispatchAlert, type AlertEvent } from "@foxhound/notifications";
 import type { NotificationChannel } from "@foxhound/notifications";
 import {
   getAgentConfig,

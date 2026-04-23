@@ -946,7 +946,12 @@ describe("FoxhoundApiClient", () => {
       const client = makeClient();
       mockOk({ data: [] });
 
-      await client.listPrompts({ page: 2, limit: 50, searchQuery: "support", promptIds: ["support-routing"] });
+      await client.listPrompts({
+        page: 2,
+        limit: 50,
+        searchQuery: "support",
+        promptIds: ["support-routing"],
+      });
 
       const url = lastCallUrl();
       expect(url).toContain("page=2");

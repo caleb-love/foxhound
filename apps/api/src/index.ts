@@ -84,10 +84,7 @@ app.addContentTypeParser(
   async (req: FastifyRequest, body: Buffer): Promise<unknown> => {
     const { decompressIfNeeded } = await import("./middleware/decompress.js");
     const ce = req.headers["content-encoding"];
-    const result = decompressIfNeeded(
-      body,
-      typeof ce === "string" ? ce : undefined,
-    );
+    const result = decompressIfNeeded(body, typeof ce === "string" ? ce : undefined);
     if (!result.ok) {
       const err = new Error(result.message) as Error & {
         statusCode?: number;
@@ -98,9 +95,9 @@ app.addContentTypeParser(
     try {
       return JSON.parse(result.body.toString("utf8")) as unknown;
     } catch (parseErr) {
-      const err = new Error(
-        `invalid JSON: ${(parseErr as Error).message}`,
-      ) as Error & { statusCode?: number };
+      const err = new Error(`invalid JSON: ${(parseErr as Error).message}`) as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 400;
       throw err;
     }

@@ -10,22 +10,16 @@
 import { describe, it, expect } from "vitest";
 import type { Trace } from "@foxhound/types";
 import { Tracer } from "../tracer.js";
-import {
-  withAgent,
-  withAgentSync,
-  startAgentSpan,
-  currentAgentScope,
-} from "./agent.js";
+import { withAgent, withAgentSync, startAgentSpan, currentAgentScope } from "./agent.js";
 
-function makeTracer(
-  agentId: string,
-): { tracer: Tracer; flushed: () => Trace | undefined } {
+function makeTracer(agentId: string): { tracer: Tracer; flushed: () => Trace | undefined } {
   let latest: Trace | undefined;
   const tracer = new Tracer({
     agentId,
     metadata: {},
-    onFlush: async (t: Trace) => {
+    onFlush: (t: Trace) => {
       latest = t;
+      return Promise.resolve();
     },
   });
   return { tracer, flushed: () => latest };
@@ -60,8 +54,8 @@ describe("sdk · helpers · agent · scope stack", () => {
   it("withAgent pops the scope even when the async callback rejects", async () => {
     const { tracer } = makeTracer("orchestrator");
     await expect(
-      withAgent(tracer, "researcher", async () => {
-        throw new Error("async boom");
+      withAgent(tracer, "researcher", () => {
+        return Promise.reject(new Error("async boom"));
       }),
     ).rejects.toThrow("async boom");
     expect(currentAgentScope(tracer)).toBeUndefined();
@@ -80,8 +74,9 @@ describe("sdk · helpers · agent · scope stack", () => {
     const { tracer } = makeTracer("orchestrator");
     await withAgent(tracer, "researcher", async () => {
       expect(currentAgentScope(tracer)).toBe("researcher");
-      await withAgent(tracer, "coder", async () => {
+      await withAgent(tracer, "coder", () => {
         expect(currentAgentScope(tracer)).toBe("coder");
+        return Promise.resolve();
       });
       expect(currentAgentScope(tracer)).toBe("researcher");
     });

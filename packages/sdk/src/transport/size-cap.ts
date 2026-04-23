@@ -156,11 +156,7 @@ function inventoryPayload(span: Span): PayloadInventory {
  * not carry org context (the wire encoder adds it separately); drop
  * records must stay org-scoped for the metrics counter.
  */
-export function enforceCap(
-  span: Span,
-  orgId: string,
-  onDrop: (record: DropRecord) => void,
-): Span {
+export function enforceCap(span: Span, orgId: string, onDrop: (record: DropRecord) => void): Span {
   const inventory = inventoryPayload(span);
   if (inventory.totalBytes < MAX_SPAN_PAYLOAD_BYTES) {
     return span;
@@ -225,12 +221,12 @@ export function enforceCapOnSpans(
   onDrop: (record: DropRecord) => void,
 ): Span[] {
   let changed = false;
-  const out: Span[] = new Array(spans.length);
+  const out: Span[] = [];
   for (let i = 0; i < spans.length; i++) {
     const original = spans[i]!;
     const capped = enforceCap(original, orgId, onDrop);
     if (capped !== original) changed = true;
-    out[i] = capped;
+    out.push(capped);
   }
   return changed ? out : (spans as Span[]);
 }

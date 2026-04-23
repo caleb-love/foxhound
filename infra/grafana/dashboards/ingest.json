@@ -13,9 +13,7 @@
       "title": "Ingest RPS (5m)",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "expr": "sum(rate(foxhound_ingest_requests_total[5m]))" }
-      ],
+      "targets": [{ "refId": "A", "expr": "sum(rate(foxhound_ingest_requests_total[5m]))" }],
       "options": {
         "reduceOptions": { "values": false, "calcs": ["lastNotNull"] },
         "colorMode": "value",
@@ -61,9 +59,7 @@
       "title": "Consumer Lag (WP08)",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "expr": "max(foxhound_worker_queue_consumer_lag_seconds)" }
-      ],
+      "targets": [{ "refId": "A", "expr": "max(foxhound_worker_queue_consumer_lag_seconds)" }],
       "fieldConfig": { "defaults": { "unit": "s", "decimals": 2 } }
     },
     {

@@ -14,7 +14,10 @@
       "types": "./dist/testing.d.ts"
     }
   },
-  "files": ["dist", "src/migrations"],
+  "files": [
+    "dist",
+    "src/migrations"
+  ],
   "scripts": {
     "build": "tsc && mkdir -p dist/migrations && cp src/migrations/*.sql dist/migrations/",
     "test": "vitest run",

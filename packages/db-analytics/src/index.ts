@@ -30,11 +30,7 @@ export {
   parseCursor,
   __buildListTracesSqlForTest,
 } from "./queries/traces.js";
-export type {
-  GetTraceTreeOpts,
-  ListTracesOpts,
-  ListTracesResult,
-} from "./queries/traces.js";
+export type { GetTraceTreeOpts, ListTracesOpts, ListTracesResult } from "./queries/traces.js";
 export {
   aggregateTrace,
   getConversation,
@@ -56,4 +52,10 @@ export type {
 } from "./queries/aggregates.js";
 export { makeClickHousePersist } from "./persistence.js";
 export type { MakeClickHousePersistOpts, PersistFn } from "./persistence.js";
-export type { SpanRow, TraceSummaryRow, QueryTracesFilter, GetTraceTreeFilter, InternalSpan } from "./types.js";
+export type {
+  SpanRow,
+  TraceSummaryRow,
+  QueryTracesFilter,
+  GetTraceTreeFilter,
+  InternalSpan,
+} from "./types.js";

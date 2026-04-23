@@ -417,9 +417,10 @@ function makeCursor(startedAt: string, traceId: string): string {
   return Buffer.from(`${startedAt}|${traceId}`, "utf8").toString("base64url");
 }
 
-export function parseCursor(
-  cursor: string | undefined,
-): { cursorStart: string | null; cursorTraceId: string | null } {
+export function parseCursor(cursor: string | undefined): {
+  cursorStart: string | null;
+  cursorTraceId: string | null;
+} {
   if (!cursor) return { cursorStart: null, cursorTraceId: null };
   try {
     const decoded = Buffer.from(cursor, "base64url").toString("utf8");

@@ -24,17 +24,22 @@ function mkTrace(): Trace {
   };
 }
 
-function mockFetch(status = 202, headers: Record<string, string> = {}): {
+function mockFetch(
+  status = 202,
+  headers: Record<string, string> = {},
+): {
   fetch: typeof fetch;
   calls: Array<{ url: string; init: RequestInit }>;
 } {
   const calls: Array<{ url: string; init: RequestInit }> = [];
-  const fn: typeof fetch = async (input, init) => {
+  const fn: typeof fetch = (input, init) => {
     calls.push({ url: String(input), init: init ?? {} });
-    return new Response(null, {
-      status,
-      headers: new Headers({ "content-type": "application/json", ...headers }),
-    });
+    return Promise.resolve(
+      new Response(null, {
+        status,
+        headers: new Headers({ "content-type": "application/json", ...headers }),
+      }),
+    );
   };
   return { fetch: fn, calls };
 }
@@ -51,8 +56,14 @@ describe("sdk · transport · factory", () => {
     expect(t).toBeInstanceOf(JsonTransport);
   });
   it("rejects unknown wire formats", () => {
-    // @ts-expect-error intentional: testing runtime guard
-    expect(() => createTransport({ endpoint: "http://x", apiKey: "k", wireFormat: "xml" })).toThrow();
+    expect(() =>
+      createTransport({
+        endpoint: "http://x",
+        apiKey: "k",
+        // @ts-expect-error intentional: testing runtime guard
+        wireFormat: "xml",
+      }),
+    ).toThrow();
   });
 });
 
@@ -155,9 +166,7 @@ describe("sdk · transport · Protobuf vs JSON payload size", () => {
           "tool.name": "vector_search",
           "retry.count": i % 3,
         },
-        events: [
-          { timeMs: 1_700_000_000_000 + i, name: "request.start", attributes: { seq: i } },
-        ],
+        events: [{ timeMs: 1_700_000_000_000 + i, name: "request.start", attributes: { seq: i } }],
       })),
       startTimeMs: 1_700_000_000_000,
       endTimeMs: 1_700_000_000_100,

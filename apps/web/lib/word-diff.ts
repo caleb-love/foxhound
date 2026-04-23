@@ -5,7 +5,7 @@
  */
 
 export interface DiffSegment {
-  type: 'equal' | 'added' | 'removed';
+  type: "equal" | "added" | "removed";
   text: string;
 }
 
@@ -33,14 +33,14 @@ export function computeWordDiff(before: string, after: string): DiffSegment[] {
 
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && wordsA[i - 1] === wordsB[j - 1]) {
-      rawSegments.push({ type: 'equal', text: wordsA[i - 1]! });
+      rawSegments.push({ type: "equal", text: wordsA[i - 1]! });
       i--;
       j--;
     } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
-      rawSegments.push({ type: 'added', text: wordsB[j - 1]! });
+      rawSegments.push({ type: "added", text: wordsB[j - 1]! });
       j--;
     } else {
-      rawSegments.push({ type: 'removed', text: wordsA[i - 1]! });
+      rawSegments.push({ type: "removed", text: wordsA[i - 1]! });
       i--;
     }
   }

@@ -13,7 +13,7 @@
  *   - Traces are NOT re-queued after export failure (explicit no-durability contract).
  *   - Post-`shutdown` enqueues are silent no-ops.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import type { Trace } from "@foxhound/types";
 import type { SendResult, SpanTransport } from "./index.js";
 import { BatchSpanProcessor } from "./batch-processor.js";
@@ -29,10 +29,10 @@ function mkTrace(id: string): Trace {
   };
 }
 
-function fakeTransport(opts: {
-  delayMs?: number;
-  failOn?: (trace: Trace) => boolean;
-}): { transport: SpanTransport; sent: Trace[] } {
+function fakeTransport(opts: { delayMs?: number; failOn?: (trace: Trace) => boolean }): {
+  transport: SpanTransport;
+  sent: Trace[];
+} {
   const sent: Trace[] = [];
   const transport: SpanTransport = {
     wireFormat: "protobuf",
@@ -137,7 +137,7 @@ describe("sdk · BatchSpanProcessor · backpressure policies", () => {
     expect(bsp.queueDepth).toBeGreaterThanOrEqual(1);
     // t3 must be in the queue or already exported — no traces lost.
     // We verify the total by waiting for shutdown to drain.
-    const { sent } = fakeTransport({});
+    fakeTransport({});
     void bsp.flush(2000);
     await bsp.shutdown(100);
   });
@@ -221,9 +221,9 @@ describe("sdk · BatchSpanProcessor · export errors", () => {
 describe("sdk · BatchSpanProcessor · FoxhoundClient integration (WP06)", () => {
   it("FoxhoundClient uses BSP by default; shutdown drains queue", async () => {
     const fetchCalls: string[] = [];
-    const mockFetch: typeof fetch = async (input) => {
+    const mockFetch: typeof fetch = (input) => {
       fetchCalls.push(String(input));
-      return new Response(null, { status: 202 });
+      return Promise.resolve(new Response(null, { status: 202 }));
     };
     const { FoxhoundClient } = await import("../client.js");
     const fox = new FoxhoundClient({
@@ -249,9 +249,9 @@ describe("sdk · BatchSpanProcessor · FoxhoundClient integration (WP06)", () =>
 
   it("FoxhoundClient with maxQueueSize=0 exports inline (synchronous mode)", async () => {
     const fetchCalls: string[] = [];
-    const mockFetch: typeof fetch = async (input) => {
+    const mockFetch: typeof fetch = (input) => {
       fetchCalls.push(String(input));
-      return new Response(null, { status: 202 });
+      return Promise.resolve(new Response(null, { status: 202 }));
     };
     const { FoxhoundClient } = await import("../client.js");
     const fox = new FoxhoundClient({

@@ -224,7 +224,7 @@ async function processExperimentJob(job: Job<ExperimentJobData>): Promise<void> 
 
   // Auto-score experiment runs using org's enabled evaluators
   try {
-    const enabledEvaluators = await listEvaluators(orgId);
+    const enabledEvaluators = await listEvaluators({ orgId });
     const active = enabledEvaluators.filter((e) => e.enabled);
 
     if (active.length > 0) {

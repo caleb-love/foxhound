@@ -558,7 +558,10 @@ export function tracesRoutes(fastify: FastifyInstance): void {
     const { agentId, sessionId, from, to, start, end, status, q, page, limit } = result.data;
 
     const segmentation: SegmentationQuery = {
-      timeRange: start || end ? { start: start ?? new Date(0).toISOString(), end: end ?? new Date().toISOString() } : undefined,
+      timeRange:
+        start || end
+          ? { start: start ?? new Date(0).toISOString(), end: end ?? new Date().toISOString() }
+          : undefined,
       status,
       searchQuery: q,
     };

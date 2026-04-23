@@ -120,9 +120,7 @@ describe("BudgetHandler", () => {
     const h = new BudgetHandler({ data, emitter, now: () => now });
     // Day 1: drive 12 USD total → warn + critical.
     for (let i = 0; i < 12; i++) {
-      await h.onSpan(
-        makeSpanObs({ span: makeSpan({ attributes: { [COST_ATTR]: 1 } }) }),
-      );
+      await h.onSpan(makeSpanObs({ span: makeSpan({ attributes: { [COST_ATTR]: 1 } }) }));
     }
     // Advance to Day 2.
     now = Date.UTC(2026, 3, 21, 12, 0, 0);
@@ -130,9 +128,7 @@ describe("BudgetHandler", () => {
     await h.onSpan(makeSpanObs({ span: makeSpan({ attributes: { [COST_ATTR]: 0.5 } }) }));
     // Now push past 80 % of budget on Day 2 → should fire a new warning.
     for (let i = 0; i < 10; i++) {
-      await h.onSpan(
-        makeSpanObs({ span: makeSpan({ attributes: { [COST_ATTR]: 1 } }) }),
-      );
+      await h.onSpan(makeSpanObs({ span: makeSpan({ attributes: { [COST_ATTR]: 1 } }) }));
     }
     // Day 1: 1 warn + 1 critical. Day 2: 1 warn + 1 critical.
     const warns = emitter.events.filter((e) => e.severity === "high");

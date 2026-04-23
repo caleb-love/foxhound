@@ -232,9 +232,7 @@ export class InMemoryProducer implements QueueProducer {
   async produce(record: ProduceRecord): Promise<void> {
     if (this.closed) throw new Error("InMemoryProducer closed");
     if (!record.headers[HEADER_ORG_ID]) {
-      throw new Error(
-        "InMemoryProducer: `headers.org_id` is required by the queue contract",
-      );
+      throw new Error("InMemoryProducer: `headers.org_id` is required by the queue contract");
     }
     await this.bus.append(record.topic, record);
   }

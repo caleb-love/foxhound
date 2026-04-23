@@ -31,9 +31,7 @@ export interface MigrationRecord {
 export async function listMigrations(): Promise<string[]> {
   const dir = await resolveMigrationsDir();
   const entries = await readdir(dir);
-  return entries
-    .filter((e) => e.endsWith(".sql"))
-    .sort((a, b) => a.localeCompare(b, "en"));
+  return entries.filter((e) => e.endsWith(".sql")).sort((a, b) => a.localeCompare(b, "en"));
 }
 
 export async function readMigration(name: string): Promise<string> {

@@ -30,7 +30,7 @@ describe("db-analytics · guard · scope()", () => {
     expect(() => scope("org_a; DROP TABLE spans")).toThrow(/characters/);
     expect(() => scope("org a")).toThrow(/characters/);
     expect(() => scope("org'a")).toThrow(/characters/);
-    expect(() => scope("org\"a")).toThrow(/characters/);
+    expect(() => scope('org"a')).toThrow(/characters/);
   });
 
   it("accepts letters, digits, hyphens, underscores", () => {

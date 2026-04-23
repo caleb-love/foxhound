@@ -51,8 +51,7 @@ function toPricingRow(row: typeof pricingRows.$inferSelect): PricingRow {
     provider: row.provider,
     inputPricePer1k: Number(row.inputPricePer1k),
     outputPricePer1k: Number(row.outputPricePer1k),
-    cacheHitPricePer1k:
-      row.cacheHitPricePer1k === null ? null : Number(row.cacheHitPricePer1k),
+    cacheHitPricePer1k: row.cacheHitPricePer1k === null ? null : Number(row.cacheHitPricePer1k),
     effectiveFrom: row.effectiveFrom,
     effectiveTo: row.effectiveTo,
     createdAt: row.createdAt,
@@ -86,10 +85,7 @@ export async function getEffectivePrice(opts: {
         // Open upper bound (current row) OR closed upper bound still in
         // the future relative to `at`. Written as a single OR to let the
         // planner choose the cheapest path.
-        or(
-          isNull(pricingRows.effectiveTo),
-          gt(pricingRows.effectiveTo, opts.at),
-        ),
+        or(isNull(pricingRows.effectiveTo), gt(pricingRows.effectiveTo, opts.at)),
       ),
     )
     .orderBy(desc(pricingRows.effectiveFrom))
@@ -158,9 +154,7 @@ export async function addPriceRow(opts: {
         inputPricePer1k: String(opts.inputPricePer1k),
         outputPricePer1k: String(opts.outputPricePer1k),
         cacheHitPricePer1k:
-          opts.cacheHitPricePer1k !== undefined
-            ? String(opts.cacheHitPricePer1k)
-            : null,
+          opts.cacheHitPricePer1k !== undefined ? String(opts.cacheHitPricePer1k) : null,
         effectiveFrom: opts.effectiveFrom,
         effectiveTo: null,
         createdBy: opts.createdBy,
@@ -182,9 +176,7 @@ export async function listPricingHistory(opts: {
   const rows = await db
     .select()
     .from(pricingRows)
-    .where(
-      and(eq(pricingRows.model, opts.model), eq(pricingRows.provider, opts.provider)),
-    )
+    .where(and(eq(pricingRows.model, opts.model), eq(pricingRows.provider, opts.provider)))
     .orderBy(desc(pricingRows.effectiveFrom));
   return rows.map(toPricingRow);
 }
@@ -196,10 +188,7 @@ export async function listPricingHistory(opts: {
  * history.
  */
 export async function listActivePricing(): Promise<PricingRow[]> {
-  const rows = await db
-    .select()
-    .from(pricingRows)
-    .where(isNull(pricingRows.effectiveTo));
+  const rows = await db.select().from(pricingRows).where(isNull(pricingRows.effectiveTo));
   return rows.map(toPricingRow);
 }
 

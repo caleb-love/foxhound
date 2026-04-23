@@ -47,6 +47,7 @@ Each run writes `tools/loadgen/last-run.json` and appends a row to
 ## What the harness does
 
 Per request:
+
 1. Generates an OTLP/HTTP JSON body carrying 1 trace × 4 spans (by default) with
    realistic shapes (LLM calls, tool calls, agent steps, workflows).
 2. Each span is padded to a target size (default 2 KiB) via a `payload.filler`
@@ -80,7 +81,7 @@ Per request:
   "status": { "202": 298500, "500": 900 },
   "orgIds": ["org_a", "org_b", "org_c"],
   "pass": true,
-  "passCriteria": "error_rate < 1%; p99 not regressed > 20%"
+  "passCriteria": "error_rate < 1%; p99 not regressed > 20%",
 }
 ```
 
@@ -105,6 +106,7 @@ pnpm --filter @foxhound/loadgen typecheck # tsc strict
 ```
 
 Unit tests cover:
+
 - Span generator determinism (seeded RNG)
 - OTLP shape round-trip stability
 - Tenant tag presence on every resource

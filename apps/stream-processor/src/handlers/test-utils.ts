@@ -43,7 +43,9 @@ export function makeTrace(overrides: Partial<Trace> = {}): Trace {
   };
 }
 
-export function makeCloseObs(overrides: Partial<TraceCloseObservation> = {}): TraceCloseObservation {
+export function makeCloseObs(
+  overrides: Partial<TraceCloseObservation> = {},
+): TraceCloseObservation {
   const trace = overrides.trace ?? makeTrace();
   return {
     orgId: overrides.orgId ?? "org-a",

@@ -48,18 +48,14 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
     const decoded = v1.TraceBatchCodec.decode(bytes);
     const traces = groupBatchIntoTraces(decoded);
     expect(traces).toHaveLength(1);
-    expect(traces[0]!.spans).toHaveLength(3);
-    expect(traces[0]!.spans[0]!.startTimeMs).toBe(1_700_000_000_000);
-    expect(traces[0]!.metadata["foxhound.wire_format"]).toBe("protobuf");
+    expect(traces[0].spans).toHaveLength(3);
+    expect(traces[0].spans[0].startTimeMs).toBe(1_700_000_000_000);
+    expect(traces[0].metadata["foxhound.wire_format"]).toBe("protobuf");
   });
 
   // ── WP15 · agent_id recovery ────────────────────────────────────────
 
-  const mkSpan = (opts: {
-    spanId: string;
-    parentSpanId?: string;
-    agentId?: string;
-  }): v1.Span => ({
+  const mkSpan = (opts: { spanId: string; parentSpanId?: string; agentId?: string }): v1.Span => ({
     orgId: "org_a",
     traceId: "t".repeat(32),
     spanId: opts.spanId,
@@ -87,7 +83,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
     };
     const traces = groupBatchIntoTraces(batch);
     expect(traces).toHaveLength(1);
-    expect(traces[0]!.agentId).toBe("planner");
+    expect(traces[0].agentId).toBe("planner");
   });
 
   it("WP15 root-agent wins even when a non-root span arrives first", () => {
@@ -103,7 +99,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
       ],
     };
     const traces = groupBatchIntoTraces(batch);
-    expect(traces[0]!.agentId).toBe("planner");
+    expect(traces[0].agentId).toBe("planner");
   });
 
   it("WP15 falls back to first non-empty agentId when no root span has one", () => {
@@ -117,7 +113,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
       ],
     };
     const traces = groupBatchIntoTraces(batch);
-    expect(traces[0]!.agentId).toBe("researcher");
+    expect(traces[0].agentId).toBe("researcher");
   });
 
   it("WP15 preserves per-span agentId on the internal Span objects", () => {
@@ -131,7 +127,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
       ],
     };
     const traces = groupBatchIntoTraces(batch);
-    const spans = traces[0]!.spans;
+    const spans = traces[0].spans;
     const root = spans.find((s) => s.spanId === "root")!;
     const child = spans.find((s) => s.spanId === "child")!;
     expect(root.agentId).toBe("planner");
@@ -143,14 +139,11 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
       schemaVersion: "v1",
       batchId: 1,
       orgId: "org_a",
-      spans: [
-        mkSpan({ spanId: "root" }),
-        mkSpan({ spanId: "child", parentSpanId: "root" }),
-      ],
+      spans: [mkSpan({ spanId: "root" }), mkSpan({ spanId: "child", parentSpanId: "root" })],
     };
     const traces = groupBatchIntoTraces(batch);
-    expect(traces[0]!.agentId).toBe("");
-    for (const s of traces[0]!.spans) {
+    expect(traces[0].agentId).toBe("");
+    for (const s of traces[0].spans) {
       expect(s.agentId).toBeUndefined();
     }
   });
@@ -166,8 +159,9 @@ describe("worker · ingest-persistence · handleMessage", () => {
     persistCalls = [];
     consumer = new IngestPersistenceConsumer({
       log: fakeLogger,
-      persist: async (_log, trace, orgId) => {
+      persist: (_log, trace, orgId) => {
         persistCalls.push({ trace, orgId });
+        return Promise.resolve();
       },
     });
   });
@@ -191,8 +185,8 @@ describe("worker · ingest-persistence · handleMessage", () => {
     const res = await consumer.handleMessage(makeMsg("org_a", mkBatch("org_a")));
     expect(res).toBe("ack");
     expect(persistCalls).toHaveLength(1);
-    expect(persistCalls[0]!.orgId).toBe("org_a");
-    expect(persistCalls[0]!.trace.spans).toHaveLength(2);
+    expect(persistCalls[0].orgId).toBe("org_a");
+    expect(persistCalls[0].trace.spans).toHaveLength(2);
   });
 
   it("NACKS when header org_id is missing", async () => {
@@ -217,17 +211,13 @@ describe("worker · ingest-persistence · handleMessage", () => {
   });
 
   it("NACKS when a single span org_id mismatches (per-span cross-tenant guardrail)", async () => {
-    const res = await consumer.handleMessage(
-      makeMsg("org_me", mkBatch("org_me", "org_leaked")),
-    );
+    const res = await consumer.handleMessage(makeMsg("org_me", mkBatch("org_me", "org_leaked")));
     expect(res).toBe("nack");
     expect(persistCalls).toHaveLength(0);
   });
 
   it("NACKS a malformed payload", async () => {
-    const res = await consumer.handleMessage(
-      makeMsg("org_me", new Uint8Array([0xff, 0xff])),
-    );
+    const res = await consumer.handleMessage(makeMsg("org_me", new Uint8Array([0xff, 0xff])));
     expect(res).toBe("nack");
     expect(persistCalls).toHaveLength(0);
   });
@@ -235,13 +225,11 @@ describe("worker · ingest-persistence · handleMessage", () => {
   it("throws through to the consumer adapter when persist fails (redelivery)", async () => {
     consumer = new IngestPersistenceConsumer({
       log: fakeLogger,
-      persist: async () => {
-        throw new Error("db down");
-      },
+      persist: () => Promise.reject(new Error("db down")),
     });
-    await expect(
-      consumer.handleMessage(makeMsg("org_a", mkBatch("org_a"))),
-    ).rejects.toThrow("db down");
+    await expect(consumer.handleMessage(makeMsg("org_a", mkBatch("org_a")))).rejects.toThrow(
+      "db down",
+    );
   });
 });
 
@@ -258,8 +246,9 @@ describe("worker · ingest-persistence · end-to-end through InMemory bus", () =
     const persisted: Trace[] = [];
     const c = new IngestPersistenceConsumer({
       log: fakeLogger,
-      persist: async (_l, trace) => {
+      persist: (_l, trace) => {
         persisted.push(trace);
+        return Promise.resolve();
       },
       metrics: vi.fn(),
     });
@@ -277,7 +266,7 @@ describe("worker · ingest-persistence · end-to-end through InMemory bus", () =
       await new Promise((r) => setTimeout(r, 20));
     }
     expect(persisted).toHaveLength(1);
-    expect(persisted[0]!.spans).toHaveLength(2);
+    expect(persisted[0].spans).toHaveLength(2);
     await c.stop();
     await producer.close();
   });

@@ -175,7 +175,9 @@ export class FoxhoundApiClient {
 
   // ── Notification Channels ─────────────────────────────────────────────
 
-  async listChannels(params?: SegmentedListParams & { channelIds?: string[] }): Promise<ChannelListResponse> {
+  async listChannels(
+    params?: SegmentedListParams & { channelIds?: string[] },
+  ): Promise<ChannelListResponse> {
     const query = new URLSearchParams();
     appendSegmentationQuery(query, {
       ...params,
@@ -325,7 +327,9 @@ export class FoxhoundApiClient {
     return this.post("/v1/evaluators", params as unknown as Record<string, unknown>);
   }
 
-  async listEvaluators(params?: SegmentedListParams & { evaluatorIds?: string[] }): Promise<EvaluatorListResponse> {
+  async listEvaluators(
+    params?: SegmentedListParams & { evaluatorIds?: string[] },
+  ): Promise<EvaluatorListResponse> {
     const query = new URLSearchParams();
     appendSegmentationQuery(query, {
       ...params,
@@ -497,7 +501,9 @@ export class FoxhoundApiClient {
     return this.post("/v1/experiments", params as unknown as Record<string, unknown>);
   }
 
-  async listExperiments(params?: { datasetId?: string } & SegmentedListParams): Promise<ExperimentListResponse> {
+  async listExperiments(
+    params?: { datasetId?: string } & SegmentedListParams,
+  ): Promise<ExperimentListResponse> {
     const query = new URLSearchParams();
     if (params?.datasetId !== undefined) query.set("datasetId", params.datasetId);
     if (params?.page !== undefined) query.set("page", String(params.page));

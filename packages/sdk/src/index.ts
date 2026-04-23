@@ -24,9 +24,4 @@ export { BatchSpanProcessor } from "./transport/batch-processor.js";
 export type { BatchProcessorConfig, BackpressurePolicy } from "./transport/batch-processor.js";
 
 // Agent-scope helpers (WP15) — multi-agent trace attribution.
-export {
-  withAgent,
-  withAgentSync,
-  startAgentSpan,
-  currentAgentScope,
-} from "./helpers/index.js";
+export { withAgent, withAgentSync, startAgentSpan, currentAgentScope } from "./helpers/index.js";

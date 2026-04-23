@@ -76,7 +76,8 @@ export interface TraceBatch {
   spans: Span[];
   sdkLanguage?: string;
   sdkVersion?: string;
-  sdkCompressionHint?: "gzip" | "zstd" | "none" | string;
+  /** Expected values: "gzip", "zstd", "none". Open string for forward-compat. */
+  sdkCompressionHint?: string;
 }
 
 export interface PricingRowV1Stub {

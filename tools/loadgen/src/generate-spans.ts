@@ -189,7 +189,11 @@ function pickTemplate(rng: Rng, kindHint?: "generation" | "tool" | "chain"): Spa
   const filtered = SPAN_TEMPLATES.filter((t) => {
     if (kindHint === "generation") return t.name.startsWith("llm.");
     if (kindHint === "tool") return t.name.startsWith("tool.");
-    return t.name.startsWith("agent.") || t.name.startsWith("workflow.") || t.name.startsWith("retrieval.");
+    return (
+      t.name.startsWith("agent.") ||
+      t.name.startsWith("workflow.") ||
+      t.name.startsWith("retrieval.")
+    );
   });
   const pool = filtered.length > 0 ? filtered : SPAN_TEMPLATES;
   const t = pool[rng.nextInt(pool.length)];
@@ -228,8 +232,7 @@ export function generateSpan(opts: GenerateSpanOpts): OtelSpan {
 
   // Pad with a filler attribute to approximate the size target. Overhead of
   // surrounding JSON is ~600 bytes per span with this template set.
-  const bodyEstimate =
-    JSON.stringify({ name: template.name, attributes }).length + 600;
+  const bodyEstimate = JSON.stringify({ name: template.name, attributes }).length + 600;
   const fillerSize = Math.max(0, sizeTarget - bodyEstimate);
   if (fillerSize > 0) {
     attributes.push({
@@ -238,15 +241,16 @@ export function generateSpan(opts: GenerateSpanOpts): OtelSpan {
     });
   }
 
-  const events: OtelEvent[] = startOffsetMs === 0
-    ? [
-        {
-          timeUnixNano: nanoTs(rng, startOffsetMs + 5, nowMs),
-          name: "request.start",
-          attributes: [],
-        },
-      ]
-    : [];
+  const events: OtelEvent[] =
+    startOffsetMs === 0
+      ? [
+          {
+            timeUnixNano: nanoTs(rng, startOffsetMs + 5, nowMs),
+            name: "request.start",
+            attributes: [],
+          },
+        ]
+      : [];
 
   const errored = rng.nextFloat() < template.errorRate;
 
@@ -336,11 +340,9 @@ export function generateBatch(opts: GenerateBatchOpts): OtlpRequestBody {
           rng,
           orgId,
           spansPerTrace: opts.spansPerTrace,
-          ...(opts.sizeBytesTarget !== undefined
-            ? { sizeBytesTarget: opts.sizeBytesTarget }
-            : {}),
+          ...(opts.sizeBytesTarget !== undefined ? { sizeBytesTarget: opts.sizeBytesTarget } : {}),
           ...(opts.nowMs !== undefined ? { nowMs: opts.nowMs } : {}),
-        })
+        }),
       );
     }
   }

@@ -51,11 +51,7 @@ export interface MakeClickHousePersistOpts {
   }) => Promise<number | null> | number | null;
 }
 
-export type PersistFn = (
-  log: unknown,
-  trace: Trace,
-  orgId: string,
-) => Promise<void>;
+export type PersistFn = (log: unknown, trace: Trace, orgId: string) => Promise<void>;
 
 export function makeClickHousePersist(
   client: AnalyticsClient,

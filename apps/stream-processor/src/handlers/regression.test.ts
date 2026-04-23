@@ -1,12 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { RegressionHandler, computeFreq, significantDrifts } from "./regression.js";
-import {
-  makeCloseObs,
-  makeSpan,
-  makeTrace,
-  spyEmitter,
-  stubData,
-} from "./test-utils.js";
+import { makeCloseObs, makeSpan, makeTrace, spyEmitter, stubData } from "./test-utils.js";
 
 describe("significantDrifts", () => {
   it("returns no drifts when distributions match", () => {
@@ -44,7 +38,7 @@ describe("significantDrifts", () => {
   });
 
   it("ignores changes below minAbsChange even if z is large", () => {
-    const baseline = { a: 0.50 };
+    const baseline = { a: 0.5 };
     const current = { a: 0.55 }; // 5pp shift
     expect(significantDrifts(baseline, current, 1000, 1000, 3, 0.1)).toHaveLength(0);
   });

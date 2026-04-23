@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const slas = [
-  { agentId: 'support-agent', maxDurationMs: 10000, minSuccessRate: 0.95, observedDurationMs: 8500, observedSuccessRate: 0.97, status: 'healthy', summary: 'Within SLA targets', updatedAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() },
+  { agentId: 'support-agent', maxDurationMs: 10000, minSuccessRate: 0.95, observedDurationMs: 8500, observedSuccessRate: 0.97, status: 'healthy', summary: 'Within SLA targets', updatedAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { agentId: 'billing-agent', maxDurationMs: 5000, minSuccessRate: 0.99, observedDurationMs: 6200, observedSuccessRate: 0.91, status: 'critical', summary: 'Latency and success rate both breached', updatedAt: new Date(now - 8 * 60 * 60 * 1000).toISOString() },
 ];
 

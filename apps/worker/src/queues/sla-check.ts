@@ -122,7 +122,7 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
 
     const [rules, channels] = await Promise.all([
       getAlertRulesForOrg(orgId),
-      listNotificationChannels(orgId),
+      listNotificationChannels({ orgId }),
     ]);
 
     const channelMap = new Map<string, NotificationChannel>(

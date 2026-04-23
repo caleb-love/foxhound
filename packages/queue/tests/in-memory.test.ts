@@ -1,9 +1,5 @@
 import { runContract } from "./contract.js";
-import {
-  InMemoryConsumer,
-  InMemoryProducer,
-  resetInMemoryBus,
-} from "../src/index.js";
+import { InMemoryConsumer, InMemoryProducer, resetInMemoryBus } from "../src/index.js";
 
 runContract({
   name: "in-memory",

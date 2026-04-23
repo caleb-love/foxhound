@@ -126,7 +126,10 @@ export async function closeIngestProducer(): Promise<void> {
  * Kept separate from the enqueue call so tests can snapshot the payload
  * shape without needing a running producer.
  */
-export function buildIngestPayload(trace: Trace, orgId: string): {
+export function buildIngestPayload(
+  trace: Trace,
+  orgId: string,
+): {
   readonly key: string;
   readonly value: Uint8Array;
   readonly headers: Record<string, string>;

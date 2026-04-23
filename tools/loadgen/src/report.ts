@@ -53,7 +53,11 @@ export interface SamplingAccumulator {
   pushLatency(ms: number): void;
   recordStatus(code: number): void;
   recordError(): void;
-  finalize(opts: { durationSec: number; passCriteria: string; passPredicate: (p: LoadReport) => boolean }): LoadReport;
+  finalize(opts: {
+    durationSec: number;
+    passCriteria: string;
+    passPredicate: (p: LoadReport) => boolean;
+  }): LoadReport;
 }
 
 /**
@@ -169,7 +173,7 @@ export function k6SummaryToReport(
     commit?: string;
     host?: string;
     notes?: string;
-  }
+  },
 ): LoadReport {
   const s = summary as {
     metrics?: Record<string, { values?: Record<string, number> }>;

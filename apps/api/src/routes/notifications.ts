@@ -99,9 +99,8 @@ export function notificationsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const channelIds = typeof result.data.channelId === "string"
-      ? [result.data.channelId]
-      : result.data.channelId;
+    const channelIds =
+      typeof result.data.channelId === "string" ? [result.data.channelId] : result.data.channelId;
 
     const channels = await listNotificationChannels({
       orgId: request.orgId,
