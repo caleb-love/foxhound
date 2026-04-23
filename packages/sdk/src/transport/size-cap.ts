@@ -225,12 +225,12 @@ export function enforceCapOnSpans(
   onDrop: (record: DropRecord) => void,
 ): Span[] {
   let changed = false;
-  const out: Span[] = new Array(spans.length);
+  const out: Span[] = [];
   for (let i = 0; i < spans.length; i++) {
     const original = spans[i]!;
     const capped = enforceCap(original, orgId, onDrop);
     if (capped !== original) changed = true;
-    out[i] = capped;
+    out.push(capped);
   }
   return changed ? out : (spans as Span[]);
 }

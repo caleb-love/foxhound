@@ -21,9 +21,7 @@ vi.mock("@foxhound/db", () => ({
 }));
 
 // Import under test AFTER the mock is in place.
-// eslint-disable-next-line import/order
 import { lookupPricing, refreshPricingCache } from "./pricing-cache.js";
-// eslint-disable-next-line import/order
 import { getEffectivePrice } from "@foxhound/db";
 
 const mockedGetEffectivePrice = vi.mocked(getEffectivePrice);
@@ -145,7 +143,9 @@ describe("pricing-cache · WP16 time-series integration", () => {
     const after = Date.now();
 
     expect(mockedGetEffectivePrice).toHaveBeenCalledTimes(1);
-    const { at } = mockedGetEffectivePrice.mock.calls[0]![0]!;
+    const firstCall = mockedGetEffectivePrice.mock.calls[0];
+    if (!firstCall) throw new Error("expected getEffectivePrice to be called");
+    const { at } = firstCall[0];
     expect(at.getTime()).toBeGreaterThanOrEqual(before);
     expect(at.getTime()).toBeLessThanOrEqual(after);
   });

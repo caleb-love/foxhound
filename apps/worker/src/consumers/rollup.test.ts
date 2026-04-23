@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { v1 } from "@foxhound/proto";
 import {
   HEADER_ORG_ID,
@@ -21,18 +21,18 @@ function fakeAnalytics(): {
   let shouldFailNext = false;
   const client: AnalyticsClient = {
     raw: {
-      insert: async (args: unknown) => {
+      insert: (args: unknown) => {
         if (shouldFailNext) {
           shouldFailNext = false;
-          throw new Error("ch down");
+          return Promise.reject(new Error("ch down"));
         }
         inserts.push(args as { table: string; values: unknown[] });
-        return { query_id: "x", executed: true };
+        return Promise.resolve({ query_id: "x", executed: true });
       },
-      query: async () => ({ json: async () => [] }),
-      command: async () => undefined,
-      ping: async () => ({ success: true, response: "" }),
-      close: async () => undefined,
+      query: () => Promise.resolve({ json: () => Promise.resolve([]) }),
+      command: () => Promise.resolve(undefined),
+      ping: () => Promise.resolve({ success: true, response: "" }),
+      close: () => Promise.resolve(undefined),
     } as unknown as AnalyticsClient["raw"],
     database: "foxhound",
     options: {
@@ -43,7 +43,7 @@ function fakeAnalytics(): {
       insertBatchRows: 10,
       insertBatchMs: 100,
     },
-    close: async () => undefined,
+    close: () => Promise.resolve(undefined),
   };
   return { client, inserts, failNext: () => (shouldFailNext = true) };
 }
@@ -191,7 +191,7 @@ describe("worker · RollupConsumer · handleMessage", () => {
     });
     await rc.handleMessage(mkMsg("org_a", bytes));
     await rc.handleMessage(mkMsg("org_a", bytes)); // redelivery
-    let now = 1_700_000_001_000;
+    const now = 1_700_000_001_000;
     const rc2 = new RollupConsumer({
       log: silentLog,
       analytics: fa.client,
@@ -202,7 +202,7 @@ describe("worker · RollupConsumer · handleMessage", () => {
     // Re-use the accumulator state by calling sweep via the same instance:
     await rc.sweep({ force: true });
     const firstInsert = fa.inserts[0] as { values: Array<{ total_spans: number }> };
-    expect(firstInsert.values[0]!.total_spans).toBe(1);
+    expect(firstInsert.values[0].total_spans).toBe(1);
     await rc2.stop();
   });
 
@@ -257,7 +257,7 @@ describe("worker · RollupConsumer · sweep + close detection", () => {
     await rc.sweep();
 
     expect(fa.inserts).toHaveLength(1);
-    const call = fa.inserts[0]!;
+    const call = fa.inserts[0];
     expect(call.table).toBe("conversation_rows");
     expect((call.values[0] as { trace_id: string }).trace_id).toBe("t-idle");
     expect(rc.openCount()).toBe(0); // idle-closed accumulators are removed
@@ -312,8 +312,8 @@ describe("worker · RollupConsumer · sweep + close detection", () => {
     expect(rc.openCount()).toBe(1); // still open
 
     // The second row must have more spans than the first (post-dedup).
-    const first = fa.inserts[0]!.values[0] as { total_spans: number; updated_at: string };
-    const second = fa.inserts[1]!.values[0] as { total_spans: number; updated_at: string };
+    const first = fa.inserts[0].values[0] as { total_spans: number; updated_at: string };
+    const second = fa.inserts[1].values[0] as { total_spans: number; updated_at: string };
     expect(second.total_spans).toBeGreaterThan(first.total_spans);
     expect(second.updated_at > first.updated_at).toBe(true); // ReplacingMergeTree contract
     await rc.stop();
@@ -424,7 +424,7 @@ describe("worker · RollupConsumer · end-to-end through the in-memory bus", () 
     await rc.sweep();
 
     expect(fa.inserts).toHaveLength(1);
-    const row = fa.inserts[0]!.values[0] as {
+    const row = fa.inserts[0].values[0] as {
       trace_id: string;
       total_llm_calls: number;
       status: string;

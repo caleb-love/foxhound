@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
 const now = Date.now();
 
 const experiments = [
-  { id: 'exp_1', name: 'refund-prompt-v8', datasetId: 'ds_1', status: 'completed', summary: 'Testing prompt v8 against refund cases', winningCandidate: 'candidate-b', createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() },
+  { id: 'exp_1', name: 'refund-prompt-v8', datasetId: 'ds_1', status: 'completed', summary: 'Testing prompt v8 against refund cases', winningCandidate: 'candidate-b', createdAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { id: 'exp_2', name: 'tone-routing-test', datasetId: 'ds_2', status: 'completed', summary: 'Comparing routing strategies for tone', winningCandidate: 'candidate-a', createdAt: new Date(now - 11 * 60 * 60 * 1000).toISOString() },
 ];
 

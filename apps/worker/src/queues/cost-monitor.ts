@@ -72,7 +72,7 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
 
   const [rules, channels] = await Promise.all([
     getAlertRulesForOrg(orgId),
-    listNotificationChannels(orgId),
+    listNotificationChannels({ orgId }),
   ]);
 
   const channelMap = new Map<string, NotificationChannel>(

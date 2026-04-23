@@ -29,12 +29,14 @@ function mockFetch(status = 202, headers: Record<string, string> = {}): {
   calls: Array<{ url: string; init: RequestInit }>;
 } {
   const calls: Array<{ url: string; init: RequestInit }> = [];
-  const fn: typeof fetch = async (input, init) => {
+  const fn: typeof fetch = (input, init) => {
     calls.push({ url: String(input), init: init ?? {} });
-    return new Response(null, {
-      status,
-      headers: new Headers({ "content-type": "application/json", ...headers }),
-    });
+    return Promise.resolve(
+      new Response(null, {
+        status,
+        headers: new Headers({ "content-type": "application/json", ...headers }),
+      }),
+    );
   };
   return { fetch: fn, calls };
 }

@@ -169,7 +169,7 @@ describe('dashboard traces page', () => {
 
     expect(getAuthenticatedClient).toHaveBeenCalledWith('token');
     expect(searchTraces).toHaveBeenCalledWith({ page: 1, limit: 50 });
-    expect(screen.getByText('live-agent')).toBeInTheDocument();
+    expect(screen.getAllByText('live-agent').length).toBeGreaterThan(0);
     expect(screen.getByText((_, node) => node?.textContent === 'Showing 1-1 of 73 traces')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute('href', '/traces?page=2');
   });

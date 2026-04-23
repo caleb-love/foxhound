@@ -37,7 +37,7 @@
  *    the tracer and consulted at span-start time.
  */
 import type { SpanKind } from "@foxhound/types";
-import { Tracer, ActiveSpan } from "../tracer.js";
+import type { Tracer, ActiveSpan } from "../tracer.js";
 
 // ---------------------------------------------------------------------------
 // Per-tracer agent scope stack.

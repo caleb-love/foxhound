@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const regressions = [
-  { id: 'reg_1', title: 'Refund policy check regression', severity: 'critical', traceId: 'tr_1', diffPairId: 'tr_0', promptName: 'refund-policy', summary: 'Policy check step started failing after prompt v7', detectedAt: new Date(now - 90 * 60 * 1000).toISOString() },
+  { id: 'reg_1', title: 'Refund policy check regression', severity: 'critical', traceId: 'tr_1', diffPairId: 'tr_0', promptName: 'refund-policy', summary: 'Policy check step started failing after prompt v7', detectedAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { id: 'reg_2', title: 'Onboarding latency spike', severity: 'warning', traceId: 'tr_2', diffPairId: 'tr_1', summary: 'Onboarding flow 40% slower after model swap', detectedAt: new Date(now - 6 * 60 * 60 * 1000).toISOString() },
 ];
 

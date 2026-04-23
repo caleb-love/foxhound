@@ -7,7 +7,7 @@ import { createDefaultDashboardFilters } from '@/lib/stores/dashboard-filter-pre
 const now = Date.now();
 
 const channels = [
-  { channelId: 'ch_1', channelName: '#ops-alerts', kind: 'slack', status: 'healthy', summary: 'Primary alert channel', updatedAt: new Date(now - 60 * 60 * 1000).toISOString() },
+  { channelId: 'ch_1', channelName: '#ops-alerts', kind: 'slack', status: 'healthy', summary: 'Primary alert channel', updatedAt: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
   { channelId: 'ch_2', channelName: '#eng-alerts', kind: 'slack', status: 'warning', summary: 'Secondary channel, degraded', updatedAt: new Date(now - 6 * 60 * 60 * 1000).toISOString() },
 ];
 
