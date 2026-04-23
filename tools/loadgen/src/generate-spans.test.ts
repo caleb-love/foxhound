@@ -59,9 +59,7 @@ describe("loadgen · generate-spans", () => {
   it("generateTrace tags the resource with the orgId for cross-tenant-leak detection", () => {
     const rng = createRng(3);
     const resource = generateTrace({ rng, orgId: "org_xyz", spansPerTrace: 2 });
-    const orgTag = resource.resource.attributes.find(
-      (a) => a.key === "foxhound.loadgen.org_id"
-    );
+    const orgTag = resource.resource.attributes.find((a) => a.key === "foxhound.loadgen.org_id");
     expect(orgTag).toBeDefined();
     expect(orgTag!.value).toEqual({ stringValue: "org_xyz" });
   });
@@ -77,10 +75,7 @@ describe("loadgen · generate-spans", () => {
     expect(batch.resourceSpans).toHaveLength(3 * 2);
     // Spread of orgIds across the batch.
     const orgs = batch.resourceSpans
-      .map(
-        (r) =>
-          r.resource.attributes.find((a) => a.key === "foxhound.loadgen.org_id")?.value
-      )
+      .map((r) => r.resource.attributes.find((a) => a.key === "foxhound.loadgen.org_id")?.value)
       .map((v) => (v && "stringValue" in v ? v.stringValue : null));
     expect(orgs.filter((o) => o === "org_a")).toHaveLength(2);
     expect(orgs.filter((o) => o === "org_b")).toHaveLength(2);
@@ -112,8 +107,7 @@ describe("loadgen · generate-spans", () => {
     // Each resource has exactly one orgId tag; spans within it must share it.
     for (const r of batch.resourceSpans) {
       const orgTag = r.resource.attributes.find((a) => a.key === "foxhound.loadgen.org_id");
-      const orgVal =
-        orgTag && "stringValue" in orgTag.value ? orgTag.value.stringValue : null;
+      const orgVal = orgTag && "stringValue" in orgTag.value ? orgTag.value.stringValue : null;
       expect(orgVal === "org_one" || orgVal === "org_two").toBe(true);
     }
   });

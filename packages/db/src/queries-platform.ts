@@ -305,7 +305,9 @@ function buildBudgetConfigConditions(filters: BudgetConfigListFilters) {
   const conditions = [eq(agentConfigs.orgId, filters.orgId), isNotNull(agentConfigs.costBudgetUsd)];
 
   if (filters.searchQuery) {
-    conditions.push(sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+    conditions.push(
+      sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`,
+    );
   }
 
   if (filters.agentIds && filters.agentIds.length > 0) {
@@ -351,7 +353,9 @@ function buildSlaConfigConditions(filters: SlaConfigListFilters) {
   ];
 
   if (filters.searchQuery) {
-    conditions.push(sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+    conditions.push(
+      sql`lower(${agentConfigs.agentId}) like ${`%${filters.searchQuery.toLowerCase()}%`}`,
+    );
   }
 
   if (filters.agentIds && filters.agentIds.length > 0) {

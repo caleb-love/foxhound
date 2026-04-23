@@ -29,16 +29,20 @@ function mkBatch(orgId: string, spanOrgId = orgId): Uint8Array {
 
 describe("api · traces-proto · isProtobufRequest", () => {
   const fake = (headers: Record<string, string>) =>
-    ({ headers } as unknown as Parameters<typeof isProtobufRequest>[0]);
+    ({ headers }) as unknown as Parameters<typeof isProtobufRequest>[0];
 
   it("detects application/x-protobuf", () => {
     expect(isProtobufRequest(fake({ "content-type": "application/x-protobuf" }))).toBe(true);
   });
   it("detects application/vnd.google.protobuf", () => {
-    expect(isProtobufRequest(fake({ "content-type": "application/vnd.google.protobuf" }))).toBe(true);
+    expect(isProtobufRequest(fake({ "content-type": "application/vnd.google.protobuf" }))).toBe(
+      true,
+    );
   });
   it("tolerates a charset suffix on the content-type", () => {
-    expect(isProtobufRequest(fake({ "content-type": "application/x-protobuf; charset=binary" }))).toBe(true);
+    expect(
+      isProtobufRequest(fake({ "content-type": "application/x-protobuf; charset=binary" })),
+    ).toBe(true);
   });
   it("accepts the explicit x-foxhound-wire hint when content-type is missing", () => {
     expect(isProtobufRequest(fake({ "x-foxhound-wire": "protobuf" }))).toBe(true);

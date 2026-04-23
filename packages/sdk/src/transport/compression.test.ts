@@ -150,7 +150,9 @@ describe("sdk · compression · load-test gate (WP05)", () => {
       "\n# Tone\n\n" +
       "Be concise. Prefer bullet points over long prose. ".repeat(60) +
       "\n\n# Refusal policy\n\n" +
-      "If the user asks for something outside the corporate knowledge scope, politely decline and redirect. ".repeat(30)
+      "If the user asks for something outside the corporate knowledge scope, politely decline and redirect. ".repeat(
+        30,
+      )
     );
   }
 

@@ -56,9 +56,7 @@ const FIXTURE_SPAN: Span = {
     k_double: { doubleValue: 1.5 },
     k_bool: { boolValue: true },
   },
-  events: [
-    { timeUnixNano: "1700000000000010000", name: "ev1", attributes: {} },
-  ],
+  events: [{ timeUnixNano: "1700000000000010000", name: "ev1", attributes: {} }],
   agentId: "fixture_agent",
   sessionId: "fixture_session",
 };
@@ -79,7 +77,7 @@ async function ensureFixture(path: string, bytes: Uint8Array): Promise<Uint8Arra
     // eslint-disable-next-line no-console
     console.warn(
       `[backward-compat] cold fixture written: ${path} (${bytes.length} bytes). ` +
-        "This should only happen on the first run after a deliberate v-bump."
+        "This should only happen on the first run after a deliberate v-bump.",
     );
     return bytes;
   }

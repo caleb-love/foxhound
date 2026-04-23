@@ -112,11 +112,7 @@ export function withAgent<T>(
  * async context and do not want to touch Promises. Scope is popped in a
  * `try/finally`.
  */
-export function withAgentSync<T>(
-  tracer: Tracer,
-  agentId: string,
-  fn: () => T,
-): T {
+export function withAgentSync<T>(tracer: Tracer, agentId: string, fn: () => T): T {
   const stack = stackFor(tracer);
   stack.push(agentId);
   try {

@@ -51,7 +51,8 @@ function buildScoreConditions(filters: ScoreFilters) {
   if (filters.traceId) conditions.push(eq(scores.traceId, filters.traceId));
   if (filters.spanId) conditions.push(eq(scores.spanId, filters.spanId));
   if (filters.name) conditions.push(eq(scores.name, filters.name));
-  if (filters.source) conditions.push(eq(scores.source, filters.source as CreateScoreInput["source"]));
+  if (filters.source)
+    conditions.push(eq(scores.source, filters.source as CreateScoreInput["source"]));
   if (filters.minValue != null) conditions.push(gte(scores.value, filters.minValue));
   if (filters.maxValue != null) conditions.push(lte(scores.value, filters.maxValue));
   return conditions;
@@ -142,7 +143,9 @@ export async function listEvaluators(filters: EvaluatorListFilters) {
   const conditions = [eq(evaluators.orgId, filters.orgId)];
 
   if (filters.searchQuery) {
-    conditions.push(sql`lower(${evaluators.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`);
+    conditions.push(
+      sql`lower(${evaluators.name}) like ${`%${filters.searchQuery.toLowerCase()}%`}`,
+    );
   }
 
   if (filters.evaluatorIds && filters.evaluatorIds.length > 0) {

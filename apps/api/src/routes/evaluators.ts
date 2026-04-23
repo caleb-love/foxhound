@@ -122,9 +122,10 @@ export function evaluatorsRoutes(fastify: FastifyInstance): void {
         return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
       }
 
-      const evaluatorIds = typeof result.data.evaluatorId === "string"
-        ? [result.data.evaluatorId]
-        : result.data.evaluatorId;
+      const evaluatorIds =
+        typeof result.data.evaluatorId === "string"
+          ? [result.data.evaluatorId]
+          : result.data.evaluatorId;
 
       const rows = await listEvaluators({
         orgId: request.orgId,

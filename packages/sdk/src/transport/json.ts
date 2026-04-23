@@ -16,11 +16,7 @@
 import type { Trace } from "@foxhound/types";
 import type { SendResult, SpanTransport, TransportConfig, WireFormat } from "./index.js";
 import { compress, type CompressionKind } from "./compression.js";
-import {
-  enforceCapOnSpans,
-  MAX_COMPRESSED_CHUNK_BYTES,
-  type DropRecord,
-} from "./size-cap.js";
+import { enforceCapOnSpans, MAX_COMPRESSED_CHUNK_BYTES, type DropRecord } from "./size-cap.js";
 
 export class JsonTransport implements SpanTransport {
   readonly wireFormat: WireFormat = "json";
@@ -46,7 +42,8 @@ export class JsonTransport implements SpanTransport {
     // WP05: apply per-span cap before stringify. A 2 MB prompt becomes
     // metadata-only with a `foxhound.payload_dropped: true` marker.
     const cappedSpans = enforceCapOnSpans(trace.spans, this.orgId ?? "", this.onDrop);
-    const cappedTrace: Trace = cappedSpans === trace.spans ? trace : { ...trace, spans: cappedSpans };
+    const cappedTrace: Trace =
+      cappedSpans === trace.spans ? trace : { ...trace, spans: cappedSpans };
 
     const jsonString = JSON.stringify(cappedTrace);
     // Preserve the legacy string-body shape when no compression is in
@@ -80,9 +77,7 @@ export class JsonTransport implements SpanTransport {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
           "X-Foxhound-Wire": "json",
-          ...(actualCompression !== "none"
-            ? { "Content-Encoding": actualCompression }
-            : {}),
+          ...(actualCompression !== "none" ? { "Content-Encoding": actualCompression } : {}),
         },
         body,
         signal: ctrl.signal,

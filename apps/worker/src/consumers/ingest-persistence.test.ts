@@ -55,11 +55,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
 
   // ── WP15 · agent_id recovery ────────────────────────────────────────
 
-  const mkSpan = (opts: {
-    spanId: string;
-    parentSpanId?: string;
-    agentId?: string;
-  }): v1.Span => ({
+  const mkSpan = (opts: { spanId: string; parentSpanId?: string; agentId?: string }): v1.Span => ({
     orgId: "org_a",
     traceId: "t".repeat(32),
     spanId: opts.spanId,
@@ -143,10 +139,7 @@ describe("worker · ingest-persistence · groupBatchIntoTraces", () => {
       schemaVersion: "v1",
       batchId: 1,
       orgId: "org_a",
-      spans: [
-        mkSpan({ spanId: "root" }),
-        mkSpan({ spanId: "child", parentSpanId: "root" }),
-      ],
+      spans: [mkSpan({ spanId: "root" }), mkSpan({ spanId: "child", parentSpanId: "root" })],
     };
     const traces = groupBatchIntoTraces(batch);
     expect(traces[0].agentId).toBe("");
@@ -218,17 +211,13 @@ describe("worker · ingest-persistence · handleMessage", () => {
   });
 
   it("NACKS when a single span org_id mismatches (per-span cross-tenant guardrail)", async () => {
-    const res = await consumer.handleMessage(
-      makeMsg("org_me", mkBatch("org_me", "org_leaked")),
-    );
+    const res = await consumer.handleMessage(makeMsg("org_me", mkBatch("org_me", "org_leaked")));
     expect(res).toBe("nack");
     expect(persistCalls).toHaveLength(0);
   });
 
   it("NACKS a malformed payload", async () => {
-    const res = await consumer.handleMessage(
-      makeMsg("org_me", new Uint8Array([0xff, 0xff])),
-    );
+    const res = await consumer.handleMessage(makeMsg("org_me", new Uint8Array([0xff, 0xff])));
     expect(res).toBe("nack");
     expect(persistCalls).toHaveLength(0);
   });
@@ -238,9 +227,9 @@ describe("worker · ingest-persistence · handleMessage", () => {
       log: fakeLogger,
       persist: () => Promise.reject(new Error("db down")),
     });
-    await expect(
-      consumer.handleMessage(makeMsg("org_a", mkBatch("org_a"))),
-    ).rejects.toThrow("db down");
+    await expect(consumer.handleMessage(makeMsg("org_a", mkBatch("org_a")))).rejects.toThrow(
+      "db down",
+    );
   });
 });
 

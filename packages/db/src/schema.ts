@@ -542,11 +542,7 @@ export const pricingRows = pgTable(
       table.effectiveFrom,
     ),
     // Admin queries ("show me the current price for X") match this.
-    activeIdx: index("pricing_rows_active_idx").on(
-      table.model,
-      table.provider,
-      table.effectiveTo,
-    ),
+    activeIdx: index("pricing_rows_active_idx").on(table.model, table.provider, table.effectiveTo),
   }),
 );
 

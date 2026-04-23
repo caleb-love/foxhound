@@ -10,16 +10,9 @@
 import { describe, it, expect } from "vitest";
 import type { Trace } from "@foxhound/types";
 import { Tracer } from "../tracer.js";
-import {
-  withAgent,
-  withAgentSync,
-  startAgentSpan,
-  currentAgentScope,
-} from "./agent.js";
+import { withAgent, withAgentSync, startAgentSpan, currentAgentScope } from "./agent.js";
 
-function makeTracer(
-  agentId: string,
-): { tracer: Tracer; flushed: () => Trace | undefined } {
+function makeTracer(agentId: string): { tracer: Tracer; flushed: () => Trace | undefined } {
   let latest: Trace | undefined;
   const tracer = new Tracer({
     agentId,

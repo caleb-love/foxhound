@@ -24,7 +24,10 @@ function mkTrace(): Trace {
   };
 }
 
-function mockFetch(status = 202, headers: Record<string, string> = {}): {
+function mockFetch(
+  status = 202,
+  headers: Record<string, string> = {},
+): {
   fetch: typeof fetch;
   calls: Array<{ url: string; init: RequestInit }>;
 } {
@@ -54,7 +57,9 @@ describe("sdk · transport · factory", () => {
   });
   it("rejects unknown wire formats", () => {
     // @ts-expect-error intentional: testing runtime guard
-    expect(() => createTransport({ endpoint: "http://x", apiKey: "k", wireFormat: "xml" })).toThrow();
+    expect(() =>
+      createTransport({ endpoint: "http://x", apiKey: "k", wireFormat: "xml" }),
+    ).toThrow();
   });
 });
 
@@ -157,9 +162,7 @@ describe("sdk · transport · Protobuf vs JSON payload size", () => {
           "tool.name": "vector_search",
           "retry.count": i % 3,
         },
-        events: [
-          { timeMs: 1_700_000_000_000 + i, name: "request.start", attributes: { seq: i } },
-        ],
+        events: [{ timeMs: 1_700_000_000_000 + i, name: "request.start", attributes: { seq: i } }],
       })),
       startTimeMs: 1_700_000_000_000,
       endTimeMs: 1_700_000_000_100,

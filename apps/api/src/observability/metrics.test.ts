@@ -118,9 +118,27 @@ describe("observability · IngestMetrics", () => {
 
   it("tenant scoping: error counter rolls unknown orgs into 'other'", async () => {
     // Already at cap (3); a 4th org triggers the rollup.
-    metrics.recordRequest({ orgId: "org_a", durationSeconds: 0.01, payloadBytes: 1, statusCode: 202, spanCount: 0 });
-    metrics.recordRequest({ orgId: "org_b", durationSeconds: 0.01, payloadBytes: 1, statusCode: 202, spanCount: 0 });
-    metrics.recordRequest({ orgId: "org_c", durationSeconds: 0.01, payloadBytes: 1, statusCode: 202, spanCount: 0 });
+    metrics.recordRequest({
+      orgId: "org_a",
+      durationSeconds: 0.01,
+      payloadBytes: 1,
+      statusCode: 202,
+      spanCount: 0,
+    });
+    metrics.recordRequest({
+      orgId: "org_b",
+      durationSeconds: 0.01,
+      payloadBytes: 1,
+      statusCode: 202,
+      spanCount: 0,
+    });
+    metrics.recordRequest({
+      orgId: "org_c",
+      durationSeconds: 0.01,
+      payloadBytes: 1,
+      statusCode: 202,
+      spanCount: 0,
+    });
     metrics.recordError({ orgId: "org_d", reason: "bad_request" });
     const text = await registry.metrics();
     expect(text).toMatch(/foxhound_ingest_errors_total\{[^}]*org_id="other"/);

@@ -15,9 +15,8 @@ if (!REDIS) {
     it("requires Redis; set REDIS_QUEUE_URL to enable", () => {});
   });
 } else {
-  const { RedisStreamsProducer, RedisStreamsConsumer } = await import(
-    "../src/adapters/redis-streams.js"
-  );
+  const { RedisStreamsProducer, RedisStreamsConsumer } =
+    await import("../src/adapters/redis-streams.js");
   runContract({
     name: "redis-streams",
     settleMs: 500,

@@ -157,5 +157,10 @@ export function envStr(name, def) {
 
 export function envCsv(name, def) {
   const v = __ENV[name];
-  return v ? v.split(",").map((s) => s.trim()).filter(Boolean) : def;
+  return v
+    ? v
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : def;
 }

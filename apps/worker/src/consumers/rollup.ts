@@ -95,7 +95,9 @@ const DEFAULTS = {
 export class RollupConsumer {
   private consumer: QueueConsumer | undefined;
   private readonly accs = new Map<string, Accumulator>();
-  private readonly opts: Required<Omit<RollupConsumerOpts, "_consumer" | "_now" | "log" | "analytics" | "groupId">> &
+  private readonly opts: Required<
+    Omit<RollupConsumerOpts, "_consumer" | "_now" | "log" | "analytics" | "groupId">
+  > &
     Pick<RollupConsumerOpts, "_consumer" | "_now" | "log" | "analytics" | "groupId">;
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private closed = false;
@@ -299,19 +301,14 @@ export class RollupConsumer {
   }
 
   private async flushOldest(n: number): Promise<void> {
-    const sorted = Array.from(this.accs.values()).sort(
-      (a, b) => a.lastSeenMs - b.lastSeenMs,
-    );
+    const sorted = Array.from(this.accs.values()).sort((a, b) => a.lastSeenMs - b.lastSeenMs);
     const victims = sorted.slice(0, n);
     const now = this.now();
     const rows = victims.map((a) => aggregateTrace(a.trace, a.orgId, { nowMs: now }));
     try {
       await upsertConversationRows(this.opts.analytics, rows);
     } catch (err) {
-      this.opts.log.error(
-        { err, count: rows.length },
-        "rollup: pressure-relief upsert failed",
-      );
+      this.opts.log.error({ err, count: rows.length }, "rollup: pressure-relief upsert failed");
       return;
     }
     for (const a of victims) {

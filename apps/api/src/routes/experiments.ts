@@ -117,9 +117,10 @@ export function experimentsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const experimentIds = typeof result.data.experimentId === "string"
-      ? [result.data.experimentId]
-      : result.data.experimentId;
+    const experimentIds =
+      typeof result.data.experimentId === "string"
+        ? [result.data.experimentId]
+        : result.data.experimentId;
     const rows = await listExperiments({
       orgId: request.orgId,
       datasetId: result.data.datasetId,

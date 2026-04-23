@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { buildLocalReviewDemo } from '@foxhound/demo-domain';
+import { NextResponse } from "next/server";
+import { buildLocalReviewDemo } from "@foxhound/demo-domain";
 
 export async function GET() {
   const demo = buildLocalReviewDemo();

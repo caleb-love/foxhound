@@ -210,8 +210,20 @@ describe("GET /v1/prompts", () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toMatchObject({ data: [], pagination: { count: 12 } });
-    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 1, limit: 50, searchQuery: undefined, promptIds: undefined });
-    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 1, limit: 50, searchQuery: undefined, promptIds: undefined });
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: undefined,
+      promptIds: undefined,
+    });
+    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 1,
+      limit: 50,
+      searchQuery: undefined,
+      promptIds: undefined,
+    });
   });
 
   it("passes pagination params through to listPrompts", async () => {
@@ -227,8 +239,20 @@ describe("GET /v1/prompts", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 2, limit: 10, searchQuery: undefined, promptIds: undefined });
-    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({ orgId: "org_1", page: 2, limit: 10, searchQuery: undefined, promptIds: undefined });
+    expect(vi.mocked(db.listPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 2,
+      limit: 10,
+      searchQuery: undefined,
+      promptIds: undefined,
+    });
+    expect(vi.mocked(db.countPrompts)).toHaveBeenCalledWith({
+      orgId: "org_1",
+      page: 2,
+      limit: 10,
+      searchQuery: undefined,
+      promptIds: undefined,
+    });
     expect(JSON.parse(res.body).pagination).toMatchObject({ page: 2, limit: 10, count: 23 });
   });
 

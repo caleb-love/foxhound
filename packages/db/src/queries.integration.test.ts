@@ -1422,9 +1422,7 @@ describe.skipIf(!hasDatabase)("Database integration tests", () => {
       expect(budgetCount).toBe(2);
 
       expect(slaPage).toHaveLength(1);
-      expect(
-        slaPage[0]?.maxDurationMs !== null || slaPage[0]?.minSuccessRate !== null,
-      ).toBe(true);
+      expect(slaPage[0]?.maxDurationMs !== null || slaPage[0]?.minSuccessRate !== null).toBe(true);
       expect(slaCount).toBe(2);
     });
 

@@ -67,7 +67,8 @@ const SCENARIOS: Readonly<Record<string, Scenario>> = {
     targetRps: 1_000,
     durationSec: 300,
     k6Script: "tools/loadgen/scenarios/ingest-baseline.js",
-    passCriteria: "error_rate < 1%; p99 not regressed > 20% vs last green; achieved_rps >= 85% of last green",
+    passCriteria:
+      "error_rate < 1%; p99 not regressed > 20% vs last green; achieved_rps >= 85% of last green",
   },
   burst: {
     name: "burst",
@@ -135,7 +136,7 @@ async function runK6(
     spansPerTrace: number;
     seed: number;
     notes?: string;
-  }
+  },
 ): Promise<LoadReport> {
   const summaryPath = resolve(process.cwd(), "tools/loadgen/.k6-summary.json");
   await mkdir(dirname(summaryPath), { recursive: true });
@@ -204,7 +205,7 @@ async function runNode(
     tracesPerReq: number;
     seed: number;
     notes?: string;
-  }
+  },
 ): Promise<LoadReport> {
   const targetRps = meta.rpsOverride ?? scenario.targetRps;
   const durationSec = meta.durationOverride ?? scenario.durationSec;
@@ -231,7 +232,7 @@ async function runNode(
           orgIds: meta.orgIds,
           tracesPerOrg: Math.max(1, Math.floor(meta.tracesPerReq / meta.orgIds.length)),
           spansPerTrace: meta.spansPerTrace,
-        })
+        }),
       );
       const started = performance.now();
       try {
@@ -355,13 +356,11 @@ async function main(): Promise<void> {
   console.log(
     `[loadgen] scenario=${scenario.name} tool=${tool} target=${targetUrl}${endpoint} ` +
       `rps=${rpsOverride ?? scenario.targetRps} duration=${durationOverride ?? scenario.durationSec}s ` +
-      `orgIds=${orgIds.join(",")} seed=${seed}`
+      `orgIds=${orgIds.join(",")} seed=${seed}`,
   );
 
   const report =
-    tool === "k6"
-      ? await runK6(scenario, meta)
-      : await runNode(scenario, { ...meta, concurrency });
+    tool === "k6" ? await runK6(scenario, meta) : await runNode(scenario, { ...meta, concurrency });
 
   const outPath = flags["out"] ?? "tools/loadgen/last-run.json";
   await writeReport(report, resolve(process.cwd(), outPath));
@@ -373,7 +372,7 @@ async function main(): Promise<void> {
       `p95=${report.latency.p95Ms.toFixed(0)}ms ` +
       `p99=${report.latency.p99Ms.toFixed(0)}ms ` +
       `err=${(report.errorRate * 100).toFixed(2)}% ` +
-      `pass=${report.pass}`
+      `pass=${report.pass}`,
   );
   console.log(`[loadgen] report written → ${outPath}`);
 

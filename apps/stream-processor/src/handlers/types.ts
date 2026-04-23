@@ -19,11 +19,7 @@
  */
 
 import type { Span, Trace } from "@foxhound/types";
-import type {
-  AlertEvent,
-  AlertRule,
-  NotificationChannel,
-} from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 
 export interface SpanObservation {
   readonly orgId: string;
@@ -98,11 +94,7 @@ export interface EvalTriggerRule {
 
 export interface DataAccess {
   getAgentConfig(orgId: string, agentId: string): Promise<AgentConfigView | null>;
-  getBaseline(
-    orgId: string,
-    agentId: string,
-    agentVersion: string,
-  ): Promise<BaselineView | null>;
+  getBaseline(orgId: string, agentId: string, agentVersion: string): Promise<BaselineView | null>;
   listEvalTriggers(orgId: string): Promise<readonly EvalTriggerRule[]>;
   /**
    * Returns alert rules for the org, along with a channel map keyed by

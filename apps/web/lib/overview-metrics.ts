@@ -1,6 +1,6 @@
-import type { SparkPoint } from '@/components/charts/chart-types';
-import type { FleetMetricInput } from '@/components/overview/fleet-overview-v2';
-import type { FleetMetrics } from '@/lib/verdict-engine';
+import type { SparkPoint } from "@/components/charts/chart-types";
+import type { FleetMetricInput } from "@/components/overview/fleet-overview-v2";
+import type { FleetMetrics } from "@/lib/verdict-engine";
 
 function clamp(value: number, minimum = 0) {
   return Number.isFinite(value) ? Math.max(minimum, value) : minimum;
@@ -29,12 +29,17 @@ export function buildFleetMetricCards(
 ): FleetMetricInput[] {
   return [
     {
-      label: 'Fleet health',
+      label: "Fleet health",
       value: `${metrics.healthPercent}%`,
       numericValue: metrics.healthPercent,
       previousValue: metrics.previousHealthPercent,
       higherIsBetter: true,
-      tone: metrics.healthPercent >= 90 ? 'healthy' : metrics.healthPercent >= 75 ? 'warning' : 'critical',
+      tone:
+        metrics.healthPercent >= 90
+          ? "healthy"
+          : metrics.healthPercent >= 75
+            ? "warning"
+            : "critical",
       href: hrefs.traces,
       sparklineData: interpolateSeries(
         metrics.previousHealthPercent ?? metrics.healthPercent,
@@ -42,12 +47,12 @@ export function buildFleetMetricCards(
       ),
     },
     {
-      label: 'Critical regressions',
+      label: "Critical regressions",
       value: String(metrics.criticalRegressions),
       numericValue: metrics.criticalRegressions,
       previousValue: metrics.previousCriticalRegressions,
       higherIsBetter: false,
-      tone: metrics.criticalRegressions > 0 ? 'critical' : 'healthy',
+      tone: metrics.criticalRegressions > 0 ? "critical" : "healthy",
       href: hrefs.regressions,
       sparklineData: interpolateSeries(
         metrics.previousCriticalRegressions ?? metrics.criticalRegressions,
@@ -55,12 +60,12 @@ export function buildFleetMetricCards(
       ),
     },
     {
-      label: 'SLA risk',
+      label: "SLA risk",
       value: String(metrics.slaRisks),
       numericValue: metrics.slaRisks,
       previousValue: metrics.previousSlaRisks,
       higherIsBetter: false,
-      tone: metrics.slaRisks > 2 ? 'critical' : metrics.slaRisks > 0 ? 'warning' : 'healthy',
+      tone: metrics.slaRisks > 2 ? "critical" : metrics.slaRisks > 0 ? "warning" : "healthy",
       href: hrefs.slas,
       sparklineData: interpolateSeries(
         metrics.previousSlaRisks ?? metrics.slaRisks,
@@ -68,12 +73,17 @@ export function buildFleetMetricCards(
       ),
     },
     {
-      label: 'Overspend',
+      label: "Overspend",
       value: `$${metrics.budgetOverspendUsd}`,
       numericValue: metrics.budgetOverspendUsd,
       previousValue: metrics.previousBudgetOverspendUsd,
       higherIsBetter: false,
-      tone: metrics.budgetOverspendUsd > 500 ? 'critical' : metrics.budgetOverspendUsd > 0 ? 'warning' : 'healthy',
+      tone:
+        metrics.budgetOverspendUsd > 500
+          ? "critical"
+          : metrics.budgetOverspendUsd > 0
+            ? "warning"
+            : "healthy",
       href: hrefs.budgets,
       sparklineData: interpolateSeries(
         clamp(metrics.previousBudgetOverspendUsd ?? metrics.budgetOverspendUsd),

@@ -34,18 +34,8 @@ import {
   type QueueConsumer,
   type QueueMessage,
 } from "@foxhound/queue";
-import type {
-  Span,
-  SpanEvent,
-  SpanKind,
-  SpanStatus,
-  Trace,
-} from "@foxhound/types";
-import type {
-  SpanHandler,
-  SpanObservation,
-  TraceCloseObservation,
-} from "./handlers/types.js";
+import type { Span, SpanEvent, SpanKind, SpanStatus, Trace } from "@foxhound/types";
+import type { SpanHandler, SpanObservation, TraceCloseObservation } from "./handlers/types.js";
 
 export interface Logger {
   info: (obj: Record<string, unknown> | string, msg?: string) => void;

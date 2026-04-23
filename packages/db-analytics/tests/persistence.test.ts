@@ -129,7 +129,10 @@ describe("db-analytics · makeClickHousePersist", () => {
   it("WP16 computeSpanCost hook populates cost_usd_micros per span", async () => {
     const { client, inserts } = fakeClient();
     const computeSpanCost = vi
-      .fn<Parameters<NonNullable<Parameters<typeof makeClickHousePersist>[1]>["computeSpanCost"]>, Promise<number | null>>()
+      .fn<
+        Parameters<NonNullable<Parameters<typeof makeClickHousePersist>[1]>["computeSpanCost"]>,
+        Promise<number | null>
+      >()
       .mockResolvedValue(0.000_123_45);
     const persist = makeClickHousePersist(client, { computeSpanCost });
     await persist(undefined, mkTrace(), "org_a");

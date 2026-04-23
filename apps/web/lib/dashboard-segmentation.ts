@@ -55,7 +55,10 @@ export function filterByDashboardScope<T>(
 
     const timestampMs = resolver.timestampMs?.(item);
     if (timestampMs !== undefined) {
-      if (timestampMs < filters.dateRange.start.getTime() || timestampMs > filters.dateRange.end.getTime()) {
+      if (
+        timestampMs < filters.dateRange.start.getTime() ||
+        timestampMs > filters.dateRange.end.getTime()
+      ) {
         return false;
       }
     }

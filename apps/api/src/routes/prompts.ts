@@ -184,10 +184,7 @@ export function promptsRoutes(fastify: FastifyInstance): void {
         searchQuery: q,
         promptIds,
       };
-      const [rows, totalCount] = await Promise.all([
-        listPrompts(filters),
-        countPrompts(filters),
-      ]);
+      const [rows, totalCount] = await Promise.all([listPrompts(filters), countPrompts(filters)]);
       return reply.code(200).send(paginatedResponse(rows, page, limit, totalCount));
     },
   );

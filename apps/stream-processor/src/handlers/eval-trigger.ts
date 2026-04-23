@@ -91,11 +91,7 @@ export class EvalTriggerHandler implements SpanHandler {
     }
   }
 
-  private matches(
-    rule: EvalTriggerRule,
-    matchTag: string | null,
-    hasError: boolean,
-  ): boolean {
+  private matches(rule: EvalTriggerRule, matchTag: string | null, hasError: boolean): boolean {
     if (rule.matchTag !== null) {
       if (matchTag !== rule.matchTag) return false;
     }

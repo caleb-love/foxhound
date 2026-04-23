@@ -71,12 +71,9 @@ export interface SpanToProtoOpts {
   readonly traceAgentId?: string;
 }
 
-export function spanToProtoSpan(
-  span: FxSpan,
-  orgId: string,
-  opts: SpanToProtoOpts = {},
-): v1.Span {
-  const endNanos = span.endTimeMs !== undefined ? msToNanos(span.endTimeMs) : msToNanos(span.startTimeMs);
+export function spanToProtoSpan(span: FxSpan, orgId: string, opts: SpanToProtoOpts = {}): v1.Span {
+  const endNanos =
+    span.endTimeMs !== undefined ? msToNanos(span.endTimeMs) : msToNanos(span.startTimeMs);
   // Resolution order (WP15): span-level scope wins, falls back to the
   // trace-level default. Empty strings are treated as "not set" so the
   // wire carries proto3 field absence rather than a misleading empty id.

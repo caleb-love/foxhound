@@ -265,10 +265,9 @@ describe("db-analytics · listConversations SQL shape", () => {
   });
 
   it("cursor round-trips base64url-encoded (started_at, trace_id)", () => {
-    const enc = Buffer.from(
-      "2026-04-20 12:34:56.000000000|trace-abc",
-      "utf8",
-    ).toString("base64url");
+    const enc = Buffer.from("2026-04-20 12:34:56.000000000|trace-abc", "utf8").toString(
+      "base64url",
+    );
     const { cursorStart, cursorTraceId } = parseCursor(enc);
     expect(cursorStart).toBe("2026-04-20 12:34:56.000000000");
     expect(cursorTraceId).toBe("trace-abc");

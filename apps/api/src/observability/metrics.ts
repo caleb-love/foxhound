@@ -72,9 +72,7 @@ export interface CreateIngestMetricsOpts {
   collectNodeDefaults?: boolean;
 }
 
-export function createIngestMetrics(
-  opts: CreateIngestMetricsOpts = {},
-): IngestMetrics {
+export function createIngestMetrics(opts: CreateIngestMetricsOpts = {}): IngestMetrics {
   const registry = opts.registry ?? new promClient.Registry();
   const orgLabels = createBoundedLabels({
     maxLabels: opts.maxOrgLabels ?? 100,
@@ -155,7 +153,13 @@ export function createIngestMetrics(
   return {
     registry,
     orgLabels,
-    recordRequest({ orgId, durationSeconds, payloadBytes: bytes, statusCode, spanCount: _spanCount }) {
+    recordRequest({
+      orgId,
+      durationSeconds,
+      payloadBytes: bytes,
+      statusCode,
+      spanCount: _spanCount,
+    }) {
       const label = orgLabels.resolve(orgId);
       const statusLabel = String(statusCode);
       requestDuration.labels(statusLabel, label).observe(durationSeconds);

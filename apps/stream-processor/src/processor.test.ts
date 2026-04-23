@@ -66,7 +66,10 @@ function buildTraceBatch(input: {
         kind: v1.SpanKind.CLIENT,
         startTimeUnixNano: String(baseTime + BigInt(i) * 1_000_000n),
         endTimeUnixNano: String(baseTime + BigInt(i + 1) * 1_000_000n),
-        status: { code: s.status === "error" ? v1.StatusCode.ERROR : v1.StatusCode.OK, message: "" },
+        status: {
+          code: s.status === "error" ? v1.StatusCode.ERROR : v1.StatusCode.OK,
+          message: "",
+        },
         attributes: attrs,
         events: [],
       };

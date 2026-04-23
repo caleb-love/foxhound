@@ -15,13 +15,7 @@
  *     the active row is rejected.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import {
-  testDb,
-  hasDatabase,
-  runMigrations,
-  truncateAll,
-  closeConnection,
-} from "./test-setup.js";
+import { testDb, hasDatabase, runMigrations, truncateAll, closeConnection } from "./test-setup.js";
 
 // ---------------------------------------------------------------------------
 // Only run when a live Postgres is configured. Program execution is local-

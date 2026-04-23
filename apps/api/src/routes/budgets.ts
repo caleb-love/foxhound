@@ -89,9 +89,8 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const agentIds = typeof result.data.agentId === "string"
-      ? [result.data.agentId]
-      : result.data.agentId;
+    const agentIds =
+      typeof result.data.agentId === "string" ? [result.data.agentId] : result.data.agentId;
 
     const filters = {
       orgId: request.orgId,
@@ -105,9 +104,9 @@ export function budgetsRoutes(fastify: FastifyInstance): void {
       listBudgetConfigs(filters),
       countBudgetConfigs(filters),
     ]);
-    return reply.code(200).send(
-      paginatedResponse(budgetConfigs, result.data.page, result.data.limit, totalCount),
-    );
+    return reply
+      .code(200)
+      .send(paginatedResponse(budgetConfigs, result.data.page, result.data.limit, totalCount));
   });
 
   fastify.get("/v1/budgets/:agentId", async (request, reply) => {

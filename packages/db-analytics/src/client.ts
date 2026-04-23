@@ -34,7 +34,9 @@ export interface AnalyticsClientOptions {
 export interface AnalyticsClient {
   readonly raw: ClickHouseClient;
   readonly database: string;
-  readonly options: Required<Omit<AnalyticsClientOptions, "password">> & { readonly password: string };
+  readonly options: Required<Omit<AnalyticsClientOptions, "password">> & {
+    readonly password: string;
+  };
   close(): Promise<void>;
 }
 

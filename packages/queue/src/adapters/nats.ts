@@ -54,7 +54,11 @@ export interface NatsAdapterOpts {
   readonly stream: string;
 }
 
-async function ensureStream(jsm: JetStreamManager, stream: string, topics: readonly string[]): Promise<void> {
+async function ensureStream(
+  jsm: JetStreamManager,
+  stream: string,
+  topics: readonly string[],
+): Promise<void> {
   const subjects = topics.flatMap((t) =>
     Array.from({ length: PARTITIONS }, (_, i) => subjectFor(t, i)),
   );
@@ -132,7 +136,9 @@ export class NatsProducer implements QueueProducer {
   }
 }
 
-function buildNatsHeaders(entries: ReadonlyArray<readonly [string, string]>): ReturnType<typeof import("nats").headers> {
+function buildNatsHeaders(
+  entries: ReadonlyArray<readonly [string, string]>,
+): ReturnType<typeof import("nats").headers> {
   // Dynamic import of the helper so we don't import the function namespace
   // eagerly. The `nats` package exports `headers()` as a factory.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -239,9 +245,7 @@ export class NatsConsumer implements QueueConsumer {
       const pending = info.num_pending;
       if (pending === 0) return 0;
       const streamInfo = await jsm.streams.info(this.opts.stream);
-      const lastMs = streamInfo.state.last_ts
-        ? Date.parse(streamInfo.state.last_ts)
-        : Date.now();
+      const lastMs = streamInfo.state.last_ts ? Date.parse(streamInfo.state.last_ts) : Date.now();
       return Math.max(0, (Date.now() - lastMs) / 1000);
     } catch {
       return -1;

@@ -16,10 +16,10 @@ if (!BROKERS) {
     it("requires Redpanda/Kafka broker; set KAFKA_BROKERS to enable", () => {});
   });
 } else {
-  const { RedpandaProducer, RedpandaConsumer } = await import(
-    "../src/adapters/redpanda.js"
-  );
-  const brokers = BROKERS.split(",").map((s) => s.trim()).filter(Boolean);
+  const { RedpandaProducer, RedpandaConsumer } = await import("../src/adapters/redpanda.js");
+  const brokers = BROKERS.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   runContract({
     name: "redpanda",
     settleMs: 1500,

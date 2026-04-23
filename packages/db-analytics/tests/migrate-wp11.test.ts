@@ -36,7 +36,9 @@ describe("db-analytics · WP11 migrations landed", () => {
     const sql = await readMigration("003_hourly_rollups.sql");
     expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS hourly_rollups/);
     expect(sql).toMatch(/ENGINE\s*=\s*SummingMergeTree/);
-    expect(sql).toMatch(/CREATE MATERIALIZED VIEW IF NOT EXISTS hourly_rollups_mv TO hourly_rollups AS/);
+    expect(sql).toMatch(
+      /CREATE MATERIALIZED VIEW IF NOT EXISTS hourly_rollups_mv TO hourly_rollups AS/,
+    );
     expect(sql).toMatch(/ORDER BY\s*\(org_id,\s*agent_id,\s*hour\)/);
     expect(sql).toMatch(/quantileState\(0\.95\)/);
   });

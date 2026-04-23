@@ -96,9 +96,8 @@ export function slasRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: "Bad Request", issues: result.error.issues });
     }
 
-    const agentIds = typeof result.data.agentId === "string"
-      ? [result.data.agentId]
-      : result.data.agentId;
+    const agentIds =
+      typeof result.data.agentId === "string" ? [result.data.agentId] : result.data.agentId;
 
     const filters = {
       orgId: request.orgId,
@@ -112,9 +111,9 @@ export function slasRoutes(fastify: FastifyInstance): void {
       listSlaConfigs(filters),
       countSlaConfigs(filters),
     ]);
-    return reply.code(200).send(
-      paginatedResponse(slaConfigs, result.data.page, result.data.limit, totalCount),
-    );
+    return reply
+      .code(200)
+      .send(paginatedResponse(slaConfigs, result.data.page, result.data.limit, totalCount));
   });
 
   fastify.get("/v1/slas/:agentId", async (request, reply) => {

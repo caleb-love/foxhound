@@ -89,9 +89,7 @@ export async function listTraces(
   if (opts.status) filters.push("status = {status:String}");
   if (opts.nameContains) filters.push("positionCaseInsensitive(name, {nameContains:String}) > 0");
   if (hasCursor) {
-    filters.push(
-      "(start_time, trace_id) < ({cursorStart:DateTime64(9)}, {cursorTraceId:String})",
-    );
+    filters.push("(start_time, trace_id) < ({cursorStart:DateTime64(9)}, {cursorTraceId:String})");
   }
 
   const params: Record<string, unknown> = {
@@ -145,9 +143,10 @@ function makeCursor(startTime: string, traceId: string): string {
   return Buffer.from(`${startTime}|${traceId}`, "utf8").toString("base64url");
 }
 
-export function parseCursor(
-  cursor: string | undefined,
-): { cursorStart: string | null; cursorTraceId: string | null } {
+export function parseCursor(cursor: string | undefined): {
+  cursorStart: string | null;
+  cursorTraceId: string | null;
+} {
   if (!cursor) return { cursorStart: null, cursorTraceId: null };
   try {
     const decoded = Buffer.from(cursor, "base64url").toString("utf8");
@@ -170,9 +169,10 @@ function toCHTs(d: Date): string {
 // throw.
 // ---------------------------------------------------------------------------
 
-export function __buildListTracesSqlForTest(
-  opts: QueryTracesFilter,
-): { sql: string; params: Record<string, unknown> } {
+export function __buildListTracesSqlForTest(opts: QueryTracesFilter): {
+  sql: string;
+  params: Record<string, unknown>;
+} {
   // Test helper: mirrors the filter assembly inside `listTraces()` without
   // hitting ClickHouse AND without requiring a real `ScopedOrg`. The
   // tenant-guardrail test exercises `assertScoped` / `scope()` directly.

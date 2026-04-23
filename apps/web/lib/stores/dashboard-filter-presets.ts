@@ -47,7 +47,8 @@ export function getMatchingDatePresetLabel(
 ) {
   const durationMs = dateRange.end.getTime() - dateRange.start.getTime();
   return (
-    presets.find((preset) => Math.abs(durationMs - preset.durationHours * 60 * 60 * 1000) <= toleranceMs)
-      ?.label ?? null
+    presets.find(
+      (preset) => Math.abs(durationMs - preset.durationHours * 60 * 60 * 1000) <= toleranceMs,
+    )?.label ?? null
   );
 }

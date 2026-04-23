@@ -26,11 +26,7 @@ import { v1 } from "@foxhound/proto";
 import type { SendResult, SpanTransport, TransportConfig, WireFormat } from "./index.js";
 import { traceToTraceBatch } from "./map.js";
 import { compress, type CompressionKind } from "./compression.js";
-import {
-  enforceCapOnSpans,
-  MAX_COMPRESSED_CHUNK_BYTES,
-  type DropRecord,
-} from "./size-cap.js";
+import { enforceCapOnSpans, MAX_COMPRESSED_CHUNK_BYTES, type DropRecord } from "./size-cap.js";
 
 export class ProtobufTransport implements SpanTransport {
   readonly wireFormat: WireFormat = "protobuf";
@@ -56,7 +52,8 @@ export class ProtobufTransport implements SpanTransport {
     // WP05 step 1: apply per-span payload cap. Mutates (produces a new
     // trace shape) only when at least one span was trimmed.
     const cappedSpans = enforceCapOnSpans(trace.spans, this.orgId ?? "", this.onDrop);
-    const cappedTrace: Trace = cappedSpans === trace.spans ? trace : { ...trace, spans: cappedSpans };
+    const cappedTrace: Trace =
+      cappedSpans === trace.spans ? trace : { ...trace, spans: cappedSpans };
 
     const batch = traceToTraceBatch(cappedTrace, {
       ...(this.orgId !== undefined ? { orgId: this.orgId } : {}),
@@ -93,9 +90,7 @@ export class ProtobufTransport implements SpanTransport {
           authorization: `Bearer ${this.apiKey}`,
           "x-foxhound-wire": "protobuf",
           "x-foxhound-schema": "v1",
-          ...(actualCompression !== "none"
-            ? { "content-encoding": actualCompression }
-            : {}),
+          ...(actualCompression !== "none" ? { "content-encoding": actualCompression } : {}),
         },
         body: bytes,
         signal: ctrl.signal,

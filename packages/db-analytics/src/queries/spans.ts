@@ -103,8 +103,7 @@ function extractTokenCount(
   attrs: Record<string, string | number | boolean | null>,
   which: "input" | "output",
 ): number | undefined {
-  const key =
-    which === "input" ? "gen_ai.usage.input_tokens" : "gen_ai.usage.output_tokens";
+  const key = which === "input" ? "gen_ai.usage.input_tokens" : "gen_ai.usage.output_tokens";
   const v = attrs[key];
   if (typeof v === "number" && Number.isFinite(v)) return Math.floor(v);
   return undefined;
@@ -165,10 +164,7 @@ export interface CountSpansOpts {
   readonly to: Date;
 }
 
-export async function countSpans(
-  client: AnalyticsClient,
-  opts: CountSpansOpts,
-): Promise<number> {
+export async function countSpans(client: AnalyticsClient, opts: CountSpansOpts): Promise<number> {
   assertScoped(opts.org);
   const result = await client.raw.query({
     query: `

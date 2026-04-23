@@ -208,18 +208,24 @@ describe("worker · RollupConsumer · handleMessage", () => {
 
   it("partitions state by (org_id, trace_id); two orgs keep separate accumulators", async () => {
     await rc.handleMessage(
-      mkMsg("org_a", mkBatchBytes({
-        orgId: "org_a",
-        traceId: "t-shared",
-        spans: [{ id: "s", start: 1, end: 2 }],
-      })),
+      mkMsg(
+        "org_a",
+        mkBatchBytes({
+          orgId: "org_a",
+          traceId: "t-shared",
+          spans: [{ id: "s", start: 1, end: 2 }],
+        }),
+      ),
     );
     await rc.handleMessage(
-      mkMsg("org_b", mkBatchBytes({
-        orgId: "org_b",
-        traceId: "t-shared", // intentionally same trace id across orgs
-        spans: [{ id: "s", start: 1, end: 2 }],
-      })),
+      mkMsg(
+        "org_b",
+        mkBatchBytes({
+          orgId: "org_b",
+          traceId: "t-shared", // intentionally same trace id across orgs
+          spans: [{ id: "s", start: 1, end: 2 }],
+        }),
+      ),
     );
     expect(rc.openCount()).toBe(2);
   });

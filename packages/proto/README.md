@@ -75,8 +75,8 @@ const span: v1.Span = {
   events: [],
 };
 
-const bytes = v1.SpanCodec.encode(span);  // Uint8Array, ready for HTTP body
-const back = v1.SpanCodec.decode(bytes);  // typed Span
+const bytes = v1.SpanCodec.encode(span); // Uint8Array, ready for HTTP body
+const back = v1.SpanCodec.decode(bytes); // typed Span
 ```
 
 The `WireCodec<T>` interface is intentionally minimal so swapping protobufjs

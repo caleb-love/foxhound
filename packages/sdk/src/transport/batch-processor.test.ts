@@ -29,10 +29,10 @@ function mkTrace(id: string): Trace {
   };
 }
 
-function fakeTransport(opts: {
-  delayMs?: number;
-  failOn?: (trace: Trace) => boolean;
-}): { transport: SpanTransport; sent: Trace[] } {
+function fakeTransport(opts: { delayMs?: number; failOn?: (trace: Trace) => boolean }): {
+  transport: SpanTransport;
+  sent: Trace[];
+} {
   const sent: Trace[] = [];
   const transport: SpanTransport = {
     wireFormat: "protobuf",

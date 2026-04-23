@@ -71,11 +71,7 @@ describe("pricing-cache · WP16 time-series integration", () => {
       createdBy: "seed",
     });
 
-    const result = await lookupPricing(
-      "org_a",
-      "openai/gpt-4o",
-      new Date("2026-03-15T12:00:00Z"),
-    );
+    const result = await lookupPricing("org_a", "openai/gpt-4o", new Date("2026-03-15T12:00:00Z"));
 
     expect(result).toEqual({
       inputCostPerToken: 0.0025,
@@ -86,11 +82,7 @@ describe("pricing-cache · WP16 time-series integration", () => {
   it("falls back to the committed JSON when the time-series has no row", async () => {
     mockedGetEffectivePrice.mockResolvedValue(null);
 
-    const result = await lookupPricing(
-      "org_a",
-      "gpt-4o",
-      new Date("2020-01-01T00:00:00Z"),
-    );
+    const result = await lookupPricing("org_a", "gpt-4o", new Date("2020-01-01T00:00:00Z"));
 
     // The default JSON has gpt-4o at input=0.0000025, output=0.00001.
     expect(result).toEqual({
@@ -107,11 +99,7 @@ describe("pricing-cache · WP16 time-series integration", () => {
     // prefix), so the final result is `null` — the contract we assert
     // is (a) no thrown error, (b) graceful null, not a 500 to the
     // caller.
-    const result = await lookupPricing(
-      "org_a",
-      "openai/gpt-4o",
-      new Date("2026-03-15T12:00:00Z"),
-    );
+    const result = await lookupPricing("org_a", "openai/gpt-4o", new Date("2026-03-15T12:00:00Z"));
 
     expect(result).toBeNull();
   });
@@ -123,11 +111,7 @@ describe("pricing-cache · WP16 time-series integration", () => {
     // goes straight to the JSON fallback, which has the entry. This
     // demonstrates the no-provider path still produces costs even
     // during a Postgres outage.
-    const result = await lookupPricing(
-      "org_a",
-      "gpt-4o",
-      new Date("2026-03-15T12:00:00Z"),
-    );
+    const result = await lookupPricing("org_a", "gpt-4o", new Date("2026-03-15T12:00:00Z"));
 
     expect(result).toEqual({
       inputCostPerToken: 0.0000025,
@@ -154,11 +138,7 @@ describe("pricing-cache · WP16 time-series integration", () => {
     // "gpt-4o" (no slash) cannot be disambiguated to a provider, so the
     // cache goes straight to the JSON fallback without calling
     // getEffectivePrice at all.
-    const result = await lookupPricing(
-      "org_a",
-      "gpt-4o",
-      new Date("2026-03-15T12:00:00Z"),
-    );
+    const result = await lookupPricing("org_a", "gpt-4o", new Date("2026-03-15T12:00:00Z"));
 
     expect(mockedGetEffectivePrice).not.toHaveBeenCalled();
     expect(result).not.toBeNull();

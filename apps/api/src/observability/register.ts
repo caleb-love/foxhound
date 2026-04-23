@@ -61,7 +61,9 @@ export function registerMetrics(
     opts.metrics ??
     createIngestMetrics({
       ...(opts.maxOrgLabels !== undefined ? { maxOrgLabels: opts.maxOrgLabels } : {}),
-      ...(opts.collectNodeDefaults !== undefined ? { collectNodeDefaults: opts.collectNodeDefaults } : {}),
+      ...(opts.collectNodeDefaults !== undefined
+        ? { collectNodeDefaults: opts.collectNodeDefaults }
+        : {}),
     });
 
   // WP05: decorate the Fastify instance so route handlers can record

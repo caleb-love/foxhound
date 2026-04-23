@@ -27,7 +27,10 @@ describe("observability · registerMetrics · Fastify integration", () => {
     app.post("/ingest", async (request, reply) => {
       // Simulate a parsed payload with N spans.
       const bodyLenHeader = request.headers["content-length"];
-      const n = typeof bodyLenHeader === "string" ? Math.max(0, Math.min(20, Number(bodyLenHeader) % 20)) : 1;
+      const n =
+        typeof bodyLenHeader === "string"
+          ? Math.max(0, Math.min(20, Number(bodyLenHeader) % 20))
+          : 1;
       setIngestSpanCount(request, n);
       return reply.code(202).send({ ok: true });
     });
@@ -64,18 +67,18 @@ describe("observability · registerMetrics · Fastify integration", () => {
     expect(res.body).toMatch(
       /foxhound_ingest_request_duration_seconds_count\{[^}]*status_code="202"[^}]*org_id="org_a"[^}]*\} 1/,
     );
-    expect(res.body).toMatch(
-      /foxhound_ingest_requests_total\{status_code="202"\} 1/,
-    );
-    expect(res.body).toMatch(
-      /foxhound_ingest_per_org_requests_total\{org_id="org_a"\} 1/,
-    );
+    expect(res.body).toMatch(/foxhound_ingest_requests_total\{status_code="202"\} 1/);
+    expect(res.body).toMatch(/foxhound_ingest_per_org_requests_total\{org_id="org_a"\} 1/);
   });
 
   it("does NOT record metrics for routes outside the configured ingest set", async () => {
     // /fail-415 was declared in beforeEach; its responses must not appear
     // in any ingest histogram / counter because it is not in ingestRouteUrls.
-    await app.inject({ method: "POST", url: "/fail-415", headers: { "x-test-org-id": "org_scope" } });
+    await app.inject({
+      method: "POST",
+      url: "/fail-415",
+      headers: { "x-test-org-id": "org_scope" },
+    });
     const res = await app.inject({ method: "GET", url: "/metrics", headers: AUTH_HEADER });
     expect(res.body).not.toMatch(/status_code="415"/);
     expect(res.body).not.toMatch(/org_id="org_scope"/);

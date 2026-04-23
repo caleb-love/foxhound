@@ -19,7 +19,8 @@
  */
 import { Redis as RedisClient } from "ioredis";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const IORedis: typeof RedisClient = require("ioredis").default ?? require("ioredis").Redis ?? require("ioredis");
+const IORedis: typeof RedisClient =
+  require("ioredis").default ?? require("ioredis").Redis ?? require("ioredis");
 import {
   type AdapterName,
   type ProduceRecord,
@@ -79,7 +80,10 @@ function parseFields(fields: string[]): {
     const name = fields[i]!;
     const raw = fields[i + 1];
     if (name === "key") key = String(raw ?? "");
-    else if (name === "value") value = Buffer.isBuffer(raw) ? new Uint8Array(raw) : new TextEncoder().encode(String(raw ?? ""));
+    else if (name === "value")
+      value = Buffer.isBuffer(raw)
+        ? new Uint8Array(raw)
+        : new TextEncoder().encode(String(raw ?? ""));
     else if (name.startsWith("h.")) headers[name.slice(2)] = String(raw ?? "");
   }
   return { key, value, headers };
@@ -169,8 +173,9 @@ export class RedisStreamsConsumer implements QueueConsumer {
         ];
         let res: unknown;
         try {
-          res = await (this.client as unknown as { xreadgroup: (...args: unknown[]) => Promise<unknown> })
-            .xreadgroup(...readArgs);
+          res = await (
+            this.client as unknown as { xreadgroup: (...args: unknown[]) => Promise<unknown> }
+          ).xreadgroup(...readArgs);
         } catch {
           if (stopped) return;
           await new Promise((r) => setTimeout(r, 100));

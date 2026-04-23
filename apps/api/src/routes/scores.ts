@@ -1,7 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { createScore, queryScores, countScores, getScoresByTraceId, deleteScore, getTrace } from "@foxhound/db";
+import {
+  createScore,
+  queryScores,
+  countScores,
+  getScoresByTraceId,
+  deleteScore,
+  getTrace,
+} from "@foxhound/db";
 import { trackPendoEvent } from "../lib/pendo.js";
 import { parseParams, IdParamSchema } from "../lib/params.js";
 import { paginatedResponse } from "../lib/pagination.js";
@@ -100,9 +107,9 @@ export function scoresRoutes(fastify: FastifyInstance): void {
 
     const [rows, totalCount] = await Promise.all([queryScores(filters), countScores(filters)]);
 
-    return reply.code(200).send(
-      paginatedResponse(rows, result.data.page, result.data.limit, totalCount),
-    );
+    return reply
+      .code(200)
+      .send(paginatedResponse(rows, result.data.page, result.data.limit, totalCount));
   });
 
   /**

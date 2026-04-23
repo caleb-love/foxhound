@@ -33,13 +33,13 @@ function shapeFromType(t: protobuf.Type): MessageShape {
     const shape: FieldShape = {
       id: field.id,
       type: field.type,
-      rule: (field.repeated
+      rule: field.repeated
         ? "repeated"
         : field.map
           ? "map"
           : field.optional
             ? "optional"
-            : "singular"),
+            : "singular",
       ...(anyField.keyType ? { keyType: anyField.keyType } : {}),
     };
     out[name] = shape;
@@ -57,7 +57,7 @@ describe("foxhound.v1 · schema parity (.proto ↔ descriptor.ts)", () => {
         resolve(PROTO_ROOT, "trace_batch.proto"),
         resolve(PROTO_ROOT, "pricing.proto"),
       ],
-      { keepCase: false } // protobufjs camelCases field names by default
+      { keepCase: false }, // protobufjs camelCases field names by default
     );
 
     const fromProto = {

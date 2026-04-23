@@ -31,7 +31,11 @@ const DESCRIPTOR = {
           options: { go_package: "foxhoundpb/v1" },
           nested: {
             AttributeValue: {
-              oneofs: { value: { oneof: ["stringValue", "intValue", "doubleValue", "boolValue", "bytesValue"] } },
+              oneofs: {
+                value: {
+                  oneof: ["stringValue", "intValue", "doubleValue", "boolValue", "bytesValue"],
+                },
+              },
               fields: {
                 stringValue: { type: "string", id: 1 },
                 intValue: { type: "int64", id: 2 },
