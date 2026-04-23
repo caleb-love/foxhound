@@ -56,9 +56,13 @@ describe("sdk · transport · factory", () => {
     expect(t).toBeInstanceOf(JsonTransport);
   });
   it("rejects unknown wire formats", () => {
-    // @ts-expect-error intentional: testing runtime guard
     expect(() =>
-      createTransport({ endpoint: "http://x", apiKey: "k", wireFormat: "xml" }),
+      createTransport({
+        endpoint: "http://x",
+        apiKey: "k",
+        // @ts-expect-error intentional: testing runtime guard
+        wireFormat: "xml",
+      }),
     ).toThrow();
   });
 });
