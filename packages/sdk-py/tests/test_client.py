@@ -45,6 +45,7 @@ class TestOnBudgetExceededAsync:
             api_key="fox_test",
             endpoint="https://api.example.com",
             on_budget_exceeded=callback,
+            max_queue_size=0,
         )
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=response):
@@ -71,6 +72,7 @@ class TestOnBudgetExceededAsync:
             api_key="fox_test",
             endpoint="https://api.example.com",
             on_budget_exceeded=callback,
+            max_queue_size=0,
         )
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=response):
@@ -93,6 +95,7 @@ class TestOnBudgetExceededAsync:
             api_key="fox_test",
             endpoint="https://api.example.com",
             on_budget_exceeded=callback,
+            max_queue_size=0,
         )
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=response):
@@ -117,6 +120,7 @@ class TestOnBudgetExceededAsync:
         client = FoxhoundClient(
             api_key="fox_test",
             endpoint="https://api.example.com",
+            max_queue_size=0,
         )
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=response):
@@ -141,6 +145,7 @@ class TestOnBudgetExceededAsync:
             api_key="fox_test",
             endpoint="https://api.example.com",
             on_budget_exceeded=callback,
+            max_queue_size=0,
         )
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=response):
@@ -180,6 +185,7 @@ class TestOnBudgetExceededSync:
             api_key="fox_test",
             endpoint="https://api.example.com",
             on_budget_exceeded=callback,
+            max_queue_size=0,
         )
 
         with patch("httpx.Client.post", return_value=response):

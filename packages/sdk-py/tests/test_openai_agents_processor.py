@@ -623,7 +623,7 @@ async def test_from_client_creates_processor():
 
     with respx.mock:
         respx.post("https://api.fox.ai/v1/traces").mock(return_value=httpx.Response(202))
-        fox = FoxhoundClient(api_key="fox_test", endpoint="https://api.fox.ai")
+        fox = FoxhoundClient(api_key="fox_test", endpoint="https://api.fox.ai", max_queue_size=0)
         processor = FoxOpenAIAgentsProcessor.from_client(fox, agent_id="test-agent")
         assert processor.trace_id
         data = _make_span_data("agent", name="TestAgent", tools=None, handoffs=None, output_type=None)

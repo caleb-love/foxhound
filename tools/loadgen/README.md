@@ -39,6 +39,10 @@ pnpm load:scale -- --scenario=burst
 
 # Sustained (30 min, 35k RPS) — the program's target. Expected to fail today.
 pnpm load:scale -- --scenario=sustained
+
+# SDK-side WP06 caller-thread overhead gate.
+pnpm --filter @foxhound-ai/sdk build
+pnpm --filter @foxhound/loadgen sdk-saturation
 ```
 
 Each run writes `tools/loadgen/last-run.json` and appends a row to

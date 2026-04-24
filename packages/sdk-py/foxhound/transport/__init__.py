@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any, Literal, Optional, Protocol
 
 WireFormat = Literal["protobuf", "json"]
+BackpressurePolicy = Literal["block", "drop-oldest", "drop-newest"]
 
 
 class TransportNotAvailableError(RuntimeError):
@@ -86,9 +87,13 @@ def create_transport(
     raise ValueError(f"unknown wire_format: {wire_format!r}")
 
 
+from .batch_processor import BatchSpanProcessor
+
 __all__ = [
     "SpanTransport",
     "WireFormat",
+    "BackpressurePolicy",
     "TransportNotAvailableError",
+    "BatchSpanProcessor",
     "create_transport",
 ]

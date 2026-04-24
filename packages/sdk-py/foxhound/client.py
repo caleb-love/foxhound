@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import threading
 import time
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, Literal, TypedDict
 
 import httpx
 
 from .tracer import Tracer
+from .transport.batch_processor import BackpressurePolicy, BatchSpanProcessor
 
 
 class BudgetExceededInfo(TypedDict):
@@ -776,6 +778,25 @@ class PromptsNamespace:
             self._cache.pop(self._cache_key(name, resolved_label), None)
 
 
+class _ClientTraceTransport:
+    wire_format = "json"
+
+    def __init__(self, client: "FoxhoundClient") -> None:
+        self._client = client
+
+    async def send(self, payload: dict[str, Any]) -> None:
+        self.send_sync(payload)
+
+    def send_sync(self, payload: dict[str, Any]) -> None:
+        self._client._send_trace_sync(payload)
+
+    async def close(self) -> None:
+        return None
+
+    def close_sync(self) -> None:
+        return None
+
+
 class FoxhoundClient:
     """
     Client for the Foxhound observability platform.
@@ -806,11 +827,27 @@ class FoxhoundClient:
         endpoint: str,
         timeout: float = 10.0,
         on_budget_exceeded: Callable[[BudgetExceededInfo], None] | None = None,
+        max_queue_size: int = 2048,
+        max_export_batch_size: int = 512,
+        export_schedule_delay_s: float = 2.0,
+        backpressure_policy: BackpressurePolicy = "drop-oldest",
+        on_queue_drop: Callable[[dict[str, Any], Literal["queue-full"]], None] | None = None,
     ) -> None:
         self._api_key = api_key
         self._endpoint = endpoint.rstrip("/")
         self._timeout = timeout
         self._on_budget_exceeded = on_budget_exceeded
+        self._batch_processor: BatchSpanProcessor | None = None
+        if max_queue_size > 0:
+            self._batch_processor = BatchSpanProcessor(
+                transport=_ClientTraceTransport(self),
+                max_queue_size=max_queue_size,
+                max_export_batch_size=max_export_batch_size,
+                schedule_delay_s=export_schedule_delay_s,
+                backpressure_policy=backpressure_policy,
+                on_drop=on_queue_drop,
+            )
+            atexit.register(self.shutdown)
 
         # Namespaced sub-clients
         self.scores = ScoresNamespace(self._endpoint, self._api_key, self._timeout)
@@ -876,6 +913,10 @@ class FoxhoundClient:
     # ------------------------------------------------------------------
 
     async def _send_trace(self, payload: dict[str, Any]) -> None:
+        if self._batch_processor is not None:
+            self._batch_processor.enqueue(payload)
+            return
+
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(
                 f"{self._endpoint}/v1/traces",
@@ -908,6 +949,16 @@ class FoxhoundClient:
                 f"{response.status_code} {response.text}"
             )
         self._check_budget_headers(response)
+
+    def flush(self, timeout_s: float = 5.0) -> bool:
+        if self._batch_processor is None:
+            return True
+        return self._batch_processor.flush(timeout_s=timeout_s)
+
+    def shutdown(self, timeout_s: float = 5.0) -> bool:
+        if self._batch_processor is None:
+            return True
+        return self._batch_processor.shutdown(timeout_s=timeout_s)
 
     def _check_budget_headers(self, response: httpx.Response) -> None:
         """Invoke the budget-exceeded callback when the server signals an overage."""

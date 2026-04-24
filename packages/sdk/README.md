@@ -32,11 +32,12 @@ const fox = new FoxhoundClient({
   endpoint: "http://localhost:3000",
 });
 
-const trace = fox.trace({ agentId: "support-agent" });
+const trace = fox.startTrace({ agentId: "support-agent" });
 const span = trace.startSpan({ name: "tool:search", kind: "tool_call" });
 span.setAttribute("query", "refund policy");
 span.end();
 await trace.flush();
+await fox.shutdown();
 ```
 
 ## Core capabilities
@@ -44,7 +45,7 @@ await trace.flush();
 ### Tracing
 
 ```ts
-const trace = fox.trace({
+const trace = fox.startTrace({
   agentId: "support-agent",
   sessionId: "session-123",
   metadata: { workflow: "refunds" },
@@ -58,7 +59,10 @@ llmSpan.setAttribute("cost", 0.0142);
 llmSpan.end();
 
 await trace.flush();
+await fox.shutdown();
 ```
+
+`trace.flush()` queues the completed trace for background export. Call `fox.shutdown()` during process shutdown when you need to drain queued traces before exit.
 
 ### Prompt management
 
@@ -172,6 +176,13 @@ Use those headers when one agent invokes another so traces remain linked across 
 
 - `apiKey`: your Foxhound API key
 - `endpoint`: the Foxhound API base URL
+
+Batch export options:
+
+- `maxQueueSize`: in-memory export queue size, default `2048`; set `0` to disable background export in tests
+- `maxExportBatchSize`: traces per export tick, default `512`
+- `exportScheduleDelayMs`: export pump interval, default `2000`
+- `backpressurePolicy`: `drop-oldest` by default, also supports `drop-newest` and `block`
 
 Typical local endpoint:
 

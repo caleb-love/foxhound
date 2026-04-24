@@ -23,6 +23,7 @@ fox = FoxhoundClient(api_key="fox_...", endpoint="https://your-foxhound-instance
 handler = FoxCallbackHandler.from_client(fox, agent_id="my-langgraph-agent")
 result = await graph.ainvoke(state, config={"callbacks": [handler]})
 await handler.flush()
+fox.shutdown()
 ```
 
 ### CrewAI
@@ -52,6 +53,7 @@ tracer.flush_sync()
 # Async
 result = await tracer.kickoff_async(crew, inputs={"topic": "AI safety"})
 await tracer.flush()
+fox.shutdown()
 ```
 
 ### Manual tracing
@@ -65,7 +67,10 @@ async with fox.trace(agent_id="my-agent") as tracer:
     span = tracer.start_span(name="tool:search", kind="tool_call")
     span.set_attribute("query", "user question")
     span.end()
+fox.shutdown()
 ```
+
+`tracer.flush()` and the tracing context manager queue completed traces for background export. Call `fox.shutdown()` when you need to drain queued traces before process exit. An `atexit` hook also attempts a bounded flush.
 
 ## OpenTelemetry Bridge
 
@@ -95,6 +100,7 @@ trace.set_tracer_provider(provider)
 
 # Run your agent normally — spans are captured automatically
 await processor.flush()
+fox.shutdown()
 ```
 
 ### Pydantic AI
@@ -119,6 +125,7 @@ trace.set_tracer_provider(provider)
 agent = Agent("openai:gpt-4o", instrument=True)
 result = await agent.run("Summarise the latest AI safety research.")
 await processor.flush()
+fox.shutdown()
 ```
 
 ### Amazon Bedrock AgentCore
@@ -178,6 +185,7 @@ trace.set_tracer_provider(provider)
 app = AdkApp(agent=my_agent, enable_tracing=True)
 await app.run_async(user_id="user-1", session_id="session-1", input_text="Hello")
 await processor.flush()
+fox.shutdown()
 ```
 
 ### Coverage note

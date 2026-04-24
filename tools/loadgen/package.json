@@ -11,6 +11,7 @@
     "sustained": "tsx src/cli.ts --scenario=sustained",
     "smoke": "tsx src/cli.ts --scenario=smoke",
     "otlp": "tsx src/cli.ts --scenario=otlp",
+    "sdk-saturation": "node scenarios/sdk-saturation.js",
     "build-proto-fixture": "tsx scripts/build-proto-fixture.ts",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
