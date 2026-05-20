@@ -4,6 +4,29 @@ import type {
   ExecTalkingPoint,
 } from "@/components/overview/executive-summary-v2";
 import type { FleetMetrics } from "@/lib/verdict-engine";
+import type { OpinionatedSuggestion } from "@/lib/decisions-queue-types";
+
+/**
+ * Canonical opinionated suggestion shown alongside the v18 → v19 promotion
+ * decision. Lives at module scope so Fleet Overview's Action entry and the
+ * Executive Summary's promotion decision quote the *same* proposed change.
+ *
+ * Reflects the demo's lead-with-risk story: failures concentrate on stale
+ * context in the refund-policy flow; the fix is a prompt-level guard.
+ */
+const REFUND_POLICY_PROMPT_FIX: OpinionatedSuggestion = {
+  framework: "claude-agent-sdk",
+  summary:
+    'Add a "use only provided refund-policy context" guard to the system prompt.',
+  diff: [
+    "  system: |",
+    "    You are a returns and refunds support agent.",
+    "+   Answer ONLY from the refund policy I provide in the next turn.",
+    "+   If the policy does not cover the situation, say so and escalate.",
+  ].join("\n"),
+  expectedImpact:
+    "faithful-to-context evaluator score expected to lift from 0.71 → ≥ 0.92 within 100 traces.",
+};
 
 interface FleetNarrativeOverrides {
   regressionContext?: string;
@@ -44,9 +67,37 @@ export function buildFleetActionItems(
         "Start with regressions and traces to confirm whether the newest failures reflect prompt drift, tool instability, or a release candidate that should be held back.",
       severity: "critical",
       agentIds: ["support-agent", "onboarding-router"],
+      kind: "issue",
       actions: overrides?.regressionActions ?? [
         { label: "Regressions", href: hrefs.regressions },
         { label: "Traces", href: hrefs.traces },
+      ],
+    });
+
+    items.push({
+      title: "Failure cluster: stale-context answers in refund-policy flow",
+      context:
+        "47 traces failed the faithful-to-context evaluator in the last 24h. Retrieval succeeded; the LLM answered from prior knowledge. This is a prompt issue, not a retrieval issue.",
+      severity: "warning",
+      agentIds: ["support-agent"],
+      kind: "insight",
+      actions: [
+        { label: "Open evaluator", href: hrefs.experiments },
+        { label: "Trace cluster", href: hrefs.traces },
+      ],
+    });
+
+    items.push({
+      title: "Tighten the refund-policy prompt against stale-context answers",
+      context:
+        "Proposed prompt edit closes the cluster Foxhound just surfaced. Approve, edit, or reject — the diff applies in your repo, not in Foxhound.",
+      severity: "warning",
+      agentIds: ["support-agent"],
+      kind: "action",
+      suggestion: REFUND_POLICY_PROMPT_FIX,
+      actions: [
+        { label: "Open prompt", href: hrefs.prompts },
+        { label: "Compare runs", href: hrefs.experiments },
       ],
     });
   }
@@ -59,6 +110,7 @@ export function buildFleetActionItems(
         "Latency and success-rate posture now warrant direct inspection before the next release or traffic increase.",
       severity: metrics.slaRisks > 2 ? "critical" : "warning",
       agentIds: ["planner-agent", "support-agent"],
+      kind: "issue",
       actions: overrides?.slaActions ?? [
         { label: "SLAs", href: hrefs.slas },
         { label: "Traces", href: hrefs.traces },
@@ -74,6 +126,7 @@ export function buildFleetActionItems(
         "Inspect the cost hotspots before approving further rollout or promotion, especially if the improvement case is not yet decisive.",
       severity: metrics.budgetOverspendUsd > 500 ? "critical" : "warning",
       agentIds: ["support-agent", "planner-agent"],
+      kind: "issue",
       actions: overrides?.budgetActions ?? [
         { label: "Budgets", href: hrefs.budgets },
         { label: "Experiments", href: hrefs.experiments },
@@ -89,6 +142,7 @@ export function buildFleetActionItems(
         "No fleet-level blockers are active. Use experiments and prompt history to validate whether the next promotion is worth shipping.",
       severity: "healthy",
       agentIds: ["support-agent"],
+      kind: "insight",
       actions: overrides?.promotionActions ?? [
         { label: "Experiments", href: hrefs.experiments },
         { label: "Prompts", href: hrefs.prompts },
@@ -102,6 +156,7 @@ export function buildFleetActionItems(
         "Once active regressions and SLA pressure are understood, compare the current candidate set before changing any prompt labels or release posture.",
       severity: "healthy",
       agentIds: ["support-agent"],
+      kind: "insight",
       actions: overrides?.promotionActions ?? [
         { label: "Experiments", href: hrefs.experiments },
         { label: "Prompts", href: hrefs.prompts },
@@ -142,6 +197,10 @@ export function buildExecutiveDecisions(
         : "Promote with monitoring"),
     href: overrides?.promotionDecision?.href ?? hrefs.experiments,
     cta: overrides?.promotionDecision?.cta ?? "Review experiments",
+    kind: overrides?.promotionDecision?.kind ?? "action",
+    suggestion:
+      overrides?.promotionDecision?.suggestion ??
+      (metrics.criticalRegressions > 0 ? REFUND_POLICY_PROMPT_FIX : undefined),
   });
 
   decisions.push({
@@ -162,6 +221,7 @@ export function buildExecutiveDecisions(
         : "No reliability hold required"),
     href: overrides?.reliabilityDecision?.href ?? hrefs.regressions,
     cta: overrides?.reliabilityDecision?.cta ?? "Review regressions",
+    kind: overrides?.reliabilityDecision?.kind ?? (metrics.slaRisks > 0 ? "issue" : "action"),
   });
 
   decisions.push({
@@ -185,6 +245,7 @@ export function buildExecutiveDecisions(
         : "No additional budget action required"),
     href: overrides?.budgetDecision?.href ?? hrefs.budgets,
     cta: overrides?.budgetDecision?.cta ?? "View budgets",
+    kind: overrides?.budgetDecision?.kind ?? (metrics.budgetOverspendUsd > 0 ? "issue" : "action"),
   });
 
   return decisions;

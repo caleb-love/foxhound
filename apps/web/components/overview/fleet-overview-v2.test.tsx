@@ -176,7 +176,7 @@ describe('FleetOverviewV2', () => {
 
     expect(screen.getByText('Risk concentration')).toBeInTheDocument();
     expect(screen.getByText('Risk posture trend band')).toBeInTheDocument();
-    expect(screen.getByText('Action queue')).toBeInTheDocument();
+    expect(screen.getByText('Decisions queue')).toBeInTheDocument();
     expect(screen.getByText('Investigate regression')).toBeInTheDocument();
     expect(screen.getByText('Review SLA drift')).toBeInTheDocument();
     expect(screen.getByText('Recovery candidate ready')).toBeInTheDocument();

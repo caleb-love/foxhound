@@ -24,6 +24,10 @@ import { PageContainer } from '@/components/system/page';
 import { StackedBarChart } from '@/components/charts/stacked-bar-chart';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { ViewModeToggle } from '@/components/charts/view-mode-toggle';
+import type {
+  DecisionsQueueEntryKind,
+  OpinionatedSuggestion,
+} from '@/lib/decisions-queue-types';
 
 // ---------------------------------------------------------------------------
 // Prop Types
@@ -46,6 +50,14 @@ export interface FleetActionItem {
   severity: 'critical' | 'warning' | 'healthy';
   agentIds: string[];
   actions: Array<{ label: string; href: string }>;
+  /**
+   * Decisions queue triad. Defaults to 'issue' for back-compat with existing
+   * action items. 'insight' marks a pattern Foxhound noticed; 'action' marks a
+   * proposed fix and may carry an OpinionatedSuggestion.
+   */
+  kind?: DecisionsQueueEntryKind;
+  /** Only valid when kind === 'action'. Rendered with diff + framework badge. */
+  suggestion?: OpinionatedSuggestion;
 }
 
 export interface FleetOverviewV2Props {

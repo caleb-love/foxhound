@@ -39,6 +39,7 @@ export default function SandboxExecutivePage() {
         recommendation: 'Hold traffic increase until v19 lands',
         href: '/sandbox/budgets',
         cta: 'Review budgets',
+        kind: 'issue',
       },
       budgetDecision: {
         title: 'Platform alert routing for critical incidents',
@@ -47,6 +48,7 @@ export default function SandboxExecutivePage() {
         recommendation: 'No action required',
         href: '/sandbox/notifications',
         cta: 'View notifications',
+        kind: 'insight',
       },
     },
   );

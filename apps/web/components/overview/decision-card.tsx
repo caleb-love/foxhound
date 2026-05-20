@@ -1,6 +1,12 @@
 'use client';
 
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
+import {
+  KIND_LABEL,
+  type DecisionsQueueEntryKind,
+  type OpinionatedSuggestion,
+} from '@/lib/decisions-queue-types';
+import { OpinionatedSuggestionPanel } from '@/components/decisions/opinionated-suggestion-panel';
 
 export type DecisionStatus = 'on-track' | 'watch' | 'attention';
 
@@ -11,6 +17,10 @@ export interface DecisionCardProps {
   recommendation: string;
   href: string;
   cta: string;
+  /** Issue / Insight / Action badge. Defaults to 'action' (executive decisions are calls). */
+  kind?: DecisionsQueueEntryKind;
+  /** Only meaningful when kind === 'action'. */
+  suggestion?: OpinionatedSuggestion;
 }
 
 const statusConfig = {
@@ -34,8 +44,24 @@ const statusConfig = {
   },
 } as const;
 
-export function DecisionCard({ title, status, evidence, recommendation, href, cta }: DecisionCardProps) {
+const kindBadgeColor: Record<DecisionsQueueEntryKind, { fg: string; bg: string }> = {
+  issue: { fg: '#fca5a5', bg: 'rgba(248,113,113,0.12)' },
+  insight: { fg: '#fcd34d', bg: 'rgba(251,191,36,0.12)' },
+  action: { fg: '#86efac', bg: 'rgba(52,211,153,0.14)' },
+};
+
+export function DecisionCard({
+  title,
+  status,
+  evidence,
+  recommendation,
+  href,
+  cta,
+  kind = 'action',
+  suggestion,
+}: DecisionCardProps) {
   const config = statusConfig[status];
+  const kindColors = kindBadgeColor[kind];
 
   return (
     <div
@@ -48,12 +74,20 @@ export function DecisionCard({ title, status, evidence, recommendation, href, ct
         background: config.bg,
       }}
     >
-      {/* Status badge */}
-      <div
-        className="mb-2 inline-block rounded-md px-2 py-0.5 text-[10px] font-bold tracking-[0.14em]"
-        style={{ color: config.labelColor, background: `${config.stripe}14` }}
-      >
-        {config.label}
+      {/* Kind + status badges */}
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <span
+          className="rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em]"
+          style={{ color: kindColors.fg, background: kindColors.bg }}
+        >
+          {KIND_LABEL[kind]}
+        </span>
+        <span
+          className="rounded-md px-2 py-0.5 text-[10px] font-bold tracking-[0.14em]"
+          style={{ color: config.labelColor, background: `${config.stripe}14` }}
+        >
+          {config.label}
+        </span>
       </div>
 
       {/* Title */}
@@ -69,6 +103,12 @@ export function DecisionCard({ title, status, evidence, recommendation, href, ct
         Recommendation: {recommendation}
       </p>
 
+      {kind === 'action' && suggestion ? (
+        <div className="mt-3">
+          <OpinionatedSuggestionPanel suggestion={suggestion} />
+        </div>
+      ) : null}
+
       {/* Action */}
       <div className="mt-3">
         <SegmentAwareLink
@@ -81,3 +121,4 @@ export function DecisionCard({ title, status, evidence, recommendation, href, ct
     </div>
   );
 }
+

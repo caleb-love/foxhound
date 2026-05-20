@@ -12,6 +12,10 @@ import { MetricStrip, type MetricStripItem } from './metric-strip';
 import { DecisionCard } from './decision-card';
 import { MetricChip, MetricStrip as CompactMetricStrip } from '@/components/investigation/comparison-bar';
 import { ViewModeToggle } from '@/components/charts/view-mode-toggle';
+import type {
+  DecisionsQueueEntryKind,
+  OpinionatedSuggestion,
+} from '@/lib/decisions-queue-types';
 
 // ---------------------------------------------------------------------------
 // Prop Types
@@ -34,6 +38,10 @@ export interface ExecDecisionInput {
   recommendation: string;
   href: string;
   cta: string;
+  /** Issue / Insight / Action — defaults to 'action' (executive decisions are calls). */
+  kind?: DecisionsQueueEntryKind;
+  /** Only valid when kind === 'action'. Rendered with framework badge + diff. */
+  suggestion?: OpinionatedSuggestion;
 }
 
 export interface ExecTalkingPoint {
@@ -142,6 +150,8 @@ export function ExecutiveSummaryV2({
               recommendation={decision.recommendation}
               href={decision.href}
               cta={decision.cta}
+              kind={decision.kind}
+              suggestion={decision.suggestion}
             />
           ))}
         </div>
