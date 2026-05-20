@@ -80,7 +80,7 @@ describe('Sidebar', () => {
 
     const promptsLink = screen.getByRole('link', { name: /Prompts/i });
     expect(promptsLink.getAttribute('href')).toBe('/prompts?segment=Planner+agent');
-    expect(promptsLink.className).toContain('rounded-xl');
+    expect(promptsLink.className).toContain('rounded-md');
   });
 
   it('uses sandbox-prefixed links in sandbox mode', () => {
