@@ -22,6 +22,15 @@ export type {
 
 export { SEVERITY_RANK, PAGERDUTY_SEVERITY } from "./types.js";
 export { dispatchAlert } from "./dispatcher.js";
+export type {
+  AlertFiringDeps,
+  AlertFiringService,
+  AlertLogger,
+  FireOptions,
+  FireResult,
+  NotificationLogInput,
+} from "./service.js";
+export { createAlertFiringService } from "./service.js";
 export { SlackProvider } from "./providers/index.js";
 export { PagerDutyProvider } from "./providers/index.js";
 export { GitHubProvider } from "./providers/index.js";

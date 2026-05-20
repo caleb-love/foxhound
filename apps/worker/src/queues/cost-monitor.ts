@@ -8,10 +8,9 @@ import {
   updateAgentConfigStatus,
   sumSpanCosts,
 } from "@foxhound/db";
-import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import { createAlertFiringService } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 import { parsePeriodStart } from "@foxhound/types";
-import { randomUUID } from "crypto";
 import { logger } from "../logger.js";
 
 const log = logger.child({ queue: "cost-monitor" });
@@ -70,41 +69,35 @@ async function processCostAlert(job: Job<CostAlertJobData>): Promise<void> {
     occurredAt: new Date(),
   };
 
-  const [rules, channels] = await Promise.all([
-    getAlertRulesForOrg(orgId),
-    listNotificationChannels({ orgId }),
-  ]);
-
-  const channelMap = new Map<string, NotificationChannel>(
-    channels.map((c) => [c.id, c as unknown as NotificationChannel]),
-  );
-  const matchingRules = rules.filter((r) => r.eventType === "cost_budget_exceeded");
-  const eligibleRules = await Promise.all(
-    matchingRules
-      .filter((r) => channelMap.has(r.channelId))
-      .map(async (rule) => {
-        const dedupeKey = `cost:${orgId}:${agentId}:${periodKey}:${level}:${rule.id}`;
-        const logEntry = await createNotificationLogEntry({
-          id: randomUUID(),
-          orgId,
-          ruleId: rule.id,
-          channelId: rule.channelId,
-          eventType: "cost_budget_exceeded",
-          severity: level,
-          agentId,
-          status: "sent",
-          dedupeKey,
-        });
-        return logEntry ? rule : null;
-      }),
-  ).then((rows) => rows.filter((row): row is NonNullable<typeof row> => row !== null));
-
-  if (eligibleRules.length === 0) return;
-
   const alertLogger = {
     error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
   };
-  await dispatchAlert(event, eligibleRules, channelMap, alertLogger);
+  const service = createAlertFiringService({
+    getAlertRulesForOrg: async (oid) => (await getAlertRulesForOrg(oid)) as unknown as AlertRule[],
+    listNotificationChannels: async (filter) => {
+      const rows = await listNotificationChannels(filter);
+      return rows.map((c) => c as unknown as NotificationChannel);
+    },
+    createNotificationLogEntry: async (entry) => {
+      const result = await createNotificationLogEntry({
+        id: entry.id,
+        orgId: entry.orgId,
+        ruleId: entry.ruleId,
+        channelId: entry.channelId,
+        eventType: entry.eventType,
+        severity: entry.severity,
+        agentId: entry.agentId,
+        ...(entry.traceId !== undefined ? { traceId: entry.traceId } : {}),
+        status: entry.status,
+        ...(entry.dedupeKey !== undefined ? { dedupeKey: entry.dedupeKey } : {}),
+      });
+      return result ? { id: result.id } : null;
+    },
+    logger: alertLogger,
+  });
+  await service.fireEvent(event, {
+    dedupeKey: `cost:${orgId}:${agentId}:${periodKey}:${level}`,
+  });
 }
 
 export function startCostMonitorWorker(connection: ConnectionOptions): Worker<CostAlertJobData> {

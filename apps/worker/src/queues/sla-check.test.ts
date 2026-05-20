@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type * as Notifications from "@foxhound/notifications";
 
 vi.mock("bullmq", () => ({
   Worker: vi.fn().mockImplementation((_name: string, _processor: unknown, _opts: unknown) => ({
@@ -36,9 +37,15 @@ vi.mock("@foxhound/db", () => ({
 
 const mockDispatchAlert = vi.fn();
 
-vi.mock("@foxhound/notifications", () => ({
-  dispatchAlert: mockDispatchAlert,
-}));
+vi.mock("@foxhound/notifications", async () => {
+  const actual: typeof Notifications = await vi.importActual("@foxhound/notifications");
+  return {
+    ...actual,
+    dispatchAlert: mockDispatchAlert,
+    createAlertFiringService: (deps: Parameters<typeof actual.createAlertFiringService>[0]) =>
+      actual.createAlertFiringService({ ...deps, dispatch: mockDispatchAlert }),
+  };
+});
 
 const mockRedisGet = vi.fn();
 const mockRedisZrange = vi.fn();

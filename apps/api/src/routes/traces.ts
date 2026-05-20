@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 import {
   queryTraces,
   countTraces,
@@ -14,8 +13,12 @@ import {
 import { requireEntitlement } from "../middleware/entitlements.js";
 import { checkSpanLimit } from "@foxhound/billing";
 import { persistTraceWithRetry } from "../persistence.js";
-import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
+import { createAlertFiringService } from "@foxhound/notifications";
+import type {
+  AlertEvent,
+  AlertRule,
+  NotificationChannel,
+} from "@foxhound/notifications";
 import type { SegmentationQuery, Trace } from "@foxhound/types";
 import { getBudgetPeriodKey } from "@foxhound/types";
 import { updateSpanCosts } from "@foxhound/db";
@@ -30,9 +33,52 @@ import { decodeProtoBatch, isProtobufRequest } from "./traces-proto.js";
 import { enqueueTrace, isQueueIngestEnabled } from "../ingest-producer.js";
 
 /**
- * Checks whether the trace contains any error spans and, if so, dispatches
- * an agent_failure alert to all matching notification channels for the org.
- * Errors are logged but never thrown — alert delivery must not affect ingestion.
+ * Builds an org-scoped AlertFiringService bound to this app's DB helpers.
+ *
+ * The service owns rule fetch + channel resolve + dedupe + dispatch. Callers
+ * supply only the AlertEvent — tenant scope (org_id) flows from event.orgId.
+ */
+function makeAlertFiringService(fastify: FastifyInstance) {
+  return createAlertFiringService({
+    getAlertRulesForOrg: async (orgId) =>
+      (await getAlertRulesForOrg(orgId)) as unknown as AlertRule[],
+    listNotificationChannels: async ({ orgId }) => {
+      const rows = await listNotificationChannels({ orgId });
+      return rows.map(
+        (row): NotificationChannel => ({
+          id: row.id,
+          orgId: row.orgId,
+          kind: row.kind as NotificationChannel["kind"],
+          name: row.name,
+          config: row.config as unknown as NotificationChannel["config"],
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+        }),
+      );
+    },
+    createNotificationLogEntry: async (entry) => {
+      const result = await createNotificationLogEntry({
+        id: entry.id,
+        orgId: entry.orgId,
+        ruleId: entry.ruleId,
+        channelId: entry.channelId,
+        eventType: entry.eventType,
+        severity: entry.severity,
+        agentId: entry.agentId,
+        ...(entry.traceId !== undefined ? { traceId: entry.traceId } : {}),
+        status: entry.status,
+        ...(entry.dedupeKey !== undefined ? { dedupeKey: entry.dedupeKey } : {}),
+      });
+      return result ? { id: result.id } : null;
+    },
+    logger: fastify.log,
+  });
+}
+
+/**
+ * Checks whether the trace contains any error spans and, if so, fires an
+ * agent_failure alert via the shared AlertFiringService. Errors are logged
+ * but never thrown — alert delivery must not affect ingestion.
  */
 async function maybeFireAlerts(
   fastify: FastifyInstance,
@@ -43,78 +89,35 @@ async function maybeFireAlerts(
   if (!hasError) return;
 
   try {
-    const [rules, channelRows] = await Promise.all([
-      getAlertRulesForOrg(orgId),
-      listNotificationChannels({ orgId }),
-    ]);
-
-    if (rules.length === 0) return;
-
-    const channelMap = new Map<string, NotificationChannel>(
-      channelRows.map((row) => [
-        row.id,
-        {
-          id: row.id,
-          orgId: row.orgId,
-          kind: row.kind as "slack",
-          name: row.name,
-          config: row.config as unknown as NotificationChannel["config"],
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-        },
-      ]),
-    );
-
+    const service = makeAlertFiringService(fastify);
     const event: AlertEvent = {
       type: "agent_failure",
       severity: "high",
       orgId,
       agentId: trace.agentId,
       traceId: trace.id,
-      sessionId: trace.sessionId,
+      ...(trace.sessionId !== undefined ? { sessionId: trace.sessionId } : {}),
       message: `Agent "${trace.agentId}" produced one or more error spans in trace ${trace.id}.`,
       metadata: { spanCount: trace.spans.length },
       occurredAt: new Date(),
     };
 
-    const matchingRules = rules.filter(
-      (r) => r.eventType === "agent_failure",
-    ) as unknown as AlertRule[];
-
-    if (matchingRules.length > 0) {
-      trackPendoEvent({
-        event: "alert_dispatched",
-        visitorId: "system",
-        accountId: orgId,
-        properties: {
-          agentId: trace.agentId,
-          traceId: trace.id,
-          matchingRuleCount: matchingRules.length,
-          severity: "high",
-        },
-      });
-    }
-
-    await dispatchAlert(event, matchingRules, channelMap, fastify.log);
-
-    // Log delivery for each matched rule
-    await Promise.allSettled(
-      matchingRules
-        .filter((r) => channelMap.has(r.channelId))
-        .map((rule) =>
-          createNotificationLogEntry({
-            id: randomUUID(),
-            orgId,
-            ruleId: rule.id,
-            channelId: rule.channelId,
-            eventType: "agent_failure",
-            severity: "high",
+    await service.fireEvent(event, {
+      onMatchedRules: (matched) => {
+        if (matched.length === 0) return;
+        trackPendoEvent({
+          event: "alert_dispatched",
+          visitorId: "system",
+          accountId: orgId,
+          properties: {
             agentId: trace.agentId,
             traceId: trace.id,
-            status: "sent",
-          }),
-        ),
-    );
+            matchingRuleCount: matched.length,
+            severity: "high",
+          },
+        });
+      },
+    });
   } catch (err) {
     fastify.log.error({ err, traceId: trace.id }, "Alert dispatch failed");
   }

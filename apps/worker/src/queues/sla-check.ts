@@ -7,12 +7,11 @@ import {
   listNotificationChannels,
   createNotificationLogEntry,
 } from "@foxhound/db";
-import { dispatchAlert } from "@foxhound/notifications";
+import { createAlertFiringService } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 import { logger } from "../logger.js";
 
 const log = logger.child({ queue: "sla-check" });
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
-import { randomUUID } from "crypto";
 
 export const SLA_CHECK_QUEUE = "sla-check";
 
@@ -108,7 +107,37 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
     checkedAt: new Date().toISOString(),
   });
 
-  // Fire alerts
+  // Fire alerts — service owns rule fetch, channel resolve, dedupe, and dispatch.
+  if (alerts.length === 0) return;
+
+  const alertLogger = {
+    error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
+  };
+  const service = createAlertFiringService({
+    getAlertRulesForOrg: async (oid) => (await getAlertRulesForOrg(oid)) as unknown as AlertRule[],
+    listNotificationChannels: async (filter) => {
+      const rows = await listNotificationChannels(filter);
+      return rows.map((c) => c as unknown as NotificationChannel);
+    },
+    createNotificationLogEntry: async (entry) => {
+      const result = await createNotificationLogEntry({
+        id: entry.id,
+        orgId: entry.orgId,
+        ruleId: entry.ruleId,
+        channelId: entry.channelId,
+        eventType: entry.eventType,
+        severity: entry.severity,
+        agentId: entry.agentId,
+        ...(entry.traceId !== undefined ? { traceId: entry.traceId } : {}),
+        status: entry.status,
+        ...(entry.dedupeKey !== undefined ? { dedupeKey: entry.dedupeKey } : {}),
+      });
+      return result ? { id: result.id } : null;
+    },
+    logger: alertLogger,
+  });
+
+  const windowBucket = Math.floor(now / windowMs);
   for (const alert of alerts) {
     const event: AlertEvent = {
       type: alert.type,
@@ -119,45 +148,9 @@ async function processSlaCheck(job: Job<SlaCheckJobData>, redis: Redis): Promise
       metadata: { durationP95, successRate, sampleSize: totalTraces },
       occurredAt: new Date(),
     };
-
-    const [rules, channels] = await Promise.all([
-      getAlertRulesForOrg(orgId),
-      listNotificationChannels({ orgId }),
-    ]);
-
-    const channelMap = new Map<string, NotificationChannel>(
-      channels.map((c) => [c.id, c as unknown as NotificationChannel]),
-    );
-    const windowBucket = Math.floor(now / windowMs);
-    const matchingRules = rules.filter((r) => r.eventType === alert.type);
-    const eligibleRules = await Promise.all(
-      matchingRules
-        .filter((r) => channelMap.has(r.channelId))
-        .map(async (rule) => {
-          const dedupeKey = `sla:${orgId}:${agentId}:${alert.type}:${windowBucket}:${rule.id}`;
-          const logEntry = await createNotificationLogEntry({
-            id: randomUUID(),
-            orgId,
-            ruleId: rule.id,
-            channelId: rule.channelId,
-            eventType: alert.type,
-            severity: "high",
-            agentId,
-            status: "sent",
-            dedupeKey,
-          });
-          return logEntry ? rule : null;
-        }),
-    ).then((rows) => rows.filter((row): row is NonNullable<typeof row> => row !== null));
-
-    if (eligibleRules.length === 0) {
-      continue;
-    }
-
-    const alertLogger = {
-      error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
-    };
-    await dispatchAlert(event, eligibleRules, channelMap, alertLogger);
+    await service.fireEvent(event, {
+      dedupeKey: `sla:${orgId}:${agentId}:${alert.type}:${windowBucket}`,
+    });
   }
 }
 

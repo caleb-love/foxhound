@@ -10,8 +10,8 @@ import {
   listNotificationChannels,
   createNotificationLogEntry,
 } from "@foxhound/db";
-import { dispatchAlert } from "@foxhound/notifications";
-import type { AlertEvent, NotificationChannel } from "@foxhound/notifications";
+import { createAlertFiringService } from "@foxhound/notifications";
+import type { AlertEvent, AlertRule, NotificationChannel } from "@foxhound/notifications";
 import { randomUUID } from "crypto";
 import { logger } from "../logger.js";
 
@@ -84,37 +84,34 @@ async function processRegressionCheck(job: Job<RegressionJobData>): Promise<void
     occurredAt: new Date(),
   };
 
-  const [rules, channels] = await Promise.all([
-    getAlertRulesForOrg(orgId),
-    listNotificationChannels({ orgId }),
-  ]);
-
-  const channelMap = new Map<string, NotificationChannel>(
-    channels.map((c) => [c.id, c as unknown as NotificationChannel]),
-  );
-  const matchingRules = rules.filter((r) => r.eventType === "behavior_regression");
-  // Adapt to pino-style (obj, msg) signature expected by dispatchAlert
   const alertLogger = {
     error: (obj: unknown, msg: string) => log.error(msg, obj as Record<string, unknown>),
   };
-  await dispatchAlert(event, matchingRules, channelMap, alertLogger);
+  const service = createAlertFiringService({
+    getAlertRulesForOrg: async (oid) => (await getAlertRulesForOrg(oid)) as unknown as AlertRule[],
+    listNotificationChannels: async (filter) => {
+      const rows = await listNotificationChannels(filter);
+      return rows.map((c) => c as unknown as NotificationChannel);
+    },
+    createNotificationLogEntry: async (entry) => {
+      const result = await createNotificationLogEntry({
+        id: entry.id,
+        orgId: entry.orgId,
+        ruleId: entry.ruleId,
+        channelId: entry.channelId,
+        eventType: entry.eventType,
+        severity: entry.severity,
+        agentId: entry.agentId,
+        ...(entry.traceId !== undefined ? { traceId: entry.traceId } : {}),
+        status: entry.status,
+        ...(entry.dedupeKey !== undefined ? { dedupeKey: entry.dedupeKey } : {}),
+      });
+      return result ? { id: result.id } : null;
+    },
+    logger: alertLogger,
+  });
 
-  await Promise.allSettled(
-    matchingRules
-      .filter((r) => channelMap.has(r.channelId))
-      .map((rule) =>
-        createNotificationLogEntry({
-          id: randomUUID(),
-          orgId,
-          ruleId: rule.id,
-          channelId: rule.channelId,
-          eventType: "behavior_regression",
-          severity: "high",
-          agentId,
-          status: "sent",
-        }),
-      ),
-  );
+  await service.fireEvent(event);
 }
 
 function detectStructuralDrift(
