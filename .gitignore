@@ -65,3 +65,14 @@ packages/mcp-server/.mcpregistry_github_token
 packages/mcp-server/.mcpregistry_registry_token
 
 audit/
+
+# Local design review artifacts
+.playwright-mcp/
+/*-after.png
+/*-before.png
+/exec-*.png
+/fleet-*.png
+/regressions-*.png
+/budgets-*.png
+/slas-*.png
+/prompts-*.png
