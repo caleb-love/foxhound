@@ -7,6 +7,7 @@ import {
   isLlmEvaluationEnabled,
 } from "@foxhound/db";
 import { getEvaluatorRun, getEvaluatorById } from "@foxhound/db/internal";
+import { extractTraceContext, renderTemplate } from "@foxhound/prompt-rendering";
 import { randomUUID } from "crypto";
 import { logger } from "../logger.js";
 
@@ -19,83 +20,6 @@ const MAX_ATTEMPTS = 3;
 
 export interface EvaluatorJobData {
   runId: string;
-}
-
-/**
- * Render a Mustache-style template with trace data.
- * Supports {{input}}, {{output}}, {{spans}}, {{metadata}}.
- */
-function renderTemplate(template: string, traceData: Record<string, unknown>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
-    const value = traceData[key];
-    if (value === undefined) return `{{${key}}}`;
-    return typeof value === "string" ? value : JSON.stringify(value);
-  });
-}
-
-/** Default attributes to redact before sending trace data to third-party LLMs */
-const DEFAULT_REDACTED_ATTRIBUTES = new Set([
-  "api_key",
-  "authorization",
-  "password",
-  "secret",
-  "token",
-  "cookie",
-  "session_id",
-  "credit_card",
-  "ssn",
-]);
-
-/**
- * Redact sensitive attributes from span data before sending to LLM providers.
- */
-function redactAttributes(
-  attrs: Record<string, unknown>,
-  redactKeys = DEFAULT_REDACTED_ATTRIBUTES,
-): Record<string, unknown> {
-  const redacted: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(attrs)) {
-    const lowerKey = key.toLowerCase();
-    if ([...redactKeys].some((rk) => lowerKey.includes(rk))) {
-      redacted[key] = "[REDACTED]";
-    } else {
-      redacted[key] = value;
-    }
-  }
-  return redacted;
-}
-
-/**
- * Extract input/output from trace spans for template rendering.
- * Applies field-level redaction on sensitive attributes before they reach any LLM.
- */
-function extractTraceContext(trace: {
-  spans: Array<{
-    name: string;
-    kind: string;
-    attributes: Record<string, unknown>;
-    events: unknown[];
-  }>;
-  metadata: Record<string, unknown>;
-}): Record<string, unknown> {
-  const spans = trace.spans;
-
-  const redactedSpans = spans.map((s) => ({
-    name: s.name,
-    kind: s.kind,
-    attributes: redactAttributes(s.attributes),
-  }));
-
-  const firstRedacted = redactedSpans[0];
-  const lastRedacted = redactedSpans[redactedSpans.length - 1];
-
-  return {
-    input: firstRedacted?.attributes?.["input"] ?? JSON.stringify(firstRedacted?.attributes ?? {}),
-    output: lastRedacted?.attributes?.["output"] ?? JSON.stringify(lastRedacted?.attributes ?? {}),
-    spans: JSON.stringify(redactedSpans, null, 2),
-    metadata: JSON.stringify(redactAttributes(trace.metadata)),
-    spanCount: String(spans.length),
-  };
 }
 
 // ---------------------------------------------------------------------------

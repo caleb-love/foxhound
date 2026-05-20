@@ -11,6 +11,7 @@ import {
   getExperimentRun,
   isLlmEvaluationEnabled,
 } from "@foxhound/db";
+import { renderTemplate } from "@foxhound/prompt-rendering";
 import { randomUUID } from "crypto";
 import { logger } from "../logger.js";
 
@@ -50,12 +51,9 @@ async function executeExperimentRun(
   const promptTemplate = (config.promptTemplate as string) ?? "{{input}}";
   const temperature = (config.temperature as number) ?? 0;
 
-  // Render template with input
-  const prompt = promptTemplate.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
-    const value = input[key];
-    if (value === undefined) return `{{${key}}}`;
-    return typeof value === "string" ? value : JSON.stringify(value);
-  });
+  // Render template with input. Shared module owns the substitution semantics
+  // so evaluator + experiment cannot drift.
+  const prompt = renderTemplate(promptTemplate, input);
 
   const startTime = Date.now();
 
@@ -118,9 +116,7 @@ async function invokeEvaluator(
     throw new Error("OPENAI_API_KEY is required for evaluator invocation");
   }
 
-  const prompt = evaluator.promptTemplate
-    .replace(/\{\{input\}\}/g, JSON.stringify(input))
-    .replace(/\{\{output\}\}/g, JSON.stringify(output));
+  const prompt = renderTemplate(evaluator.promptTemplate, { input, output });
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

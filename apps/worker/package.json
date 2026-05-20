@@ -17,6 +17,7 @@
     "@foxhound/db": "workspace:*",
     "@foxhound/db-analytics": "workspace:*",
     "@foxhound/notifications": "workspace:*",
+    "@foxhound/prompt-rendering": "workspace:*",
     "@foxhound/proto": "workspace:*",
     "@foxhound/queue": "workspace:*",
     "@foxhound/types": "workspace:*",
