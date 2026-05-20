@@ -24,7 +24,7 @@ function ShellModeHeader({ mode }: { mode: 'dashboard' | 'sandbox' }) {
   if (mode === 'sandbox') {
     return (
       <div
-        className="rounded-full border px-3 py-1 text-sm font-medium shadow-sm"
+        className="rounded-md border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
         style={{
           borderColor: 'color-mix(in srgb, var(--tenant-warning) 35%, transparent)',
           background: 'color-mix(in srgb, var(--tenant-warning) 12%, transparent)',

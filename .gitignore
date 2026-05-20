@@ -76,3 +76,4 @@ audit/
 /budgets-*.png
 /slas-*.png
 /prompts-*.png
+.gstack/

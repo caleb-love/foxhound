@@ -10,7 +10,7 @@ export function DemoModeBanner({ userName }: DemoModeBannerProps) {
           <span className="font-semibold">Sandbox enabled.</span>{' '}
           Dashboard auth is bypassed for sandbox preview, and pages may show seeded example data.
         </div>
-        <div className="rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', color: 'var(--tenant-text-secondary)' }}>
+        <div className="rounded-md border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)', color: 'var(--tenant-text-secondary)' }}>
           Signed in as {userName}
         </div>
       </div>

@@ -41,7 +41,7 @@ export function SegmentSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <Button variant="ghost" className="flex items-center gap-2 rounded-full border px-3 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
+        <Button variant="ghost" className="flex items-center gap-2 rounded-md border px-3 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--tenant-panel)' }}>
           <Layers3 className="h-4 w-4" />
           <span className="text-sm font-medium">Segment: {currentSegmentName}</span>
         </Button>

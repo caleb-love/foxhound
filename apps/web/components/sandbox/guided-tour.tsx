@@ -110,7 +110,7 @@ export function GuidedTour() {
           setIsOpen(true);
           router.push('/sandbox');
         }}
-        className="fixed bottom-6 right-6 z-50 flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-medium shadow-lg backdrop-blur-xl transition-all hover:scale-105"
+        className="fixed bottom-6 right-6 z-50 flex h-10 items-center gap-2 rounded-md border px-4 text-xs font-medium shadow-lg backdrop-blur-xl transition-all hover:translate-y-[-1px]"
         style={{
           borderColor: 'var(--tenant-panel-stroke)',
           background: 'var(--card)',

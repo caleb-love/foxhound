@@ -49,7 +49,7 @@ export function PageHeader({
     <header className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <div
-          className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
+          className="inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
           style={{
             borderColor: 'var(--tenant-panel-stroke)',
             background: 'color-mix(in srgb, var(--card) 84%, var(--background))',

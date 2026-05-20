@@ -27,12 +27,12 @@ interface TopBarProps {
 export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps) {
   const defaultLeadingContent = mode === 'sandbox'
     ? (
-      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
+      <div className="inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
         Shared sandbox workspace · themeable operator shell
       </div>
     )
     : (
-      <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
+      <div className="inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium shadow-sm" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', color: 'var(--tenant-text-muted)' }}>
         Operator Console · live workspace
       </div>
     );
@@ -54,7 +54,7 @@ export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps
         <ThemeModeToggleButton />
         <DropdownMenu>
           <DropdownMenuTrigger>
-            <Button variant="ghost" className="flex items-center gap-2 rounded-full border px-2.5 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+            <Button variant="ghost" className="flex items-center gap-2 rounded-md border px-2.5 shadow-sm backdrop-blur" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
               <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: 'var(--tenant-accent-soft)', color: 'var(--tenant-accent)' }}>
                 <User className="h-4 w-4" />
               </div>

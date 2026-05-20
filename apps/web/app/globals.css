@@ -52,13 +52,20 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /*
+   * Shape hierarchy follows DESIGN.md §"Shape system" — precision controls
+   * sit at 8-12px, panel surfaces at 12-16px, frames at 20-24px. The previous
+   * scale pushed rounded-xl to ~19.6px which leaked into shell controls and
+   * read as generic pill chrome. The tighter ladder lets DESIGN.md's
+   * five-shape hierarchy actually express itself.
+   */
+  --radius-sm: calc(var(--radius) * 0.5);   /*  ~7px  — control-tight   */
+  --radius-md: calc(var(--radius) * 0.7);   /* ~10px  — precision       */
+  --radius-lg: calc(var(--radius) * 0.85);  /* ~12px  — tight panel     */
+  --radius-xl: var(--radius);               /* ~14px  — panel surface   */
+  --radius-2xl: calc(var(--radius) * 1.4);  /* ~20px  — frame surface   */
+  --radius-3xl: calc(var(--radius) * 1.8);  /* ~25px  — hero frame      */
+  --radius-4xl: calc(var(--radius) * 2.2);  /* ~31px  — reserved        */
 }
 
 :root {
