@@ -41,47 +41,59 @@ export function RagIndicator({ verdict, periodLabel, generatedAt }: RagIndicator
     <div
       role="status"
       aria-label={`Platform status: ${config.label}. ${verdict.headline}`}
-      className="rounded-2xl p-6 text-center"
+      className="rounded-2xl p-7 md:p-8"
       style={{
         background: config.bg,
         border: `1px solid ${config.border}`,
+        boxShadow: '0 24px 60px -30px rgba(15,23,42,0.12)',
       }}
     >
-      {/* RAG circle + label */}
-      <div className="flex items-center justify-center gap-3">
+      {/* Eyebrow row — orientation + status. */}
+      <div className="flex items-center justify-between gap-3">
         <div
-          className="h-5 w-5 rounded-full"
-          style={{
-            background: config.color,
-            boxShadow: `0 0 16px ${config.glow}, 0 0 4px ${config.glow}`,
-          }}
-        />
-        <span
-          className="text-xl font-bold tracking-[0.14em]"
-          style={{ color: config.color }}
+          className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
+          style={{ color: 'var(--tenant-text-muted)' }}
         >
-          {config.label}
-        </span>
+          <span style={{ color: config.color }}>Executive Summary</span>
+          <span aria-hidden style={{ opacity: 0.5 }}>·</span>
+          <span>Week-over-week posture</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{
+              background: config.color,
+              boxShadow: `0 0 12px ${config.glow}, 0 0 3px ${config.glow}`,
+            }}
+            aria-hidden
+          />
+          <span
+            className="text-[11px] font-bold tracking-[0.18em]"
+            style={{ color: config.color }}
+          >
+            {config.label}
+          </span>
+        </div>
       </div>
 
       {/* Headline */}
       <h1
-        className="mx-auto mt-3 max-w-lg text-lg font-semibold tracking-tight text-tenant-text-primary"
-        style={{ fontFamily: 'var(--font-heading)' }}
+        className="mt-5 text-2xl md:text-[28px] font-semibold leading-[1.15] tracking-tight text-tenant-text-primary"
+        style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
       >
         {verdict.headline}
       </h1>
 
       {/* Subheadline */}
-      <p className="mt-1.5 text-sm text-tenant-text-secondary">
+      <p className="mt-2 max-w-[78ch] text-[14px] leading-[1.55] text-tenant-text-secondary">
         {verdict.subheadline}
       </p>
 
       {/* Timestamp row */}
       {(periodLabel || generatedAt) ? (
-        <div className="mt-3 flex items-center justify-center gap-4 text-[11px] font-medium uppercase tracking-[0.12em] text-tenant-text-muted">
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] font-medium uppercase tracking-[0.14em] text-tenant-text-muted">
           {periodLabel ? <span>{periodLabel}</span> : null}
-          {periodLabel && generatedAt ? <span>·</span> : null}
+          {periodLabel && generatedAt ? <span aria-hidden style={{ opacity: 0.5 }}>·</span> : null}
           {generatedAt ? <span>{generatedAt}</span> : null}
         </div>
       ) : null}

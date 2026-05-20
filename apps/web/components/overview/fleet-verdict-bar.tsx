@@ -43,26 +43,45 @@ export function FleetVerdictBar({ verdict, trailing }: FleetVerdictBarProps) {
     <div
       role="status"
       aria-label={`Fleet status: ${verdict.severity}. ${verdict.headline}`}
-      className="rounded-2xl p-5"
+      className="rounded-2xl p-6 md:p-7"
       style={{
         background: config.bg,
         border: `1px solid ${config.border}`,
+        boxShadow:
+          verdict.severity === 'critical'
+            ? '0 24px 60px -30px rgba(220,38,38,0.18)'
+            : verdict.severity === 'warning'
+              ? '0 24px 60px -30px rgba(251,191,36,0.16)'
+              : '0 24px 60px -30px rgba(15,23,42,0.10)',
       }}
     >
+      {/* Eyebrow — orientation, not decoration. DESIGN.md §"Page composition". */}
+      <div
+        className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: 'var(--tenant-text-muted)' }}
+      >
+        <span style={{ color: config.iconColor }}>Fleet Overview</span>
+        <span aria-hidden style={{ opacity: 0.5 }}>·</span>
+        <span>{verdict.severity === 'healthy' ? 'On track' : verdict.severity === 'warning' ? 'Watch' : 'Attention'}</span>
+      </div>
+
       {/* Headline row */}
       <div className="flex items-start gap-3">
         <Icon
-          className="mt-0.5 h-5 w-5 shrink-0"
+          className="mt-1.5 h-6 w-6 shrink-0"
           style={{ color: config.iconColor }}
         />
         <div className="min-w-0 flex-1">
           <h1
-            className="text-lg font-semibold tracking-tight"
-            style={{ color: config.headlineColor }}
+            className="text-2xl md:text-[28px] font-semibold leading-[1.15] tracking-tight"
+            style={{
+              color: config.headlineColor,
+              fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui',
+            }}
           >
             {verdict.headline}
           </h1>
-          <p className="mt-1 text-sm leading-relaxed text-tenant-text-secondary">
+          <p className="mt-2 text-[14px] leading-[1.55] text-tenant-text-secondary max-w-[78ch]">
             {verdict.narrative}
           </p>
         </div>

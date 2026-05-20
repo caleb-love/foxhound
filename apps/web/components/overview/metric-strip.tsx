@@ -21,10 +21,34 @@ interface MetricStripProps {
 }
 
 const toneColors = {
-  default: { value: 'var(--tenant-text-primary)', spark: 'var(--tenant-accent)' },
-  healthy: { value: '#34d399', spark: '#34d399' },
-  warning: { value: '#fbbf24', spark: '#fbbf24' },
-  critical: { value: '#f87171', spark: '#f87171' },
+  default: {
+    value: 'var(--tenant-text-primary)',
+    spark: 'var(--tenant-accent)',
+    background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+    border: 'var(--tenant-panel-stroke)',
+    stripe: 'transparent',
+  },
+  healthy: {
+    value: '#0f766e',
+    spark: '#34d399',
+    background: 'color-mix(in srgb, var(--card) 92%, var(--background))',
+    border: 'var(--tenant-panel-stroke)',
+    stripe: 'rgba(52,211,153,0.55)',
+  },
+  warning: {
+    value: '#b45309',
+    spark: '#f59e0b',
+    background: 'color-mix(in srgb, var(--card) 78%, rgba(251,191,36,0.10))',
+    border: 'color-mix(in srgb, var(--tenant-panel-stroke) 60%, rgba(251,191,36,0.55))',
+    stripe: 'rgba(245,158,11,0.85)',
+  },
+  critical: {
+    value: '#b91c1c',
+    spark: '#ef4444',
+    background: 'color-mix(in srgb, var(--card) 70%, rgba(248,113,113,0.12))',
+    border: 'color-mix(in srgb, var(--tenant-panel-stroke) 40%, rgba(248,113,113,0.70))',
+    stripe: '#dc2626',
+  },
 } as const;
 
 function DeltaBadge({ delta }: { delta: MetricDelta }) {
@@ -76,23 +100,35 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
   const content = (
     <div
       aria-label={`${item.label}: ${item.value}${item.delta ? `, ${item.delta.label}` : ''}`}
+      data-tone={tone}
       className={cn(
-        'flex flex-1 items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+        'relative flex flex-1 items-center gap-3 overflow-hidden rounded-xl border px-4 py-3.5 transition-colors',
         item.href && 'cursor-pointer hover:bg-white/[0.03]',
       )}
       style={{
-        borderColor: 'var(--tenant-panel-stroke)',
-        background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+        borderColor: colors.border,
+        background: colors.background,
       }}
     >
+      {/* Tone stripe — silent for default, present for healthy/warning/critical. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-[3px]"
+        style={{ background: colors.stripe }}
+      />
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
           {item.label}
         </div>
-        <div className="mt-1 flex items-baseline gap-2">
+        <div className="mt-1.5 flex items-baseline gap-2">
           <span
-            className="text-2xl font-bold tabular-nums tracking-tight"
-            style={{ color: colors.value }}
+            className="text-[28px] font-semibold leading-none tracking-tight"
+            style={{
+              color: colors.value,
+              fontVariantNumeric: 'tabular-nums',
+              fontFamily:
+                'var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+            }}
           >
             {item.value}
           </span>
