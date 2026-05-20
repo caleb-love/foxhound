@@ -190,13 +190,13 @@ export function Sidebar() {
             <div className="flex flex-col justify-center leading-none">
               <span
                 className="text-[0.95rem] font-semibold tracking-[0.14em]"
-                style={{ color: '#1890FF', fontFamily: 'var(--font-heading)' }}
+                style={{ color: 'var(--tenant-brand)', fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
               >
                 FOXHOUND
               </span>
               <span
                 className="mt-0.5 text-[0.58rem] font-medium uppercase tracking-[0.18em]"
-                style={{ color: 'color-mix(in srgb, #1890FF 50%, var(--tenant-text-muted) 50%)' }}
+                style={{ color: 'color-mix(in srgb, var(--tenant-brand) 50%, var(--tenant-text-muted) 50%)' }}
               >
                 Agent Ops Console
               </span>

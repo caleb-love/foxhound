@@ -4,6 +4,7 @@ import { PageErrorState, PageWarningState } from '@/components/ui/page-state';
 import { buildLocalReviewDemo } from '@foxhound/demo-domain';
 import { getRequestUrl } from '@/lib/server-url';
 import Link from 'next/link';
+import { Blaze } from '@/components/system/blaze';
 
 interface DiffPageProps {
   searchParams: Promise<{
@@ -44,8 +45,8 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
             className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
             style={{ color: 'var(--tenant-text-muted)' }}
           >
-            <span aria-hidden className="inline-block h-[2px] w-6" style={{ background: 'var(--tenant-accent)' }} />
-            <span style={{ color: 'var(--tenant-accent)' }}>Investigate</span>
+            <Blaze tone="brand" />
+            <span style={{ color: 'var(--tenant-brand)' }}>Investigate</span>
             <span aria-hidden style={{ opacity: 0.5 }}>·</span>
             <span>Run comparison cockpit</span>
           </span>
@@ -104,8 +105,8 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
             className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
             style={{ color: 'var(--tenant-text-muted)' }}
           >
-            <span aria-hidden className="inline-block h-[2px] w-6" style={{ background: 'var(--tenant-accent)' }} />
-            <span style={{ color: 'var(--tenant-accent)' }}>Investigate</span>
+            <Blaze tone="brand" />
+            <span style={{ color: 'var(--tenant-brand)' }}>Investigate</span>
           </span>
           <h1
             className="text-[34px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"

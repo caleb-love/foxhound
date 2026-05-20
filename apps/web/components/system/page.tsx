@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 import { useSegmentStore } from '@/lib/stores/segment-store';
 import { cn } from '@/lib/utils';
+import { Blaze } from './blaze';
 
 export const surfaceStyles = {
   panel: {
@@ -53,8 +54,8 @@ export function PageHeader({
           className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: 'var(--tenant-text-muted)' }}
         >
-          <span aria-hidden className="inline-block h-[2px] w-6" style={{ background: 'var(--tenant-accent)' }} />
-          <span style={{ color: 'var(--tenant-accent)' }}>{eyebrow}</span>
+          <Blaze tone="brand" />
+          <span style={{ color: 'var(--tenant-brand)' }}>{eyebrow}</span>
           <span aria-hidden style={{ opacity: 0.5 }}>·</span>
           <span>Segment: {currentSegmentName}</span>
         </span>

@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { SegmentAwareLink } from '@/components/layout/segment-aware-link';
 import type { FleetVerdict } from '@/lib/verdict-engine';
 import { cn } from '@/lib/utils';
+import { Blaze } from '@/components/system/blaze';
 
 const severityConfig = {
   critical: {
@@ -55,11 +56,12 @@ export function FleetVerdictBar({ verdict, trailing }: FleetVerdictBarProps) {
               : '0 24px 60px -30px rgba(15,23,42,0.10)',
       }}
     >
-      {/* Eyebrow — orientation, not decoration. DESIGN.md §"Page composition". */}
+      {/* Eyebrow — Blaze + orientation per DESIGN.md §"Page composition". */}
       <div
         className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
         style={{ color: 'var(--tenant-text-muted)' }}
       >
+        <Blaze tone="severity" color={config.iconColor} />
         <span style={{ color: config.iconColor }}>Fleet Overview</span>
         <span aria-hidden style={{ opacity: 0.5 }}>·</span>
         <span>{verdict.severity === 'healthy' ? 'On track' : verdict.severity === 'warning' ? 'Watch' : 'Attention'}</span>

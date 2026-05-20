@@ -1,6 +1,7 @@
 'use client';
 
 import type { ExecutiveVerdict } from '@/lib/verdict-engine';
+import { Blaze } from '@/components/system/blaze';
 
 const ragConfig = {
   green: {
@@ -48,12 +49,13 @@ export function RagIndicator({ verdict, periodLabel, generatedAt }: RagIndicator
         boxShadow: '0 24px 60px -30px rgba(15,23,42,0.12)',
       }}
     >
-      {/* Eyebrow row — orientation + status. */}
+      {/* Eyebrow row — Blaze + orientation + status. */}
       <div className="flex items-center justify-between gap-3">
         <div
           className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
           style={{ color: 'var(--tenant-text-muted)' }}
         >
+          <Blaze tone="severity" color={config.color} />
           <span style={{ color: config.color }}>Executive Summary</span>
           <span aria-hidden style={{ opacity: 0.5 }}>·</span>
           <span>Week-over-week posture</span>

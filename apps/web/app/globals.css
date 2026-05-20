@@ -102,29 +102,58 @@
   --sidebar-border: oklch(0.88 0.02 258 / 0.8);
   --sidebar-ring: oklch(0.68 0.12 260 / 0.4);
 
-  /* Tenant semantic tokens (light) */
-  --tenant-text-primary: #111827;
-  --tenant-text-secondary: #4b5563;
-  --tenant-text-muted: #6b7280;
-  --tenant-accent: #2563eb;
-  --tenant-accent-soft: rgba(37,99,235,0.08);
-  --tenant-success: #10b981;
-  --tenant-warning: #f59e0b;
-  --tenant-danger: #ef4444;
-  --tenant-panel: rgba(255,255,255,0.82);
-  --tenant-panel-alt: rgba(248,250,252,0.92);
-  --tenant-panel-stroke: rgba(148,163,184,0.18);
-  --tenant-panel-strong: rgba(248,250,252,0.92);
+  /*
+   * Foxhound brand palette (light)
+   * ----------------------------------------------------------------
+   * Proprietary blue family — saturated cobalt anchor, deep navy ink,
+   * near-white blue tint. Replaces generic Tailwind blue-600 so the
+   * app reads as Foxhound at a glance even with logos removed.
+   * Secondary warm copper accent reserved for ACTION badges and
+   * decision-queue moments only (DESIGN.md "blue-led" stays intact).
+   */
+  --tenant-brand-ink: #0A2540;        /* deep navy headline ink              */
+  --tenant-brand: #1648E1;            /* signature cobalt — primary identity */
+  --tenant-brand-soft: #E6ECFF;       /* near-white blue tint                */
+  --tenant-brand-glow: rgba(22,72,225,0.18);
+
+  --tenant-spark: #F5762A;            /* warm copper — actions / decisions    */
+  --tenant-spark-soft: #FFE6D3;
+
+  --tenant-text-primary: #0A2540;
+  --tenant-text-secondary: #45557A;
+  --tenant-text-muted: #6B7B9A;
+  --tenant-accent: #1648E1;
+  --tenant-accent-soft: rgba(22,72,225,0.08);
+  --tenant-accent-strong: #0E36B0;
+  --tenant-success: #10B981;
+  --tenant-warning: #F59E0B;
+  --tenant-danger: #E11D48;
+  --tenant-panel: rgba(255,255,255,0.86);
+  --tenant-panel-alt: rgba(246,249,255,0.92);
+  --tenant-panel-stroke: rgba(22,72,225,0.10);
+  --tenant-panel-strong: rgba(246,249,255,0.94);
   --tenant-radius-panel: 1rem;              /* 16px — panel surface              */
   --tenant-radius-panel-tight: 0.75rem;     /* 12px — tight panel                */
   --tenant-radius-pill: 999px;              /* reserved per DESIGN.md            */
   --tenant-radius-button: 0.625rem;         /* 10px — precision control          */
   --tenant-radius-control-tight: 0.4375rem; /* 7px  — control-tight chip / badge */
-  --tenant-shadow-panel: 0 20px 45px -28px rgba(15,23,42,0.28);
-  --tenant-shadow-hero: 0 20px 50px -26px rgba(37,99,235,0.18);
-  --tenant-app-bg: linear-gradient(180deg,#f8fbff 0%,#ffffff 22%,#ffffff 100%);
-  --tenant-app-bg-accent-a: rgba(37,99,235,0.08);
-  --tenant-app-bg-accent-b: rgba(147,51,234,0.08);
+  --tenant-shadow-panel: 0 20px 45px -30px rgba(10,37,64,0.18);
+  --tenant-shadow-hero: 0 24px 60px -28px rgba(22,72,225,0.22);
+
+  /*
+   * Signature canvas — hairline blueprint grid layered on a calm
+   * warm-cool wash. Two SVG passes: 32px primary grid + 8px micro
+   * grid for technical density. Visible only on quiet ground.
+   */
+  --tenant-app-bg:
+    linear-gradient(180deg, #F5F8FF 0%, #FFFFFF 18%, #FFFFFF 60%, #F5F8FF 100%);
+  --tenant-app-grid:
+    repeating-linear-gradient(0deg, rgba(22,72,225,0.055) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(22,72,225,0.055) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(0deg, rgba(22,72,225,0.025) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(22,72,225,0.025) 0 1px, transparent 1px 8px);
+  --tenant-app-bg-accent-a: rgba(22,72,225,0.10);
+  --tenant-app-bg-accent-b: rgba(245,118,42,0.06);
 }
 
 .dark {
@@ -160,29 +189,47 @@
   --sidebar-border: oklch(0.28 0.012 258 / 0.75);
   --sidebar-ring: oklch(0.63 0.11 258 / 0.52);
 
-  /* Tenant semantic tokens (dark) */
-  --tenant-text-primary: #e2e8f0;
-  --tenant-text-secondary: #94a3b8;
-  --tenant-text-muted: #64748b;
-  --tenant-accent: #38bdf8;
-  --tenant-accent-soft: rgba(56,189,248,0.10);
-  --tenant-success: #34d399;
-  --tenant-warning: #fbbf24;
-  --tenant-danger: #f87171;
+  /*
+   * Foxhound brand palette (dark) — same family, dark-mode aware. The
+   * cobalt becomes a brighter electric to retain saturation against the
+   * navy ground.
+   */
+  --tenant-brand-ink: #E6ECFF;
+  --tenant-brand: #5B7BFF;
+  --tenant-brand-soft: rgba(91,123,255,0.14);
+  --tenant-brand-glow: rgba(91,123,255,0.30);
+
+  --tenant-spark: #FF924D;
+  --tenant-spark-soft: rgba(255,146,77,0.14);
+
+  --tenant-text-primary: #E6ECFF;
+  --tenant-text-secondary: #98A4C7;
+  --tenant-text-muted: #6B7B9A;
+  --tenant-accent: #5B7BFF;
+  --tenant-accent-soft: rgba(91,123,255,0.14);
+  --tenant-accent-strong: #7B95FF;
+  --tenant-success: #34D399;
+  --tenant-warning: #FBBF24;
+  --tenant-danger: #F87171;
   --tenant-panel: rgba(15,23,42,0.78);
   --tenant-panel-alt: rgba(20,30,52,0.72);
-  --tenant-panel-stroke: rgba(71,85,134,0.22);
+  --tenant-panel-stroke: rgba(91,123,255,0.18);
   --tenant-panel-strong: rgba(20,30,52,0.72);
   --tenant-radius-panel: 1rem;              /* 16px — panel surface              */
   --tenant-radius-panel-tight: 0.75rem;     /* 12px — tight panel                */
   --tenant-radius-pill: 999px;              /* reserved per DESIGN.md            */
   --tenant-radius-button: 0.625rem;         /* 10px — precision control          */
   --tenant-radius-control-tight: 0.4375rem; /* 7px  — control-tight chip / badge */
-  --tenant-shadow-panel: 0 20px 50px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.04);
-  --tenant-shadow-hero: 0 24px 60px -24px rgba(56,189,248,0.12);
+  --tenant-shadow-panel: 0 20px 50px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(91,123,255,0.04);
+  --tenant-shadow-hero: 0 24px 60px -24px rgba(91,123,255,0.16);
   --tenant-app-bg: linear-gradient(180deg,#0B1120 0%,#0D1526 40%,#101A2E 100%);
-  --tenant-app-bg-accent-a: rgba(34,211,238,0.06);
-  --tenant-app-bg-accent-b: rgba(99,102,241,0.05);
+  --tenant-app-grid:
+    repeating-linear-gradient(0deg, rgba(91,123,255,0.05) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(91,123,255,0.05) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(0deg, rgba(91,123,255,0.025) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(91,123,255,0.025) 0 1px, transparent 1px 8px);
+  --tenant-app-bg-accent-a: rgba(91,123,255,0.06);
+  --tenant-app-bg-accent-b: rgba(255,146,77,0.04);
 }
 
 @layer base {

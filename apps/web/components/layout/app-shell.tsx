@@ -46,16 +46,28 @@ export function AppShell({
   mode = 'dashboard',
   modeBanner,
 }: AppShellProps) {
-  const bodyClassName = mode === 'sandbox'
-    ? 'flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,var(--tenant-app-bg-accent-a),transparent_26%),radial-gradient(circle_at_top_right,var(--tenant-app-bg-accent-b),transparent_20%),var(--tenant-app-bg)] text-[var(--tenant-text-primary)] transition-colors duration-300'
-    : 'flex h-screen overflow-hidden bg-background text-foreground';
+  const bodyClassName =
+    'relative flex h-screen overflow-hidden text-[var(--tenant-text-primary)] transition-colors duration-300';
 
-  const contentClassName = mode === 'dashboard'
-    ? 'relative flex flex-1 flex-col overflow-hidden'
-    : 'flex flex-1 flex-col overflow-hidden';
+  const contentClassName = 'relative flex flex-1 flex-col overflow-hidden';
 
   const shell = (
-    <div className={bodyClassName}>
+    <div className={bodyClassName} style={{ background: 'var(--tenant-app-bg)' }}>
+      {/*
+       * Signature backdrop — hairline blueprint grid + warm/cool wash.
+       * Sits below all content, ignores pointer events, only visible on
+       * quiet ground. This is what makes the app read as Foxhound at a
+       * glance with all logos and copy removed.
+       */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-90"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 10% 0%, var(--tenant-app-bg-accent-a), transparent 32%), radial-gradient(circle at 90% 100%, var(--tenant-app-bg-accent-b), transparent 36%), var(--tenant-app-grid)',
+          backgroundAttachment: 'fixed, fixed, fixed, fixed, fixed, fixed',
+        }}
+      />
       <Suspense fallback={null}>
         <Sidebar />
       </Suspense>
@@ -64,7 +76,7 @@ export function AppShell({
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              background: 'radial-gradient(circle at top, color-mix(in oklab, var(--primary) 8%, transparent), transparent 30%)',
+              background: 'radial-gradient(circle at top, color-mix(in oklab, var(--tenant-brand) 6%, transparent), transparent 32%)',
             }}
           />
         ) : null}

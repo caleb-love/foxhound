@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Blaze } from '@/components/system/blaze';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -57,8 +58,8 @@ export default function LoginPage() {
             className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em]"
             style={{ color: 'var(--tenant-text-muted)' }}
           >
-            <span aria-hidden className="inline-block h-[2px] w-6" style={{ background: 'var(--tenant-accent)' }} />
-            <span style={{ color: 'var(--tenant-accent)' }}>Foxhound</span>
+            <Blaze tone="brand" />
+            <span style={{ color: 'var(--tenant-brand)' }}>Foxhound</span>
             <span aria-hidden style={{ opacity: 0.5 }}>·</span>
             <span>Agent Ops Console</span>
           </span>

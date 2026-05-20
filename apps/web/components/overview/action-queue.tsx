@@ -53,9 +53,9 @@ const severityBg: Record<ActionSeverity, string> = {
 };
 
 const kindBadgeColor: Record<DecisionsQueueEntryKind, { fg: string; bg: string }> = {
-  issue: { fg: '#fca5a5', bg: 'rgba(248,113,113,0.12)' },
-  insight: { fg: '#fcd34d', bg: 'rgba(251,191,36,0.12)' },
-  action: { fg: '#86efac', bg: 'rgba(52,211,153,0.14)' },
+  issue: { fg: 'var(--tenant-danger)', bg: 'color-mix(in srgb, var(--tenant-danger) 12%, transparent)' },
+  insight: { fg: 'var(--tenant-warning)', bg: 'color-mix(in srgb, var(--tenant-warning) 12%, transparent)' },
+  action: { fg: 'var(--tenant-spark)', bg: 'color-mix(in srgb, var(--tenant-spark) 14%, transparent)' },
 };
 
 function sortByOperatorValue(a: ActionQueueItem, b: ActionQueueItem): number {
