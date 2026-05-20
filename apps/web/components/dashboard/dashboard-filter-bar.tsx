@@ -64,7 +64,13 @@ export function DashboardFilterBar({ definitions }: { definitions: DashboardFilt
   };
 
   return (
-    <div className="space-y-4 rounded-3xl border p-4" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>
+    <div
+      className="space-y-3 rounded-xl border p-3"
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: 'color-mix(in srgb, var(--card) 84%, var(--background))',
+      }}
+    >
       <div className="flex flex-wrap items-center gap-3">
         {definitions.map((definition) => {
           if (definition.kind === 'search') {

@@ -77,7 +77,7 @@ export function CompactModeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
+      className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors hover:border-[color:color-mix(in_srgb,var(--tenant-accent)_24%,var(--tenant-panel-stroke))]"
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
         background: 'var(--card)',

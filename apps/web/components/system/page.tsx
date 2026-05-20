@@ -47,28 +47,27 @@ export function PageHeader({
 
   return (
     <header className="space-y-3">
+      {/* Eyebrow row — orientation per DESIGN.md §"Page composition". */}
       <div className="flex flex-wrap items-center gap-2">
-        <div
-          className="inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
-          style={{
-            borderColor: 'var(--tenant-panel-stroke)',
-            background: 'color-mix(in srgb, var(--card) 84%, var(--background))',
-            color: 'var(--tenant-accent)',
-          }}
+        <span
+          className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
+          style={{ color: 'var(--tenant-text-muted)' }}
         >
-          {eyebrow}
-        </div>
-        <Badge variant="outline">Segment: {currentSegmentName}</Badge>
+          <span aria-hidden className="inline-block h-[2px] w-6" style={{ background: 'var(--tenant-accent)' }} />
+          <span style={{ color: 'var(--tenant-accent)' }}>{eyebrow}</span>
+          <span aria-hidden style={{ opacity: 0.5 }}>·</span>
+          <span>Segment: {currentSegmentName}</span>
+        </span>
         {children}
       </div>
       <div className="space-y-2">
         <h1
-          className="text-3xl font-semibold tracking-tight text-tenant-text-primary"
-          style={{ fontFamily: 'var(--font-heading)' }}
+          className="text-[34px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
         >
           {title}
         </h1>
-        <p className="max-w-3xl text-sm leading-6 text-tenant-text-secondary">
+        <p className="max-w-[78ch] text-[14px] leading-[1.55] text-tenant-text-secondary">
           {description}
         </p>
       </div>

@@ -115,10 +115,11 @@
   --tenant-panel-alt: rgba(248,250,252,0.92);
   --tenant-panel-stroke: rgba(148,163,184,0.18);
   --tenant-panel-strong: rgba(248,250,252,0.92);
-  --tenant-radius-panel: 1.5rem;
-  --tenant-radius-pill: 999px;
-  --tenant-radius-button: 1rem;
-  --tenant-radius-control-tight: 0.75rem;
+  --tenant-radius-panel: 1rem;              /* 16px — panel surface              */
+  --tenant-radius-panel-tight: 0.75rem;     /* 12px — tight panel                */
+  --tenant-radius-pill: 999px;              /* reserved per DESIGN.md            */
+  --tenant-radius-button: 0.625rem;         /* 10px — precision control          */
+  --tenant-radius-control-tight: 0.4375rem; /* 7px  — control-tight chip / badge */
   --tenant-shadow-panel: 0 20px 45px -28px rgba(15,23,42,0.28);
   --tenant-shadow-hero: 0 20px 50px -26px rgba(37,99,235,0.18);
   --tenant-app-bg: linear-gradient(180deg,#f8fbff 0%,#ffffff 22%,#ffffff 100%);
@@ -172,10 +173,11 @@
   --tenant-panel-alt: rgba(20,30,52,0.72);
   --tenant-panel-stroke: rgba(71,85,134,0.22);
   --tenant-panel-strong: rgba(20,30,52,0.72);
-  --tenant-radius-panel: 1.5rem;
-  --tenant-radius-pill: 999px;
-  --tenant-radius-button: 1rem;
-  --tenant-radius-control-tight: 0.75rem;
+  --tenant-radius-panel: 1rem;              /* 16px — panel surface              */
+  --tenant-radius-panel-tight: 0.75rem;     /* 12px — tight panel                */
+  --tenant-radius-pill: 999px;              /* reserved per DESIGN.md            */
+  --tenant-radius-button: 0.625rem;         /* 10px — precision control          */
+  --tenant-radius-control-tight: 0.4375rem; /* 7px  — control-tight chip / badge */
   --tenant-shadow-panel: 0 20px 50px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.04);
   --tenant-shadow-hero: 0 24px 60px -24px rgba(56,189,248,0.12);
   --tenant-app-bg: linear-gradient(180deg,#0B1120 0%,#0D1526 40%,#101A2E 100%);

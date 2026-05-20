@@ -221,7 +221,7 @@ export function Sidebar() {
         {navSections.map((section) => (
           <div key={section.title} className="space-y-1.5">
             {!isCollapsed ? (
-              <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-tenant-text-muted">
+              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-tenant-text-muted/85">
                 {section.title}
               </div>
             ) : null}
@@ -239,22 +239,38 @@ export function Sidebar() {
                     key={`${section.title}-${item.href}`}
                     href={navigableHref}
                     className={cn(
-                      'flex text-sm font-medium transition-[padding,gap,background-color,color,box-shadow,border-radius,width,height] duration-200 ease-out',
-                      isCollapsed ? 'mx-auto h-12 w-12 items-center justify-center rounded-full p-0' : 'items-center gap-3 rounded-xl px-3 py-2.5',
+                      'group relative flex text-[13px] font-medium transition-[padding,gap,background-color,color,border-radius,width,height] duration-150 ease-out',
+                      isCollapsed
+                        ? 'mx-auto h-11 w-11 items-center justify-center rounded-md p-0'
+                        : 'items-center gap-3 rounded-md px-3 py-2',
+                      isActive
+                        ? 'text-[color:var(--tenant-text-primary)]'
+                        : 'text-[color:var(--tenant-text-secondary)] hover:text-[color:var(--tenant-text-primary)] hover:bg-[color:color-mix(in_srgb,var(--tenant-accent)_6%,transparent)]',
                     )}
                     style={isActive
                       ? {
-                          background: 'color-mix(in srgb, var(--tenant-accent) 18%, var(--sidebar))',
-                          color: 'var(--foreground)',
-                          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--tenant-accent) 42%, transparent)',
+                          background:
+                            'linear-gradient(90deg, color-mix(in srgb, var(--tenant-accent) 14%, transparent) 0%, color-mix(in srgb, var(--tenant-accent) 4%, transparent) 100%)',
                         }
-                      : {
-                          color: 'var(--tenant-text-secondary)',
-                        }}
+                      : undefined}
                     aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
                     title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out" />
+                    {/* Fitted edge indicator — DESIGN.md §"Sidebar: fitted and exact, not pills" */}
+                    {isActive && !isCollapsed ? (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-1 left-0 w-[2px] rounded-r-full"
+                        style={{ background: 'var(--tenant-accent)' }}
+                      />
+                    ) : null}
+                    <Icon
+                      className={cn(
+                        'h-[18px] w-[18px] shrink-0 transition-colors',
+                        isActive && 'text-[color:var(--tenant-accent)]',
+                      )}
+                    />
                     {!isCollapsed ? item.label : <span className="sr-only">{item.label}</span>}
                   </Link>
                 );
