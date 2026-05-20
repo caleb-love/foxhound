@@ -18,12 +18,17 @@ export function DetailHeader({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-3xl font-bold">{title}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1
+          className="text-[32px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
+          {title}
+        </h1>
         {primaryBadge}
         {secondaryBadge}
       </div>
-      <p className="max-w-3xl text-sm text-muted-foreground">{subtitle}</p>
+      <p className="max-w-[78ch] text-[14px] leading-[1.55] text-tenant-text-secondary">{subtitle}</p>
     </div>
   );
 }
@@ -82,9 +87,18 @@ export function SummaryStatCard({
         <CardTitle className="text-sm font-medium text-tenant-text-muted">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-tenant-text-primary">{value}</div>
+        <div
+          className="text-[26px] font-semibold leading-none tracking-tight text-tenant-text-primary"
+          style={{
+            fontFamily:
+              'var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {value}
+        </div>
         {supportingText ? (
-          <p className="mt-1 text-xs text-tenant-text-muted">{supportingText}</p>
+          <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-tenant-text-muted">{supportingText}</p>
         ) : null}
       </CardContent>
     </Card>

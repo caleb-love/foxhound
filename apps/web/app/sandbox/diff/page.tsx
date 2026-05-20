@@ -39,7 +39,12 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
 
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-tenant-text-primary">Run Diff</h1>
+        <h1
+          className="text-[32px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
+          Run Diff
+        </h1>
         <PageWarningState
           title="Select two traces to compare"
           message="Go to the trace list and select two runs, or use a suggested pair below."
@@ -71,7 +76,12 @@ export default async function DiffPage({ searchParams }: DiffPageProps) {
   if (!traceA || !traceB) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-tenant-text-primary">Run Diff</h1>
+        <h1
+          className="text-[32px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
+          Run Diff
+        </h1>
         <PageErrorState
           title="Unable to load run diff"
           message="One or both sandbox traces could not be loaded."

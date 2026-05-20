@@ -87,13 +87,16 @@ export function SectionPanel({
   className?: string;
 }) {
   return (
-    <section className={cn('rounded-3xl p-5 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
-      <div className="space-y-1 pb-4">
-        <h2 className="text-xl font-semibold text-tenant-text-primary" style={{ fontFamily: 'var(--font-heading)' }}>
+    <section className={cn('rounded-2xl p-6 md:p-7 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
+      <header className="space-y-1.5 pb-5">
+        <h2
+          className="text-[20px] font-semibold leading-[1.2] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
           {title}
         </h2>
-        <p className="text-sm text-tenant-text-secondary">{description}</p>
-      </div>
+        <p className="max-w-[78ch] text-[13px] leading-[1.55] text-tenant-text-secondary">{description}</p>
+      </header>
       <div className="space-y-4">{children}</div>
     </section>
   );
@@ -117,10 +120,27 @@ export function MetricCard({
   children?: ReactNode;
 }) {
   return (
-    <div className={cn('flex h-full flex-col rounded-3xl p-5 backdrop-blur-xl', className)} style={surfaceStyles.panel}>
-      <div className="text-sm text-tenant-text-muted">{label}</div>
-      <div className="mt-3 text-3xl font-semibold tracking-tight text-tenant-text-primary">{value}</div>
-      <p className="mt-3 text-sm leading-6 text-tenant-text-secondary">{supportingText}</p>
+    <div
+      className={cn('flex h-full flex-col rounded-xl border p-5 transition-colors', className)}
+      style={{
+        borderColor: 'var(--tenant-panel-stroke)',
+        background: 'color-mix(in srgb, var(--card) 88%, var(--background))',
+      }}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tenant-text-muted">
+        {label}
+      </div>
+      <div
+        className="mt-2.5 text-[28px] font-semibold leading-none tracking-tight text-tenant-text-primary"
+        style={{
+          fontFamily:
+            'var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </div>
+      <p className="mt-3 text-[13px] leading-[1.55] text-tenant-text-secondary">{supportingText}</p>
       {children}
     </div>
   );
@@ -129,7 +149,7 @@ export function MetricCard({
 export function RecordCard({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
     <div
-      className={cn('rounded-2xl border p-4 transition-colors', className)}
+      className={cn('rounded-xl border p-4 transition-colors', className)}
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
         background: 'color-mix(in srgb, var(--card) 88%, var(--background))',

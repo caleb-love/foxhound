@@ -91,7 +91,12 @@ export function PromptDiffView({
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-tenant-text-primary">Prompt Comparison</h1>
+            <h1
+              className="text-[28px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+              style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+            >
+              Prompt Comparison
+            </h1>
             <p className="mt-1 text-sm text-tenant-text-secondary">{promptName}</p>
           </div>
           <InlineActionBar>

@@ -56,7 +56,12 @@ export function PromptDetailView({ prompt, versions, performanceByVersion, promp
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-tenant-text-primary">{prompt.name}</h1>
+            <h1
+              className="text-[28px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+              style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+            >
+              {prompt.name}
+            </h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs text-tenant-text-muted">{prompt.id}</span>
               {latestVersion ? (

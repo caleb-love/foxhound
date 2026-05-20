@@ -52,7 +52,12 @@ export default async function SandboxExperimentComparisonPage({
   if (ids.length < 2) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-tenant-text-primary">Experiment Comparison</h1>
+        <h1
+          className="text-[32px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
+          Experiment Comparison
+        </h1>
         <PageWarningState
           title="Select at least two sandbox experiments"
           message="Choose two or more seeded experiments to compare their run output, evaluator coverage, and release posture."
@@ -70,7 +75,12 @@ export default async function SandboxExperimentComparisonPage({
   if (experiments.length !== ids.length) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-tenant-text-primary">Experiment Comparison</h1>
+        <h1
+          className="text-[32px] font-semibold leading-[1.1] tracking-tight text-tenant-text-primary"
+          style={{ fontFamily: 'var(--font-heading), Outfit, ui-sans-serif, system-ui' }}
+        >
+          Experiment Comparison
+        </h1>
         <PageErrorState
           title="Sandbox experiment comparison unavailable"
           message="One or more requested sandbox experiments could not be found."
