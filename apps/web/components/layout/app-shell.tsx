@@ -90,7 +90,7 @@ export function AppShell({
           <TopBar user={user} mode={mode} leadingContent={<ShellModeHeader mode={mode} />} />
         ) : mode === 'sandbox' ? (
           <header
-            className="relative flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl"
+            className="relative flex h-16 items-center justify-between gap-3 border-b pl-20 pr-4 backdrop-blur-xl md:pl-6 md:pr-6"
             style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--tenant-panel) 85%, transparent)' }}
           >
             <ShellModeHeader mode={mode} />
@@ -100,7 +100,7 @@ export function AppShell({
             </div>
           </header>
         ) : null}
-        <main className="relative flex-1 overflow-y-auto px-6 py-6">
+        <main className="relative flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6">
           <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
             <InvestigationBreadcrumb />
             {children}

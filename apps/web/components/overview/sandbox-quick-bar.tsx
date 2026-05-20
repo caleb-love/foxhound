@@ -33,13 +33,13 @@ export function SandboxQuickBar({ links = defaultLinks }: { links?: QuickLink[] 
 
   return (
     <div
-      className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-xl border px-3 py-2 shadow-lg backdrop-blur-xl"
+      className="fixed bottom-4 left-1/2 z-40 hidden max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-xl border px-3 py-2 shadow-lg backdrop-blur-xl md:flex"
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
         background: 'color-mix(in srgb, var(--card) 92%, var(--background))',
       }}
     >
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-tenant-text-muted">
         Sandbox
       </span>
       {links.map((link) => {

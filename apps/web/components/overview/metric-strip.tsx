@@ -102,7 +102,7 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
       aria-label={`${item.label}: ${item.value}${item.delta ? `, ${item.delta.label}` : ''}`}
       data-tone={tone}
       className={cn(
-        'relative flex flex-1 items-center gap-3 overflow-hidden rounded-xl border px-4 py-3.5 transition-colors',
+        'relative flex h-full min-w-0 items-center gap-3 overflow-hidden rounded-xl border px-4 py-3.5 transition-colors',
         item.href && 'cursor-pointer hover:bg-white/[0.03]',
       )}
       style={{
@@ -143,7 +143,7 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
 
   if (item.href) {
     return (
-      <SegmentAwareLink href={item.href} className="flex flex-1">
+      <SegmentAwareLink href={item.href} className="block h-full">
         {content}
       </SegmentAwareLink>
     );
@@ -154,7 +154,11 @@ function MetricStripCell({ item }: { item: MetricStripItem }) {
 
 export function MetricStrip({ items }: MetricStripProps) {
   return (
-    <div className="flex flex-wrap gap-3" role="group" aria-label="Key metrics">
+    <div
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      role="group"
+      aria-label="Key metrics"
+    >
       {items.map((item) => (
         <MetricStripCell key={item.label} item={item} />
       ))}

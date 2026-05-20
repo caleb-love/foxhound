@@ -39,7 +39,7 @@ export function TopBar({ user, mode = 'dashboard', leadingContent }: TopBarProps
 
   return (
     <header
-      className="relative z-10 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl"
+      className="relative z-10 flex h-16 items-center justify-between gap-3 border-b pl-20 pr-4 backdrop-blur-xl md:pl-6 md:pr-6"
       style={{
         borderColor: 'var(--tenant-panel-stroke)',
         background: 'var(--background)',

@@ -250,7 +250,8 @@ export function TraceTable({ initialData }: TraceTableProps) {
 
       <SelectionSummaryBar selectedCount={selectedTraceIds.length} canCompare={canCompare()} onClear={clearSelection} onCompare={handleCompare} />
 
-      <div className="overflow-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', boxShadow: 'var(--tenant-shadow-panel)' }}>
+      <div className="overflow-x-auto overflow-y-hidden rounded-[var(--tenant-radius-panel)] border" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)', boxShadow: 'var(--tenant-shadow-panel)' }}>
+       <div className="min-w-[820px]">
         {/* Header */}
         <div className="grid items-center border-b px-3 py-2" style={{ gridTemplateColumns: GRID_COLS, borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
           <span className="sr-only">Select</span>
@@ -264,7 +265,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
         </div>
 
         {/* Rows */}
-        <div ref={scrollRef} className="overflow-y-auto" style={useVirtual ? { maxHeight: `min(${ROW_HEIGHT * 15}px, 60vh)` } : undefined}>
+        <div ref={scrollRef} className="overflow-x-auto overflow-y-auto" style={useVirtual ? { maxHeight: `min(${ROW_HEIGHT * 15}px, 60vh)` } : undefined}>
           {useVirtual ? (
             <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
               {virtualizer.getVirtualItems().map((vr) => (
@@ -282,6 +283,7 @@ export function TraceTable({ initialData }: TraceTableProps) {
         <div className="border-t px-3 py-2 text-[11px] text-tenant-text-muted" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'color-mix(in srgb, var(--card) 88%, var(--background))' }}>
           {traces.length} trace{traces.length !== 1 ? 's' : ''}{selectedTraceIds.length > 0 ? ` · ${selectedTraceIds.length} selected` : ''}{useVirtual ? ' · virtual scrolling' : ''}
         </div>
+       </div>
       </div>
     </WorkbenchPanel>
   );
