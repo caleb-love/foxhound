@@ -10,6 +10,22 @@ import type { PromptResponse } from '@foxhound/api-client';
 import { PageContainer, PageHeader, StatusBadge } from '@/components/system/page';
 import { DataGrid, DataGridBody, DataGridCell, DataGridHead, DataGridHeader, DataGridRow, VerdictBar } from '@/components/investigation';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import { OpinionatedSuggestionPanel } from '@/components/decisions/opinionated-suggestion-panel';
+import type { OpinionatedSuggestion } from '@/lib/decisions-queue-types';
+
+const REFUND_POLICY_PROMPT_FIX: OpinionatedSuggestion = {
+  framework: 'claude-agent-sdk',
+  summary:
+    'refund-policy-check: add a "use only provided context" guard to the system prompt.',
+  diff: [
+    '  system: |',
+    '    You are a returns and refunds support agent.',
+    '+   Answer ONLY from the refund policy I provide in the next turn.',
+    '+   If the policy does not cover the situation, say so and escalate.',
+  ].join('\n'),
+  expectedImpact:
+    'faithful-to-context evaluator score expected to lift from 0.71 → ≥ 0.92 within 100 traces.',
+};
 
 export interface PromptPerformanceMetrics {
   traceCount: number;
@@ -69,6 +85,10 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
     timestampMs: hasExplicitDateFilter ? (prompt) => new Date(prompt.updatedAt).getTime() : undefined,
   }).sort((a, b) => a.name.localeCompare(b.name));
 
+  const elevatedErrorPrompt =
+    performanceByPrompt &&
+    Object.entries(performanceByPrompt).find(([, perf]) => perf.errorRate >= 0.05);
+
   return (
     <PageContainer>
       <PageHeader
@@ -86,6 +106,13 @@ export function PromptListView({ prompts, performanceByPrompt, focusedPromptName
           severity="info"
           headline={`Focused on ${focusedPromptName}`}
           summary="This prompt was carried in from another investigation workflow. Review the matching prompt first, then branch into version comparison."
+        />
+      ) : null}
+
+      {elevatedErrorPrompt ? (
+        <OpinionatedSuggestionPanel
+          suggestion={REFUND_POLICY_PROMPT_FIX}
+          heading="Foxhound suggests"
         />
       ) : null}
 

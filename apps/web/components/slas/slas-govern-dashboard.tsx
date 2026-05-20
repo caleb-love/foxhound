@@ -9,6 +9,23 @@ import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, Dat
 import { Plus, Eye, Settings } from 'lucide-react';
 import { ComparisonScorecard } from '@/components/charts/comparison-scorecard';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import { OpinionatedSuggestionPanel } from '@/components/decisions/opinionated-suggestion-panel';
+import type { OpinionatedSuggestion } from '@/lib/decisions-queue-types';
+
+const SLA_TIMEOUT_SUGGESTION: OpinionatedSuggestion = {
+  framework: 'langgraph',
+  summary: 'Wrap the slowest tool call with a 1.5s deadline + one retry.',
+  diff: [
+    '- tools.add(pricing_lookup)',
+    '+ tools.add(',
+    '+     pricing_lookup,',
+    '+     timeout_ms=1500,',
+    '+     retry=RetryPolicy(max_attempts=2, backoff_ms=200),',
+    '+ )',
+  ].join('\n'),
+  expectedImpact:
+    'Modeled p95 latency drops below the configured SLA without affecting success rate.',
+};
 
 export interface SlaRecord {
   agentId: string;
@@ -84,6 +101,13 @@ export function SlasGovernDashboard({ slas, baseHref = '' }: SlasGovernDashboard
         <MetricChip label="Healthy" value={String(healthy)} accent="success" />
         {atRisk > 0 ? <MetricChip label="At risk" value={String(atRisk)} accent="warning" /> : null}
       </MetricStrip>
+
+      {atRisk > 0 ? (
+        <OpinionatedSuggestionPanel
+          suggestion={SLA_TIMEOUT_SUGGESTION}
+          heading="Foxhound suggests"
+        />
+      ) : null}
 
       <ComparisonScorecard
         title="SLA decomposition"

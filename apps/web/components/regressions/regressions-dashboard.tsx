@@ -8,6 +8,27 @@ import { PageContainer, PageHeader } from '@/components/system/page';
 import { VerdictBar, MetricChip, MetricStrip, InlineAction, InlineActionBar } from '@/components/investigation';
 import { Eye, GitCompare, AlertTriangle } from 'lucide-react';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import { OpinionatedSuggestionPanel } from '@/components/decisions/opinionated-suggestion-panel';
+import type { OpinionatedSuggestion } from '@/lib/decisions-queue-types';
+
+/**
+ * When a critical regression is active, Foxhound surfaces a concrete prompt
+ * edit alongside the regression list — not just "here's the breakage" but
+ * "here's what we propose you change". This is the demo's headline pattern.
+ */
+const REFUND_POLICY_PROMPT_FIX: OpinionatedSuggestion = {
+  framework: 'claude-agent-sdk',
+  summary:
+    'Add a "use only provided refund-policy context" guard to the system prompt.',
+  diff: [
+    '  system: |',
+    '    You are a returns and refunds support agent.',
+    '+   Answer ONLY from the refund policy I provide in the next turn.',
+    '+   If the policy does not cover the situation, say so and escalate.',
+  ].join('\n'),
+  expectedImpact:
+    'faithful-to-context evaluator score expected to lift from 0.71 → ≥ 0.92 within 100 traces.',
+};
 
 export interface RegressionRecord {
   id: string;
@@ -82,6 +103,13 @@ export function RegressionsDashboard({ regressions, baseHref = '' }: Regressions
         {criticalCount > 0 ? <MetricChip label="Critical" value={String(criticalCount)} accent="danger" /> : null}
         {warningCount > 0 ? <MetricChip label="Warning" value={String(warningCount)} accent="warning" /> : null}
       </MetricStrip>
+
+      {criticalCount > 0 ? (
+        <OpinionatedSuggestionPanel
+          suggestion={REFUND_POLICY_PROMPT_FIX}
+          heading="Foxhound suggests"
+        />
+      ) : null}
 
       {filtered.length === 0 ? (
         <div className="rounded-[var(--tenant-radius-panel)] border p-12 text-center" style={{ borderColor: 'var(--tenant-panel-stroke)', background: 'var(--card)' }}>

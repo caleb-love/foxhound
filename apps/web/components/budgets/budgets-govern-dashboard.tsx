@@ -9,6 +9,27 @@ import { DataGrid, DataGridBody, DataGridCell, DataGridFooter, DataGridHead, Dat
 import { Plus, Eye, AlertTriangle, Settings } from 'lucide-react';
 import { StackedBarChart } from '@/components/charts/stacked-bar-chart';
 import { createDateRangeFromHours } from '@/lib/stores/dashboard-filter-presets';
+import { OpinionatedSuggestionPanel } from '@/components/decisions/opinionated-suggestion-panel';
+import type { OpinionatedSuggestion } from '@/lib/decisions-queue-types';
+
+/**
+ * When budgets are overspent, the demo's headline cause is the v18 regression
+ * that doubled refund-policy-check calls. Foxhound proposes a bounded retry
+ * pattern that contains the cost without dropping success rate.
+ */
+const RETRY_BOUND_SUGGESTION: OpinionatedSuggestion = {
+  framework: 'langgraph',
+  summary: 'Cap retry-on-empty at 3, fall through to a no-results node.',
+  diff: [
+    '- graph.add_edge("search", "search", condition=empty_results)',
+    '+ graph.add_conditional_edges(',
+    '+     "search",',
+    '+     lambda s: "search" if s.empty and s.retry_count < 3 else "no_results",',
+    '+ )',
+  ].join('\n'),
+  expectedImpact:
+    'Modeled monthly spend drops from current overspend trajectory to ≤ 96% of budget.',
+};
 
 export interface BudgetRecord {
   agentId: string;
@@ -94,6 +115,13 @@ export function BudgetsGovernDashboard({ budgets, baseHref = '' }: BudgetsGovern
         {criticalCount > 0 ? <MetricChip label="Over budget" value={String(criticalCount)} accent="danger" /> : null}
         {warningCount > 0 ? <MetricChip label="At risk" value={String(warningCount)} accent="warning" /> : null}
       </MetricStrip>
+
+      {criticalCount > 0 ? (
+        <OpinionatedSuggestionPanel
+          suggestion={RETRY_BOUND_SUGGESTION}
+          heading="Foxhound suggests"
+        />
+      ) : null}
 
       <StackedBarChart
         title="Budget concentration"
