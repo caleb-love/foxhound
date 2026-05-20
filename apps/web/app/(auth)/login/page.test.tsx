@@ -93,7 +93,7 @@ describe('LoginPage', () => {
 
     expect(screen.getByLabelText('Email')).toBeDisabled();
     expect(screen.getByLabelText('Password')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Signing in…' })).toBeDisabled();
 
     resolveSignIn?.({ ok: true, error: undefined });
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/traces'));

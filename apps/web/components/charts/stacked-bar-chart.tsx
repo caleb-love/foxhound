@@ -18,10 +18,10 @@ export interface StackedBarDatum {
 }
 
 function toneColor(tone: ChartStatusTone) {
-  if (tone === 'healthy') return '#34d399';
-  if (tone === 'warning') return '#fbbf24';
-  if (tone === 'critical') return '#f87171';
-  return '#38bdf8';
+  if (tone === 'healthy') return 'var(--tenant-success)';
+  if (tone === 'warning') return 'var(--tenant-warning)';
+  if (tone === 'critical') return 'var(--tenant-danger)';
+  return 'var(--tenant-accent)';
 }
 
 export function StackedBarChart({

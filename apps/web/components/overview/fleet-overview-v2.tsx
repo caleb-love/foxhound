@@ -289,8 +289,13 @@ export function FleetOverviewV2({
       {/* 3. Risk metrics strip */}
       <MetricStrip items={metricStripItems} />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="space-y-3">
+      {/*
+       * Asymmetric composition per DESIGN.md §"Card-grid rule: a grid of
+       * equal-weight cards is not the default answer". Concentration is the
+       * smaller anchor (drill point), trend is the wider editorial canvas.
+       */}
+      <div className="grid gap-4 xl:grid-cols-12">
+        <div className="space-y-3 xl:col-span-5">
           <ViewModeToggle
             label="Group concentration by"
             value={groupBy}
@@ -303,15 +308,17 @@ export function FleetOverviewV2({
           />
           <StackedBarChart
             title="Risk concentration"
-            description="See where active risk is concentrated before jumping into traces or regressions. Segmentation should change the dominant owner, not just the total count."
+            description="Where active risk is concentrated before jumping into traces or regressions."
             data={concentrationData}
           />
         </div>
-        <TrendChart
-          title="Risk posture trend band"
-          description="Read whether reliability, regressions, and budget pressure are moving together or independently before escalating the wrong issue."
-          series={riskTrendSeries}
-        />
+        <div className="xl:col-span-7">
+          <TrendChart
+            title="Risk posture trend band"
+            description="Is reliability, regression pressure, and budget pressure moving together or independently? Read the band first, then escalate."
+            series={riskTrendSeries}
+          />
+        </div>
       </div>
 
       {/* 4. Unified action queue */}
